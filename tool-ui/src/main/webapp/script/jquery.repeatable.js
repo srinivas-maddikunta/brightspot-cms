@@ -25,6 +25,20 @@ $.plugin2('repeatable', {
             $container.toggleClass('state-disabled', disable);
         });
 
+        var popEmbeddedEdit = function($item, $source, event) {
+
+            var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
+
+            if(!$objectInputs) {
+                $objectInputs = $item.find('.objectInputs');
+                $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
+                $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
+            }
+
+            $objectInputs.popup('source', $source, event);
+            $objectInputs.popup('open');
+        };
+
         // Helper for creating extra stuff on an item.
         var createExtra = function() {
 
@@ -72,7 +86,10 @@ $.plugin2('repeatable', {
                             $('<figcaption>', {
                                 'html': $label
                             })
-                        ]})
+                        ],
+                        'click': function(e) {
+                            popEmbeddedEdit($item, $(this), e);
+                        }})
                     })
                 );
 
@@ -81,16 +98,7 @@ $.plugin2('repeatable', {
                     'text': 'Edit',
                     'click': function(e) {
 
-                        var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
-
-                        if(!$objectInputs) {
-                            $objectInputs = $item.find('.objectInputs');
-                            $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
-                            $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
-                        }
-
-                        $objectInputs.popup('source', $(this), e);
-                        $objectInputs.popup('open');
+                        popEmbeddedEdit($item, $(this), e);
                     }
                 }));
 
