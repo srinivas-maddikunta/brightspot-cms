@@ -22,7 +22,7 @@ $.plugin2('repeatable', {
         $container.addClass('event-input-disable');
 
         $container.bind('input-disable', function(event, disable) {
-            $container.toggleClass('state-disabled', disable);
+            $(event.target).closest('.inputContainer').toggleClass('state-disabled', disable);
         });
 
         var popEmbeddedEdit = function($item, $source, event) {
