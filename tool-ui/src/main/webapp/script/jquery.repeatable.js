@@ -2,7 +2,8 @@
 (function($, win, undef) {
 
 var $win = $(win),
-        cacheNonce = 0;
+        cacheNonce = 0,
+        OBJECT_FORM_DATA = "object-form-data";
 
 $.plugin2('repeatable', {
     '_defaultOptions': {
@@ -30,6 +31,7 @@ $.plugin2('repeatable', {
             var $item = $(this);
 
             var type = $item.attr('data-type');
+
             if (type) {
                 var label = $item.attr('data-label');
                 var $labelHtml = $item.find(" > .repeatableLabel");
@@ -55,6 +57,44 @@ $.plugin2('repeatable', {
                     });
                 }
                 $item.prepend($label);
+            }
+
+            if ($item.is('[data-preview]')) {
+
+                var preview = $item.attr('data-preview');
+                $item.prepend($('<div />', {
+                    class: 'embedded-object-preview',
+                    html: $('<figure/>', {
+                        'html': [
+                            $('<img/>', {
+                                'src': preview
+                            }),
+                            $('<figcaption>', {
+                                'html': $label
+                            })
+                        ]})
+                    })
+                );
+
+                $item.append($('<span/>', {
+                    'class': 'embedded-object-edit',
+                    'text': 'Edit',
+                    'click': function(e) {
+
+                        var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
+
+                        if(!$objectInputs) {
+                            $objectInputs = $item.find('.objectInputs');
+                            $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
+                            $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
+                        }
+
+                        $objectInputs.popup('source', $(this), e);
+                        $objectInputs.popup('open');
+                    }
+                }));
+
+                $item.removeClass('collapsed');
             }
 
             $item.find(':input[name$=".toggle"]').hide();

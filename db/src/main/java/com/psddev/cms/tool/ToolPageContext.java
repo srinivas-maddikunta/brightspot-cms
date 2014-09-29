@@ -1866,6 +1866,45 @@ public class ToolPageContext extends WebPageContext {
         }
     }
 
+    public void writeEmbeddedObjectPreview(ObjectField field, Object value, Object... attributes) throws IOException {
+
+        ErrorUtils.errorIfNull(field, "field");
+        ToolUi ui = field.as(ToolUi.class);
+
+        String placeholder = ObjectUtils.firstNonNull(ui.getPlaceholder(), "");
+
+        if (field.isRequired()) {
+            placeholder += " (Required)";
+        }
+
+        State state = State.getInstance(value);
+        StringBuilder typeIds = new StringBuilder();
+
+        for (ObjectType type : field.getTypes()) {
+            typeIds.append(type.getId());
+            typeIds.append(',');
+        }
+
+        if (typeIds.length() > 0) {
+            typeIds.setLength(typeIds.length() - 1);
+        }
+
+        writeElement("input",
+                "type", "text",
+                "class", "objectId",
+                "data-additional-query", field.getPredicate(),
+                "data-label", value != null ? getObjectLabel(value) : null,
+                "data-pathed", ToolUi.isOnlyPathed(field),
+                "data-preview", getPreviewThumbnailUrl(value),
+                "data-searcher-path", ui.getInputSearcherPath(),
+                "data-suggestions", ui.isEffectivelySuggestions(),
+                "data-typeIds", typeIds,
+                "data-visibility", value != null ? state.getVisibilityLabel() : null,
+                "value", value != null ? state.getId() : null,
+                "placeholder", placeholder,
+                attributes);
+    }
+
     /**
      * Writes a {@code <select>} tag that allows the user to pick a
      * visibility status.

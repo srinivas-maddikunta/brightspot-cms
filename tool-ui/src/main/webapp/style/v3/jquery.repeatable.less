@@ -127,6 +127,9 @@
   }
 
   &.repeatableForm-previewable {
+
+    @listItem-margin: 10px;
+    @listItem-markerSize: 20px;
     > ol,
     > ul {
       overflow: hidden;
@@ -206,6 +209,85 @@
     > [class*=" action-"] {
       float: left;
       margin: 0 10px 0 0;
+    }
+
+    &.repeatableForm-popup {
+      .objectInputs {
+        display: none;
+      }
+      .popup > .content > .objectInputs {
+        display: block;
+      }
+      > ol, > ul {
+        > li {
+          &[data-preview] {
+            max-width: 180px;
+            width: 33%;
+            box-sizing: border-box;
+            float: left;
+            margin: 0;
+            border: 0;
+            padding: 0 @listItem-margin @listItem-margin 0;
+            position: relative;
+
+            > .removeButton {
+              top: @size-input-border + @select-markerSize + 1;
+              right: (@listItem-margin + @size-input-border) + 3;
+            }
+
+            > .embedded-object-preview {
+
+              @img-height: 100px;
+
+              display: block;
+//              height: (@img-height + 2 * (@size-input-padding + @size-input-border));
+              margin-bottom: 5px;
+              width: 100%;
+
+              > figure {
+                height: 110px;
+                display: block;
+                > img {
+                  height: @img-height;
+                  display: block;
+                  max-width: 100%;
+                }
+              }
+            }
+            &:nth-child(4n+1) {
+              clear: none;
+            }
+          }
+        }
+      }
+
+      > ol {
+
+        counter-reset: listItem;
+
+        > li {
+          &[data-preview] {
+            &:before {
+              .background-color(@color-alt);
+              .strong;
+
+              border-bottom-left-radius: 3px;
+              border-top-right-radius: 5px;
+              counter-increment: listItem;
+              content: counter(listItem);
+              height: @select-markerSize;
+              line-height: @select-markerSize;
+              min-width: (@listItem-markerSize - @select-markerMargin - @size-input-padding - @size-input-border);
+              padding: 0 @size-input-padding;
+              position: absolute;
+              right: (@listItem-margin + @size-input-border);
+              text-align: center;
+              top: @size-input-border;
+              z-index: 1;
+            }
+          }
+        }
+      }
     }
   }
 }

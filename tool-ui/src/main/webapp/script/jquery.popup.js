@@ -10,7 +10,8 @@ $.plugin2('popup', {
             'left': 35,
             'right': 35,
             'top': 20
-        }
+        },
+        'parent': doc.body
     },
     
     '_create': function(element) {
@@ -65,7 +66,7 @@ $.plugin2('popup', {
             $(this).popup('close');
         });
 
-        var $body = $(doc.body);
+        var $body = $(options.parent);
         $content.append($inner);
         $content.append($closeButton);
         $container.append($content);
@@ -123,6 +124,12 @@ $.plugin2('popup', {
 
             // Change position.
             var sourceOffset = $newSource.offset();
+            var popupOffsetParentOffset = $container.offsetParent().offset();
+            sourceOffset = {
+                'left': sourceOffset.left - popupOffsetParentOffset.left,
+                'top': sourceOffset.top - popupOffsetParentOffset.top
+            };
+
             var popupWidth = $container.outerWidth();
 
             // Make sure left is within bounds.

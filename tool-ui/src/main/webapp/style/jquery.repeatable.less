@@ -508,6 +508,10 @@
                 .objectId-edit {
                     margin-left: 0;
                 }
+
+                .repeatableObjectId-form {
+                    display:none;
+                }
             }
         }
 
@@ -537,6 +541,13 @@
                 .objectId-select:before {
                     top: (@select-markerSize + @select-markerMargin);
                 }
+            }
+        }
+
+        &.repeatableObjectId-thumbnail {
+
+            .objectInputs {
+                display: none;
             }
         }
     }
