@@ -78,7 +78,7 @@ $.plugin2('repeatable', {
                 var preview = $item.attr('data-preview');
                 $item.prepend($('<div />', {
                     class: 'embedded-object-preview',
-                    html: $('<figure/>', {
+                    html: $('<figure />', {
                         'html': [
                             $('<img/>', {
                                 'src': preview
@@ -103,6 +103,34 @@ $.plugin2('repeatable', {
                 }));
 
                 $item.removeClass('collapsed');
+
+                var previewField = $item.attr('data-preview-field');
+                if(previewField) {
+
+                    var lastSlashAt = previewField.lastIndexOf("/");
+
+                    if(lastSlashAt !== -1) {
+                        previewField = previewField.substr(0, lastSlashAt);
+                    }
+
+                    var myField = $item.closest('[data-field]').attr('data-field');
+
+                    var $previewFieldEl = $item.find('[data-field="' + myField + '/' + previewField + '"]').first();
+
+                    if($previewFieldEl.size() === 0) {
+                        $previewFieldEl = $item.find('[data-field="' + previewField + '"]').first();
+                    }
+
+                    if($previewFieldEl.size() > 0) {
+
+                        var $previewFieldInput = $previewFieldEl.find('[name="' + $previewFieldEl.attr('data-name') + '"]').first();
+
+                        $previewFieldInput.bind('change', function() {
+                            $item.attr('data-preview', $previewFieldInput.attr('data-preview'));
+                            $item.find('> .embedded-object-preview > figure > img').attr('src', $previewFieldInput.attr('data-preview'));
+                        });
+                    }
+                }
             }
 
             $item.find(':input[name$=".toggle"]').hide();

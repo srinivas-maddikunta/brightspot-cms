@@ -572,11 +572,13 @@ if (!isValueExternal) {
             "class", "inputLarge repeatableForm" + (!bulkUploadTypes.isEmpty() ? " repeatableForm-previewable" : "") + (isFormPopup && !bulkUploadTypes.isEmpty() ? " repeatableForm-popup" : ""),
             "foo", "bar",
             "data-generic-arguments", genericArgumentsString);
-        wp.writeStart("ol");
-            for (Object item : fieldValue) {
-                State itemState = State.getInstance(item);
-                ObjectType itemType = itemState.getType();
-                Date itemPublishDate = itemState.as(Content.ObjectModification.class).getPublishDate();
+    wp.writeStart("ol");
+
+    for (Object item : fieldValue) {
+
+        State itemState = State.getInstance(item);
+        ObjectType itemType = itemState.getType();
+        Date itemPublishDate = itemState.as(Content.ObjectModification.class).getPublishDate();
 
         List<Object> attributes = new ArrayList<Object>();
         attributes.add("data-type");
@@ -584,9 +586,11 @@ if (!isValueExternal) {
         attributes.add("data-label");
         attributes.add(wp.getObjectLabel(item));
 
-        if(isFormPopup && !bulkUploadTypes.isEmpty()) {
+        if (isFormPopup && !bulkUploadTypes.isEmpty()) {
             attributes.add("data-preview");
             attributes.add(wp.getPreviewThumbnailUrl(item));
+            attributes.add("data-preview-field");
+            attributes.add(itemType.getPreviewField());
         }
 
         wp.writeStart("li", attributes.toArray());
@@ -611,9 +615,21 @@ if (!isValueExternal) {
 
     for (ObjectType type : validTypes) {
         wp.writeStart("script", "type", "text/template");
-        wp.writeStart("li",
-                "class", !bulkUploadTypes.isEmpty() ? "collapsed" : null,
-                "data-type", wp.getObjectLabel(type));
+
+        // TODO: add in preview processing... data-preview-field?
+        List<Object> attributes = new ArrayList<Object>();
+        attributes.add("class");
+        attributes.add(!bulkUploadTypes.isEmpty() ? "collapsed" : null);
+        attributes.add("data-type");
+        attributes.add(wp.getObjectLabel(type));
+
+        if (isFormPopup && !bulkUploadTypes.isEmpty()) {
+            attributes.add("data-preview");
+            attributes.add("");
+            attributes.add("data-preview-field");
+            attributes.add(type.getPreviewField());
+        }
+        wp.writeStart("li", attributes.toArray());
         wp.writeStart("a",
                 "href", wp.cmsUrl("/content/repeatableObject.jsp",
                 "inputName", inputName,
