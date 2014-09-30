@@ -587,8 +587,9 @@ if (!isValueExternal) {
         attributes.add(wp.getObjectLabel(item));
 
         if (isFormPopup && !bulkUploadTypes.isEmpty()) {
+            String previewThumbnailUrl = wp.getPreviewThumbnailUrl(item);
             attributes.add("data-preview");
-            attributes.add(wp.getPreviewThumbnailUrl(item));
+            attributes.add(previewThumbnailUrl != null ? previewThumbnailUrl : "");
             attributes.add("data-preview-field");
             attributes.add(itemType.getPreviewField());
         }
