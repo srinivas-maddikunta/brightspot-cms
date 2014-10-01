@@ -33,6 +33,7 @@ $.plugin2('repeatable', {
                 $objectInputs = $item.find('.objectInputs');
                 $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
                 $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
+                $objectInputs.trigger('resize');
             }
 
             $objectInputs.popup('source', $source, event);
