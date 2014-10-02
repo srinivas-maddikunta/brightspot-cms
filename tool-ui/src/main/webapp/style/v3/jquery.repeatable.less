@@ -212,6 +212,10 @@
     }
 
     &.repeatableForm-popup {
+
+      @size-input-border: 0;
+      @listItem-margin: 6px;
+
       .objectInputs {
         display: none;
       }
@@ -221,32 +225,45 @@
       > ol, > ul {
         > li {
           &[data-preview] {
-            max-width: 180px;
-            width: 33%;
             box-sizing: border-box;
             float: left;
             margin: 0;
             border: 0;
             padding: 0 @listItem-margin @listItem-margin 0;
             position: relative;
+            width: auto;
 
             > .removeButton {
-              top: @size-input-border + @select-markerSize + 1;
+              top: @size-input-border + 1;
               right: (@listItem-margin + @size-input-border) + 3;
+              visibility: hidden;
+            }
+
+            &:hover {
+              > .removeButton {
+                visibility: visible;
+              }
             }
 
             > .embedded-object-preview {
 
               @img-height: 100px;
 
-              display: block;
-//              height: (@img-height + 2 * (@size-input-padding + @size-input-border));
-              margin-bottom: 5px;
-              width: 100%;
+              height: @img-height;
+
+              display: inline-block;
+              width: auto;
+              padding: 0;
+              border-width: 0;
+
+              &:before {
+                display: none;
+              }
 
               > figure {
                 height: 110px;
-                display: block;
+                display: inline-block;
+                min-width: 0;
                 > img {
                   height: @img-height;
                   display: block;
@@ -263,8 +280,6 @@
 
             // .toBeRemoved from .repeatable-form li and .objectId-select
             &.toBeRemoved {
-//              border-color: #fdd;
-//              padding-bottom: 0;
 
               // similar to .objectId-select
               > .embedded-object-preview {
@@ -316,10 +331,16 @@
               min-width: (@listItem-markerSize - @select-markerMargin - @size-input-padding - @size-input-border);
               padding: 0 @size-input-padding;
               position: absolute;
-              right: (@listItem-margin + @size-input-border);
+              left: @size-input-border;
               text-align: center;
               top: @size-input-border;
               z-index: 1;
+              visibility: hidden;
+            }
+            &:hover {
+                &:before {
+                    visibility: visible;
+                }
             }
           }
         }

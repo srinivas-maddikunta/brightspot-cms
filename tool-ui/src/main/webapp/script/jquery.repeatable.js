@@ -36,8 +36,8 @@ $.plugin2('repeatable', {
                 $objectInputs.trigger('resize');
             }
 
-            $objectInputs.popup('source', $source, event);
             $objectInputs.popup('open');
+            $objectInputs.popup('source', $source, event);
         };
 
         // Helper for creating extra stuff on an item.
@@ -77,31 +77,21 @@ $.plugin2('repeatable', {
             if ($item.is('[data-preview]')) {
 
                 var preview = $item.attr('data-preview');
+                $label.remove();
                 $item.prepend($('<div />', {
                     class: 'embedded-object-preview',
                     html: $('<figure />', {
+                        'class': 'embedded-object-edit-popup',
                         'html': [
                             $('<img/>', {
                                 'src': preview
-                            }),
-                            $('<figcaption>', {
-                                'html': $label
                             })
                         ],
                         'click': function(e) {
-                            popEmbeddedEdit($item, $(this), e);
+                            popEmbeddedEdit($item, $(this), null);
                         }})
                     })
                 );
-
-                $item.append($('<span/>', {
-                    'class': 'embedded-object-edit',
-                    'text': 'Edit',
-                    'click': function(e) {
-
-                        popEmbeddedEdit($item, $(this), e);
-                    }
-                }));
 
                 $item.removeClass('collapsed');
 
