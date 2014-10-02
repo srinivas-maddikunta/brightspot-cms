@@ -3,7 +3,10 @@
 
 var $win = $(win),
         cacheNonce = 0,
-        OBJECT_FORM_DATA = "object-form-data";
+        OBJECT_FORM_DATA = "object-form-data",
+        PREVIOUS_OBJECT_DATA = "object-nav-previous",
+        NEXT_OBJECT_DATA = "object-nav-next";
+
 
 $.plugin2('repeatable', {
     '_defaultOptions': {
@@ -36,6 +39,47 @@ $.plugin2('repeatable', {
                 $objectInputs.trigger('resize');
             }
 
+            // store the previous [data-preview] sibling of the selected $item in jQuery data
+            var $previous = $item.prevAll().filter('[data-preview]').first();
+            $.data($item[0], PREVIOUS_OBJECT_DATA, $previous);
+
+            // find or create a "previous object" navigation control on the popup
+            var $navPrevious = $objectInputs.find('> .previousObject');
+            if($navPrevious.size() === 0) {
+                $navPrevious = $('<span />', {
+                    'class': 'previousObject',
+                    'click': function() {
+                        var $previousObj = $.data($item[0], PREVIOUS_OBJECT_DATA);
+                        $objectInputs.popup('close');
+                        popEmbeddedEdit($previousObj, $previousObj.find('.embedded-object-edit-popup'));
+                    }
+                });
+                $objectInputs.append($navPrevious);
+            }
+
+            // store the next [data-preview] sibling of the selected $item in jQuery data
+            var $next = $item.nextAll().filter('[data-preview]').first();
+            $.data($item[0], NEXT_OBJECT_DATA, $next);
+
+            // find or create a "next object" navigation control on the popup
+            var $navNext = $objectInputs.find('> .nextObject');
+            if($navNext.size() === 0) {
+                $navNext = $('<span />', {
+                    'class': 'nextObject',
+                    'click': function() {
+                        var $nextObj = $.data($item[0], NEXT_OBJECT_DATA);
+                        $objectInputs.popup('close');
+                        popEmbeddedEdit($nextObj, $nextObj.find('.embedded-object-edit-popup'));
+                    }
+                });
+                $objectInputs.append($navNext);
+            }
+
+            // add classes to the .popup to indicate that the selected $item has previous and next siblings
+            $objectInputs.popup('container').toggleClass('hasPrevious', $previous.size() > 0);
+            $objectInputs.popup('container').toggleClass('hasNext', $next.size() > 0);
+
+            // open the popup to display the embedded object inputs
             $objectInputs.popup('open');
             $objectInputs.popup('source', $source, event);
         };
@@ -74,10 +118,15 @@ $.plugin2('repeatable', {
                 $item.prepend($label);
             }
 
+            // embedded object preview
             if ($item.is('[data-preview]')) {
 
                 var preview = $item.attr('data-preview');
+
+                // remove existing label
                 $label.remove();
+
+                // generate preview thumbnail with click handler to pop up embedded object edit form
                 $item.prepend($('<div />', {
                     class: 'embedded-object-preview',
                     html: $('<figure />', {
@@ -93,21 +142,30 @@ $.plugin2('repeatable', {
                     })
                 );
 
+                // collapsed doesn't apply to the embedded object preview
                 $item.removeClass('collapsed');
 
+                // [data-preview-field] provides a dynamic connection between the preview thumbnail provided and an object field
                 var previewField = $item.attr('data-preview-field');
                 if(previewField) {
 
+                    // final path segment is a StorageItem
+                    // remove final segment to get path to the StorageItem's parent
                     var lastSlashAt = previewField.lastIndexOf("/");
 
                     if(lastSlashAt !== -1) {
                         previewField = previewField.substr(0, lastSlashAt);
                     }
 
+                    // get the current $item's field path
                     var myField = $item.closest('[data-field]').attr('data-field');
 
+                    // splice current $item's path with preview field's relative path to StorageItem parent
                     var $previewFieldEl = $item.find('[data-field="' + myField + '/' + previewField + '"]').first();
 
+                    // embedded objects rendered in the page include the parent path prefix
+                    // newly-added embedded objects do not include the parent path prefix
+                    // check both [data-field] values
                     if($previewFieldEl.size() === 0) {
                         $previewFieldEl = $item.find('[data-field="' + previewField + '"]').first();
                     }
@@ -116,6 +174,7 @@ $.plugin2('repeatable', {
 
                         var $previewFieldInput = $previewFieldEl.find('[name="' + $previewFieldEl.attr('data-name') + '"]').first();
 
+                        // on change of the input described by [data-preview-field], update the [data-preview] attribute on the $item
                         $previewFieldInput.bind('change', function() {
                             $item.attr('data-preview', $previewFieldInput.attr('data-preview'));
                             $item.find('> .embedded-object-preview > figure > img').attr('src', $previewFieldInput.attr('data-preview'));

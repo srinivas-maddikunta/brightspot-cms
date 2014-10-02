@@ -219,24 +219,26 @@
       .objectInputs {
         display: none;
       }
-      .popup > .content > .objectInputs {
-        display: block;
-      }
       > ol, > ul {
         > li {
           &[data-preview] {
+
+            @img-height: 100px;
+
             box-sizing: border-box;
             float: left;
-            margin: 0;
+            margin: 0 @listItem-margin @listItem-margin 0;
             border: 0;
-            padding: 0 @listItem-margin @listItem-margin 0;
+            padding: 0;
             position: relative;
             width: auto;
 
             > .removeButton {
-              top: @size-input-border + 1;
-              right: (@listItem-margin + @size-input-border) + 3;
+              top: @size-input-border;
+              right: @size-input-border;
               visibility: hidden;
+              min-width: 14px;
+              padding: 0 4px;
             }
 
             &:hover {
@@ -246,8 +248,6 @@
             }
 
             > .embedded-object-preview {
-
-              @img-height: 100px;
 
               height: @img-height;
 
@@ -261,7 +261,7 @@
               }
 
               > figure {
-                height: 110px;
+                height: @img-height;
                 display: inline-block;
                 min-width: 0;
                 > img {
@@ -270,6 +270,38 @@
                   max-width: 100%;
                 }
               }
+            }
+
+            // empty preview display for embedded object preview
+            &[data-preview=""] {
+                > .embedded-object-preview {
+                    > figure {
+                        > img {
+                            width: @img-height;
+                            visibility: hidden;
+                        }
+                        &:before {
+                            .link;
+                            position: absolute;
+                            top: 50%;
+                            margin-top: -11px;
+                            left: 50%;
+                            margin-left: -27px;
+                        }
+                        .icon;
+                        .icon-action-edit;
+                        &:after {
+                            content: 'Edit';
+                            .link;
+                            display: block;
+                            position: absolute;
+                            top: 50%;
+                            margin-top: -12px;
+                            width: 100%;
+                            text-align: center;
+                        }
+                    }
+                }
             }
             > .embedded-object-edit {
               &:extend(.link all);
@@ -346,6 +378,41 @@
         }
       }
     }
+  }
+}
+
+.popup[data-popup-source-class="embedded-object-edit-popup"] {
+  .objectInputs {
+      > .nextObject, > .previousObject {
+          .link;
+          .icon;
+          height: 50%;
+          position: absolute;
+          top: 25%;
+          display: none;
+          font-size: 80px;
+          &:before {
+              padding: 0;
+              line-height: 1em;
+              position: relative;
+              top: 38%;
+          }
+      }
+      > .nextObject {
+          right: 0;
+          .icon-angle-right;
+      }
+
+      > .previousObject {
+          left: 0;
+          .icon-angle-left;
+      }
+  }
+
+  &.hasNext .objectInputs > .nextObject,
+  &.hasPrevious .objectInputs > .previousObject {
+
+      display: inline-block;
   }
 }
 
