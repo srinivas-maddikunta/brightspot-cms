@@ -33,7 +33,9 @@ $.plugin2('repeatable', {
             var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
 
             if(!$objectInputs) {
-                $objectInputs = $item.find('.objectInputs');
+
+                // use .first() to avoid pulling nested .objectInputs containers from embedded objects
+                $objectInputs = $item.find('.objectInputs').first();
                 $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
                 $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
                 $objectInputs.trigger('resize');
