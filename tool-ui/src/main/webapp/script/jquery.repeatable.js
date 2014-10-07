@@ -84,6 +84,8 @@ $.plugin2('repeatable', {
             // open the popup to display the embedded object inputs
             $objectInputs.popup('open');
             $objectInputs.popup('source', $source, event);
+
+            $objectInputs.find('.imageEditor.lazyInitialize').first().trigger('initializeEditor');
         };
 
         // Helper for creating extra stuff on an item.
