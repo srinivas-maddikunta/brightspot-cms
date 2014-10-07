@@ -124,12 +124,29 @@ $.plugin2('popup', {
 
             // Change position.
             var sourceOffset = $newSource.offset();
+            var $offsetParent = $container.offsetParent();
+
+
             var popupOffsetParentOffset = $container.offsetParent().offset();
+
+            if($offsetParent.is('body')) {
+
+                var marginLeft = parseInt($offsetParent.css('margin-left'), 10);
+                var marginTop = parseInt($offsetParent.css('margin-top'), 10);
+
+                if(!isNaN(marginLeft) && marginLeft > 0) {
+                    popupOffsetParentOffset.left -= marginLeft;
+                }
+
+                if(!isNaN(marginTop) && marginTop > 0) {
+                    popupOffsetParentOffset.top -= marginTop;
+                }
+            }
+
             sourceOffset = {
                 'left': sourceOffset.left - popupOffsetParentOffset.left,
                 'top': sourceOffset.top - popupOffsetParentOffset.top
             };
-
             var paddingLeft = options.padding.left - popupOffsetParentOffset.left;
 
             var popupWidth = $container.outerWidth();
