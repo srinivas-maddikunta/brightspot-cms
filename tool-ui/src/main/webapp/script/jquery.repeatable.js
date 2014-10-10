@@ -84,8 +84,6 @@ $.plugin2('repeatable', {
             // open the popup to display the embedded object inputs
             $objectInputs.popup('open');
             $objectInputs.popup('source', $source, event);
-
-            $objectInputs.find('.imageEditor.lazyInitialize').first().trigger('initializeEditor');
         };
 
         // Helper for creating extra stuff on an item.
@@ -127,9 +125,6 @@ $.plugin2('repeatable', {
 
                 var preview = $item.attr('data-preview');
 
-                // remove existing label
-                $label.remove();
-
                 // generate preview thumbnail with click handler to pop up embedded object edit form
                 $item.prepend($('<div />', {
                     class: 'embedded-object-preview',
@@ -138,6 +133,9 @@ $.plugin2('repeatable', {
                         'html': [
                             $('<img/>', {
                                 'src': preview
+                            }),
+                            $('<figcaption />', {
+                                'html': $label
                             })
                         ],
                         'click': function(e) {
@@ -145,6 +143,17 @@ $.plugin2('repeatable', {
                         }})
                     })
                 );
+
+                $item.append($('<span/>', {
+                    'class': 'embedded-object-edit embedded-object-edit-popup',
+                    'html': $('<span/>', {
+                        'class': 'embedded-object-edit-popup',
+                        'text': 'Edit',
+                        'click': function(e) {
+                            popEmbeddedEdit($item, $(this), null);
+                        }
+                    })
+                }));
 
                 // collapsed doesn't apply to the embedded object preview
                 $item.removeClass('collapsed');

@@ -17,7 +17,9 @@ function($, bsp_utils) {
     var INPUT_NAMES = 'x y width height texts textSizes textXs textYs textWidths'.split(' ');
     var DELIMITER = 'aaaf7c5a9e604daaa126f11e23e321d8';
 
-    var doDomInsert = function(element) {
+    var $editors = $();
+
+    var initializeEditor = function(element) {
         var $editor = $(element);
 
         if($.data($editor[0], 'editorInitialized') === true) {
@@ -31,6 +33,7 @@ function($, bsp_utils) {
         var $imageReSizeScale = $image.attr('data-scale') !== undefined && $image.attr('data-scale') !== "" ? $image.attr('data-scale') : 1.0;
         var $originalImage = $image;
         var $imageClone = $image.clone();
+        var $sizingClone = $image.clone();
         var imageClone = $imageClone[0];
 
         $editor.find('> .imageEditor-aside').bind('mousewheel', function(event, delta, deltaX, deltaY) {
@@ -50,7 +53,7 @@ function($, bsp_utils) {
 
         var $tools = $editor.find('.imageEditor-tools ul');
         var $edit = $editor.find('.imageEditor-edit');
-        var $dataName = $editor.parents('.inputContainer').attr('data-name');
+        var $dataName = $editor.closest('.inputContainer').attr('data-name');
         var $editButton = $('<li/>', {
             'html': $('<a/>', {
                 'class': 'action-image-edit',
@@ -89,12 +92,16 @@ function($, bsp_utils) {
                 var name = /.([^.]+)$/.exec($input.attr('name'));
                 name = name ? name[1] : null;
 
-                if (name === 'brightness') {
+                if (name === 'brightness' && value !== 0.0) {
+
+                    // do not perform brightness operation if value is 0.0
                     operations.brightness = operations.brightness || { };
                     operations.brightness.brightness = value * 150;
                     operations.brightness.legacy = true;
 
-                } else if (name === 'contrast') {
+                } else if (name === 'contrast' && value !== 0.0) {
+
+                    // do not perform contrast operation if value is 0.0
                     operations.brightness = operations.brightness || { };
                     operations.brightness.contrast = value < 0 ? value : value * 3;
 
@@ -110,14 +117,18 @@ function($, bsp_utils) {
                 } else if (name === 'invert') {
                     operations.invert = operations.invert || { };
 
-                } else if (name === 'rotate') {
+                } else if (name === 'rotate' && value !== 0) {
+
+                    // do not perform rotate operation if value is 0
                     operations.rotate = operations.rotate|| { };
                     operations.rotate.angle = -value;
 
                 } else if (name === 'sepia') {
                     operations.sepia = operations.sepia || { };
 
-                } else if (name === 'sharpen') {
+                } else if (name === 'sharpen' && value !== 0) {
+
+                    // do not perform sharpen operation if value is 0
                     operations.sharpen = operations.sharpen || { };
                     operations.sharpen.amount = value;
 
@@ -128,7 +139,7 @@ function($, bsp_utils) {
                     operations.blurfast.data[operations.blurfast.count] = {"amount" : 1.0, "rect" :rect};
                     operations.blurfast.count++;
                 }
-            }
+            };
 
             $edit.find(":input[name$='.rotate']").each(function() {
                 applyOperation($(this));
@@ -175,7 +186,7 @@ function($, bsp_utils) {
                         ++ index;
                         operate(processedImage, index);
                     }
-                }
+                };
 
                 var operate = function(processedImage, index) {
                     if (index < operationKeys.length) {
@@ -474,9 +485,10 @@ function($, bsp_utils) {
         };
 
         $edit.find('.imageEditor-addBlurOverlay').bind('click', function() {
-            var $imageEditorCanvas = $editor.find('.imageEditor-image canvas');
-            var left = Math.floor($imageEditorCanvas.attr('width') / 2 - 50);
-            var top = Math.floor($imageEditorCanvas.attr('height') / 2 - 50);
+
+            var $imageEditorCanvas = $image.parent().children().not($image).first();
+            var left = Math.floor($imageEditorCanvas.width() / 2 - 50);
+            var top = Math.floor($imageEditorCanvas.height() / 2 - 50);
             var width = 100;
             var height = 100;
             addSizeBox(null, left, top, width, height);
@@ -534,6 +546,7 @@ function($, bsp_utils) {
                     }, function(event) {
                         var deltaX = event.pageX - original.pageX;
                         var deltaY = event.pageY - original.pageY;
+                        var key;
                         var bounds = callback(event, original, {
                             'x': deltaX,
                             'y': deltaY,
@@ -543,7 +556,9 @@ function($, bsp_utils) {
 
                         // Fill out the missing bounds.
                         for (key in original) {
-                            bounds[key] = bounds[key] || original[key];
+                            if(original.hasOwnProperty(key)) {
+                                bounds[key] = bounds[key] || original[key];
+                            }
                         }
 
                         var overflow;
@@ -623,11 +638,11 @@ function($, bsp_utils) {
 
                         if ($imageReSizeScale < 1) {
                             if (rotation === '0') {
-                                var cavnasWidth = $image.parent().find("canvas").width();
-                                scale = (cavnasWidth / 1000) * scale;
+                                var canvasWidth = $image.parent().children().not($image).first().width();
+                                scale = (canvasWidth / 1000) * scale;
                             } else if (rotation === '90' || rotation === '-90') {
-                                var cavnasHeight = $image.parent().find("canvas").height();
-                                scale = (cavnasHeight / 1000) * scale;
+                                var canvasHeight = $image.parent().children().not($image).first().height();
+                                scale = (canvasHeight / 1000) * scale;
                             }
                         }
                         scale = 1 / scale;
@@ -805,25 +820,31 @@ function($, bsp_utils) {
             return $rotatedHotSpot;
         };
 
-        var $initalizeHotSpots = function() {
-            $image.parents(".inputContainer").find('.imageEditor-hotSpotOverlay').remove();
-            var $hotSpots = $image.parents(".inputContainer").find('.hotSpots .objectInputs');
-            if ($hotSpots !== undefined && $hotSpots.length > 0) {
+        var $initializeHotSpots = function() {
+
+
+            var $inputContainer = $image.closest(".inputContainer");
+            $inputContainer.find('.imageEditor-hotSpotOverlay').remove();
+
+            var $hotSpots = $inputContainer.find('.hotSpots');
+            var $hotSpotInputs = $hotSpots.find('.objectInputs');
+            if ($hotSpotInputs.size() > 0) {
+
                 var scale = $imageReSizeScale;
                 var rotation = $edit.find(":input[name$='.rotate']").first().val();
                 if ($imageReSizeScale < 1) {
                     if (rotation === '0') {
-                        var cavnasWidth = $image.parent().find("canvas").width();
-                        scale = (cavnasWidth / 1000) * scale;
+                        var canvasWidth = $image.parent().children().not($image).first().width();
+                        scale = (canvasWidth / 1000) * scale;
                     } else if (rotation === '90' || rotation === '-90') {
-                        var cavnasHeight = $image.parent().find("canvas").height();
-                        scale = (cavnasHeight / 1000) * scale;
+                        var canvasHeight = $image.parent().children().not($image).first().height();
+                        scale = (canvasHeight / 1000) * scale;
                     }
                 }
 
-                $hotSpots.each(function() {
+                $hotSpotInputs.each(function() {
                     var $this = $(this);
-                    if (!$this.parents('li').first().hasClass('toBeRemoved')) {
+                    if (!$this.closest('li').hasClass('toBeRemoved')) {
                         var x = parseInt($this.find(':input[name$="x"]').val());
                         var y = parseInt($this.find(':input[name$="y"]').val());
                         var width = parseInt($this.find(':input[name$="width"]').val());
@@ -856,39 +877,62 @@ function($, bsp_utils) {
                     }
                 });
 
-                $image.parents(".inputContainer").find(".hotSpots").unbind('change');
-                $image.parents(".inputContainer").find(".hotSpots").bind('change', function() {
-                    $initalizeHotSpots();
+                $hotSpots.unbind('change');
+                $hotSpots.bind('change', function() {
+                    $initializeHotSpots();
                 });
             }
         };
 
-        $initalizeHotSpots();
+        $initializeHotSpots();
 
-        $editor.parents('.inputContainer').bind('create', function() {
+        $editor.closest('.inputContainer').bind('create', function() {
             var defaultX = parseInt(($image.width() / $imageReSizeScale) / 2);
             var defaultY = parseInt(($image.height() / $imageReSizeScale) / 2);
+            var defaultWidth = 100;
+            var defaultHeight = 100;
 
-            $image.parents(".inputContainer").find('.hotSpots .objectInputs').each(function() {
+            $image.closest(".inputContainer").find('.hotSpots .objectInputs').each(function() {
                 var $this = $(this);
 
-                $this.find(':input[name$="x"]').val($this.find(':input[name$="x"]').val() === "" ? defaultX : $this.find(':input[name$="x"]').val());
-                $this.find(':input[name$="y"]').val($this.find(':input[name$="y"]').val() === "" ? defaultY : $this.find(':input[name$="y"]').val());
-                $this.find(':input[name$="width"]').val($this.find(':input[name$="width"]').val() === "" ? 100 : $this.find(':input[name$="width"]').val());
-                $this.find(':input[name$="height"]').val($this.find(':input[name$="height"]').val() === "" ? 100 : $this.find(':input[name$="height"]').val());
+                var $x = $this.find(':input[name$="x"]');
+                var $y = $this.find(':input[name$="y"]');
+                var $width = $this.find(':input[name$="width"]');
+                var $height = $this.find(':input[name$="height"]');
+
+                var x = $x.val();
+                var y = $y.val();
+                var width = $width.val();
+                var height = $height.val();
+
+                if(typeof x === "undefined" || x === "" || isNaN(x)) {
+                    $x.val(defaultX);
+                }
+
+                if(typeof y === "undefined" || y === "" || isNaN(y)) {
+                    $y.val(defaultY);
+                }
+
+                if(typeof width === "undefined" || width === "" || isNaN(width)) {
+                    $width.val(defaultWidth);
+                }
+
+                if(typeof height === "undefined" || height === "" || isNaN(height)) {
+                    $height.val(defaultHeight);
+                }
             });
-            $initalizeHotSpots();
+            $initializeHotSpots();
         });
 
         $edit.find(":input[name$='.rotate']").change(function() {
-            setTimeout($initalizeHotSpots(), 250);
+            setTimeout($initializeHotSpots(), 250);
         });
         $edit.find(":input[name$='.flipH']").change(function() {
-            setTimeout($initalizeHotSpots(), 250);
+            setTimeout($initializeHotSpots(), 250);
         });
 
         $edit.find(":input[name$='.flipV']").change(function() {
-            setTimeout($initalizeHotSpots(), 250);
+            setTimeout($initializeHotSpots(), 250);
         });
 
         $edit.append($resetButton);
@@ -1100,11 +1144,12 @@ function($, bsp_utils) {
             $sizeSelectors.append($sizeButton);
 
             var updatePreview = function() {
+
                 var $body = $(document.body);
-                $body.append($imageClone);
-                var bounds = getSizeBounds($imageClone);
-                $imageClone.remove();
-                Pixastic.process(imageClone, 'crop', bounds, function(newImage) {
+                $body.append($sizingClone);
+                var bounds = getSizeBounds($sizingClone);
+                $sizingClone.remove();
+                Pixastic.process($sizingClone[0], 'crop', bounds, function(newImage) {
                     var $preview = $sizeButton.find('.imageEditor-sizePreview');
                     $preview.empty();
                     $preview.append(newImage);
@@ -1538,18 +1583,20 @@ function($, bsp_utils) {
     bsp_utils.onDomInsert(document, '.imageEditor', {
 
         'insert': function(element) {
-
-            var $editor = $(element);
-
-            if($editor.hasClass('lazyInitialize') === false) {
-
-                doDomInsert.apply(null, arguments);
-            }
+            $editors = $editors.add($(element));
         }
     });
 
-    $(document).on('initializeEditor', '.imageEditor.lazyInitialize', function() {
+    setInterval(function() {
+        $editors.each(function() {
 
-        doDomInsert.call(null, this);
-    });
+            var $editor = $(this);
+
+            if ($editor.is(':visible')) {
+                $editors = $editors.not($editor);
+
+                initializeEditor.call(null, $editor[0]);
+            }
+        });
+    }, 100);
 });
