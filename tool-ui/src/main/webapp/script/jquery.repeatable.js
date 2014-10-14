@@ -30,8 +30,12 @@ $.plugin2('repeatable', {
 
         var popEmbeddedEdit = function($item, $source, event) {
 
-            if(!$item.hasClass('embeddedForm-loading') && !$item.hasClass('embeddedForm-loaded')) {
-                loadFormFields($item);
+            if(!$item.hasClass('embeddedForm-loaded')) {
+
+                if(!$item.hasClass('embeddedForm-loading')) {
+                    loadFormFields($item);
+                }
+
                 $item.one('load', function() {
                     popEmbeddedEdit($item, $source, event);
                 });
@@ -197,8 +201,8 @@ $.plugin2('repeatable', {
                     }));
                 } else {
                     $label.addClass('embedded-object-edit-popup');
-                    $label.click(function() {
-                        popEmbeddedEdit($item, $(this), null);
+                    $label.click(function(e) {
+                        popEmbeddedEdit($item, $label, null);
                     });
                 }
 
