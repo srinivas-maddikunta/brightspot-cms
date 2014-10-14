@@ -857,29 +857,42 @@ function($, bsp_utils) {
                     var $width = $this.find(':input[name$="width"]');
                     var $height = $this.find(':input[name$="height"]');
 
-                    var x = parseInt($x.val(), 10);
-                    var y = parseInt($y.val(), 10);
-                    var width = parseInt($width.val(), 10);
-                    var height = parseInt($height.val(), 10);
+                    if($x.size() > 0) {
 
-                    if(typeof x === "undefined" || x === "" || isNaN(x)) {
-                        $x.val(defaultX);
-                        x = defaultX;
+                        var x = parseInt($x.val(), 10);
+
+                        if(typeof x === "undefined" || x === "" || isNaN(x)) {
+                            $x.val(defaultX);
+                            x = defaultX;
+                        }
                     }
 
-                    if(typeof y === "undefined" || y === "" || isNaN(y)) {
-                        $y.val(defaultY);
-                        y = defaultY;
+                    if($y.size() > 0) {
+
+                        var y = parseInt($y.val(), 10);
+                        if(typeof y === "undefined" || y === "" || isNaN(y)) {
+                            $y.val(defaultY);
+                            y = defaultY;
+                        }
                     }
 
-                    if(typeof width === "undefined" || width === "" || isNaN(width)) {
-                        $width.val(defaultWidth);
-                        width = defaultWidth;
+                    if($width.size() > 0) {
+
+                        var width = parseInt($width.val(), 10);
+
+                        if(typeof width === "undefined" || width === "" || isNaN(width)) {
+                            $width.val(defaultWidth);
+                            width = defaultWidth;
+                        }
                     }
 
-                    if(typeof height === "undefined" || height === "" || isNaN(height)) {
-                        $height.val(defaultHeight);
-                        height = defaultHeight;
+                    if($height.size() > 0) {
+
+                        var height = parseInt($height.val(), 10);
+                        if(typeof height === "undefined" || height === "" || isNaN(height)) {
+                            $height.val(defaultHeight);
+                            height = defaultHeight;
+                        }
                     }
 
                     if (!$this.closest('li').hasClass('toBeRemoved')) {
