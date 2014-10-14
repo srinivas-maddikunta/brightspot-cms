@@ -5,6 +5,17 @@ define([
 function($, bsp_utils) {
     var $win = $(window);
 
+    bsp_utils.onDomInsert(document, '.message', {
+        'insert': function(message) {
+            var $message = $(message);
+
+            if ($message.text() === '' &&
+                    $message.find('[data-dynamic-html], [data-dynamic-text]').length > 0) {
+                $message.hide();
+            }
+        }
+    });
+
     bsp_utils.onDomInsert(document, '.contentForm, .enhancementForm, .standardForm', {
         'insert': function(form) {
             var $form = $(form),
@@ -14,6 +25,20 @@ function($, bsp_utils) {
                     idleTimeout;
 
             updateContentState = function(idle, wait) {
+                if ($form.find(
+                        '.repeatableForm:not(.plugin-repeatable),' +
+                        '.repeatableInputs:not(.plugin-repeatable),' +
+                        '.repeatableLayout:not(.plugin-repeatable),' +
+                        '.repeatableObjectId:not(.plugin-repeatable),' +
+                        '.repeatableText:not(.plugin-repeatable)').
+                        length > 0) {
+
+                    setTimeout(function() {
+                        updateContentState(idle, wait);
+                    }, 100);
+                    return;
+                }
+
                 var action,
                         questionAt,
                         complete,
@@ -25,8 +50,12 @@ function($, bsp_utils) {
                 end = +new Date() + 1000;
                 $dynamicTexts = $form.find(
                         '[data-dynamic-text][data-dynamic-text != ""],' +
-                                '[data-dynamic-html][data-dynamic-html != ""],' +
-                                '[data-dynamic-placeholder][data-dynamic-placeholder != ""]');
+                        '[data-dynamic-html][data-dynamic-html != ""],' +
+                        '[data-dynamic-placeholder][data-dynamic-placeholder != ""]');
+
+                $dynamicTexts = $dynamicTexts.filter(function() {
+                    return $(this).closest('.collapsed').length === 0;
+                });
 
                 $.ajax({
                     'type': 'post',
@@ -67,6 +96,8 @@ function($, bsp_utils) {
                                 $element.prop('placeholder', text);
                             }
                         });
+
+                        $form.resize();
                     },
 
                     'complete': function() {
@@ -83,7 +114,7 @@ function($, bsp_utils) {
                 }
             };
 
-            updateContentStateThrottled = $.throttle(100, updateContentState);
+            updateContentStateThrottled = $.throttle(200, updateContentState);
 
             updateContentStateThrottled();
 
@@ -95,7 +126,7 @@ function($, bsp_utils) {
                 changed = true;
                 idleTimeout = setTimeout(function() {
                     updateContentStateThrottled(true);
-                }, 2000);
+                }, 5000);
             });
 
             $(window).bind('beforeunload', function() {

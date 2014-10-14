@@ -30,7 +30,7 @@ function($, bsp_utils) {
         var $form = $editor.closest('form');
         var $image = $editor.find('.imageEditor-image img');
         var imageSrc = $image.attr('src');
-        var $imageReSizeScale = $image.attr('data-scale') !== undefined && $image.attr('data-scale') !== "" ? $image.attr('data-scale') : 1.0;
+        var imageReSizeScale = $image.attr('data-scale') !== undefined && $image.attr('data-scale') !== "" ? $image.attr('data-scale') : 1.0;
         var $originalImage = $image;
         var $imageClone = $image.clone();
         var $sizingClone = $image.clone();
@@ -633,10 +633,10 @@ function($, bsp_utils) {
                         // Set the hidden inputs to the current bounds.
                     }, function() {
                         var hotSpotOverlayBoxPosition = $hotSpotOverlayBox.parent().position();
-                        var scale = $imageReSizeScale;
+                        var scale = imageReSizeScale;
                         var rotation = $edit.find(":input[name$='.rotate']").first().val();
 
-                        if ($imageReSizeScale < 1) {
+                        if (imageReSizeScale < 1) {
                             if (rotation === '0') {
                                 var canvasWidth = $image.parent().children().not($image).first().width();
                                 scale = (canvasWidth / 1000) * scale;
@@ -797,8 +797,8 @@ function($, bsp_utils) {
             var $rotatedHotSpot = {};
             angle = parseInt(angle);
 
-            var scale = $imageReSizeScale;
-            if ($imageReSizeScale < 1) {
+            var scale = imageReSizeScale;
+            if (imageReSizeScale < 1) {
                 var cavnasHeight = $image.parent().find("canvas").height();
                 scale = (cavnasHeight / 1000) * scale;
             }
@@ -820,35 +820,69 @@ function($, bsp_utils) {
             return $rotatedHotSpot;
         };
 
-        var $initializeHotSpots = function() {
+        var initializeHotSpots = function() {
 
+            var defaultX = parseInt(($image.width() / imageReSizeScale) / 2);
+            var defaultY = parseInt(($image.height() / imageReSizeScale) / 2);
+            var defaultWidth = 100;
+            var defaultHeight = 100;
 
-            var $inputContainer = $image.closest(".inputContainer");
-            $inputContainer.find('.imageEditor-hotSpotOverlay').remove();
-
+            var $inputContainer = $image.closest('.inputContainer');
             var $hotSpots = $inputContainer.find('.hotSpots');
             var $hotSpotInputs = $hotSpots.find('.objectInputs');
+
+            $inputContainer.find('.imageEditor-hotSpotOverlay').remove();
+
             if ($hotSpotInputs.size() > 0) {
 
-                var scale = $imageReSizeScale;
+                var scale = imageReSizeScale;
                 var rotation = $edit.find(":input[name$='.rotate']").first().val();
-                if ($imageReSizeScale < 1) {
+                var canvasWidth, canvasHeight;
+                if (imageReSizeScale < 1) {
                     if (rotation === '0') {
-                        var canvasWidth = $image.parent().children().not($image).first().width();
+                        canvasWidth = $image.parent().children().not($image).first().width();
                         scale = (canvasWidth / 1000) * scale;
                     } else if (rotation === '90' || rotation === '-90') {
-                        var canvasHeight = $image.parent().children().not($image).first().height();
+                        canvasHeight = $image.parent().children().not($image).first().height();
                         scale = (canvasHeight / 1000) * scale;
                     }
                 }
 
                 $hotSpotInputs.each(function() {
+
                     var $this = $(this);
+
+                    var $x = $this.find(':input[name$="x"]');
+                    var $y = $this.find(':input[name$="y"]');
+                    var $width = $this.find(':input[name$="width"]');
+                    var $height = $this.find(':input[name$="height"]');
+
+                    var x = parseInt($x.val(), 10);
+                    var y = parseInt($y.val(), 10);
+                    var width = parseInt($width.val(), 10);
+                    var height = parseInt($height.val(), 10);
+
+                    if(typeof x === "undefined" || x === "" || isNaN(x)) {
+                        $x.val(defaultX);
+                        x = defaultX;
+                    }
+
+                    if(typeof y === "undefined" || y === "" || isNaN(y)) {
+                        $y.val(defaultY);
+                        y = defaultY;
+                    }
+
+                    if(typeof width === "undefined" || width === "" || isNaN(width)) {
+                        $width.val(defaultWidth);
+                        width = defaultWidth;
+                    }
+
+                    if(typeof height === "undefined" || height === "" || isNaN(height)) {
+                        $height.val(defaultHeight);
+                        height = defaultHeight;
+                    }
+
                     if (!$this.closest('li').hasClass('toBeRemoved')) {
-                        var x = parseInt($this.find(':input[name$="x"]').val());
-                        var y = parseInt($this.find(':input[name$="y"]').val());
-                        var width = parseInt($this.find(':input[name$="width"]').val());
-                        var height = parseInt($this.find(':input[name$="height"]').val());
 
                         if (rotation !== '0') {
                             var $rotatedHotSpot = rotateHotSpot(rotation, x, y, width, height);
@@ -876,64 +910,27 @@ function($, bsp_utils) {
                         addHotSpot($this.parent(), x, y, width, height);
                     }
                 });
-
-                $hotSpots.unbind('change');
-                $hotSpots.bind('change', function() {
-                    $initializeHotSpots();
-                });
             }
         };
 
-        $initializeHotSpots();
+        $image.load(initializeHotSpots);
 
-        $editor.closest('.inputContainer').bind('create', function() {
-            var defaultX = parseInt(($image.width() / $imageReSizeScale) / 2);
-            var defaultY = parseInt(($image.height() / $imageReSizeScale) / 2);
-            var defaultWidth = 100;
-            var defaultHeight = 100;
+        $editor.on('change', '.hotSpots', initializeHotSpots);
 
-            $image.closest(".inputContainer").find('.hotSpots .objectInputs').each(function() {
-                var $this = $(this);
-
-                var $x = $this.find(':input[name$="x"]');
-                var $y = $this.find(':input[name$="y"]');
-                var $width = $this.find(':input[name$="width"]');
-                var $height = $this.find(':input[name$="height"]');
-
-                var x = $x.val();
-                var y = $y.val();
-                var width = $width.val();
-                var height = $height.val();
-
-                if(typeof x === "undefined" || x === "" || isNaN(x)) {
-                    $x.val(defaultX);
-                }
-
-                if(typeof y === "undefined" || y === "" || isNaN(y)) {
-                    $y.val(defaultY);
-                }
-
-                if(typeof width === "undefined" || width === "" || isNaN(width)) {
-                    $width.val(defaultWidth);
-                }
-
-                if(typeof height === "undefined" || height === "" || isNaN(height)) {
-                    $height.val(defaultHeight);
-                }
-            });
-            $initializeHotSpots();
-        });
+        $editor.closest('.inputContainer').bind('create', initializeHotSpots);
 
         $edit.find(":input[name$='.rotate']").change(function() {
-            setTimeout($initializeHotSpots(), 250);
+            setTimeout(initializeHotSpots(), 250);
         });
         $edit.find(":input[name$='.flipH']").change(function() {
-            setTimeout($initializeHotSpots(), 250);
+            setTimeout(initializeHotSpots(), 250);
         });
 
         $edit.find(":input[name$='.flipV']").change(function() {
-            setTimeout($initializeHotSpots(), 250);
+            setTimeout(initializeHotSpots(), 250);
         });
+
+        initializeHotSpots();
 
         $edit.append($resetButton);
 
