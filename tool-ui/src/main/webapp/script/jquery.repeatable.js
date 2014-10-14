@@ -42,7 +42,7 @@ $.plugin2('repeatable', {
             }
 
             // store the previous [data-preview] sibling of the selected $item in jQuery data
-            var $previous = $item.prevAll().filter('[data-preview]').first();
+            var $previous = $item.prevAll().filter('[data-embedded-popup]').first();
             $.data($item[0], PREVIOUS_OBJECT_DATA, $previous);
 
             // find or create a "previous object" navigation control on the popup
@@ -60,7 +60,7 @@ $.plugin2('repeatable', {
             }
 
             // store the next [data-preview] sibling of the selected $item in jQuery data
-            var $next = $item.nextAll().filter('[data-preview]').first();
+            var $next = $item.nextAll().filter('[data-embedded-popup]').first();
             $.data($item[0], NEXT_OBJECT_DATA, $next);
 
             // find or create a "next object" navigation control on the popup
@@ -121,39 +121,46 @@ $.plugin2('repeatable', {
             }
 
             // embedded object preview
-            if ($item.is('[data-preview]')) {
+            if ($item.is('[data-embedded-popup]')) {
 
                 var preview = $item.attr('data-preview');
 
-                // generate preview thumbnail with click handler to pop up embedded object edit form
-                $item.prepend($('<div />', {
-                    class: 'embedded-object-preview',
-                    html: $('<figure />', {
-                        'class': 'embedded-object-edit-popup',
-                        'html': [
-                            $('<img/>', {
-                                'src': preview
-                            }),
-                            $('<figcaption />', {
-                                'html': $label
-                            })
-                        ],
-                        'click': function(e) {
-                            popEmbeddedEdit($item, $(this), null);
-                        }})
-                    })
-                );
+                if(preview) {
+                    // generate preview thumbnail with click handler to pop up embedded object edit form
+                    $item.prepend($('<div />', {
+                            class: 'embedded-object-preview',
+                            html: $('<figure />', {
+                                'class': 'embedded-object-edit-popup',
+                                'html': [
+                                    $('<img/>', {
+                                        'src': preview
+                                    }),
+                                    $('<figcaption />', {
+                                        'html': $label
+                                    })
+                                ],
+                                'click': function(e) {
+                                    popEmbeddedEdit($item, $(this), null);
+                                }})
+                        })
+                    );
 
-                $item.append($('<span/>', {
-                    'class': 'embedded-object-edit embedded-object-edit-popup',
-                    'html': $('<span/>', {
-                        'class': 'embedded-object-edit-popup',
-                        'text': 'Edit',
-                        'click': function(e) {
-                            popEmbeddedEdit($item, $(this), null);
-                        }
-                    })
-                }));
+                    $item.append($('<span/>', {
+                        'class': 'embedded-object-edit embedded-object-edit-popup',
+                        'html': $('<span/>', {
+                            'class': 'embedded-object-edit-popup',
+                            'text': 'Edit',
+                            'click': function(e) {
+                                popEmbeddedEdit($item, $(this), null);
+                            }
+                        })
+                    }));
+                } else {
+                    $label.addClass('embedded-object-edit-popup');
+                    $label.click(function() {
+                        popEmbeddedEdit($item, $(this), null);
+                    });
+                }
 
                 // collapsed doesn't apply to the embedded object preview
                 $item.removeClass('collapsed');

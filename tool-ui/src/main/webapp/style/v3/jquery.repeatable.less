@@ -252,14 +252,12 @@
       }
       > ol, > ul {
         > li {
-          &[data-preview] {
+          &[data-embedded-popup][data-preview] {
 
             @img-height: 150px;
             @preview-width: 270px;
 
             max-width: @preview-width;
-
-            border: 0;
 
             > .removeButton {
 
@@ -351,11 +349,32 @@
           }
         }
       }
+        > ol {
 
-      > ol {
+            list-style-type: none;
+            margin-left: 0;
+            overflow: hidden;
+            counter-reset: listItem;
 
-          &:extend(.repeatableObjectId.repeatableObjectId-previewable > ol all);
-      }
+            > li {
+
+                > .repeatableLabel {
+                    &:before {
+                        display: none;
+                    }
+                    &:after {
+                        content: counter(listItem);
+                        counter-increment: listItem;
+                        left: 10px;
+                    }
+                    padding-left: 35px;
+                }
+
+                &[data-preview] {
+                    &:extend(.repeatableObjectId.repeatableObjectId-previewable > ol > li all);
+                }
+            }
+        }
     }
   }
 }

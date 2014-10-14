@@ -540,7 +540,7 @@ UUID containerObjectId = State.getInstance(request.getAttribute("containerObject
 if (!isValueExternal) {
     Set<ObjectType> bulkUploadTypes = new HashSet<ObjectType>();
 
-    boolean isFormPopup = false;
+    boolean hasPreview = false;
 
     for (ObjectType t : validTypes) {
         for (ObjectField f : t.getFields()) {
@@ -552,7 +552,7 @@ if (!isValueExternal) {
         }
 
         if(!ObjectUtils.isBlank(t.getPreviewField())) {
-            isFormPopup = true;
+            hasPreview = true;
         }
     }
 
@@ -569,7 +569,7 @@ if (!isValueExternal) {
     }
 
     wp.writeStart("div",
-            "class", "inputLarge repeatableForm" + (!bulkUploadTypes.isEmpty() ? " repeatableForm-previewable" : "") + (isFormPopup && !bulkUploadTypes.isEmpty() ? " repeatableForm-popup" : ""),
+            "class", "inputLarge repeatableForm" + (!bulkUploadTypes.isEmpty() ? " repeatableForm-previewable" : "") + (!bulkUploadTypes.isEmpty() ? " repeatableForm-popup" : ""),
             "foo", "bar",
             "data-generic-arguments", genericArgumentsString);
     wp.writeStart("ol");
@@ -586,12 +586,18 @@ if (!isValueExternal) {
         attributes.add("data-label");
         attributes.add(wp.getObjectLabel(item));
 
-        if (isFormPopup && !bulkUploadTypes.isEmpty()) {
-            String previewThumbnailUrl = wp.getPreviewThumbnailUrl(item);
-            attributes.add("data-preview");
-            attributes.add(previewThumbnailUrl != null ? previewThumbnailUrl : "");
-            attributes.add("data-preview-field");
-            attributes.add(itemType.getPreviewField());
+        if (!bulkUploadTypes.isEmpty()) {
+
+            attributes.add("data-embedded-popup");
+            attributes.add("");
+
+            if(hasPreview) {
+                String previewThumbnailUrl = wp.getPreviewThumbnailUrl(item);
+                attributes.add("data-preview");
+                attributes.add(previewThumbnailUrl != null ? previewThumbnailUrl : "");
+                attributes.add("data-preview-field");
+                attributes.add(itemType.getPreviewField());
+            }
         }
 
         wp.writeStart("li", attributes.toArray());
@@ -617,18 +623,21 @@ if (!isValueExternal) {
     for (ObjectType type : validTypes) {
         wp.writeStart("script", "type", "text/template");
 
-        // TODO: add in preview processing... data-preview-field?
         List<Object> attributes = new ArrayList<Object>();
         attributes.add("class");
         attributes.add(!bulkUploadTypes.isEmpty() ? "collapsed" : null);
         attributes.add("data-type");
         attributes.add(wp.getObjectLabel(type));
 
-        if (isFormPopup && !bulkUploadTypes.isEmpty()) {
-            attributes.add("data-preview");
+        if (!bulkUploadTypes.isEmpty()) {
+            attributes.add("data-embedded-popup");
             attributes.add("");
-            attributes.add("data-preview-field");
-            attributes.add(type.getPreviewField());
+            if(hasPreview) {
+                attributes.add("data-preview");
+                attributes.add("");
+                attributes.add("data-preview-field");
+                attributes.add(type.getPreviewField());
+            }
         }
         wp.writeStart("li", attributes.toArray());
         wp.writeStart("a",
