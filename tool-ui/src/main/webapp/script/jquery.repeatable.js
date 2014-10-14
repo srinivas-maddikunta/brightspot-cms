@@ -28,6 +28,46 @@ $.plugin2('repeatable', {
             $(event.target).closest('.inputContainer').toggleClass('state-disabled', disable);
         });
 
+        var bindPreviewInput = function($item) {
+
+            // [data-preview-field] provides a dynamic connection between the preview thumbnail provided and an object field
+            var previewField = $item.attr('data-preview-field');
+            if(previewField) {
+
+                // final path segment is a StorageItem
+                // remove final segment to get path to the StorageItem's parent
+                var lastSlashAt = previewField.lastIndexOf("/");
+
+                if(lastSlashAt !== -1) {
+                    previewField = previewField.substr(0, lastSlashAt);
+                }
+
+                // get the current $item's field path
+                var myField = $item.closest('[data-field]').attr('data-field');
+
+                // splice current $item's path with preview field's relative path to StorageItem parent
+                var $previewFieldEl = $item.find('[data-field="' + myField + '/' + previewField + '"]').first();
+
+                // embedded objects rendered in the page include the parent path prefix
+                // newly-added embedded objects do not include the parent path prefix
+                // check both [data-field] values
+                if($previewFieldEl.size() === 0) {
+                    $previewFieldEl = $item.find('[data-field="' + previewField + '"]').first();
+                }
+
+                if($previewFieldEl.size() > 0) {
+
+                    var $previewFieldInput = $previewFieldEl.find('[name="' + $previewFieldEl.attr('data-name') + '"]').first();
+
+                    // on change of the input described by [data-preview-field], update the [data-preview] attribute on the $item
+                    $previewFieldInput.bind('change', function() {
+                        $item.attr('data-preview', $previewFieldInput.attr('data-preview'));
+                        $item.find('> .embedded-object-preview > figure > img').attr('src', $previewFieldInput.attr('data-preview'));
+                    });
+                }
+            }
+        };
+
         var popEmbeddedEdit = function($item, $source, event) {
 
             var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
@@ -49,6 +89,8 @@ $.plugin2('repeatable', {
 
                     return;
                 }
+
+                bindPreviewInput($item);
 
                 $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
                 $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
@@ -170,9 +212,9 @@ $.plugin2('repeatable', {
             // embedded object preview
             if ($item.is('[data-embedded-popup]')) {
 
-                var preview = $item.attr('data-preview');
+                if($item.is('[data-preview]')) {
 
-                if(preview) {
+                    var preview = $item.attr('data-preview');
                     // generate preview thumbnail with click handler to pop up embedded object edit form
                     $item.prepend($('<div />', {
                             class: 'embedded-object-preview',
@@ -211,46 +253,6 @@ $.plugin2('repeatable', {
 
                 // collapsed doesn't apply to the embedded object preview
                 $item.removeClass('collapsed');
-
-                $item.one('load', function() {
-
-                    // [data-preview-field] provides a dynamic connection between the preview thumbnail provided and an object field
-                    var previewField = $item.attr('data-preview-field');
-                    if(previewField) {
-
-                        // final path segment is a StorageItem
-                        // remove final segment to get path to the StorageItem's parent
-                        var lastSlashAt = previewField.lastIndexOf("/");
-
-                        if(lastSlashAt !== -1) {
-                            previewField = previewField.substr(0, lastSlashAt);
-                        }
-
-                        // get the current $item's field path
-                        var myField = $item.closest('[data-field]').attr('data-field');
-
-                        // splice current $item's path with preview field's relative path to StorageItem parent
-                        var $previewFieldEl = $item.find('[data-field="' + myField + '/' + previewField + '"]').first();
-
-                        // embedded objects rendered in the page include the parent path prefix
-                        // newly-added embedded objects do not include the parent path prefix
-                        // check both [data-field] values
-                        if($previewFieldEl.size() === 0) {
-                            $previewFieldEl = $item.find('[data-field="' + previewField + '"]').first();
-                        }
-
-                        if($previewFieldEl.size() > 0) {
-
-                            var $previewFieldInput = $previewFieldEl.find('[name="' + $previewFieldEl.attr('data-name') + '"]').first();
-
-                            // on change of the input described by [data-preview-field], update the [data-preview] attribute on the $item
-                            $previewFieldInput.bind('change', function() {
-                                $item.attr('data-preview', $previewFieldInput.attr('data-preview'));
-                                $item.find('> .embedded-object-preview > figure > img').attr('src', $previewFieldInput.attr('data-preview'));
-                            });
-                        }
-                    }
-                });
             }
 
             $item.find(':input[name$=".toggle"]').hide();
