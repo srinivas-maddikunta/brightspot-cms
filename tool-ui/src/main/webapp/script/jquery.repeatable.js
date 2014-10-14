@@ -30,24 +30,26 @@ $.plugin2('repeatable', {
 
         var popEmbeddedEdit = function($item, $source, event) {
 
-            if(!$item.hasClass('embeddedForm-loaded')) {
-
-                if(!$item.hasClass('embeddedForm-loading')) {
-                    loadFormFields($item);
-                }
-
-                $item.one('load', function() {
-                    popEmbeddedEdit($item, $source, event);
-                });
-                return;
-            }
-
             var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
 
             if(!$objectInputs) {
 
                 // use .first() to avoid pulling nested .objectInputs containers from embedded objects
                 $objectInputs = $item.find('.objectInputs').first();
+
+                if($objectInputs.size() === 0) {
+
+                    $item.one('load', function() {
+                        popEmbeddedEdit($item, $source, event);
+                    });
+
+                    if(!$item.hasClass('embeddedForm-loading')) {
+                        loadFormFields($item);
+                    }
+
+                    return;
+                }
+
                 $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
                 $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
                 $objectInputs.trigger('resize');
@@ -119,7 +121,6 @@ $.plugin2('repeatable', {
                     'data': { 'data': data },
                     'complete': function(response) {
                         $item.append(response.responseText);
-                        $item.addClass('embeddedForm-loaded');
                         $item.removeClass('embeddedForm-loading');
                         $item.trigger('create');
                         $item.trigger('load');
