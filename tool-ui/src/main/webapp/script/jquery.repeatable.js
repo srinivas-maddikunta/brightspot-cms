@@ -97,6 +97,9 @@ $.plugin2('repeatable', {
                 $objectInputs.trigger('resize');
             }
 
+            // remove class .collapsed
+            $item.removeClass('collapsed');
+
             // store the previous [data-preview] sibling of the selected $item in jQuery data
             var $previous = $item.prevAll().filter('[data-embedded-popup]').first();
             $.data($item[0], PREVIOUS_OBJECT_DATA, $previous);
@@ -250,9 +253,6 @@ $.plugin2('repeatable', {
                         popEmbeddedEdit($item, $label, null);
                     });
                 }
-
-                // collapsed doesn't apply to the embedded object preview
-                $item.removeClass('collapsed');
             }
 
             $item.find(':input[name$=".toggle"]').hide();
