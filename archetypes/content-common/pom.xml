@@ -9,13 +9,13 @@
     <parent>
         <groupId>com.psddev</groupId>
         <artifactId>cms</artifactId>
-        <version>2.4-SNAPSHOT</version>
+        <version>2.4-gallery-edit</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <groupId>com.psddev</groupId>
     <artifactId>cms-content-common-archetype</artifactId>
-    <version>2.4-SNAPSHOT</version>
+    <version>2.4-gallery-edit</version>
     <packaging>jar</packaging>
 
     <name>Brightspot CMS: Content Common Archetype</name>
