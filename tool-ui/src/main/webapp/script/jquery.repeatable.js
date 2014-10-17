@@ -18,167 +18,170 @@ $.plugin2('repeatable', {
         }
     },
 
+    'loadFormFields': function($item) {
+
+        var $input = $item.find('input[data-form-fields-url]');
+
+        if ($input.length > 0) {
+
+            $item.addClass('embeddedForm-loading');
+            var url = $input.attr('data-form-fields-url');
+            var data = $input.val();
+
+            $input.removeAttr('data-form-fields-url');
+            $input.val('');
+            $item.toggleClass('collapsed');
+
+            $.ajax({
+                'type': 'POST',
+                'cache': false,
+                'url': url,
+                'data': { 'data': data },
+                'complete': function(response) {
+                    $item.append(response.responseText);
+                    $item.removeClass('embeddedForm-loading');
+                    $item.trigger('create');
+                    $item.trigger('load');
+                    $item.resize();
+                    $item.find(':input:first').change();
+                }
+            });
+        } else {
+            $item.toggleClass('collapsed');
+            $item.resize();
+            $item.find(':input:first').change();
+        }
+    },
+
+    '_bindPreviewInput': function($item) {
+
+        // [data-preview-field] provides a dynamic connection between the preview thumbnail provided and an object field
+        var previewField = $item.attr('data-preview-field');
+        if(previewField) {
+
+            // final path segment is a StorageItem
+            // remove final segment to get path to the StorageItem's parent
+            var lastSlashAt = previewField.lastIndexOf("/");
+
+            if(lastSlashAt !== -1) {
+                previewField = previewField.substr(0, lastSlashAt);
+            }
+
+            // get the current $item's field path
+            var myField = $item.closest('[data-field]').attr('data-field');
+
+            // splice current $item's path with preview field's relative path to StorageItem parent
+            var $previewFieldEl = $item.find('[data-field="' + myField + '/' + previewField + '"]').first();
+
+            // embedded objects rendered in the page include the parent path prefix
+            // newly-added embedded objects do not include the parent path prefix
+            // check both [data-field] values
+            if($previewFieldEl.size() === 0) {
+                $previewFieldEl = $item.find('[data-field="' + previewField + '"]').first();
+            }
+
+            if($previewFieldEl.size() > 0) {
+
+                var $previewFieldInput = $previewFieldEl.find('[name="' + $previewFieldEl.attr('data-name') + '"]').first();
+
+                // on change of the input described by [data-preview-field], update the [data-preview] attribute on the $item
+                $previewFieldInput.bind('change', function() {
+                    $item.attr('data-preview', $previewFieldInput.attr('data-preview'));
+                    $item.find('> .embedded-object-preview > figure > img').attr('src', $previewFieldInput.attr('data-preview'));
+                });
+            }
+        }
+    },
+
+    'popEmbeddedEdit': function($item, $source, event) {
+
+        var plugin = this;
+
+        var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
+
+        if(!$objectInputs) {
+
+            // use .first() to avoid pulling nested .objectInputs containers from embedded objects
+            $objectInputs = $item.find('.objectInputs').first();
+
+            if($objectInputs.size() === 0) {
+
+                $item.one('load', function() {
+                    plugin.popEmbeddedEdit($item, $source, event);
+                });
+
+                if(!$item.hasClass('embeddedForm-loading')) {
+                    plugin.loadFormFields($item);
+                }
+
+                return;
+            }
+
+            plugin._bindPreviewInput($item);
+
+            $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
+            $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
+            $objectInputs.trigger('resize');
+        }
+
+        // remove class .collapsed
+        $item.removeClass('collapsed');
+
+        // store the previous [data-preview] sibling of the selected $item in jQuery data
+        var $previous = $item.prevAll().filter('[data-embedded-popup]').first();
+        $.data($item[0], PREVIOUS_OBJECT_DATA, $previous);
+
+        // find or create a "previous object" navigation control on the popup
+        var $navPrevious = $objectInputs.find('> .previousObject');
+        if($navPrevious.size() === 0) {
+            $navPrevious = $('<span />', {
+                'class': 'previousObject',
+                'click': function() {
+                    var $previousObj = $.data($item[0], PREVIOUS_OBJECT_DATA);
+                    $objectInputs.popup('close');
+                    plugin.popEmbeddedEdit($previousObj, $previousObj.find('.embedded-object-edit-popup'));
+                }
+            });
+            $objectInputs.append($navPrevious);
+        }
+
+        // store the next [data-preview] sibling of the selected $item in jQuery data
+        var $next = $item.nextAll().filter('[data-embedded-popup]').first();
+        $.data($item[0], NEXT_OBJECT_DATA, $next);
+
+        // find or create a "next object" navigation control on the popup
+        var $navNext = $objectInputs.find('> .nextObject');
+        if($navNext.size() === 0) {
+            $navNext = $('<span />', {
+                'class': 'nextObject',
+                'click': function() {
+                    var $nextObj = $.data($item[0], NEXT_OBJECT_DATA);
+                    $objectInputs.popup('close');
+                    plugin.popEmbeddedEdit($nextObj, $nextObj.find('.embedded-object-edit-popup'));
+                }
+            });
+            $objectInputs.append($navNext);
+        }
+
+        // add classes to the .popup to indicate that the selected $item has previous and next siblings
+        $objectInputs.popup('container').toggleClass('hasPrevious', $previous.size() > 0);
+        $objectInputs.popup('container').toggleClass('hasNext', $next.size() > 0);
+
+        // open the popup to display the embedded object inputs
+        $objectInputs.popup('source', $source, event);
+        $objectInputs.popup('open');
+    },
+
     '_create': function(container) {
         var $container = $(container),
-                options = this.option();
+                options = this.option(),
+                plugin = this;
 
         $container.addClass('event-input-disable');
 
         $container.bind('input-disable', function(event, disable) {
             $(event.target).closest('.inputContainer').toggleClass('state-disabled', disable);
         });
-
-        var bindPreviewInput = function($item) {
-
-            // [data-preview-field] provides a dynamic connection between the preview thumbnail provided and an object field
-            var previewField = $item.attr('data-preview-field');
-            if(previewField) {
-
-                // final path segment is a StorageItem
-                // remove final segment to get path to the StorageItem's parent
-                var lastSlashAt = previewField.lastIndexOf("/");
-
-                if(lastSlashAt !== -1) {
-                    previewField = previewField.substr(0, lastSlashAt);
-                }
-
-                // get the current $item's field path
-                var myField = $item.closest('[data-field]').attr('data-field');
-
-                // splice current $item's path with preview field's relative path to StorageItem parent
-                var $previewFieldEl = $item.find('[data-field="' + myField + '/' + previewField + '"]').first();
-
-                // embedded objects rendered in the page include the parent path prefix
-                // newly-added embedded objects do not include the parent path prefix
-                // check both [data-field] values
-                if($previewFieldEl.size() === 0) {
-                    $previewFieldEl = $item.find('[data-field="' + previewField + '"]').first();
-                }
-
-                if($previewFieldEl.size() > 0) {
-
-                    var $previewFieldInput = $previewFieldEl.find('[name="' + $previewFieldEl.attr('data-name') + '"]').first();
-
-                    // on change of the input described by [data-preview-field], update the [data-preview] attribute on the $item
-                    $previewFieldInput.bind('change', function() {
-                        $item.attr('data-preview', $previewFieldInput.attr('data-preview'));
-                        $item.find('> .embedded-object-preview > figure > img').attr('src', $previewFieldInput.attr('data-preview'));
-                    });
-                }
-            }
-        };
-
-        var popEmbeddedEdit = function($item, $source, event) {
-
-            var $objectInputs = $.data($item[0], OBJECT_FORM_DATA);
-
-            if(!$objectInputs) {
-
-                // use .first() to avoid pulling nested .objectInputs containers from embedded objects
-                $objectInputs = $item.find('.objectInputs').first();
-
-                if($objectInputs.size() === 0) {
-
-                    $item.one('load', function() {
-                        popEmbeddedEdit($item, $source, event);
-                    });
-
-                    if(!$item.hasClass('embeddedForm-loading')) {
-                        loadFormFields($item);
-                    }
-
-                    return;
-                }
-
-                bindPreviewInput($item);
-
-                $.data($item[0], OBJECT_FORM_DATA, $objectInputs);
-                $objectInputs.popup({'parent': $objectInputs.closest('form')[0]});
-                $objectInputs.trigger('resize');
-            }
-
-            // remove class .collapsed
-            $item.removeClass('collapsed');
-
-            // store the previous [data-preview] sibling of the selected $item in jQuery data
-            var $previous = $item.prevAll().filter('[data-embedded-popup]').first();
-            $.data($item[0], PREVIOUS_OBJECT_DATA, $previous);
-
-            // find or create a "previous object" navigation control on the popup
-            var $navPrevious = $objectInputs.find('> .previousObject');
-            if($navPrevious.size() === 0) {
-                $navPrevious = $('<span />', {
-                    'class': 'previousObject',
-                    'click': function() {
-                        var $previousObj = $.data($item[0], PREVIOUS_OBJECT_DATA);
-                        $objectInputs.popup('close');
-                        popEmbeddedEdit($previousObj, $previousObj.find('.embedded-object-edit-popup'));
-                    }
-                });
-                $objectInputs.append($navPrevious);
-            }
-
-            // store the next [data-preview] sibling of the selected $item in jQuery data
-            var $next = $item.nextAll().filter('[data-embedded-popup]').first();
-            $.data($item[0], NEXT_OBJECT_DATA, $next);
-
-            // find or create a "next object" navigation control on the popup
-            var $navNext = $objectInputs.find('> .nextObject');
-            if($navNext.size() === 0) {
-                $navNext = $('<span />', {
-                    'class': 'nextObject',
-                    'click': function() {
-                        var $nextObj = $.data($item[0], NEXT_OBJECT_DATA);
-                        $objectInputs.popup('close');
-                        popEmbeddedEdit($nextObj, $nextObj.find('.embedded-object-edit-popup'));
-                    }
-                });
-                $objectInputs.append($navNext);
-            }
-
-            // add classes to the .popup to indicate that the selected $item has previous and next siblings
-            $objectInputs.popup('container').toggleClass('hasPrevious', $previous.size() > 0);
-            $objectInputs.popup('container').toggleClass('hasNext', $next.size() > 0);
-
-            // open the popup to display the embedded object inputs
-            $objectInputs.popup('open');
-            $objectInputs.popup('source', $source, event);
-        };
-
-        var loadFormFields = function($item) {
-
-            var $input = $item.find('input[data-form-fields-url]');
-
-            if ($input.length > 0) {
-
-                $item.addClass('embeddedForm-loading');
-                var url = $input.attr('data-form-fields-url');
-                var data = $input.val();
-
-                $input.removeAttr('data-form-fields-url');
-                $input.val('');
-                $item.toggleClass('collapsed');
-
-                $.ajax({
-                    'type': 'POST',
-                    'cache': false,
-                    'url': url,
-                    'data': { 'data': data },
-                    'complete': function(response) {
-                        $item.append(response.responseText);
-                        $item.removeClass('embeddedForm-loading');
-                        $item.trigger('create');
-                        $item.trigger('load');
-                        $item.resize();
-                        $item.find(':input:first').change();
-                    }
-                });
-            } else {
-                $item.toggleClass('collapsed');
-                $item.resize();
-                $item.find(':input:first').change();
-            }
-        };
 
         // Helper for creating extra stuff on an item.
         var createExtra = function() {
@@ -200,7 +203,7 @@ $.plugin2('repeatable', {
                     'data-object-id': $item.find('> input[type="hidden"][name$=".id"]').val(),
                     'data-dynamic-text': '${content.state.getType().label}: ${content.label}',
                     'click': function() {
-                        loadFormFields($item);
+                        plugin.loadFormFields($item);
                     }
                 });
                 if ($labelHtml.size() !== 0) {
@@ -232,7 +235,7 @@ $.plugin2('repeatable', {
                                     })
                                 ],
                                 'click': function(e) {
-                                    popEmbeddedEdit($item, $(this), null);
+                                    plugin.popEmbeddedEdit($item, $(this), null);
                                 }})
                         })
                     );
@@ -243,14 +246,14 @@ $.plugin2('repeatable', {
                             'class': 'embedded-object-edit-popup',
                             'text': 'Edit',
                             'click': function(e) {
-                                popEmbeddedEdit($item, $(this), null);
+                                plugin.popEmbeddedEdit($item, $(this), null);
                             }
                         })
                     }));
                 } else {
                     $label.addClass('embedded-object-edit-popup');
                     $label.click(function(e) {
-                        popEmbeddedEdit($item, $label, null);
+                        plugin.popEmbeddedEdit($item, $label, null);
                     });
                 }
             }

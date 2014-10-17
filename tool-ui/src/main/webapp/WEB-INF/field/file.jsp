@@ -719,6 +719,12 @@ if ((Boolean) request.getAttribute("isFormPost")) {
                                 "hash", StringUtils.hex(StringUtils.hmacSha1(Settings.getSecret(), fieldValueUrl))) %>">
                     </div>
 
+                    <%
+                        if (projectUsingBrightSpotImage) {
+                            JspUtils.include(request, response, out, wp.toolUrl(CmsTool.class, "/WEB-INF/field/set/hotSpot.jsp"));
+                        }
+                    %>
+
                 </div>
 
             <% } else if(fieldValue instanceof BrightcoveStorageItem) { %>
@@ -817,8 +823,3 @@ if ((Boolean) request.getAttribute("isFormPost")) {
         </div>
     <% } %>
 </div>
-<%
-    if (projectUsingBrightSpotImage) {
-        JspUtils.include(request, response, out, wp.toolUrl(CmsTool.class, "/WEB-INF/field/set/hotSpot.jsp"));
-    }
-%>
