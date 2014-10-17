@@ -21,6 +21,43 @@ function($, bsp_utils) {
 
     var $editors = $();
 
+    var findDisplayImage = function($sourceImage) {
+
+        return $sourceImage.parent().children().not($sourceImage).first()
+    };
+
+    var removeHotSpotFocusFromEditor = function($editor, $closingPopup) {
+
+        if($editor.size() > 0) {
+
+            var $closeCandidates = $().add($editor);
+
+            var $popups = $('[data-popup-source-class="imageEditor-hotSpotOverlay"]').filter(':visible');
+
+            if($closingPopup) {
+                $popups = $popups.not($closingPopup);
+            }
+
+            $popups.each(function() {
+
+                $closeCandidates = $closeCandidates.not($(this).popup('source').closest('.imageEditor'));
+            });
+
+            $closeCandidates.removeClass('hotSpot-focus');
+        }
+    };
+
+    var closeHotSpotPopupsExcept = function($thisPopup) {
+
+        var $popups = $('[data-popup-source-class="imageEditor-hotSpotOverlay"]').filter(':visible');
+
+        if($thisPopup) {
+            $popups = $popups.not($thisPopup);
+        }
+
+        $popups.popup('close');
+    };
+
     var initializeEditor = function(element) {
         var $editor = $(element);
 
@@ -32,7 +69,7 @@ function($, bsp_utils) {
         var $form = $editor.closest('form');
         var $image = $editor.find('.imageEditor-image img');
         var imageSrc = $image.attr('src');
-        var imageReSizeScale = $image.attr('data-scale') !== undefined && $image.attr('data-scale') !== "" ? $image.attr('data-scale') : 1.0;
+        var imageReSizeScale = $image.attr('data-scale') !== undefined && $image.attr('data-scale') !== "" ? parseFloat($image.attr('data-scale')) : 1.0;
         var $originalImage = $image;
         var $imageClone = $image.clone();
         var $sizingClone = $image.clone();
@@ -488,7 +525,7 @@ function($, bsp_utils) {
 
         $edit.find('.imageEditor-addBlurOverlay').bind('click', function() {
 
-            var $imageEditorCanvas = $image.parent().children().not($image).first();
+            var $imageEditorCanvas = findDisplayImage($image);
             var left = Math.floor($imageEditorCanvas.width() / 2 - 50);
             var top = Math.floor($imageEditorCanvas.height() / 2 - 50);
             var width = 100;
@@ -508,9 +545,9 @@ function($, bsp_utils) {
             return $objectInputs;
         };
 
-        var addHotSpot = function($li, left, top, width, height) {
+        var addHotSpot = function($li, left, top, width, height, popEmbeddedEdit) {
 
-            var $input = $.data($li[0], HOTSPOT_FORM_INPUTS);
+            var $input = getHotSpotFormInputs($li);
 
             var hotSpotOverlayCss = {
 
@@ -531,7 +568,10 @@ function($, bsp_utils) {
                 'data-type-id' : $input.find('input[name$="file.hotspots.typeId"]').val(),
                 'click': function(e) {
 
-                    $().repeatable('popEmbeddedEdit', $li, $(this), null);
+                    var $target = $(e.target);
+                    if(!$target.is('.imageEditor-textOverlayRemove')) {
+                        $().repeatable('popEmbeddedEdit', $li, $(this), null);
+                    }
                 }
             });
 
@@ -567,6 +607,8 @@ function($, bsp_utils) {
                     var imageHeight = $image.height();
 
                     $.drag(this, event, function(event) {
+
+                        closeHotSpotPopupsExcept();
 
                     }, function(event) {
                         var deltaX = event.pageX - original.pageX;
@@ -659,6 +701,8 @@ function($, bsp_utils) {
                         $hotSpotOverlayBox.css('width', bounds.width);
                         $hotSpotOverlayBox.css('height', bounds.height);
 
+                        $editor.addClass('hotSpot-focus');
+
                         // Set the hidden inputs to the current bounds.
                     }, function() {
                         var hotSpotOverlayBoxPosition = $hotSpotOverlayBox.parent().position();
@@ -667,10 +711,10 @@ function($, bsp_utils) {
 
                         if (imageReSizeScale < 1) {
                             if (rotation === '0') {
-                                var canvasWidth = $image.parent().children().not($image).first().width();
+                                var canvasWidth = findDisplayImage($image).width();
                                 scale = (canvasWidth / 1000) * scale;
                             } else if (rotation === '90' || rotation === '-90') {
-                                var canvasHeight = $image.parent().children().not($image).first().height();
+                                var canvasHeight = findDisplayImage($image).height();
                                 scale = (canvasHeight / 1000) * scale;
                             }
                         }
@@ -712,6 +756,8 @@ function($, bsp_utils) {
                         $input.find(':input[name$="y"]').val(y);
                         $input.find(':input[name$="width"]').val(width);
                         $input.find(':input[name$="height"]').val(height);
+
+                        removeHotSpotFocusFromEditor($editor);
                     });
 
                     return false;
@@ -719,14 +765,12 @@ function($, bsp_utils) {
             };
 
             if (isNaN(width)) {
-//                $hotSpotOverlay.css("width", "10px");
-//                $hotSpotOverlay.css("height", "0px");
+
+                // TODO: ?
             } else {
                 $hotSpotOverlayBox.append($('<div/>', {
                     'class': 'imageEditor-resizer imageEditor-resizer-left',
                     'mousedown': updateSizeBox(function(event, original, delta) {
-                        $li.addClass("state-focus");
-                        $hotSpotOverlay.addClass("selected");
                         return {
                             'left': original.left + delta.x,
                             'width': original.width - delta.x
@@ -736,8 +780,6 @@ function($, bsp_utils) {
                 $hotSpotOverlayBox.append($('<div/>', {
                     'class': 'imageEditor-resizer imageEditor-resizer-right',
                     'mousedown': updateSizeBox(function(event, original, delta) {
-                        $li.addClass("state-focus");
-                        $hotSpotOverlay.addClass("selected");
                         return {
                             'left': original.left,
                             'width': original.width + delta.x
@@ -747,8 +789,6 @@ function($, bsp_utils) {
                 $hotSpotOverlayBox.append($('<div/>', {
                     'class': 'imageEditor-resizer imageEditor-resizer-bottomRight',
                     'mousedown': updateSizeBox(function(event, original, delta) {
-                        $li.addClass("state-focus");
-                        $hotSpotOverlay.addClass("selected");
                         return {
                             'width': original.width + delta.constrainedX,
                             'height': original.height + delta.constrainedY
@@ -760,8 +800,6 @@ function($, bsp_utils) {
             $hotSpotOverlay.append($hotSpotOverlayBox);
 
             $hotSpotOverlayLabel.mousedown(updateSizeBox(function(event, original, delta) {
-                $li.addClass("state-focus");
-                $hotSpotOverlay.addClass("selected");
                 return {
                     'moving': true,
                     'left': original.left + delta.x,
@@ -769,87 +807,62 @@ function($, bsp_utils) {
                 };
             }));
 
-            $hotSpotOverlay.mousedown(function() {
-                $('.imageEditor-hotSpotOverlay').removeClass("selected");
-                $('.state-focus').removeClass("state-focus");
-                $li.addClass("state-focus");
-                $hotSpotOverlay.addClass("selected");
-            });
-            $editor.mouseleave(function() {
-                $li.removeClass("state-focus");
-                $hotSpotOverlay.removeClass("selected");
-            });
-
-            $li.mouseover(function() {
-                $li.addClass("state-focus");
-                $hotSpotOverlay.addClass("selected");
-            });
-
-            $li.mouseleave(function() {
-                $li.removeClass("state-focus");
-                $hotSpotOverlay.removeClass("selected");
-            });
-
             $hotSpotOverlay.append($hotSpotOverlayLabel);
 
-            var $hotSpotOverlayRemove = $('<div/>', {
-                'class': 'imageEditor-textOverlayRemove',
-                'text': 'Remove',
-                'click': function() {
-                    var left = $hotSpotOverlay.css("left");
-                    var top = $hotSpotOverlay.css("top");
-                    var width = $hotSpotOverlay.css("width");
-                    var height = $hotSpotOverlay.css("height");
+            $hotSpotOverlay.on('click', '> .imageEditor-textOverlayRemove', function() {
 
-                    $('.imageEditor-hotSpotOverlay').each(function() {
-                        var $overlay = $(this);
-                        if ($overlay.css("left") === left &&
-                            $overlay.css("top") === top &&
-                            $overlay.css("width") === width &&
-                            $overlay.css("height") === height) {
-                            $overlay.remove();
-                        }
-                    });
-
-                    $li.addClass("toBeRemoved");
-                    $li.find("input").attr("disabled", "disabled");
-                    $hotSpotOverlay.remove();
-                    return false;
-                }
+                var $originalRemoveButton = $li.find(' > .removeButton');
+                setTimeout(function() {
+                    $originalRemoveButton.click();
+                }, 0);
             });
 
-            $hotSpotOverlay.append($hotSpotOverlayRemove);
+            var $removeButton = $li.find(' > .removeButton').clone();
+            $removeButton.addClass('imageEditor-textOverlayRemove').removeClass('removeButton');
+            $hotSpotOverlay.toggleClass('toBeRemoved', $li.hasClass('toBeRemoved'));
+            $hotSpotOverlay.append($removeButton);
             $editor.append($hotSpotOverlay);
+
+            if(popEmbeddedEdit) {
+                $().repeatable('popEmbeddedEdit', $li, $hotSpotOverlay, null);
+            }
         };
 
         var rotateHotSpot = function (angle, x, y, width, height) {
+
             var $rotatedHotSpot = {};
-            angle = parseInt(angle);
+            angle = parseInt(angle, 10);
 
             var scale = imageReSizeScale;
             if (imageReSizeScale < 1) {
-                var cavnasHeight = $image.parent().find("canvas").height();
+                var cavnasHeight = findDisplayImage($image).height();
                 scale = (cavnasHeight / 1000) * scale;
             }
             if (angle === 90 ) {
                 var originalHeight = $image.width() / scale;
 
-                $rotatedHotSpot.x = originalHeight - y - width;
+                $rotatedHotSpot.x = originalHeight - y - (isNaN(width) ? 0 : width);
                 $rotatedHotSpot.y = x;
-                $rotatedHotSpot.width = height;
-                $rotatedHotSpot.height = width;
+
+                if(!isNaN(height) && !isNaN(width)) {
+                    $rotatedHotSpot.width = height;
+                    $rotatedHotSpot.height = width;
+                }
             } else if (angle === -90 ) {
                 var originalWidth = $image.height() / scale;
 
                 $rotatedHotSpot.x = y;
-                $rotatedHotSpot.y = originalWidth - x - height;
-                $rotatedHotSpot.width = height;
-                $rotatedHotSpot.height = width;
+                $rotatedHotSpot.y = originalWidth - x - (isNaN(height) ? 0 : height);
+
+                if(!isNaN(height) && !isNaN(width)) {
+                    $rotatedHotSpot.width = height;
+                    $rotatedHotSpot.height = width;
+                }
             }
             return $rotatedHotSpot;
         };
 
-        var initializeHotSpots = function() {
+        var initializeHotSpots = function($popItem) {
 
             var defaultX = parseInt(($image.width() / imageReSizeScale) / 2);
             var defaultY = parseInt(($image.height() / imageReSizeScale) / 2);
@@ -868,10 +881,10 @@ function($, bsp_utils) {
                 var canvasWidth, canvasHeight;
                 if (imageReSizeScale < 1) {
                     if (rotation === '0') {
-                        canvasWidth = $image.parent().children().not($image).first().width();
+                        canvasWidth = findDisplayImage($image).width();
                         scale = (canvasWidth / 1000) * scale;
                     } else if (rotation === '90' || rotation === '-90') {
-                        canvasHeight = $image.parent().children().not($image).first().height();
+                        canvasHeight = findDisplayImage($image).height();
                         scale = (canvasHeight / 1000) * scale;
                     }
                 }
@@ -927,33 +940,30 @@ function($, bsp_utils) {
                         }
                     }
 
-                    if (!$li.hasClass('toBeRemoved')) {
-
-                        if (rotation !== '0') {
-                            var $rotatedHotSpot = rotateHotSpot(rotation, x, y, width, height);
-                            x = $rotatedHotSpot.x;
-                            y = $rotatedHotSpot.y;
-                            width = $rotatedHotSpot.width;
-                            height = $rotatedHotSpot.height;
-                        }
-
-                        if ($edit.find(":input[name$='.flipH']").first().prop('checked')) {
-                            var originalWidth = $image.width() / scale;
-                            x = originalWidth - x - width;
-                        }
-
-                        if ($edit.find(":input[name$='.flipV']").first().prop('checked')) {
-                            var originalHeight = $image.height() / scale;
-                            y = originalHeight - y - height;
-                        }
-
-                        x = x * scale;
-                        y = y * scale;
-                        width = width * scale;
-                        height = height * scale;
-
-                        addHotSpot($li, x, y, width, height);
+                    if (rotation !== '0') {
+                        var $rotatedHotSpot = rotateHotSpot(rotation, x, y, width, height);
+                        x = $rotatedHotSpot.x;
+                        y = $rotatedHotSpot.y;
+                        width = $rotatedHotSpot.width;
+                        height = $rotatedHotSpot.height;
                     }
+
+                    if ($edit.find(":input[name$='.flipH']").first().prop('checked')) {
+                        var originalWidth = $image.width() / scale;
+                        x = originalWidth - x - width;
+                    }
+
+                    if ($edit.find(":input[name$='.flipV']").first().prop('checked')) {
+                        var originalHeight = $image.height() / scale;
+                        y = originalHeight - y - height;
+                    }
+
+                    x = x * scale;
+                    y = y * scale;
+                    width = width * scale;
+                    height = height * scale;
+
+                    addHotSpot($li, x, y, width, height, $popItem && ($popItem instanceof jQuery) && $li.is($popItem));
                 });
             }
         };
@@ -962,17 +972,24 @@ function($, bsp_utils) {
 
         $editor.closest('.inputContainer').on('change', '.hotSpots', initializeHotSpots);
 
-        $editor.closest('.inputContainer').bind('create', initializeHotSpots);
+        $editor.closest('.inputContainer').bind('create', function(e) {
+            var $target = $(e.target);
+            var $popListItem = ($target.is('li') && $target.parent().parent().is('.hotSpots')) ? $target : null;
+
+            setTimeout(function() {
+                initializeHotSpots($popListItem);
+            }, 0);
+        });
 
         $edit.find(":input[name$='.rotate']").change(function() {
-            setTimeout(initializeHotSpots(), 250);
+            setTimeout(initializeHotSpots, 250);
         });
         $edit.find(":input[name$='.flipH']").change(function() {
-            setTimeout(initializeHotSpots(), 250);
+            setTimeout(initializeHotSpots, 250);
         });
 
         $edit.find(":input[name$='.flipV']").change(function() {
-            setTimeout(initializeHotSpots(), 250);
+            setTimeout(initializeHotSpots, 250);
         });
 
         initializeHotSpots();
@@ -1641,4 +1658,36 @@ function($, bsp_utils) {
             }
         });
     }, 100);
+
+    $(function() {
+        // popup-related handlers to maintain "hotSpot-focus" state of the .imageEditor
+
+        $('body').on('close', '.popup', function() {
+
+            // on open of a popup for a hotSpot, tag the imageEditor with class "hotSpot-focus"
+
+            var $popup = $(this);
+
+            var $source = $popup.popup('source');
+
+            if($source && $source.is('.imageEditor-hotSpotOverlay')) {
+
+                removeHotSpotFocusFromEditor($source.closest('.imageEditor'));
+            }
+
+        }).on('open', '.popup', function() {
+
+            // on close of a popup for a hotSpot, if this was the last such popup open, remove the imageEditor's "hotSpot-focus" class
+
+            var $source = $(this).popup('source');
+
+            if($source && $source.is('.imageEditor-hotSpotOverlay')) {
+
+                $source.closest('.imageEditor').addClass('hotSpot-focus');
+
+                closeHotSpotPopupsExcept($(this));
+            }
+        });
+
+    });
 });
