@@ -11,9 +11,9 @@ $.plugin2('popup', {
             'right': 35,
             'top': 20
         },
-        'parent': doc.body
+        'parent': null
     },
-    
+
     '_create': function(element) {
         var $inner = $(element);
         var options = this.option();
@@ -66,7 +66,7 @@ $.plugin2('popup', {
             $(this).popup('close');
         });
 
-        var $body = $(options.parent);
+        var $body = options.parent ? $(options.parent) : $('body');
         $content.append($inner);
         $content.append($closeButton);
         $container.append($content);

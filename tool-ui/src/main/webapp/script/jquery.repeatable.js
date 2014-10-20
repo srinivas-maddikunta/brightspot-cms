@@ -20,7 +20,7 @@ $.plugin2('repeatable', {
 
     'loadFormFields': function($item) {
 
-        var $input = $item.find('input[data-form-fields-url]');
+        var $input = $item.find('> input[data-form-fields-url]');
 
         if ($input.length > 0) {
 
