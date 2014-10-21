@@ -118,10 +118,10 @@ if (state.getOriginalObject() instanceof HotSpots) {
         // --- Presentation ---
 
         %>
-        <div class="inputContainer" data-field="<%=hotSpotsList%>"  data-name="<%=hotSpotsName%>">
+        <div class="inputContainer hotSpot-inputContainer" data-field="<%=hotSpotsList%>"  data-name="<%=hotSpotsName%>">
             <div class="inputSmall">
                 <div class="inputLarge repeatableForm repeatableForm-previewable repeatableForm-popup hotSpots">
-                    <ul style="display: none;">
+                    <ul>
                         <%
                         if (!ObjectUtils.isBlank(hotspotList)) {
                             for (HotSpotPoint item : hotspotList) {
