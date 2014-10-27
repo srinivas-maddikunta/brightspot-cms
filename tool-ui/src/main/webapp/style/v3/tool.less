@@ -112,7 +112,7 @@
   position: absolute;
   left: 300px;
   top: 25px;
-  transition: width @speed-fast;
+  transition: width @time-fast;
   width: 98px;
 
   .toolSearchOpen & {
@@ -136,7 +136,7 @@
       line-height: 1;
       position: absolute;
       top: 8px;
-      transition: color @speed-fast;
+      transition: color @time-fast;
 
       .toolSearchOpen & {
         color: black;
@@ -154,7 +154,7 @@
       font-weight: bold;
       left: 0;
       padding-left: 26px;
-      transition: color @speed-fast;
+      transition: color @time-fast;
 
       .toolSearchOpen & {
         color: @color-note;
@@ -167,7 +167,7 @@
       box-shadow: none;
       height: 30px;
       padding-left: 25px;
-      transition: border @speed-fast;
+      transition: border @time-fast;
       width: 100%;
 
       .toolSearchOpen & {
@@ -194,32 +194,34 @@
 }
 
 .toolNav {
-  font-family: @fontFamily-label;
-  font-size: 100%;
-  font-weight: bold;
+  font-weight: 700;
   left: 373px;
   list-style-type: none;
   position: absolute;
-  transition: left @speed-fast;
-  top: 25px;
+  transition: left @time-fast;
+  top: 20px;
 
   .toolSearchOpen & {
     left: 475px;
   }
 
   > li {
+    @length-border: 1px;
+    @length-height: 36px;
+
+    border-color: transparent;
+    border-radius: 2px;
+    border-style: solid;
+    border-width: @length-border;
     float: left;
-    margin: 0 3px 0 0;
-    padding: 0;
+    margin: 0;
+    padding: ((@length-height - @length-lineHeight - @length-border) / 2) 20px;
     position: relative;
 
     > .link {
       color: @color-text;
       display: block;
       font-weight: bold;
-      height: 30px;
-      line-height: 30px;
-      margin: 0 15px 0 0;
 
       &:hover {
         text-decoration: none;
@@ -228,14 +230,18 @@
 
     > ul {
       background: white;
-      box-shadow: 0 0px 5px fade(black, 20%);
+      border: 1px solid @color-focus;
+      border-bottom-left-radius: 2px;
+      border-bottom-right-radius: 2px;
+      border-top-right-radius: 2px;
+      box-shadow: 0 0px 5px fade(black, 10%);
       display: none;
-      left: -15px;
+      left: -1px;
       list-style-type: none;
       margin: 0;
-      padding: 0 0 5px 0;
+      padding: 0;
       position: absolute;
-      top: 30px;
+      top: (@length-height - 1);
       z-index: 200;
 
       > li {
@@ -271,15 +277,24 @@
 
     &.selected {
       > .link {
-        border-bottom: 3px solid @color-focus;
         color: @color-text;
         position: relative;
       }
     }
 
     &:hover {
-      > .link {
-        border-bottom-color: @color-background;
+      border-color: @color-focus;
+      box-shadow: 0 0px 5px fade(black, 10%);
+
+      &:after {
+        background: white;
+        bottom: -1px;
+        content: '';
+        left: 0;
+        height: 5px;
+        position: absolute;
+        right: 0;
+        z-index: 201;
       }
 
       > ul {
@@ -390,7 +405,7 @@
 
   color: @color-note;
   font-size: 80%;
-  line-height: (@size-line * 0.8);
+  line-height: (@length-lineHeight * 0.8);
   padding-right: 20px;
   position: relative;
   text-align: right;
@@ -405,7 +420,7 @@
 }
 
 .searchFilter {
-  margin-top: 5px;
+  margin-top: 10px;
   position: relative;
 
   .objectId,
@@ -423,19 +438,33 @@
   }
 
   &.searchFilter-date {
+    position: relative;
+
     .calendarButton {
       width: 100%;
     }
 
     > input:first-child + .calendarButton {
+      border-bottom-color: transparent;
       border-bottom-left-radius: 0;
       border-bottom-right-radius: 0;
     }
 
     > input[name$='.x'] + .calendarButton {
+      border-top-color: transparent;
       border-top-left-radius: 0;
       border-top-right-radius: 0;
       margin-top: -1px;
+    }
+
+    &:before {
+      border-top: 1px solid husl-lightness-set(black, 90);
+      content: '';
+      height: 0;
+      left: 10px;
+      position: absolute;
+      top: 29px;
+      right: 35px;
     }
   }
 
@@ -464,11 +493,15 @@
   input[type='checkbox'] {
     position: absolute;
     right: 0;
-    top: 4px;
+    top: 6px;
+
+    &:checked {
+      background-image: url(icon/checkbox-cross.png);
+    }
   }
 
   .searchFilter {
-    padding-right: 20px;
+    padding-right: 25px;
   }
 
   .objectId-clear {
