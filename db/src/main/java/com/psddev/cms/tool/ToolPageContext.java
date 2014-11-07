@@ -1537,6 +1537,9 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript", "src", cmsResource(jsPrefix + "d3.js"));
         writeEnd();
 
+        writeStart("script", "type", "text/javascript", "src", cmsResource(jsPrefix + "evaporate.js"));
+        writeEnd();
+
         writeStart("script", "type", "text/javascript");
             writeRaw("var require = ");
             writeRaw(ObjectUtils.toJson(ImmutableMap.of(
