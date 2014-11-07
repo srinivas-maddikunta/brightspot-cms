@@ -1541,6 +1541,14 @@ public class ToolPageContext extends WebPageContext {
         writeEnd();
 
         writeStart("script", "type", "text/javascript");
+            write("var _e_ = ", "new Evaporate({");
+                write("signerUrl: ", "/cms/s3auth");
+                write("aws_key: ", Settings.get("dari/storage/psddevS3/access"));
+                write("bucket: ", Settings.get("dari/storage/psddevS3/bucket"));
+            write("});");
+        writeEnd();
+
+        writeStart("script", "type", "text/javascript");
             writeRaw("var require = ");
             writeRaw(ObjectUtils.toJson(ImmutableMap.of(
                     "baseUrl", cmsUrl(jsPrefix),
