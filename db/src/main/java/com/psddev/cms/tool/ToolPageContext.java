@@ -1540,11 +1540,14 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript", "src", cmsResource(jsPrefix + "evaporate.js"));
         writeEnd();
 
+        writeStart("script", "type", "text/javascript", "src", cmsResource(jsPrefix + "uploader.js"));
+        writeEnd();
+
         writeStart("script", "type", "text/javascript");
             write("var _e_ = ", "new Evaporate({");
-                write("signerUrl: ", "/cms/s3auth");
-                write("aws_key: ", Settings.get("dari/storage/psddevS3/access"));
-                write("bucket: ", Settings.get("dari/storage/psddevS3/bucket"));
+                write("signerUrl: ", "\'/cms/s3auth\', ");
+                write("aws_key: ", "\'" + Settings.get("dari/storage/psddevS3/access") + "\',");
+                write("bucket: ", "\'" + Settings.get("dari/storage/psddevS3/bucket") + "\'");
             write("});");
         writeEnd();
 
