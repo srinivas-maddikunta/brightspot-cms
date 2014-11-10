@@ -15,10 +15,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.SignatureException;
 
-@RoutingFilter.Path(application="cms", value="s3auth")
+@RoutingFilter.Path(application = "cms", value = "s3auth")
 public class S3SigningServlet extends HttpServlet {
 
-    private static String TO_SIGN_PARAM = "to_sign";
+    private static final String TO_SIGN_PARAM = "to_sign";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -32,11 +32,9 @@ public class S3SigningServlet extends HttpServlet {
         response.setContentType("text/html");
         try {
             response.getWriter().write(Signature.getSignature(request.getParameter(TO_SIGN_PARAM), secret));
-        }
-        catch (SignatureException e) {
+        } catch (SignatureException e) {
             throw new ServletException("Unable to Sign request with your S3 secret");
         }
-
     }
 
     private static class Signature {
@@ -57,7 +55,6 @@ public class S3SigningServlet extends HttpServlet {
                 throw new SignatureException("Failed to generate HMAC : " + e.getMessage());
             }
             return result;
-        }
         }
     }
 }
