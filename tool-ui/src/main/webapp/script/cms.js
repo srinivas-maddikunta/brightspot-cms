@@ -47,6 +47,7 @@ require([
     'jquery.sortable',
     'jquery.tabbed',
     'jquery.toggleable',
+    'jquery.uploader',
     'jquery.widthaware',
     'nv.d3',
 
@@ -100,6 +101,7 @@ function() {
     $doc.dropDown('live', 'select[multiple], select[data-searchable="true"]');
     $doc.editablePlaceholder('live', ':input[data-editable-placeholder]');
     $doc.fixedScrollable('live', '.fixedScrollable, .searchResult > .searchResultList, .popup[name="miscSearch"] .searchFiltersRest');
+    $doc.uploader('live','.fileSelector .fileSelectorNewUpload');
 
     $doc.frame({
         'frameClassName': 'frame',
@@ -451,7 +453,10 @@ function() {
                 });
 
                 // On file drop, replace the appropriate input.
-                $fileInput.one('change', function() {
+                $fileInput.one('change', function(event) {
+                    //TODO get file preview using HTML5 api
+                    //var isFileApiSupported = !!(window.File && window.FileReader && window.FileList && window.Blob);
+
                     var dropLinkOffset = $dropLink.offset(),
                             $frame,
                             replaceFileInput;

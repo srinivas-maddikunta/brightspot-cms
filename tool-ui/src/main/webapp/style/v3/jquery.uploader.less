@@ -1,0 +1,116 @@
+@radial-progress-color: @-color-green;
+@radial-progress-background: @color-gray-light;
+@radial-progress-inset-background: @color-white;
+
+.absolute-center {
+  position:absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.upload-preview {
+  height: 250px;
+  width:200px;
+  position:relative;
+  img {
+    display: block;
+    max-width: 200px;
+    max-height: 200px;
+    width: auto;
+    height: auto;
+  }
+  .caption {
+    height: 50px;
+  }
+
+  .radial-progress {
+    display:none;
+    position:absolute;
+  }
+
+  &.loading {
+    img {
+      opacity:0.2;
+    }
+
+    .radial-progress {
+      display:block;
+    }
+  }
+}
+
+.preview-wrapper {
+  position:relative;
+}
+
+.radial-progress {
+  @circle-size: 100px;
+  @inset-circle-size: 88px;
+  &:extend(.absolute-center);
+  width:  @circle-size;
+  height: @circle-size;
+  background-color: @radial-progress-background;
+  border-radius: 50%;
+  .circle {
+    .mask, .fill {
+      width:    @circle-size;
+      height:   @circle-size;
+      position: absolute;
+
+      border-radius: 50%;
+      transition: transform 0.4s;
+      -webkit-backface-visibility: hidden;
+    }
+    .mask {
+      clip: rect(0px, @circle-size, @circle-size, @circle-size/2);
+      .fill {
+        clip: rect(0px, @circle-size/2, @circle-size, 0px);
+        background-color: @radial-progress-color;
+      }
+    }
+  }
+  .inset {
+    &:extend(.absolute-center);
+    width: @inset-circle-size;
+    height: @inset-circle-size;
+    border-radius: 50%;
+    background: @radial-progress-inset-background;
+  }
+  .percentage {
+    &:extend(.absolute-center);
+    font-size:28px;
+    span {
+      width: 12px;
+      display: inline-block;
+      &:before {
+        font-size: 14px;
+        content: "%";
+        position: absolute;
+        top: 1px;
+      }
+    }
+  }
+}
+
+.radial-progress {
+  @increment: 180deg / 100;
+  @i: 0;
+  .loop (@i) when (@i <= 100) {
+    &[data-progress="@{i}"] {
+      .circle {
+        .mask.full, .fill {
+          transform: rotate(@increment * @i);
+        }
+        .fill.fix {
+          transform: rotate(@increment * @i * 2);
+        }
+      }
+      .inset .percentage:before {
+        content: "@{i}";
+      }
+    }
+    .loop(@i + 1);
+  }
+  .loop(@i);
+}
