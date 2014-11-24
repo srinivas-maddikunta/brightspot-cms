@@ -13,7 +13,8 @@
     "leaflet.draw": "0.2.2",
     "L.GeoSearch": "*",
     "spectrum": "1.3.4",
-    "evaporate": "ttlabs/evaporatejs"
+    "evaporate": "ttlabs/evaporatejs",
+    "velocity": "1.1.0"
   },
   "name": "brightspot-cms"
 }
