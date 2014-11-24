@@ -60,7 +60,7 @@ require([
   'jquery.sortable',
   'jquery.tabbed',
   'jquery.toggleable',
-  'v3/jquery.uploader.js',
+  'v3/jquery.uploader',
   'jquery.widthaware',
   'nv.d3',
 
