@@ -1,6 +1,9 @@
 // Toggle display of other areas.
 (function($, win, undef) {
 
+var $win = $(win),
+    cacheNonce = 0;
+
 $.plugin2('uploader', {
     '_init': function(selector) {
         var plugin = this;

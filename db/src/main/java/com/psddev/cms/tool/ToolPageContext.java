@@ -1552,7 +1552,7 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "d3.js"));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(jsPrefix + "evaporate.js"));
+        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "evaporate.js"));
         writeEnd();
 
         writeStart("script", "type", "text/javascript");

@@ -60,6 +60,7 @@ require([
   'jquery.sortable',
   'jquery.tabbed',
   'jquery.toggleable',
+  'v3/jquery.uploader.js',
   'jquery.widthaware',
   'nv.d3',
 
@@ -113,6 +114,7 @@ function() {
   $doc.dropDown('live', 'select[multiple], select[data-searchable="true"]');
   $doc.editablePlaceholder('live', ':input[data-editable-placeholder]');
   $doc.fixedScrollable('live', '.fixedScrollable, .searchResult > .searchResultList, .popup[name="miscSearch"] .searchFiltersRest');
+  $doc.uploader('live','.fileSelector .fileSelectorNewUpload');
 
   $doc.frame({
     'frameClassName': 'frame',
