@@ -1,7 +1,3 @@
-@radial-progress-color: @-color-green;
-@radial-progress-background: @color-gray-light;
-@radial-progress-inset-background: @color-white;
-
 .absolute-center {
   position:absolute;
   top: 50%;
@@ -50,7 +46,7 @@
   &:extend(.absolute-center);
   width:  @circle-size;
   height: @circle-size;
-  background-color: @radial-progress-background;
+  background-color: white;
   border-radius: 50%;
   .circle {
     .mask, .fill {
@@ -66,7 +62,7 @@
       clip: rect(0px, @circle-size, @circle-size, @circle-size/2);
       .fill {
         clip: rect(0px, @circle-size/2, @circle-size, 0px);
-        background-color: @radial-progress-color;
+        background-color: @color-radial-progress;
       }
     }
   }
@@ -75,7 +71,7 @@
     width: @inset-circle-size;
     height: @inset-circle-size;
     border-radius: 50%;
-    background: @radial-progress-inset-background;
+    background: white;
   }
   .percentage {
     &:extend(.absolute-center);
