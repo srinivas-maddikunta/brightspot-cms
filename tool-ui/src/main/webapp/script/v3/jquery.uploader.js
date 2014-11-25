@@ -19,18 +19,6 @@ $.plugin2('uploader', {
 
         var plugin = this;
         var $fileSelector = $inputSmall.find('.fileSelector').first();
-        var $select = $fileSelector.find('select').first();
-
-        if($select.find('option[value="keep"]').size() < 1) {
-            $select.prepend($('<option/>', {
-                'data-hide': '.fileSelectorItem',
-                'data-show': '.fileSelectorExisting',
-                'value': 'keep',
-                'text': 'Keep Existing'
-            }));
-        }
-
-        $select.val('keep');
 
         $.ajax({
             url: '/cms/imagePreview',
@@ -44,6 +32,19 @@ $.plugin2('uploader', {
             if (file.type.match('image.*')) {
                 plugin._displayPreview($uploadPreview.find('img').first(), file);
             }
+
+            var $select = $fileSelector.find('select').first();
+
+            if($select.find('option[value="keep"]').size() < 1) {
+                $select.prepend($('<option/>', {
+                    'data-hide': '.fileSelectorItem',
+                    'data-show': '.fileSelectorExisting',
+                    'value': 'keep',
+                    'text': 'Keep Existing'
+                }));
+            }
+
+            $select.val('keep');
         });
     },
 

@@ -169,7 +169,7 @@ public class FileSelector extends PageServlet {
         Class hotspotClass = ObjectUtils.getClassByName(ImageTag.HOTSPOT_CLASS);
         boolean projectUsingBrightSpotImage = hotspotClass != null && !ObjectUtils.isBlank(ClassFinder.Static.findClasses(hotspotClass));
 
-        if ((Boolean) request.getAttribute("isFormPost")) {
+        if (page.isFormPost()) {
             File file = null;
 
             try {
