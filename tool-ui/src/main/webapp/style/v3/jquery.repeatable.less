@@ -270,7 +270,7 @@
               .icon;
               .link;
               .icon-minus-sign;
-              color: @color-alert;
+              color: @color-remove;
               margin-left: 10px;
 
               @media @media-tablet {
@@ -329,7 +329,7 @@
               // similar to .objectId-select
               > .embedded-object-preview {
                 background-color: #fdd;
-                color: @color-alert;
+                color: @color-remove;
                 text-decoration: line-through;
 
                 &:before,
@@ -343,13 +343,13 @@
               }
 
               .embedded-object-edit {
-                color: @color-alert;
+                color: @color-remove;
                 text-decoration: line-through;
               }
 
               > .removeButton {
                 .icon-plus-sign;
-                color: @color-link;
+                color: @color-link-dark;
               }
             }
           }
@@ -403,12 +403,12 @@
           top: 0;
           display: none;
           font-size: 80px;
-          color: @color-background;
-          background-color: @color-link;
+          color: white;
+          background-color: @color-link-dark;
           width: @nav-width;
           &:hover {
-              color: @color-background;
-              background-color: @color-link;
+              color: white;
+              background-color: @color-link-dark;
           }
           &:before {
               padding: 0;
