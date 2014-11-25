@@ -53,12 +53,17 @@
         }
       }
 
+      > .repeatablePreview {
+        display: none;
+        max-width: 100%;
+      }
+
       > .objectInputs {
         &:extend(.inputLargeLike all);
 
         &:before {
           bottom: 15px;
-          border-color: @inputLabel-background;
+          border-color: @color-heading;
           border-style: solid;
           border-width: 0 0 1px 1px;
           content: '';
@@ -69,7 +74,7 @@
         }
 
         &.state-focus:before {
-          border-color: @inputLabel-background-focus;
+          border-color: @color-focus;
         }
       }
 
@@ -91,8 +96,7 @@
 
       &.state-focus {
         > .repeatableLabel {
-          background: @inputLabel-background-focus;
-          color: @inputLabel-color-focus;
+          .background-flat(@color-focus);
         }
       }
 
@@ -106,6 +110,10 @@
             content: '\25ba';
             margin-right: 5px;
           }
+        }
+
+        > .repeatablePreview {
+          display: block;
         }
       }
 
@@ -126,7 +134,7 @@
         > .removeButton {
           .icon;
           .icon-plus;
-          color: @color-link;
+          color: @color-link-dark;
         }
       }
     }
@@ -163,7 +171,7 @@
       overflow: hidden;
 
       > li {
-        background: @color-background;
+        background: white;
         box-sizing: border-box;
         float: left;
         margin-right: 1%;
@@ -223,7 +231,7 @@
             @img-height: 100px;
 
             display: block;
-            height: (@img-height + 2 * (@size-input-padding + @size-input-border));
+            height: (@img-height + 2 * (@size-input-padding + @length-inputBorderWidth));
 
             img {
               height: @img-height;
@@ -262,7 +270,7 @@
               .icon;
               .link;
               .icon-minus-sign;
-              color: @color-alert;
+              color: @color-remove;
               margin-left: 10px;
 
               @media @media-tablet {
@@ -321,7 +329,7 @@
               // similar to .objectId-select
               > .embedded-object-preview {
                 background-color: #fdd;
-                color: @color-alert;
+                color: @color-remove;
                 text-decoration: line-through;
 
                 &:before,
@@ -335,13 +343,13 @@
               }
 
               .embedded-object-edit {
-                color: @color-alert;
+                color: @color-remove;
                 text-decoration: line-through;
               }
 
               > .removeButton {
                 .icon-plus-sign;
-                color: @color-link;
+                color: @color-link-dark;
               }
             }
           }
@@ -395,12 +403,12 @@
           top: 0;
           display: none;
           font-size: 80px;
-          color: @color-background;
-          background-color: @color-link;
+          color: white;
+          background-color: @color-link-dark;
           width: @nav-width;
           &:hover {
-              color: @color-background;
-              background-color: @color-link;
+              color: white;
+              background-color: @color-link-dark;
           }
           &:before {
               padding: 0;
@@ -479,7 +487,7 @@
     margin-bottom: 0;
 
     > li {
-      background-color: @color-background;
+      background-color: white;
       border-bottom: 1px solid @color-note;
       margin-bottom: 10px;
       position: relative;
@@ -497,7 +505,7 @@
       &.toBeRemoved > .removeButton {
         .icon;
         .icon-plus;
-        color: @color-link;
+        color: @color-link-dark;
       }
     }
   }
@@ -538,7 +546,7 @@
       position: relative;
 
       > .repeatableLabel {
-        .background-color(@color-alt);
+        .background-flat(@color-alt);
 
         cursor: pointer;
         left: 0;
@@ -564,10 +572,10 @@
       }
 
       &.state-focus {
-        border-color: @color-link-lighter;
+        border-color: @color-link-light;
 
         > .repeatableLabel {
-          background-color: @color-link-lighter;
+          background-color: @color-link-light;
         }
       }
 
@@ -593,7 +601,7 @@
         > .removeButton {
           .icon;
           .icon-plus;
-          color: @color-link;
+          color: @color-link-dark;
         }
       }
     }
@@ -653,7 +661,7 @@
         > .removeButton {
           .icon;
           .icon-plus;
-          color: @color-link;
+          color: @color-link-dark;
         }
 
         .objectId-select {
@@ -750,7 +758,7 @@
         &:before {
           @length-size: 20px;
 
-          .background-color(fade(black, 60%));
+          .background-flat(fade(black, 60%));
 
           border: 2px solid white;
           border-radius: @length-size;
@@ -814,7 +822,7 @@
           .icon;
           .icon-plus;
 
-          color: @color-link;
+          color: @color-link-dark;
         }
       }
     }

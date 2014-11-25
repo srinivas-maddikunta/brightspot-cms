@@ -121,7 +121,7 @@ if ((Boolean) request.getAttribute("isFormPost")) {
         fieldValue.clear();
 
         for (UUID id : wp.uuidParams(inputName)) {
-            Object item = Query.findById(Object.class, id);
+            Object item = Query.fromAll().where("_id = ?", id).resolveInvisible().first();
             if (item != null) {
                 fieldValue.add(item);
             }
@@ -582,58 +582,59 @@ if (!isValueExternal) {
             "class", "inputLarge repeatableForm" + (!bulkUploadTypes.isEmpty() ? " repeatableForm-previewable" : "") + (!bulkUploadTypes.isEmpty() ? " repeatableForm-popup" : ""),
             "foo", "bar",
             "data-generic-arguments", genericArgumentsString);
-    wp.writeStart("ol");
 
-    for (Object item : fieldValue) {
+        wp.writeStart("ol");
 
-        State itemState = State.getInstance(item);
-        ObjectType itemType = itemState.getType();
-        Date itemPublishDate = itemState.as(Content.ObjectModification.class).getPublishDate();
+        for (Object item : fieldValue) {
+            State itemState = State.getInstance(item);
+            ObjectType itemType = itemState.getType();
+            Date itemPublishDate = itemState.as(Content.ObjectModification.class).getPublishDate();
 
-        List<Object> attributes = new ArrayList<Object>();
-        attributes.add("data-type");
-        attributes.add(wp.getObjectLabel(itemType));
-        attributes.add("data-label");
-        attributes.add(wp.getObjectLabel(item));
+            List<Object> attributes = new ArrayList<Object>();
+            attributes.add("data-type");
+            attributes.add(wp.getObjectLabel(itemType));
+            attributes.add("data-label");
+            attributes.add(wp.getObjectLabel(item));
 
-        if (!bulkUploadTypes.isEmpty()) {
+            if (!bulkUploadTypes.isEmpty()) {
 
-            attributes.add("data-embedded-popup");
-            attributes.add("");
+                attributes.add("data-embedded-popup");
+                attributes.add("");
 
-            if(hasPreview) {
-                String previewThumbnailUrl = wp.getPreviewThumbnailUrl(item);
-                attributes.add("data-preview");
-                attributes.add(previewThumbnailUrl != null ? previewThumbnailUrl : "");
-                attributes.add("data-preview-field");
-                attributes.add(itemType.getPreviewField());
+                if(hasPreview) {
+                    String previewThumbnailUrl = wp.getPreviewThumbnailUrl(item);
+                    attributes.add("data-preview");
+                    attributes.add(previewThumbnailUrl != null ? previewThumbnailUrl : "");
+                    attributes.add("data-preview-field");
+                    attributes.add(itemType.getPreviewField());
+                }
             }
-        }
 
-        wp.writeStart("li", attributes.toArray());
-        wp.writeElement("input",
-                "type", "hidden",
-                "name", idName,
-                "value", itemState.getId());
+            wp.writeStart("li", attributes.toArray());
 
-        wp.writeElement("input",
-                "type", "hidden",
-                "name", typeIdName,
-                "value", itemType.getId());
+            wp.writeElement("input",
+                    "type", "hidden",
+                    "name", idName,
+                    "value", itemState.getId());
 
-        wp.writeElement("input",
-                "type", "hidden",
-                "name", publishDateName,
-                "value", itemPublishDate != null ? itemPublishDate.getTime() : null);
+            wp.writeElement("input",
+                    "type", "hidden",
+                    "name", typeIdName,
+                    "value", itemType.getId());
 
-        wp.writeElement("input",
-                            "type", "hidden",
-                            "name", dataName,
-                            "value", ObjectUtils.toJson(itemState.getSimpleValues()),
-                            "data-form-fields-url", wp.cmsUrl(
-                                    "/contentFormFields",
-                                    "typeId", itemType.getId(),
-                                    "id", itemState.getId()));
+            wp.writeElement("input",
+                    "type", "hidden",
+                    "name", publishDateName,
+                    "value", itemPublishDate != null ? itemPublishDate.getTime() : null);
+
+            wp.writeElement("input",
+                                "type", "hidden",
+                                "name", dataName,
+                                "value", ObjectUtils.toJson(itemState.getSimpleValues()),
+                                "data-form-fields-url", wp.cmsUrl(
+                                        "/contentFormFields",
+                                        "typeId", itemType.getId(),
+                                        "id", itemState.getId()));
         wp.writeEnd();
     }
 
