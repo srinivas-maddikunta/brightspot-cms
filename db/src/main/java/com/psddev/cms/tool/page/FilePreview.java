@@ -23,8 +23,7 @@ public class FilePreview extends PageServlet {
         return null;
     }
 
-    @Override
-    protected void doService(ToolPageContext page) throws IOException, ServletException {
+    public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
         UUID id = state.getId();
@@ -63,9 +62,9 @@ public class FilePreview extends PageServlet {
                                 StringUtils.ensureStart(processorPath, "/"));
                     }
                 } else if (contentType != null && contentType.startsWith("image/")) {
-                    page.include("/cms/imagePreview");
+                    ImagePreview.reallyDoService(page);
                 } else if (fieldValue instanceof BrightcoveStorageItem) {
-                    page.include("/cms/brightCovePreview");
+                    BrightcovePreview.reallyDoService(page);
                 } else if (contentType != null && contentType.startsWith("video/")) {
                     page.writeStart("div", "style", page.cssString("margin-bottom", "5px"));
                         page.writeStart("a",
@@ -92,6 +91,10 @@ public class FilePreview extends PageServlet {
                 }
             page.writeEnd();
         }
+    }
 
+    @Override
+    protected void doService(ToolPageContext page) throws IOException, ServletException {
+        reallyDoService(page);
     }
 }

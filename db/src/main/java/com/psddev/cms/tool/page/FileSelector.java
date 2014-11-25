@@ -47,7 +47,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
-@RoutingFilter.Path(application = "cms", value = "field/file.jsp")
+@RoutingFilter.Path(application = "cms", value = "fileSelector")
 public class FileSelector extends PageServlet {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ToolPageContext.class);
@@ -616,7 +616,7 @@ public class FileSelector extends PageServlet {
         page.writeEnd();
 
         if (fieldValue != null) {
-            page.include("/cms/filePreview");
+            FilePreview.reallyDoService(page);
         }
 
         if (projectUsingBrightSpotImage) {

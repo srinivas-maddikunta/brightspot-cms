@@ -38,8 +38,7 @@ public class ImagePreview extends PageServlet {
         return null;
     }
 
-    @Override
-    protected void doService(ToolPageContext page) throws IOException, ServletException {
+    public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
 
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
@@ -54,7 +53,12 @@ public class ImagePreview extends PageServlet {
         page.writeEnd();
     }
 
-    private void writeImageEditorAside(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
+    @Override
+    protected void doService(ToolPageContext page) throws IOException, ServletException {
+        reallyDoService(page);
+    }
+
+    private static void writeImageEditorAside(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
 
         Map<String, Object> fieldValueMetadata = null;
         if (fieldValue != null) {
@@ -72,7 +76,7 @@ public class ImagePreview extends PageServlet {
         page.writeEnd();
     }
 
-    private void writeImageEditorTools(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
+    private static void writeImageEditorTools(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
 
         page.writeStart("div", "class", "imageEditor-tools");
             page.writeStart("h2");
@@ -115,7 +119,7 @@ public class ImagePreview extends PageServlet {
         page.writeEnd();
     }
 
-    private void writeImageEditorEdit(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName, Map<String, Object> fieldValueMetadata) throws IOException {
+    private static void writeImageEditorEdit(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName, Map<String, Object> fieldValueMetadata) throws IOException {
         HttpServletRequest request = page.getRequest();
         String inputName = (String) request.getAttribute("inputName");
         boolean useJavaImageEditor = ImageEditor.Static.getDefault() != null && (ImageEditor.Static.getDefault() instanceof JavaImageEditor);
@@ -155,7 +159,7 @@ public class ImagePreview extends PageServlet {
                     if (useJavaImageEditor) {
                         page.writeStart("tr");
                             page.writeStart("th");
-                                page.write("Blu");
+                                page.write("Blur");
                             page.writeEnd();
                             page.writeStart("td");
                                 page.writeStart("a",
@@ -179,17 +183,17 @@ public class ImagePreview extends PageServlet {
                     for (ImageAdjustment adj : ImageAdjustment.values()) {
                         page.writeStart("tr");
                             page.writeStart("th");
-                                page.h(StringUtils.toPascalCase(adj.title));
+                                page.writeHtml(page.h(StringUtils.toPascalCase(adj.title)));
                             page.writeEnd();
                             page.writeStart("td");
-                            if (!adj.isJavaImageEditorOnly() || (adj.isJavaImageEditorOnly() && useJavaImageEditor)) {
+                            if (!adj.javaImageEditorOnly || (adj.javaImageEditorOnly && useJavaImageEditor)) {
                                 page.writeTag("input",
-                                        "type", adj.getType(),
-                                        "name", inputName + "." + adj.getTitle(),
-                                        adj.getType().equals("range") ? "min" : "", adj.getType().equals("range") ? adj.getMin() : "",
-                                        adj.getType().equals("range") ? "max" : "", adj.getType().equals("range") ? adj.getMax() : "",
-                                        adj.getType().equals("range") ? "step" : "", adj.getType().equals("range") ? adj.getStep() : "",
-                                        "value", ObjectUtils.to(adj.getValueType(), edits.get(adj.getTitle())));
+                                        "type", adj.inputType,
+                                        "name", inputName + "." + adj.title,
+                                        adj.inputType.equals("range") ? "min" : "", adj.inputType.equals("range") ? adj.min : "",
+                                        adj.inputType.equals("range") ? "max" : "", adj.inputType.equals("range") ? adj.max: "",
+                                        adj.inputType.equals("range") ? "step" : "", adj.inputType.equals("range") ? adj.step : "",
+                                        "value", ObjectUtils.to(adj.valueType, edits.get(adj.title)));
                             }
 
                             page.writeEnd();
@@ -202,7 +206,7 @@ public class ImagePreview extends PageServlet {
         page.writeEnd();
     }
 
-    private void writeImageEditorSizes(ToolPageContext page, StorageItem fieldValue, State state, String fieldName, Map<String, Object> fieldValueMetadata) throws IOException {
+    private static void writeImageEditorSizes(ToolPageContext page, StorageItem fieldValue, State state, String fieldName, Map<String, Object> fieldValueMetadata) throws IOException {
 
         String cropsFieldName = fieldName + ".crops";
 
@@ -318,7 +322,7 @@ public class ImagePreview extends PageServlet {
         page.writeEnd();
     }
 
-    private void writeImageEditorImage(ToolPageContext page, StorageItem fieldValue) throws IOException {
+    private static void writeImageEditorImage(ToolPageContext page, StorageItem fieldValue) throws IOException {
 
         String fieldValueUrl;
         String resizeScale = "";
@@ -356,10 +360,6 @@ public class ImagePreview extends PageServlet {
         page.writeEnd();
     }
 
-    private void writeBrightcovePreview(ToolPageContext page) {
-
-    }
-
     private static enum ImageAdjustment {
 
         BRIGHTNESS("brightness", -1.0, 1.0, 0.01, double.class),
@@ -386,6 +386,7 @@ public class ImagePreview extends PageServlet {
             this.title = title;
             this.inputType = "checkbox";
             this.valueType = boolean.class;
+            this.javaImageEditorOnly = false;
         }
 
         ImageAdjustment(String title, boolean javaImageEditorOnly) {
@@ -402,70 +403,6 @@ public class ImagePreview extends PageServlet {
             this.step = step;
             this.inputType = "range";
             this.valueType = valueType;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public double getMin() {
-            return min;
-        }
-
-        public void setMin(double min) {
-            this.min = min;
-        }
-
-        public double getMax() {
-            return max;
-        }
-
-        public void setMax(double max) {
-            this.max = max;
-        }
-
-        public double getStep() {
-            return step;
-        }
-
-        public void setStep(double step) {
-            this.step = step;
-        }
-
-        public String getInputType() {
-            return inputType;
-        }
-
-        public void setInputType(String inputType) {
-            this.inputType = inputType;
-        }
-
-        public Class getValueType() {
-            return valueType;
-        }
-
-        public void setValueType(Class valueType) {
-            this.valueType = valueType;
-        }
-
-        public boolean isJavaImageEditorOnly() {
-            return javaImageEditorOnly;
-        }
-
-        public void setJavaImageEditorOnly(boolean javaImageEditorOnly) {
-            this.javaImageEditorOnly = javaImageEditorOnly;
         }
     }
 }

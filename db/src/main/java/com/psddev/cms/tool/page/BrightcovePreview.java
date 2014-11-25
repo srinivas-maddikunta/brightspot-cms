@@ -21,8 +21,7 @@ public class BrightcovePreview extends PageServlet {
         return null;
     }
 
-    @Override
-    protected void doService(ToolPageContext page) throws IOException, ServletException {
+    public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
         ObjectField field = (ObjectField) request.getAttribute("field");
@@ -81,5 +80,10 @@ public class BrightcovePreview extends PageServlet {
                 page.write("No Brightcove player is configured for previewing videos");
             page.writeEnd();
         }
+    }
+
+    @Override
+    protected void doService(ToolPageContext page) throws IOException, ServletException {
+        reallyDoService(page);
     }
 }
