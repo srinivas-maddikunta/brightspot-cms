@@ -6,15 +6,12 @@
 }
 
 .upload-preview {
-  height: 250px;
-  width:200px;
+  &:extend(.imageEditor-image);
+  margin-top: 5px;
   position:relative;
   img {
     display: block;
-    max-width: 200px;
-    max-height: 200px;
-    width: auto;
-    height: auto;
+    width:100%;
   }
   .caption {
     height: 50px;

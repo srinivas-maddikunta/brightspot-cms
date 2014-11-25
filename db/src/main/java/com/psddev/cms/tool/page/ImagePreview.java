@@ -40,6 +40,15 @@ public class ImagePreview extends PageServlet {
 
     public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
 
+        if(page.paramOrDefault(boolean.class, "upload", false)) {
+            renderImagePreview(page);
+        } else {
+            renderImageEditor(page);
+        }
+    }
+
+    public static void renderImageEditor(ToolPageContext page) throws IOException, ServletException {
+
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
         UUID id = state.getId();
@@ -50,6 +59,35 @@ public class ImagePreview extends PageServlet {
         page.writeStart("div", "class", "imageEditor");
             writeImageEditorAside(page, fieldValue, state, id, fieldName);
             writeImageEditorImage(page, fieldValue);
+        page.writeEnd();
+    }
+
+    public static void renderImagePreview(ToolPageContext page) throws  IOException, ServletException {
+
+        page.writeStart("div", "class", "upload-preview loading");
+            page.writeTag("img");
+            page.writeStart("div",
+                    "class", "radial-progress",
+                    "data-progress", "0");
+                page.writeStart("div", "class", "circle");
+                    page.writeStart("div", "class", "mask full");
+                        page.writeStart("div", "class", "fill");
+                        page.writeEnd();
+                    page.writeEnd();
+                    page.writeStart("div", "class", "mask half");
+                        page.writeStart("div", "class", "fill");
+                        page.writeEnd();
+                        page.writeStart("div", "class", "fill fix");
+                        page.writeEnd();
+                    page.writeEnd();
+                page.writeEnd();
+                page.writeStart("div", "class", "inset");
+                    page.writeStart("div", "class", "percentage");
+                        page.writeStart("span");
+                        page.writeEnd();
+                    page.writeEnd();
+                page.writeEnd();
+            page.writeEnd();
         page.writeEnd();
     }
 
