@@ -40,7 +40,7 @@ public class ImagePreview extends PageServlet {
 
     public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
 
-        if(page.paramOrDefault(boolean.class, "upload", false)) {
+        if (page.paramOrDefault(boolean.class, "upload", false)) {
             renderImagePreview(page);
         } else {
             renderImageEditor(page);
@@ -229,7 +229,7 @@ public class ImagePreview extends PageServlet {
                                         "type", adj.inputType,
                                         "name", inputName + "." + adj.title,
                                         adj.inputType.equals("range") ? "min" : "", adj.inputType.equals("range") ? adj.min : "",
-                                        adj.inputType.equals("range") ? "max" : "", adj.inputType.equals("range") ? adj.max: "",
+                                        adj.inputType.equals("range") ? "max" : "", adj.inputType.equals("range") ? adj.max : "",
                                         adj.inputType.equals("range") ? "step" : "", adj.inputType.equals("range") ? adj.step : "",
                                         "value", ObjectUtils.to(adj.valueType, edits.get(adj.title)));
                             }
