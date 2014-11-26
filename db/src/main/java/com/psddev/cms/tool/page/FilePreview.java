@@ -4,11 +4,14 @@ import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
+import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.BrightcoveStorageItem;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -18,6 +21,8 @@ import java.util.UUID;
 @RoutingFilter.Path(application = "cms", value = "filePreview")
 public class FilePreview extends PageServlet {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ToolPageContext.class);
+
     @Override
     protected String getPermissionId() {
         return null;
@@ -26,10 +31,25 @@ public class FilePreview extends PageServlet {
     public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
-        UUID id = state.getId();
+        ObjectField field = (ObjectField)request.getAttribute("field");
 
-        ObjectField field = (ObjectField) request.getAttribute("field");
-        String fieldName = field.getInternalName();
+        if (state == null) {
+
+            UUID typeId = page.param(UUID.class, "typeId");
+
+            if (typeId == null) {
+                throw new ServletException("typeId param is empty");
+            }
+
+            ObjectType type = ObjectType.getInstance(typeId);
+            if(type == null) {
+                throw new ServletException("no ObjectType found with typeId: " + typeId);
+            }
+
+            state = State.getInstance(type.createObject(null));
+        }
+        String fieldName = field != null ? field.getInternalName() : page.paramOrDefault(String.class, "fieldName", "");
+
         StorageItem fieldValue = (StorageItem) state.getValue(fieldName);
         String inputName = (String) request.getAttribute("inputName");
         String storageName = inputName + ".storage";
@@ -54,7 +74,7 @@ public class FilePreview extends PageServlet {
                         "type", "hidden",
                         "value", page.h(fieldValue.getPath()));
 
-                if (field.as(ToolUi.class).getStoragePreviewProcessorPath() != null) {
+                if (field != null && field.as(ToolUi.class).getStoragePreviewProcessorPath() != null) {
                     ToolUi ui = field.as(ToolUi.class);
                     String processorPath = ui.getStoragePreviewProcessorPath();
                     if (processorPath != null) {
