@@ -541,77 +541,77 @@ public class FileSelector extends PageServlet {
 
         page.writeStart("div", "class", "fileSelector");
 
-        page.writeStart("select",
-                "id", page.getId(),
-                "class", "toggleable",
-                "data-root", ".inputSmall",
-                "name", actionName);
+            page.writeStart("select",
+                    "id", page.getId(),
+                    "class", "toggleable",
+                    "data-root", ".inputSmall",
+                    "name", actionName);
 
-        if (fieldValue != null) {
-            page.writeStart("option",
-                    "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
-                    "data-show", "." + FILE_SELECTOR_EXISTING_CLASS,
-                    "value", "keep");
-            page.write("Keep Existing");
+                if (fieldValue != null) {
+                    page.writeStart("option",
+                            "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
+                            "data-show", "." + FILE_SELECTOR_EXISTING_CLASS,
+                            "value", "keep");
+                        page.write("Keep Existing");
+                    page.writeEnd();
+                }
+
+                page.writeStart("option",
+                        "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
+                        "value", "none");
+                    page.write("None");
+                page.writeEnd();
+                page.writeStart("option",
+                        "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
+                        "data-show", "." + FILE_SELECTOR_NEW_UPLOAD_CLASS,
+                        "value", "newUpload",
+                        fieldValue == null && field.isRequired() ? "selected" : "", "");
+                    page.write("New Upload");
+                page.writeEnd();
+                page.writeStart("option",
+                        "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
+                        "data-show", "." + FILE_SELECTOR_NEW_URL_CLASS,
+                        "value", "newUrl");
+                    page.write("New URL");
+                page.writeEnd();
+
+                if (!ObjectUtils.isBlank(page.getCmsTool().getDropboxApplicationKey())) {
+                    page.writeStart("option",
+                            "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
+                            "data-show", "." + FILE_SELECTOR_DROPBOX_CLASS,
+                            "value", "dropbox");
+                        page.write("Dropbox");
+                    page.writeEnd();
+                }
+
             page.writeEnd();
-        }
 
-        page.writeStart("option",
-                "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
-                "value", "none");
-        page.write("None");
-        page.writeEnd();
-        page.writeStart("option",
-                "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
-                "data-show", "." + FILE_SELECTOR_NEW_UPLOAD_CLASS,
-                "value", "newUpload",
-                fieldValue == null && field.isRequired() ? "selected" : "", "");
-        page.write("New Upload");
-        page.writeEnd();
-        page.writeStart("option",
-                "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
-                "data-show", "." + FILE_SELECTOR_NEW_URL_CLASS,
-                "value", "newUrl");
-        page.write("New URL");
-        page.writeEnd();
-
-        if (!ObjectUtils.isBlank(page.getCmsTool().getDropboxApplicationKey())) {
-            page.writeStart("option",
-                    "data-hide", "." + FILE_SELECTOR_ITEM_CLASS,
-                    "data-show", "." + FILE_SELECTOR_DROPBOX_CLASS,
-                    "value", "dropbox");
-            page.write("Dropbox");
-            page.writeEnd();
-        }
-
-        page.writeEnd();
-
-        page.writeTag("input",
-                "class", FILE_SELECTOR_ITEM_CLASS + " " + FILE_SELECTOR_NEW_UPLOAD_CLASS,
-                "type", "file",
-                "name", page.h(fileName));
-        page.writeTag("input",
-                "class", FILE_SELECTOR_ITEM_CLASS + " " + FILE_SELECTOR_NEW_URL_CLASS,
-                "type", "text",
-                "name", page.h(urlName));
-
-        if (!ObjectUtils.isBlank(page.getCmsTool().getDropboxApplicationKey())) {
-            page.writeStart("span",
-                    "class", FILE_SELECTOR_ITEM_CLASS + " " + FILE_SELECTOR_DROPBOX_CLASS,
-                    "style", "display: inline-block; vertical-align: bottom");
             page.writeTag("input",
-                    "type", "dropbox-chooser",
-                    "name", page.h(dropboxName),
-                    "data-link-type", "direct",
-                    "style", "visibility:hidden");
-            page.writeEnd();
-            page.writeStart("script", "type", "text/javascript");
-            page.writeRaw(
-                    "$('.fileSelectorDropbox input').on('DbxChooserSuccess', function(event) {\n" +
-                            "   $(this).val(JSON.stringify(event.originalEvent.files[0]));\n" +
-                            "});");
-            page.writeEnd();
-        }
+                    "class", FILE_SELECTOR_ITEM_CLASS + " " + FILE_SELECTOR_NEW_UPLOAD_CLASS,
+                    "type", "file",
+                    "name", page.h(fileName));
+            page.writeTag("input",
+                    "class", FILE_SELECTOR_ITEM_CLASS + " " + FILE_SELECTOR_NEW_URL_CLASS,
+                    "type", "text",
+                    "name", page.h(urlName));
+
+            if (!ObjectUtils.isBlank(page.getCmsTool().getDropboxApplicationKey())) {
+                page.writeStart("span",
+                        "class", FILE_SELECTOR_ITEM_CLASS + " " + FILE_SELECTOR_DROPBOX_CLASS,
+                        "style", "display: inline-block; vertical-align: bottom");
+                    page.writeTag("input",
+                            "type", "dropbox-chooser",
+                            "name", page.h(dropboxName),
+                            "data-link-type", "direct",
+                            "style", "visibility:hidden");
+                page.writeEnd();
+                page.writeStart("script", "type", "text/javascript");
+                    page.writeRaw(
+                            "$('.fileSelectorDropbox input').on('DbxChooserSuccess', function(event) {\n" +
+                                    "   $(this).val(JSON.stringify(event.originalEvent.files[0]));\n" +
+                                    "});");
+                page.writeEnd();
+            }
 
         page.writeEnd();
 
