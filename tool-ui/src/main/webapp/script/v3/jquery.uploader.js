@@ -22,7 +22,7 @@ $.plugin2('uploader', {
 
         $.ajax({
             url: '/cms/imagePreview',
-            'data': { upload: 'true' },
+            data: { upload: 'true' },
             dataType: 'html'
         }).done(function(html) {
 
@@ -58,9 +58,10 @@ $.plugin2('uploader', {
             var file = files[i];
 
             plugin._beforeUpload(file, $inputSmall);
+            var fileName = encodeURIComponent(file.name);
 
             _e_.add({
-                name: encodeURIComponent(file.name),
+                name: fileName,
                 file: file,
                 notSignedHeadersAtInitiate: {
                     'Cache-Control': 'max-age=3600'
@@ -68,8 +69,8 @@ $.plugin2('uploader', {
                 xAmzHeadersAtInitiate: {
                     'x-amz-acl': 'public-read'
                 },
-                complete: function () {
-                    plugin._afterUpload($inputSmall);
+                complete: function (request) {
+                    plugin._afterUpload($inputSmall, request.responseURL);
                 },
                 progress: function (progress) {
                     plugin._progress($inputSmall, Math.round(Number(progress*100)));
@@ -79,8 +80,24 @@ $.plugin2('uploader', {
         }
     },
 
-    '_afterUpload': function($inputSmall) {
-        $inputSmall.find('.upload-preview').removeClass('loading');
+    '_afterUpload': function($inputSmall, filePath) {
+        var $uploadPreview  = $inputSmall.find('.upload-preview');
+        var $fileSelector = $inputSmall.find('.fileSelector');
+        $uploadPreview.removeClass('loading');
+
+        $.ajax({
+            url: '/cms/filePreview',
+            dataType: 'html',
+            data:
+            {
+                fieldName: $fileSelector.attr('data-field-name'),
+                typeId: $fileSelector.attr('data-type-id'),
+                path: filePath
+            }
+        }).done(function(html) {
+            $uploadPreview.detach();
+            $inputSmall.append(html);
+        });
     },
 
     '_progress': function($inputSmall, percentageComplete) {
@@ -90,7 +107,7 @@ $.plugin2('uploader', {
     '_displayPreview': function(img, file) {
 
         if(!(window.File && window.FileReader && window.FileList)) {
-            return null;
+            return;
         }
 
         var reader = new FileReader();
