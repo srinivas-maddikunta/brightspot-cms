@@ -10,6 +10,7 @@ import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ColorDistribution;
 import com.psddev.dari.db.ObjectField;
+import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.AggregateException;
@@ -69,14 +70,6 @@ public class ImagePreview extends PageServlet {
             processForm(page);
         }
 
-        String storageItemPath = page.param(String.class, "path");
-        if (!StringUtils.isBlank(storageItemPath)) {
-            StorageItem storageItem = createStorageItem(storageItemPath);
-            if (storageItem != null) {
-                page.getRequest().setAttribute(NEW_STORAGE_ITEM_ATTR, storageItem);
-            }
-        }
-
         if (page.paramOrDefault(boolean.class, "upload", false)) {
             renderImagePreview(page);
         } else {
@@ -92,10 +85,30 @@ public class ImagePreview extends PageServlet {
 
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
+
+        String inputName = ObjectUtils.firstNonBlank(page.param(String.class, "inputName"), (String) request.getAttribute("inputName"));
+        String pathName = inputName + ".path";
+        String storageName = inputName + ".storage";
+        StorageItem fieldValue = null;
+
+        if (page.paramOrDefault(Boolean.class, "isNewUpload", false)) {
+
+            String storageItemPath = page.param(String.class, pathName);
+            if (!StringUtils.isBlank(storageItemPath)) {
+                StorageItem newItem = StorageItem.Static.createIn(page.param(storageName));
+                newItem.setPath(page.param(pathName));
+                //newItem.setContentType(page.param(contentTypeName));
+                fieldValue = newItem;
+            }
+            state = State.getInstance(ObjectType.getInstance(page.param(UUID.class, "typeId")));
+        }
+
         UUID id = state.getId();
         ObjectField field = (ObjectField) request.getAttribute("field");
-        String fieldName = field.getInternalName();
-        StorageItem fieldValue = (StorageItem) state.getValue(fieldName);
+        String fieldName = field != null ? field.getInternalName() : page.paramOrDefault(String.class, "fieldName", "");
+        if (fieldValue == null) {
+            fieldValue = (StorageItem) state.getValue(fieldName);
+        }
 
         Class hotspotClass = ObjectUtils.getClassByName(ImageTag.HOTSPOT_CLASS);
         boolean projectUsingBrightSpotImage = hotspotClass != null && !ObjectUtils.isBlank(ClassFinder.Static.findClasses(hotspotClass));
@@ -452,7 +465,6 @@ public class ImagePreview extends PageServlet {
 
     public static void processForm(ToolPageContext page) throws IOException, ServletException {
 
-        //TODO: split up form processing. Some of this belongs in FilePreview
         HttpServletRequest request = page.getRequest();
         Object object = request.getAttribute("object");
 
@@ -780,6 +792,7 @@ public class ImagePreview extends PageServlet {
                         String storageSetting = field.as(ToolUi.class).getStorageSetting();
 
                         newItem = StorageItem.Static.createIn(storageSetting != null ? Settings.getOrDefault(String.class, storageSetting, null) : null);
+                        //TODO: use FilePreview.createStorageItemPath() ???
                         newItem.setPath(pathBuilder.toString());
                         newItem.setContentType(fileContentType);
 

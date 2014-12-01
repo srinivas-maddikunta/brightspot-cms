@@ -1,11 +1,13 @@
 package com.psddev.cms.tool.page;
 
+import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
+import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,13 +50,14 @@ public class FileSelector extends PageServlet {
         String fieldName = field.getInternalName();
         StorageItem fieldValue = (StorageItem) state.getValue(fieldName);
 
-        String inputName = (String) request.getAttribute("inputName");
+        String inputName = ObjectUtils.firstNonBlank(page.param(String.class, "inputName"),  (String) request.getAttribute("inputName"));
         String actionName = inputName + ".action";
         String fileName = inputName + ".file";
         String urlName = inputName + ".url";
         String dropboxName = inputName + ".dropbox";
+        String storageSetting = field.as(ToolUi.class).getStorageSetting() != null ? Settings.getOrDefault(String.class, field.as(ToolUi.class).getStorageSetting(), null) : null;
 
-        page.writeStart("div", "class", "fileSelector", "data-field-name", fieldName, "data-type-id", state.getTypeId());
+        page.writeStart("div", "class", "fileSelector", "data-field-name", fieldName, "data-type-id", state.getTypeId(), "data-input-name", inputName, "data-storage", storageSetting, "data-new-path-start", FilePreview.createStorageItemPath(null));
 
             page.writeStart("select",
                     "id", page.getId(),

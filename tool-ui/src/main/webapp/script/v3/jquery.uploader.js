@@ -53,15 +53,16 @@ $.plugin2('uploader', {
         var plugin = this;
         var $caller = this.$caller;
         var $inputSmall = $caller.closest('.inputSmall');
+        var $fileSelector = $inputSmall.find('.fileSelector');
 
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
 
             plugin._beforeUpload(file, $inputSmall);
-            var fileName = encodeURIComponent(file.name);
+            var filePath = $fileSelector.attr('data-new-path-start') + "/" + encodeURIComponent(file.name);
 
             _e_.add({
-                name: fileName,
+                name: filePath,
                 file: file,
                 notSignedHeadersAtInitiate: {
                     'Cache-Control': 'max-age=3600'
@@ -70,7 +71,7 @@ $.plugin2('uploader', {
                     'x-amz-acl': 'public-read'
                 },
                 complete: function (request) {
-                    plugin._afterUpload($inputSmall, request.responseURL);
+                    plugin._afterUpload($inputSmall, filePath);
                 },
                 progress: function (progress) {
                     plugin._progress($inputSmall, Math.round(Number(progress*100)));
@@ -83,17 +84,22 @@ $.plugin2('uploader', {
     '_afterUpload': function($inputSmall, filePath) {
         var $uploadPreview  = $inputSmall.find('.upload-preview');
         var $fileSelector = $inputSmall.find('.fileSelector');
+        var inputName = $fileSelector.attr('data-input-name');
+
+        var params = { };
+        params['isNewUpload'] = true;
+        params['inputName'] = inputName;
+        params['fieldName'] = $fileSelector.attr('data-field-name');
+        params['typeId'] = $fileSelector.attr('data-type-id');
+        params[inputName + '.path'] = filePath;
+        params[inputName + '.storage'] = $fileSelector.attr('data-storage');
+
         $uploadPreview.removeClass('loading');
 
         $.ajax({
             url: '/cms/filePreview',
             dataType: 'html',
-            data:
-            {
-                fieldName: $fileSelector.attr('data-field-name'),
-                typeId: $fileSelector.attr('data-type-id'),
-                path: filePath
-            }
+            data: params
         }).done(function(html) {
             $uploadPreview.detach();
             $inputSmall.append(html);
