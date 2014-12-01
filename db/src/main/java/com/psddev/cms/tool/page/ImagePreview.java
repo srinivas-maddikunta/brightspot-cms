@@ -67,7 +67,7 @@ public class ImagePreview extends PageServlet {
     public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
 
         if (page.isFormPost()) {
-            processForm(page);
+            doFormPost(page);
         }
 
         if (page.paramOrDefault(boolean.class, "upload", false)) {
@@ -463,8 +463,7 @@ public class ImagePreview extends PageServlet {
         page.writeEnd();
     }
 
-    public static void processForm(ToolPageContext page) throws IOException, ServletException {
-
+    public static void doFormPost(ToolPageContext page) throws IOException, ServletException {
         HttpServletRequest request = page.getRequest();
         Object object = request.getAttribute("object");
 
