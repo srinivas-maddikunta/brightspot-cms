@@ -85,7 +85,7 @@ $.plugin2('uploader', {
         var $uploadPreview  = $inputSmall.find('.upload-preview');
         var $fileSelector = $inputSmall.find('.fileSelector');
         var inputName = $fileSelector.attr('data-input-name');
-        var imgSrc = $uploadPreview.find('img').first().attr('src');
+        var localSrc = $uploadPreview.find('img').first().attr('src');
 
         var params = { };
         params['isNewUpload'] = true;
@@ -104,7 +104,16 @@ $.plugin2('uploader', {
         }).done(function(html) {
             $uploadPreview.detach();
             $inputSmall.append(html);
-            $inputSmall.find('.imageEditor-image').find('img').first().attr('src', imgSrc);
+
+            //prevent image pop-in
+            var img = $inputSmall.find('.imageEditor-image').find('img').first();
+            var remoteSrc = img.attr('src');
+            img.attr('src', localSrc);
+            $.ajax({
+                url: remoteSrc
+            }).done(function(html) {
+                img.attr('src', remoteSrc);
+            });
         });
     },
 
