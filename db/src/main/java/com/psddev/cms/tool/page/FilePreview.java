@@ -116,6 +116,24 @@ public class FilePreview extends PageServlet {
         }
     }
 
+    public static void setMetadata(ToolPageContext page, State state, StorageItem fieldValue) throws IOException {
+
+        LOGGER.info("FilePreview - setMetadata...");
+
+        if(state == null || fieldValue == null) {
+            return;
+        }
+
+        String contentType = fieldValue.getContentType();
+        if (StringUtils.isBlank(contentType)) {
+            return;
+        }
+
+        if (contentType.startsWith("image/")) {
+            ImagePreview.setMetadata(page, state, fieldValue);
+        }
+    }
+
     //TODO: where should this go?
     public static String createStorageItemPath(String fileName) {
         String idString = UUID.randomUUID().toString().replace("-", "");

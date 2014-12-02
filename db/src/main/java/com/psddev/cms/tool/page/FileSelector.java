@@ -5,8 +5,6 @@ import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.State;
-import com.psddev.dari.util.AggregateException;
-import com.psddev.dari.util.ImageMetadataMap;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.MultipartRequest;
 import com.psddev.dari.util.MultipartRequestFilter;
@@ -48,12 +46,8 @@ public class FileSelector extends PageServlet {
     public static final String FILE_SELECTOR_DROPBOX_CLASS = "fileSelectorDropbox";
 
     public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
+
         HttpServletRequest request = page.getRequest();
-
-        if (page.isFormPost()) {
-            doFormPost(page);
-        }
-
         Object object = request.getAttribute("object");
         State state = State.getInstance(object);
 
@@ -149,7 +143,8 @@ public class FileSelector extends PageServlet {
         }
     }
 
-    private static void doFormPost(ToolPageContext page) throws IOException, ServletException {
+    public static void doFormPost(ToolPageContext page) throws IOException, ServletException {
+        LOGGER.info("FileSelector - doFormPost...");
         HttpServletRequest request = page.getRequest();
         Object object = request.getAttribute("object");
 
@@ -365,39 +360,11 @@ public class FileSelector extends PageServlet {
                         fieldValueMetadata.put("http.headers", httpHeaders);
 
                         newItem.setData(new FileInputStream(file));
-
-                        newItemData = new FileInputStream(file);
                     }
                 }
 
             } else if ("newUrl".equals(action)) {
                 newItem = StorageItem.Static.createUrl(page.param(urlName));
-
-                newItemData = newItem.getData();
-            }
-
-            // Automatic image metadata extraction.
-            if (newItem != null && !"keep".equals(action)) {
-                if (newItemData == null) {
-                    newItemData = newItem.getData();
-                }
-
-                String contentType = newItem.getContentType();
-
-                if (contentType != null && contentType.startsWith("image/")) {
-                    try {
-                        ImageMetadataMap metadata = new ImageMetadataMap(newItemData);
-                        fieldValueMetadata.putAll(metadata);
-
-                        List<Throwable> errors = metadata.getErrors();
-                        if (!errors.isEmpty()) {
-                            LOGGER.debug("Can't read image metadata!", new AggregateException(errors));
-                        }
-
-                    } finally {
-                        IoUtils.closeQuietly(newItemData);
-                    }
-                }
             }
 
             // Transfers legacy metadata over to it's new location within the StorageItem object
@@ -420,6 +387,8 @@ public class FileSelector extends PageServlet {
                             "dropbox".equals(action))) {
                 newItem.save();
             }
+
+            FilePreview.setMetadata(page, state, newItem);
 
             state.putValue(fieldName, newItem);
 
