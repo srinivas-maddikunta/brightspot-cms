@@ -66,7 +66,6 @@ public class BulkUpload extends PageServlet {
                         page.writeHtml("select");
                     page.writeEnd();
                     page.writeHtml(" files.");
-                    page.writeEnd();
                 }
 
             page.writeEnd();

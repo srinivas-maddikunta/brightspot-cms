@@ -1,9 +1,6 @@
 // Toggle display of other areas.
 (function($, win, undef) {
 
-var $win = $(win),
-    cacheNonce = 0;
-
 $.plugin2('uploader', {
     '_init': function(selector) {
         var plugin = this;
@@ -15,7 +12,7 @@ $.plugin2('uploader', {
         });
     },
 
-    '_beforeUpload': function(file, $inputSmall) {
+    '_beforeUpload': function(file, $inputSmall, index) {
 
         var plugin = this;
         var $fileSelector = $inputSmall.find('.fileSelector').first();
@@ -27,7 +24,7 @@ $.plugin2('uploader', {
         }).done(function(html) {
 
             $inputSmall.append(html);
-            var $uploadPreview = $inputSmall.find('.upload-preview').first();
+            var $uploadPreview = $inputSmall.find('.upload-preview').eq(index);
 
             if (file.type.match('image.*')) {
                 plugin._displayPreview($uploadPreview.find('img').first(), file);
@@ -54,30 +51,37 @@ $.plugin2('uploader', {
         var $caller = this.$caller;
         var $inputSmall = $caller.closest('.inputSmall');
         var $fileSelector = $inputSmall.find('.fileSelector');
+        var isMultiple = $caller.attr('multiple') ? true : false;
 
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
 
-            plugin._beforeUpload(file, $inputSmall);
+            plugin._beforeUpload(file, $inputSmall, i);
             var filePath = $fileSelector.attr('data-new-path-start') + "/" + encodeURIComponent(file.name);
 
-            _e_.add({
-                name: filePath,
-                file: file,
-                notSignedHeadersAtInitiate: {
-                    'Cache-Control': 'max-age=3600'
-                },
-                xAmzHeadersAtInitiate: {
-                    'x-amz-acl': 'public-read'
-                },
-                complete: function (request) {
-                    plugin._afterUpload($inputSmall, filePath);
-                },
-                progress: function (progress) {
-                    plugin._progress($inputSmall, Math.round(Number(progress*100)));
-                }
+            (function(file, filePath, i) {
+                window._e_.add({
+                    name: filePath,
+                    file: file,
+                    notSignedHeadersAtInitiate: {
+                        'Cache-Control': 'max-age=3600'
+                    },
+                    xAmzHeadersAtInitiate: {
+                        'x-amz-acl': 'public-read'
+                    },
+                    complete: function () {
+                        if (isMultiple) {
+                            plugin._afterBulkUpload($inputSmall, i);
+                        } else {
+                            plugin._afterUpload($inputSmall, filePath, isMultiple);
+                        }
+                    },
+                    progress: function (progress) {
+                        plugin._progress($inputSmall, i, Math.round(Number(progress*100)));
+                    }
 
-            });
+                });
+            })(file, filePath, i);
         }
     },
 
@@ -117,8 +121,13 @@ $.plugin2('uploader', {
         });
     },
 
-    '_progress': function($inputSmall, percentageComplete) {
-        $inputSmall.find('[data-progress]').attr('data-progress', percentageComplete);
+    '_afterBulkUpload': function($inputSmall, index) {
+        var $uploadPreview  = $inputSmall.find('.upload-preview').eq(index);
+        $uploadPreview.removeClass('loading');
+    },
+
+    '_progress': function($inputSmall, i, percentageComplete) {
+        $inputSmall.find('[data-progress]').eq(i).attr('data-progress', percentageComplete);
     },
 
     '_displayPreview': function(img, file) {

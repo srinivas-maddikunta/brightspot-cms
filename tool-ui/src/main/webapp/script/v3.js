@@ -114,7 +114,7 @@ function() {
   $doc.dropDown('live', 'select[multiple], select[data-searchable="true"]');
   $doc.editablePlaceholder('live', ':input[data-editable-placeholder]');
   $doc.fixedScrollable('live', '.fixedScrollable, .searchResult > .searchResultList, .popup[name="miscSearch"] .searchFiltersRest');
-  $doc.uploader('live','.fileSelector .fileSelectorNewUpload');
+  $doc.uploader('live','.fileSelector .fileSelectorNewUpload, .bulkFileSelector');
 
   $doc.frame({
     'frameClassName': 'frame',

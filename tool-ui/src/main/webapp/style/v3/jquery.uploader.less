@@ -7,6 +7,7 @@
 
 .upload-preview {
   &:extend(.imageEditor-image);
+  box-sizing: border-box;
   margin-top: 5px;
   position:relative;
   img {
@@ -14,6 +15,8 @@
     width:100%;
     max-width: 1000px;
     max-height: 750px;
+    opacity: 1;
+    transition: opacity .2s linear;
   }
   .caption {
     height: 50px;
@@ -35,8 +38,25 @@
   }
 }
 
-.preview-wrapper {
-  position:relative;
+.bulk-upload-files {
+  @-size: 180px;
+  @-padding: 4px;
+  .upload-preview {
+    width: @-size;
+    height: @-size;
+    border: 1px solid @color-border;
+    border-radius: 2px;
+    padding: @-padding;
+    margin-right: 8px;
+    display:inline-block;
+    img {
+      max-height: @-size - (@-padding * 2);
+    }
+  }
+}
+
+.bulkFileSelector {
+  display: block;
 }
 
 .radial-progress {
