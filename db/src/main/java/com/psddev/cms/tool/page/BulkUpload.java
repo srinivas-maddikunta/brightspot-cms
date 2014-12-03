@@ -1,9 +1,5 @@
 package com.psddev.cms.tool.page;
 
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUi;
@@ -13,6 +9,9 @@ import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.util.RoutingFilter;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
 
 @RoutingFilter.Path(application = "cms", value = "/bulkUpload")
 @SuppressWarnings("serial")
@@ -67,10 +66,6 @@ public class BulkUpload extends PageServlet {
                         page.writeHtml("select");
                     page.writeEnd();
                     page.writeHtml(" files.");
-                    page.writeStart("input",
-                            "id", "uploadTester",
-                            "type", "file",
-                            "multiple", "multiple");
                     page.writeEnd();
                 }
 
