@@ -21,8 +21,8 @@ $.plugin2('uploader', {
         var $fileSelector = $inputSmall.find('.fileSelector').first();
 
         $.ajax({
-            url: '/cms/imagePreview',
-            data: { upload: 'true' },
+            url: '/cms/filePreview',
+            data: { displayProgress : 'true' },
             dataType: 'html'
         }).done(function(html) {
 

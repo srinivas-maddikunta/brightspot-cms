@@ -5,7 +5,6 @@ import com.psddev.cms.db.ImageTag;
 import com.psddev.cms.db.ImageTextOverlay;
 import com.psddev.cms.db.ResizeOption;
 import com.psddev.cms.db.StandardImageSize;
-import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ColorDistribution;
 import com.psddev.dari.db.ObjectField;
@@ -20,7 +19,6 @@ import com.psddev.dari.util.ImageMetadataMap;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.JavaImageEditor;
 import com.psddev.dari.util.ObjectUtils;
-import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
@@ -41,409 +39,17 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
-@RoutingFilter.Path(application = "cms", value = "imagePreview")
-public class ImagePreview extends PageServlet {
+public class ImageFilePreview implements FileFieldWriter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ToolPageContext.class);
 
     @Override
-    protected String getPermissionId() {
-        return null;
-    }
-
-    public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
-
-        if (page.paramOrDefault(boolean.class, "upload", false)) {
-            renderImagePreview(page);
-        } else {
-            renderImageEditor(page);
-        }
-    }
-
-    public static void renderImageEditor(ToolPageContext page) throws IOException, ServletException {
-
-        HttpServletRequest request = page.getRequest();
-        State state = State.getInstance(request.getAttribute("object"));
-
-        String inputName = ObjectUtils.firstNonBlank(page.param(String.class, "inputName"), (String) request.getAttribute("inputName"));
-        String pathName = inputName + ".path";
-        String storageName = inputName + ".storage";
-        StorageItem fieldValue = null;
-
-        if (page.paramOrDefault(Boolean.class, "isNewUpload", false)) {
-
-            String storageItemPath = page.param(String.class, pathName);
-            if (!StringUtils.isBlank(storageItemPath)) {
-                StorageItem newItem = StorageItem.Static.createIn(page.param(storageName));
-                newItem.setPath(page.param(pathName));
-                //newItem.setContentType(page.param(contentTypeName));
-                fieldValue = newItem;
-            }
-            state = State.getInstance(ObjectType.getInstance(page.param(UUID.class, "typeId")));
-        }
-
-        UUID id = state.getId();
-        ObjectField field = (ObjectField) request.getAttribute("field");
-        String fieldName = field != null ? field.getInternalName() : page.paramOrDefault(String.class, "fieldName", "");
-        if (fieldValue == null) {
-            fieldValue = (StorageItem) state.getValue(fieldName);
-        }
-
-        Class hotspotClass = ObjectUtils.getClassByName(ImageTag.HOTSPOT_CLASS);
-        boolean projectUsingBrightSpotImage = hotspotClass != null && !ObjectUtils.isBlank(ClassFinder.Static.findClasses(hotspotClass));
-
-        if (projectUsingBrightSpotImage) {
-            page.include("set/hotSpot.jsp");
-        }
-
-        page.writeStart("div", "class", "imageEditor");
-            writeImageEditorAside(page, fieldValue, state, id, fieldName);
-            writeImageEditorImage(page, fieldValue);
-        page.writeEnd();
-
-        if (projectUsingBrightSpotImage) {
-            page.include("set/hotSpot.jsp");
-        }
-    }
-
-    public static void renderImagePreview(ToolPageContext page) throws  IOException, ServletException {
-
-        page.writeStart("div", "class", "upload-preview loading");
-            page.writeTag("img");
-            page.writeStart("div",
-                    "class", "radial-progress",
-                    "data-progress", "0");
-                page.writeStart("div", "class", "circle");
-                    page.writeStart("div", "class", "mask full");
-                        page.writeStart("div", "class", "fill");
-                        page.writeEnd();
-                    page.writeEnd();
-                    page.writeStart("div", "class", "mask half");
-                        page.writeStart("div", "class", "fill");
-                        page.writeEnd();
-                        page.writeStart("div", "class", "fill fix");
-                        page.writeEnd();
-                    page.writeEnd();
-                page.writeEnd();
-                page.writeStart("div", "class", "inset");
-                    page.writeStart("div", "class", "percentage");
-                        page.writeStart("span");
-                        page.writeEnd();
-                    page.writeEnd();
-                page.writeEnd();
-            page.writeEnd();
-        page.writeEnd();
+    public void writePreview(ToolPageContext page) throws IOException, ServletException {
+        writeImageEditor(page);
     }
 
     @Override
-    protected void doService(ToolPageContext page) throws IOException, ServletException {
-        reallyDoService(page);
-    }
-
-    private static void writeImageEditorAside(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
-
-        Map<String, Object> fieldValueMetadata = null;
-        if (fieldValue != null) {
-            fieldValueMetadata = fieldValue.getMetadata();
-        }
-
-        if (fieldValueMetadata == null) {
-            fieldValueMetadata = new LinkedHashMap<String, Object>();
-        }
-
-        page.writeStart("div", "class", "imageEditor-aside");
-            writeImageEditorTools(page, fieldValue, state, id, fieldName);
-            writeImageEditorEdit(page, fieldValue, state, id, fieldName, fieldValueMetadata);
-            writeImageEditorSizes(page, fieldValue, state, fieldName, fieldValueMetadata);
-        page.writeEnd();
-    }
-
-    private static void writeImageEditorTools(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
-
-        page.writeStart("div", "class", "imageEditor-tools");
-            page.writeStart("h2");
-                page.write("Tools");
-            page.writeEnd();
-
-            page.writeStart("ul");
-
-                if (state.as(ColorDistribution.Data.class).getDistribution() != null) {
-                    page.writeStart("li");
-                        page.writeStart("a",
-                                "class", "icon icon-tint",
-                                "href", page.h(page.cmsUrl("/contentColors", "id", id)),
-                                "target", "contentColors");
-                            page.write("Colors");
-                        page.writeEnd();
-                    page.writeEnd();
-                }
-
-                page.writeStart("li");
-                    page.writeStart("a",
-                            "class", "action-preview",
-                            "href", page.h(fieldValue.getPublicUrl()),
-                            "target", "_blank");
-                        page.write("View Original");
-                    page.writeEnd();
-                page.writeEnd();
-
-                page.writeStart("li");
-                    page.writeStart("a",
-                            "class", "icon icon-crop",
-                            "href", page.h(page.url("/contentImage", "id", id, "field", fieldName)),
-                            "target", "contentImages");
-                        page.write("View Resized");
-                    page.writeEnd();
-                page.writeEnd();
-
-            page.writeEnd();
-
-        page.writeEnd();
-    }
-
-    private static void writeImageEditorEdit(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName, Map<String, Object> fieldValueMetadata) throws IOException {
-        HttpServletRequest request = page.getRequest();
-        String inputName = ObjectUtils.firstNonBlank(page.param(String.class, "inputName"),  (String) request.getAttribute("inputName"));
-        boolean useJavaImageEditor = ImageEditor.Static.getDefault() != null && (ImageEditor.Static.getDefault() instanceof JavaImageEditor);
-        String blurName = inputName + ".blur";
-
-        Map<String, Object> edits = (Map<String, Object>) fieldValueMetadata.get("cms.edits");
-
-        if (edits == null) {
-            edits = new HashMap<String, Object>();
-            fieldValueMetadata.put("cms.edits", edits);
-        }
-
-        List<String> blurs = new ArrayList<String>();
-        if (!ObjectUtils.isBlank(edits.get("blur"))) {
-            Object blur = edits.get("blur");
-            if (blur instanceof String && ObjectUtils.to(String.class, blur).matches("(\\d+x){3}\\d+")) {
-                blurs.add(ObjectUtils.to(String.class, blur));
-            } else if (blur instanceof List) {
-                for (Object blurItem : (List) blur) {
-                    String blurValue = ObjectUtils.to(String.class, blurItem);
-                    if (blurValue.matches("(\\d+x){3}\\d+")) {
-                        blurs.add(blurValue);
-                    }
-                }
-            }
-        }
-
-        page.writeStart("div", "class", "imageEditor-edit");
-
-            page.writeStart("h2");
-                page.write("Adjustments");
-            page.writeEnd();
-
-            page.writeStart("table");
-                page.writeStart("tbody");
-
-                    if (useJavaImageEditor) {
-                        page.writeStart("tr");
-                            page.writeStart("th");
-                                page.write("Blur");
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeStart("a",
-                                        "class", "imageEditor-addBlurOverlay");
-                                    page.write("Add Blur");
-                                page.writeEnd();
-                                page.writeTag("br");
-
-                                if (!ObjectUtils.isBlank(blurs)) {
-                                    for (String blur : blurs) {
-                                        page.writeTag("input",
-                                                "type", "hidden",
-                                                "name", page.h(blurName),
-                                                "value", blur);
-                                    }
-                                }
-                            page.writeEnd();
-                        page.writeEnd();
-                    }
-
-                    for (ImageAdjustment adj : ImageAdjustment.values()) {
-                        page.writeStart("tr");
-                            page.writeStart("th");
-                                page.writeHtml(page.h(StringUtils.toPascalCase(adj.title)));
-                            page.writeEnd();
-                            page.writeStart("td");
-                            if (!adj.javaImageEditorOnly || useJavaImageEditor) {
-                                page.writeTag("input",
-                                        "type", adj.inputType,
-                                        "name", inputName + "." + adj.title,
-                                        adj.inputType.equals("range") ? "min" : "", adj.inputType.equals("range") ? adj.min : "",
-                                        adj.inputType.equals("range") ? "max" : "", adj.inputType.equals("range") ? adj.max : "",
-                                        adj.inputType.equals("range") ? "step" : "", adj.inputType.equals("range") ? adj.step : "",
-                                        "value", ObjectUtils.to(adj.valueType, edits.get(adj.title)));
-                            }
-
-                            page.writeEnd();
-                        page.writeEnd();
-                    }
-
-                page.writeEnd();
-            page.writeEnd();
-
-        page.writeEnd();
-    }
-
-    private static void writeImageEditorSizes(ToolPageContext page, StorageItem fieldValue, State state, String fieldName, Map<String, Object> fieldValueMetadata) throws IOException {
-
-        String cropsFieldName = fieldName + ".crops";
-
-        Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() { }, fieldValueMetadata.get("cms.crops"));
-        if (crops == null) {
-            // for backward compatibility
-            crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() { }, state.getValue(cropsFieldName));
-        }
-        if (crops == null) {
-            crops = new HashMap<String, ImageCrop>();
-        }
-
-        crops = new TreeMap<String, ImageCrop>(crops);
-
-        Map<String, StandardImageSize> sizes = new HashMap<String, StandardImageSize>();
-        for (StandardImageSize size : StandardImageSize.findAll()) {
-            String sizeId = size.getId().toString();
-            sizes.put(sizeId, size);
-            if (crops.get(sizeId) == null) {
-                crops.put(sizeId, new ImageCrop());
-            }
-        }
-
-        page.writeStart("div", "class", "imageEditor-sizes");
-            page.writeStart("h2");
-                page.write("Standard Sizes");
-            page.writeEnd();
-
-            page.writeStart("table");
-                page.writeStart("tbody");
-                    for (Map.Entry<String, ImageCrop> e : crops.entrySet()) {
-                        String cropId = e.getKey();
-                        ImageCrop crop = e.getValue();
-                        StandardImageSize size = sizes.get(cropId);
-                        if (size == null && ObjectUtils.to(UUID.class, cropId) != null) {
-                            continue;
-                        }
-                        if (size != null) {
-                            page.writeStart("tr",
-                                    "data-size-name", size.getInternalName(),
-                                    "data-size-independent", size.isIndependent(),
-                                    "data-size-width", size.getWidth(),
-                                    "data-size-height", size.getHeight());
-                                page.writeStart("th");
-                                    page.write(page.h(size.getDisplayName()));
-                                page.writeEnd();
-                        } else {
-                            page.writeStart("tr");
-                                page.writeStart("th");
-                                    page.write(page.h(cropId));
-                                page.writeEnd();
-                        }
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".x"),
-                                        "type", "text",
-                                        "value", crop.getX());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".y"),
-                                        "type", "text",
-                                        "value", crop.getY());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".width"),
-                                        "type", "text",
-                                        "value", crop.getWidth());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".height"),
-                                        "type", "text",
-                                        "value", crop.getHeight());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".texts"),
-                                        "type", "text",
-                                        "value", crop.getTexts());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".textSizes"),
-                                        "type", "text",
-                                        "value", crop.getTextSizes());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".textXs"),
-                                        "type", "text",
-                                        "value", crop.getTextXs());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".textYs"),
-                                        "type", "text",
-                                        "value", crop.getTextYs());
-                            page.writeEnd();
-                            page.writeStart("td");
-                                page.writeTag("input",
-                                        "name", page.h(cropsFieldName + "." + cropId + ".textWidths"),
-                                        "type", "text",
-                                        "value", crop.getTextWidths());
-                            page.writeEnd();
-
-                        //end tr from if/else
-                        page.writeEnd();
-                    }
-                page.writeEnd();
-            page.writeEnd();
-        page.writeEnd();
-    }
-
-    private static void writeImageEditorImage(ToolPageContext page, StorageItem fieldValue) throws IOException {
-
-        String fieldValueUrl;
-        String resizeScale = "";
-
-        if (ImageEditor.Static.getDefault() != null) {
-           ImageTag.Builder imageTagBuilder = new ImageTag.Builder(fieldValue)
-                   .setWidth(1000)
-                   .setResizeOption(ResizeOption.ONLY_SHRINK_LARGER)
-                   .setEdits(false);
-            Number originalWidth = null;
-            if (!ObjectUtils.isBlank(CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "image/originalWidth"))) {
-                originalWidth = (Number) CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "image/originalWidth");
-            } else if (!ObjectUtils.isBlank(CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "dims/originalWidth"))) {
-                originalWidth = (Number) CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "dims/originalWidth");
-            } else if (!ObjectUtils.isBlank(CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "width"))) {
-                originalWidth = (Number) CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "width");
-            }
-            if (originalWidth != null) {
-                if (originalWidth.intValue() > 1000) {
-                    resizeScale = String.format("%.2f", (double) 1000 / originalWidth.intValue());
-                }
-            }
-            fieldValueUrl = imageTagBuilder.toUrl();
-        } else {
-            fieldValueUrl = fieldValue.getPublicUrl();
-        }
-
-        page.writeStart("div", "class", "imageEditor-image");
-            page.writeTag("img",
-                    "alt", "",
-                    "data-scale", resizeScale,
-                    "src", page.url("/misc/proxy.jsp",
-                            "url", fieldValueUrl,
-                            "hash", StringUtils.hex(StringUtils.hmacSha1(Settings.getSecret(), fieldValueUrl))));
-        page.writeEnd();
-    }
-
-    public static void setMetadata(ToolPageContext page, State state, StorageItem fieldValue) throws IOException {
-        LOGGER.info("ImagePreview - setMetadata...");
+    public void setMetadata(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException {
         HttpServletRequest request = page.getRequest();
 
         ObjectField field = (ObjectField) request.getAttribute("field");
@@ -689,9 +295,353 @@ public class ImagePreview extends PageServlet {
                         "dropbox".equals(action))) {
             fieldValue.save();
         }
+    }
 
-        LOGGER.info("FIELD VALUE IS" + fieldValue);
+    public void writeImageEditor(ToolPageContext page) throws IOException, ServletException {
 
+        HttpServletRequest request = page.getRequest();
+        State state = State.getInstance(request.getAttribute("object"));
+
+        String inputName = ObjectUtils.firstNonBlank(page.param(String.class, "inputName"), (String) request.getAttribute("inputName"));
+        String pathName = inputName + ".path";
+        String storageName = inputName + ".storage";
+        StorageItem fieldValue = null;
+
+        if (page.paramOrDefault(Boolean.class, "isNewUpload", false)) {
+
+            String storageItemPath = page.param(String.class, pathName);
+            if (!StringUtils.isBlank(storageItemPath)) {
+                StorageItem newItem = StorageItem.Static.createIn(page.param(storageName));
+                newItem.setPath(page.param(pathName));
+                //newItem.setContentType(page.param(contentTypeName));
+                fieldValue = newItem;
+            }
+            state = State.getInstance(ObjectType.getInstance(page.param(UUID.class, "typeId")));
+        }
+
+        UUID id = state.getId();
+        ObjectField field = (ObjectField) request.getAttribute("field");
+        String fieldName = field != null ? field.getInternalName() : page.paramOrDefault(String.class, "fieldName", "");
+        if (fieldValue == null) {
+            fieldValue = (StorageItem) state.getValue(fieldName);
+        }
+
+        Class hotspotClass = ObjectUtils.getClassByName(ImageTag.HOTSPOT_CLASS);
+        boolean projectUsingBrightSpotImage = hotspotClass != null && !ObjectUtils.isBlank(ClassFinder.Static.findClasses(hotspotClass));
+
+        if (projectUsingBrightSpotImage) {
+            page.include("set/hotSpot.jsp");
+        }
+
+        page.writeStart("div", "class", "imageEditor");
+            writeImageEditorAside(page, fieldValue, state, id, fieldName);
+            writeImageEditorImage(page, fieldValue);
+        page.writeEnd();
+
+        if (projectUsingBrightSpotImage) {
+            page.include("set/hotSpot.jsp");
+        }
+    }
+
+    private void writeImageEditorAside(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
+
+        Map<String, Object> fieldValueMetadata = null;
+        if (fieldValue != null) {
+            fieldValueMetadata = fieldValue.getMetadata();
+        }
+
+        if (fieldValueMetadata == null) {
+            fieldValueMetadata = new LinkedHashMap<String, Object>();
+        }
+
+        page.writeStart("div", "class", "imageEditor-aside");
+            writeImageEditorTools(page, fieldValue, state, id, fieldName);
+            writeImageEditorEdit(page, fieldValueMetadata);
+            writeImageEditorSizes(page, state, fieldName, fieldValueMetadata);
+        page.writeEnd();
+    }
+
+    private void writeImageEditorTools(ToolPageContext page, StorageItem fieldValue, State state, UUID id, String fieldName) throws IOException {
+
+        page.writeStart("div", "class", "imageEditor-tools");
+            page.writeStart("h2");
+                page.write("Tools");
+            page.writeEnd();
+
+            page.writeStart("ul");
+
+                if (state.as(ColorDistribution.Data.class).getDistribution() != null) {
+                    page.writeStart("li");
+                        page.writeStart("a",
+                                "class", "icon icon-tint",
+                                "href", page.h(page.cmsUrl("/contentColors", "id", id)),
+                                "target", "contentColors");
+                            page.write("Colors");
+                        page.writeEnd();
+                    page.writeEnd();
+                }
+
+                page.writeStart("li");
+                    page.writeStart("a",
+                            "class", "action-preview",
+                            "href", page.h(fieldValue.getPublicUrl()),
+                            "target", "_blank");
+                        page.write("View Original");
+                    page.writeEnd();
+                page.writeEnd();
+
+                page.writeStart("li");
+                    page.writeStart("a",
+                            "class", "icon icon-crop",
+                            "href", page.h(page.url("/contentImage", "id", id, "field", fieldName)),
+                            "target", "contentImages");
+                        page.write("View Resized");
+                    page.writeEnd();
+                page.writeEnd();
+
+            page.writeEnd();
+
+        page.writeEnd();
+    }
+
+    private void writeImageEditorEdit(ToolPageContext page, Map<String, Object> fieldValueMetadata) throws IOException {
+        HttpServletRequest request = page.getRequest();
+        String inputName = ObjectUtils.firstNonBlank(page.param(String.class, "inputName"),  (String) request.getAttribute("inputName"));
+        boolean useJavaImageEditor = ImageEditor.Static.getDefault() != null && (ImageEditor.Static.getDefault() instanceof JavaImageEditor);
+        String blurName = inputName + ".blur";
+
+        Map<String, Object> edits = (Map<String, Object>) fieldValueMetadata.get("cms.edits");
+
+        if (edits == null) {
+            edits = new HashMap<String, Object>();
+            fieldValueMetadata.put("cms.edits", edits);
+        }
+
+        List<String> blurs = new ArrayList<String>();
+        if (!ObjectUtils.isBlank(edits.get("blur"))) {
+            Object blur = edits.get("blur");
+            if (blur instanceof String && ObjectUtils.to(String.class, blur).matches("(\\d+x){3}\\d+")) {
+                blurs.add(ObjectUtils.to(String.class, blur));
+            } else if (blur instanceof List) {
+                for (Object blurItem : (List) blur) {
+                    String blurValue = ObjectUtils.to(String.class, blurItem);
+                    if (blurValue.matches("(\\d+x){3}\\d+")) {
+                        blurs.add(blurValue);
+                    }
+                }
+            }
+        }
+
+        page.writeStart("div", "class", "imageEditor-edit");
+
+            page.writeStart("h2");
+                page.write("Adjustments");
+            page.writeEnd();
+
+            page.writeStart("table");
+                page.writeStart("tbody");
+
+                    if (useJavaImageEditor) {
+                        page.writeStart("tr");
+                            page.writeStart("th");
+                                page.write("Blur");
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeStart("a",
+                                        "class", "imageEditor-addBlurOverlay");
+                                    page.write("Add Blur");
+                                page.writeEnd();
+                                page.writeTag("br");
+
+                                if (!ObjectUtils.isBlank(blurs)) {
+                                    for (String blur : blurs) {
+                                        page.writeTag("input",
+                                                "type", "hidden",
+                                                "name", page.h(blurName),
+                                                "value", blur);
+                                    }
+                                }
+                            page.writeEnd();
+                        page.writeEnd();
+                    }
+
+                    for (ImageAdjustment adj : ImageAdjustment.values()) {
+                        page.writeStart("tr");
+                            page.writeStart("th");
+                                page.writeHtml(page.h(StringUtils.toPascalCase(adj.title)));
+                            page.writeEnd();
+                            page.writeStart("td");
+                            if (!adj.javaImageEditorOnly || useJavaImageEditor) {
+                                page.writeTag("input",
+                                        "type", adj.inputType,
+                                        "name", inputName + "." + adj.title,
+                                        adj.inputType.equals("range") ? "min" : "", adj.inputType.equals("range") ? adj.min : "",
+                                        adj.inputType.equals("range") ? "max" : "", adj.inputType.equals("range") ? adj.max : "",
+                                        adj.inputType.equals("range") ? "step" : "", adj.inputType.equals("range") ? adj.step : "",
+                                        "value", ObjectUtils.to(adj.valueType, edits.get(adj.title)));
+                            }
+
+                            page.writeEnd();
+                        page.writeEnd();
+                    }
+
+                page.writeEnd();
+            page.writeEnd();
+
+        page.writeEnd();
+    }
+
+    private void writeImageEditorSizes(ToolPageContext page, State state, String fieldName, Map<String, Object> fieldValueMetadata) throws IOException {
+
+        String cropsFieldName = fieldName + ".crops";
+
+        Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
+        }, fieldValueMetadata.get("cms.crops"));
+        if (crops == null) {
+            // for backward compatibility
+            crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() { }, state.getValue(cropsFieldName));
+        }
+        if (crops == null) {
+            crops = new HashMap<String, ImageCrop>();
+        }
+
+        crops = new TreeMap<String, ImageCrop>(crops);
+
+        Map<String, StandardImageSize> sizes = new HashMap<String, StandardImageSize>();
+        for (StandardImageSize size : StandardImageSize.findAll()) {
+            String sizeId = size.getId().toString();
+            sizes.put(sizeId, size);
+            if (crops.get(sizeId) == null) {
+                crops.put(sizeId, new ImageCrop());
+            }
+        }
+
+        page.writeStart("div", "class", "imageEditor-sizes");
+            page.writeStart("h2");
+                page.write("Standard Sizes");
+            page.writeEnd();
+
+            page.writeStart("table");
+                page.writeStart("tbody");
+                    for (Map.Entry<String, ImageCrop> e : crops.entrySet()) {
+                        String cropId = e.getKey();
+                        ImageCrop crop = e.getValue();
+                        StandardImageSize size = sizes.get(cropId);
+                        if (size == null && ObjectUtils.to(UUID.class, cropId) != null) {
+                            continue;
+                        }
+                        if (size != null) {
+                            page.writeStart("tr",
+                                    "data-size-name", size.getInternalName(),
+                                    "data-size-independent", size.isIndependent(),
+                                    "data-size-width", size.getWidth(),
+                                    "data-size-height", size.getHeight());
+                                page.writeStart("th");
+                                    page.write(page.h(size.getDisplayName()));
+                                page.writeEnd();
+                        } else {
+                            page.writeStart("tr");
+                                page.writeStart("th");
+                                    page.write(page.h(cropId));
+                                page.writeEnd();
+                        }
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".x"),
+                                        "type", "text",
+                                        "value", crop.getX());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".y"),
+                                        "type", "text",
+                                        "value", crop.getY());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".width"),
+                                        "type", "text",
+                                        "value", crop.getWidth());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".height"),
+                                        "type", "text",
+                                        "value", crop.getHeight());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".texts"),
+                                        "type", "text",
+                                        "value", crop.getTexts());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".textSizes"),
+                                        "type", "text",
+                                        "value", crop.getTextSizes());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".textXs"),
+                                        "type", "text",
+                                        "value", crop.getTextXs());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".textYs"),
+                                        "type", "text",
+                                        "value", crop.getTextYs());
+                            page.writeEnd();
+                            page.writeStart("td");
+                                page.writeTag("input",
+                                        "name", page.h(cropsFieldName + "." + cropId + ".textWidths"),
+                                        "type", "text",
+                                        "value", crop.getTextWidths());
+                            page.writeEnd();
+                        page.writeEnd();
+                    }
+                page.writeEnd();
+            page.writeEnd();
+        page.writeEnd();
+    }
+
+    private void writeImageEditorImage(ToolPageContext page, StorageItem fieldValue) throws IOException {
+
+        String fieldValueUrl;
+        String resizeScale = "";
+
+        if (ImageEditor.Static.getDefault() != null) {
+           ImageTag.Builder imageTagBuilder = new ImageTag.Builder(fieldValue)
+                   .setWidth(1000)
+                   .setResizeOption(ResizeOption.ONLY_SHRINK_LARGER)
+                   .setEdits(false);
+            Number originalWidth = null;
+            if (!ObjectUtils.isBlank(CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "image/originalWidth"))) {
+                originalWidth = (Number) CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "image/originalWidth");
+            } else if (!ObjectUtils.isBlank(CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "dims/originalWidth"))) {
+                originalWidth = (Number) CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "dims/originalWidth");
+            } else if (!ObjectUtils.isBlank(CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "width"))) {
+                originalWidth = (Number) CollectionUtils.getByPath(imageTagBuilder.getItem().getMetadata(), "width");
+            }
+            if (originalWidth != null) {
+                if (originalWidth.intValue() > 1000) {
+                    resizeScale = String.format("%.2f", (double) 1000 / originalWidth.intValue());
+                }
+            }
+            fieldValueUrl = imageTagBuilder.toUrl();
+        } else {
+            fieldValueUrl = fieldValue.getPublicUrl();
+        }
+
+        page.writeStart("div", "class", "imageEditor-image");
+            page.writeTag("img",
+                    "alt", "",
+                    "data-scale", resizeScale,
+                    "src", page.url("/misc/proxy.jsp",
+                            "url", fieldValueUrl,
+                            "hash", StringUtils.hex(StringUtils.hmacSha1(Settings.getSecret(), fieldValueUrl))));
+        page.writeEnd();
     }
 
     private static enum ImageAdjustment {

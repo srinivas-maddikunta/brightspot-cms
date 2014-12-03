@@ -62,7 +62,12 @@ public class FileSelector extends PageServlet {
         String dropboxName = inputName + ".dropbox";
         String storageSetting = field.as(ToolUi.class).getStorageSetting() != null ? Settings.getOrDefault(String.class, field.as(ToolUi.class).getStorageSetting(), null) : null;
 
-        page.writeStart("div", "class", "fileSelector", "data-field-name", fieldName, "data-type-id", state.getTypeId(), "data-input-name", inputName, "data-storage", storageSetting, "data-new-path-start", FilePreview.createStorageItemPath(null));
+        page.writeStart("div", "class", "fileSelector",
+                "data-field-name", fieldName,
+                "data-type-id", state.getTypeId(),
+                "data-input-name", inputName,
+                "data-storage", storageSetting,
+                "data-new-path-start", FilePreview.createStorageItemPath(null));
 
             page.writeStart("select",
                     "id", page.getId(),
@@ -144,7 +149,6 @@ public class FileSelector extends PageServlet {
     }
 
     public static void doFormPost(ToolPageContext page) throws IOException, ServletException {
-        LOGGER.info("FileSelector - doFormPost...");
         HttpServletRequest request = page.getRequest();
         Object object = request.getAttribute("object");
 

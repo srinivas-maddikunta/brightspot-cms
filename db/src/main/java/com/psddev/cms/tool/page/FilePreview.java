@@ -6,7 +6,6 @@ import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
-import com.psddev.dari.util.BrightcoveStorageItem;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
@@ -23,13 +22,15 @@ import java.util.UUID;
 public class FilePreview extends PageServlet {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ToolPageContext.class);
-
-    @Override
-    protected String getPermissionId() {
-        return null;
-    }
+    private static final String PARAM_DISPLAY_PROGRESS = "displayProgress";
 
     public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
+
+        if (page.paramOrDefault(boolean.class, PARAM_DISPLAY_PROGRESS, false)) {
+            writeFileUploadPreview(page);
+            return;
+        }
+
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
         ObjectField field = (ObjectField) request.getAttribute("field");
@@ -59,52 +60,39 @@ public class FilePreview extends PageServlet {
             fieldValue = (StorageItem) state.getValue(fieldName);
         }
 
-        if (fieldValue != null) {
-            String contentType = fieldValue.getContentType();
+        if (fieldValue == null) {
+            return;
+        }
 
-            page.writeStart("div",
-                    "class", FileSelector.FILE_SELECTOR_EXISTING_CLASS + " " + FileSelector.FILE_SELECTOR_ITEM_CLASS + " filePreview");
-                page.writeTag("input",
-                        "name", page.h(storageName),
-                        "type", "hidden",
-                        "value", page.h(fieldValue.getStorage()));
-                page.writeTag("input",
-                        "name", page.h(pathName),
-                        "type", "hidden",
-                        "value", page.h(fieldValue.getPath()));
-                page.writeTag("input",
-                        "name", page.h(contentTypeName),
-                        "type", "hidden",
-                        "value", page.h(fieldValue.getContentType()));
+        String contentType = fieldValue.getContentType();
 
-                if (field != null && field.as(ToolUi.class).getStoragePreviewProcessorPath() != null) {
-                    ToolUi ui = field.as(ToolUi.class);
-                    String processorPath = ui.getStoragePreviewProcessorPath();
-                    if (processorPath != null) {
-                        page.include(RoutingFilter.Static.getApplicationPath(ui.getStoragePreviewProcessorApplication()) +
-                                StringUtils.ensureStart(processorPath, "/"));
-                    }
-                } else if (contentType != null && contentType.startsWith("image/")) {
-                    ImagePreview.reallyDoService(page);
-                } else if (fieldValue instanceof BrightcoveStorageItem) {
-                    BrightcovePreview.reallyDoService(page);
-                } else if (contentType != null && contentType.startsWith("video/")) {
-                    page.writeStart("div", "style", page.cssString("margin-bottom", "5px"));
-                        page.writeStart("a",
-                                "class", "icon icon-action-preview",
-                                "href", fieldValue.getPublicUrl(),
-                                "target", "_blank");
-                            page.writeHtml("View Original");
-                        page.writeEnd();
-                    page.writeEnd();
+        page.writeStart("div",
+                "class", FileSelector.FILE_SELECTOR_EXISTING_CLASS + " " + FileSelector.FILE_SELECTOR_ITEM_CLASS + " filePreview");
+            page.writeTag("input",
+                    "name", page.h(storageName),
+                    "type", "hidden",
+                    "value", page.h(fieldValue.getStorage()));
+            page.writeTag("input",
+                    "name", page.h(pathName),
+                    "type", "hidden",
+                    "value", page.h(fieldValue.getPath()));
+            page.writeTag("input",
+                    "name", page.h(contentTypeName),
+                    "type", "hidden",
+                    "value", page.h(fieldValue.getContentType()));
 
-                    page.writeStart("video",
-                            "controls", "controls",
-                            "preload", "auto");
-                        page.writeElement("source",
-                                "type", contentType,
-                                "src", fieldValue.getPublicUrl());
-                    page.writeEnd();
+            if (field != null && field.as(ToolUi.class).getStoragePreviewProcessorPath() != null) {
+                ToolUi ui = field.as(ToolUi.class);
+                String processorPath = ui.getStoragePreviewProcessorPath();
+                if (processorPath != null) {
+                    page.include(RoutingFilter.Static.getApplicationPath(ui.getStoragePreviewProcessorApplication()) +
+                            StringUtils.ensureStart(processorPath, "/"));
+                }
+            } else {
+
+                FileFieldWriter fileFieldWriter = FileFieldWriter.Static.getFileFieldWriter(fieldValue);
+                if (fileFieldWriter != null) {
+                    fileFieldWriter.writePreview(page);
                 } else {
                     page.writeStart("a",
                             "href", page.h(fieldValue.getPublicUrl()),
@@ -112,26 +100,48 @@ public class FilePreview extends PageServlet {
                         page.writeHtml(page.h(contentType) + ":" + page.h(fieldValue.getPath()));
                     page.writeEnd();
                 }
-            page.writeEnd();
-        }
+            }
+        page.writeEnd();
     }
 
-    public static void setMetadata(ToolPageContext page, State state, StorageItem fieldValue) throws IOException {
+    public static void writeFileUploadPreview(ToolPageContext page) throws  IOException, ServletException {
 
-        LOGGER.info("FilePreview - setMetadata...");
+        page.writeStart("div", "class", "upload-preview loading");
+            page.writeTag("img");
+                page.writeStart("div",
+                        "class", "radial-progress",
+                        "data-progress", "0");
+                    page.writeStart("div", "class", "circle");
+                        page.writeStart("div", "class", "mask full");
+                            page.writeStart("div", "class", "fill");
+                            page.writeEnd();
+                        page.writeEnd();
+                        page.writeStart("div", "class", "mask half");
+                            page.writeStart("div", "class", "fill");
+                            page.writeEnd();
+                        page.writeStart("div", "class", "fill fix");
+                        page.writeEnd();
+                    page.writeEnd();
+                page.writeEnd();
+                page.writeStart("div", "class", "inset");
+                    page.writeStart("div", "class", "percentage");
+                        page.writeStart("span");
+                        page.writeEnd();
+                    page.writeEnd();
+                page.writeEnd();
+            page.writeEnd();
+        page.writeEnd();
+    }
 
-        if(state == null || fieldValue == null) {
+    public static void setMetadata(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException {
+
+        FileFieldWriter fileFieldWriter = FileFieldWriter.Static.getFileFieldWriter(fieldValue);
+
+        if (fileFieldWriter == null) {
             return;
         }
 
-        String contentType = fieldValue.getContentType();
-        if (StringUtils.isBlank(contentType)) {
-            return;
-        }
-
-        if (contentType.startsWith("image/")) {
-            ImagePreview.setMetadata(page, state, fieldValue);
-        }
+        fileFieldWriter.setMetadata(page, state, fieldValue);
     }
 
     //TODO: where should this go?
@@ -176,5 +186,10 @@ public class FilePreview extends PageServlet {
     @Override
     protected void doService(ToolPageContext page) throws IOException, ServletException {
         reallyDoService(page);
+    }
+
+    @Override
+    protected String getPermissionId() {
+        return null;
     }
 }

@@ -1,6 +1,5 @@
 package com.psddev.cms.tool.page;
 
-import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.State;
@@ -12,16 +11,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
-public class BrightcovePreview extends PageServlet {
+public class BrightcoveFilePreview implements FileFieldWriter {
 
     private static final String BRIGHTCOVE_EXPERIENCES_JS_PATH = "http://admin.brightcove.com/js/BrightcoveExperiences.js";
 
     @Override
-    protected String getPermissionId() {
-        return null;
-    }
-
-    public static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
+    public void writePreview(ToolPageContext page) throws IOException, ServletException {
         HttpServletRequest request = page.getRequest();
         State state = State.getInstance(request.getAttribute("object"));
         ObjectField field = (ObjectField) request.getAttribute("field");
@@ -83,7 +78,7 @@ public class BrightcovePreview extends PageServlet {
     }
 
     @Override
-    protected void doService(ToolPageContext page) throws IOException, ServletException {
-        reallyDoService(page);
+    public void setMetadata(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException {
+
     }
 }
