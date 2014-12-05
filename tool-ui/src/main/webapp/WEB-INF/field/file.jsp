@@ -1,13 +1,13 @@
-<%@ page session="false" import="com.psddev.cms.tool.page.FileSelector, com.psddev.cms.tool.ToolPageContext, com.psddev.dari.util.WebPageContext" %>
+<%@ page session="false" import="com.psddev.cms.tool.ToolPageContext, com.psddev.cms.tool.page.StorageItemField" %>
 
 <%
     ToolPageContext wp = new ToolPageContext(pageContext);
     if (wp.isFormPost()) {
-        FileSelector.doFormPost(wp);
+        StorageItemField.doFormPost(wp);
         return;
     }
 %>
 
 <div class="inputSmall">
-    <% FileSelector.reallyDoService(wp); %>
+    <% StorageItemField.reallyDoService(wp); %>
 </div>

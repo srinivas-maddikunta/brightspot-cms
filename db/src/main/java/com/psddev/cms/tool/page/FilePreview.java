@@ -49,7 +49,6 @@ public class FilePreview extends PageServlet {
             if (!StringUtils.isBlank(storageItemPath)) {
                 StorageItem newItem = StorageItem.Static.createIn(page.param(storageName));
                 newItem.setPath(page.param(pathName));
-                //newItem.setContentType(page.param(contentTypeName));
                 fieldValue = newItem;
             }
 
@@ -67,7 +66,7 @@ public class FilePreview extends PageServlet {
         String contentType = fieldValue.getContentType();
 
         page.writeStart("div",
-                "class", FileSelector.FILE_SELECTOR_EXISTING_CLASS + " " + FileSelector.FILE_SELECTOR_ITEM_CLASS + " filePreview");
+                "class", StorageItemField.FILE_SELECTOR_EXISTING_CLASS + " " + StorageItemField.FILE_SELECTOR_ITEM_CLASS + " filePreview");
             page.writeTag("input",
                     "name", page.h(storageName),
                     "type", "hidden",
@@ -143,45 +142,6 @@ public class FilePreview extends PageServlet {
         }
 
         fileFieldWriter.setMetadata(page, state, fieldValue);
-    }
-
-    //TODO: where should this go?
-    public static String createStorageItemPath(String fileName) {
-        String idString = UUID.randomUUID().toString().replace("-", "");
-        StringBuilder pathBuilder = new StringBuilder();
-        //String label = state.getLabel();
-        String label = null;
-        String extension = "";
-
-        if (!ObjectUtils.isBlank(fileName)) {
-            int lastDotAt = fileName.indexOf('.');
-
-            if (lastDotAt > -1) {
-                extension = fileName.substring(lastDotAt);
-                fileName = fileName.substring(0, lastDotAt);
-
-            }
-        }
-
-        if (ObjectUtils.isBlank(label) ||
-                ObjectUtils.to(UUID.class, label) != null) {
-            label = fileName;
-        }
-
-        if (ObjectUtils.isBlank(label)) {
-            label = UUID.randomUUID().toString().replace("-", "");
-        }
-
-        pathBuilder.append(idString.substring(0, 2));
-        pathBuilder.append('/');
-        pathBuilder.append(idString.substring(2, 4));
-        pathBuilder.append('/');
-        pathBuilder.append(idString.substring(4));
-        pathBuilder.append('/');
-        pathBuilder.append(StringUtils.toNormalized(label));
-        pathBuilder.append(extension);
-
-        return pathBuilder.toString();
     }
 
     @Override

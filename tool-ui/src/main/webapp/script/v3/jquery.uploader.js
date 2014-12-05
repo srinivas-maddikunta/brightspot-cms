@@ -50,16 +50,15 @@ $.plugin2('uploader', {
         var plugin = this;
         var $caller = this.$caller;
         var $inputSmall = $caller.closest('.inputSmall');
-        var $fileSelector = $inputSmall.find('.fileSelector');
         var isMultiple = $caller.attr('multiple') ? true : false;
 
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
 
             plugin._beforeUpload(file, $inputSmall, i);
-            var filePath = $fileSelector.attr('data-new-path-start') + "/" + encodeURIComponent(file.name);
+            var filePath = $caller.attr('data-path-start') + "/" + encodeURIComponent(file.name);
 
-            (function(file, filePath, i) {
+            (function($caller, file, filePath, i) {
                 window._e_.add({
                     name: filePath,
                     file: file,
@@ -71,9 +70,9 @@ $.plugin2('uploader', {
                     },
                     complete: function () {
                         if (isMultiple) {
-                            plugin._afterBulkUpload($inputSmall, i);
+                            plugin._afterBulkUpload($caller, $inputSmall, filePath, i);
                         } else {
-                            plugin._afterUpload($inputSmall, filePath, isMultiple);
+                            plugin._afterUpload($caller, $inputSmall, filePath);
                         }
                     },
                     progress: function (progress) {
@@ -81,23 +80,22 @@ $.plugin2('uploader', {
                     }
 
                 });
-            })(file, filePath, i);
+            })($caller, file, filePath, i);
         }
     },
 
-    '_afterUpload': function($inputSmall, filePath) {
+    '_afterUpload': function($caller, $inputSmall, filePath) {
         var $uploadPreview  = $inputSmall.find('.upload-preview');
-        var $fileSelector = $inputSmall.find('.fileSelector');
-        var inputName = $fileSelector.attr('data-input-name');
+        var inputName = $caller.attr('data-input-name');
         var localSrc = $uploadPreview.find('img').first().attr('src');
 
         var params = { };
         params['isNewUpload'] = true;
         params['inputName'] = inputName;
-        params['fieldName'] = $fileSelector.attr('data-field-name');
-        params['typeId'] = $fileSelector.attr('data-type-id');
+        params['fieldName'] = $caller.attr('data-field-name');
+        params['typeId'] = $caller.attr('data-type-id');
         params[inputName + '.path'] = filePath;
-        params[inputName + '.storage'] = $fileSelector.attr('data-storage');
+        params[inputName + '.storage'] = $caller.attr('data-storage');
 
         $uploadPreview.removeClass('loading');
 
@@ -121,9 +119,25 @@ $.plugin2('uploader', {
         });
     },
 
-    '_afterBulkUpload': function($inputSmall, index) {
+    '_afterBulkUpload': function($caller, $inputSmall, filePath, index) {
         var $uploadPreview  = $inputSmall.find('.upload-preview').eq(index);
         $uploadPreview.removeClass('loading');
+        var inputName = "file";
+
+        $caller.detach();
+
+        var params = { };
+        params['writeInputsOnly'] = true;
+        params['inputName'] = inputName;
+        params[inputName + '.path'] = filePath;
+
+        $.ajax({
+            url: '/cms/content/uploadFiles',
+            dataType: 'html',
+            data: params
+        }).done(function(html) {
+            $inputSmall.prepend(html);
+        });
     },
 
     '_progress': function($inputSmall, i, percentageComplete) {
