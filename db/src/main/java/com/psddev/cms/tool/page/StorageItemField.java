@@ -15,7 +15,6 @@ import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.SparseSet;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
-import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +146,7 @@ public class StorageItemField extends PageServlet {
 //
 //
 //                    }
-                    newItem = StorageItemField.createStorageItemFromFileItem(page, filePart, field, state);
+                    newItem = StorageItemField.createStorageItemFromPart(page, filePart, field, state);
                 }
 
             } else if ("newUrl".equals(action)) {
@@ -269,7 +268,7 @@ public class StorageItemField extends PageServlet {
         page.writeEnd();
     }
 
-    public static StorageItem createStorageItemFromFileItem(ToolPageContext page, Part filePart, ObjectField field, State state)throws ServletException, IOException {
+    public static StorageItem createStorageItemFromPart(ToolPageContext page, Part filePart, ObjectField field, State state)throws ServletException, IOException {
 
         if (!StorageItemField.checkFileContent(filePart, page, state, field)) {
             return null;

@@ -13,21 +13,20 @@ import com.psddev.dari.db.ObjectFieldComparator;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ErrorUtils;
-import com.psddev.dari.util.MultipartRequest;
-import com.psddev.dari.util.MultipartRequestFilter;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
-import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.Part;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +53,7 @@ public class UploadFiles extends PageServlet {
 
         if (page.isFormPost()) {
             try {
-                MultipartRequest request = MultipartRequestFilter.Static.getInstance(page.getRequest());
+                HttpServletRequest request = page.getRequest();
                 String inputName = ObjectUtils.firstNonBlank(page.param(String.class, "inputName"), (String) page.getRequest().getAttribute("inputName"), "file");
                 String pathName = inputName + ".path";
 
@@ -80,49 +79,50 @@ public class UploadFiles extends PageServlet {
                         newStorageItems.add(StorageItemField.createStorageItemFromPath(path, previewField.as(ToolUi.class).getStorageSetting()));
                     }
                 } else {
-                    FileItem[] files = request.getFileItems("file");
-
-                    if (files != null && files.length > 0) {
-
-                        page.updateUsingParameters(common);
-
-                        for (FileItem file : files) {
-                            newStorageItems.add(StorageItemField.createStorageItemFromFileItem(page, file, previewField, null));
+                    Collection<Part> parts = request.getParts();
+                    if (!ObjectUtils.isBlank(parts)) {
+                        for (Part part : parts) {
+                            if (part.getName().equals("file")) {
+                                newStorageItems.add(StorageItemField.createStorageItemFromPart(page, part, previewField, null));
+                            }
                         }
                     }
                 }
 
                 StringBuilder js = new StringBuilder();
-                for (StorageItem newItem : newStorageItems) {
 
-                    if (newItem == null) {
-                        continue;
+                if (!ObjectUtils.isBlank(newStorageItems)) {
+                    for (StorageItem newItem : newStorageItems) {
+
+                        if (newItem == null) {
+                            continue;
+                        }
+
+                        Object object = selectedType.createObject(null);
+                        State state = State.getInstance(object);
+
+                        state.setValues(State.getInstance(common));
+
+                        Site site = page.getSite();
+
+                        if (site != null &&
+                                site.getDefaultVariation() != null) {
+                            state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
+                        }
+
+                        state.put(previewField.getInternalName(), newItem);
+                        state.as(BulkUploadDraft.class).setContainerId(containerId);
+                        page.publish(state);
+
+                        js.append("$addButton.repeatable('add', function() {");
+                        js.append("var $added = $(this);");
+                        js.append("$input = $added.find(':input.objectId').eq(0);");
+                        js.append("$input.attr('data-label', '").append(StringUtils.escapeJavaScript(state.getLabel())).append("');");
+                        js.append("$input.attr('data-preview', '").append(StringUtils.escapeJavaScript(page.getPreviewThumbnailUrl(object))).append("');");
+                        js.append("$input.val('").append(StringUtils.escapeJavaScript(state.getId().toString())).append("');");
+                        js.append("$input.change();");
+                        js.append("});");
                     }
-
-                    Object object = selectedType.createObject(null);
-                    State state = State.getInstance(object);
-
-                    state.setValues(State.getInstance(common));
-
-                    Site site = page.getSite();
-
-                    if (site != null &&
-                            site.getDefaultVariation() != null) {
-                        state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
-                    }
-
-                    state.put(previewField.getInternalName(), newItem);
-                    state.as(BulkUploadDraft.class).setContainerId(containerId);
-                    page.publish(state);
-
-                    js.append("$addButton.repeatable('add', function() {");
-                    js.append("var $added = $(this);");
-                    js.append("$input = $added.find(':input.objectId').eq(0);");
-                    js.append("$input.attr('data-label', '").append(StringUtils.escapeJavaScript(state.getLabel())).append("');");
-                    js.append("$input.attr('data-preview', '").append(StringUtils.escapeJavaScript(page.getPreviewThumbnailUrl(object))).append("');");
-                    js.append("$input.val('").append(StringUtils.escapeJavaScript(state.getId().toString())).append("');");
-                    js.append("$input.change();");
-                    js.append("});");
                 }
 
                 if (page.getErrors().isEmpty()) {
