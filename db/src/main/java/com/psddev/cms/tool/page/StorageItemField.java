@@ -9,7 +9,6 @@ import com.psddev.dari.util.AggregateException;
 import com.psddev.dari.util.ImageMetadataMap;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.MultipartRequest;
-import com.psddev.dari.util.MultipartRequestFilter;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
@@ -22,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.Part;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -85,19 +85,8 @@ public class StorageItemField extends PageServlet {
         String dropboxName = inputName + ".dropbox";
         String contentTypeName = inputName + ".contentType";
 
-        String metadataFieldName = fieldName + ".metadata";
-
-// Moved into FilePreviewWriter#setMetaData implementations
-//        Map<String, Object> fieldValueMetadata = null;
-//        if (fieldValue != null) {
-//            fieldValueMetadata = fieldValue.getMetadata();
-//        }
-//
-//        if (fieldValueMetadata == null) {
-//            fieldValueMetadata = new LinkedHashMap<String, Object>();
-//        }
-
         File file = null;
+        Part filePart = request.getPart(fileName);
 
         try {
             String action = page.param(actionName);
@@ -143,19 +132,22 @@ public class StorageItemField extends PageServlet {
                         newItem = createStorageItemFromPath(createStorageItemPath(name, state.getLabel()), storageSetting != null ? Settings.getOrDefault(String.class, storageSetting, null) : null);
                     }
 
-                } else if ((mpRequest = MultipartRequestFilter.Static.getInstance(request)) != null) {
-                    FileItem fileItem = mpRequest.getFileItem(fileName);
+                } else if (filePart != null) {
 
-                    if (fileItem != null) {
+                    filePart.write(file.getAbsolutePath());
 
-                        try {
-                            fileItem.write(file);
-                        } catch (Exception e) {
-                            //ignore
-                        }
-
-                        newItem = StorageItemField.createStorageItemFromFileItem(page, fileItem, field, state);
-                    }
+//                    if (fileItem != null) {
+//
+//                        try {
+//                            file
+//                            fileItem.write(file);
+//                        } catch (Exception e) {
+//                            //ignore
+//                        }
+//
+//
+//                    }
+                    newItem = StorageItemField.createStorageItemFromFileItem(page, filePart, field, state);
                 }
 
             } else if ("newUrl".equals(action)) {
@@ -277,32 +269,31 @@ public class StorageItemField extends PageServlet {
         page.writeEnd();
     }
 
-    public static StorageItem createStorageItemFromFileItem(ToolPageContext page, FileItem fileItem, ObjectField field, State state)throws ServletException, IOException {
+    public static StorageItem createStorageItemFromFileItem(ToolPageContext page, Part filePart, ObjectField field, State state)throws ServletException, IOException {
 
-        if (!StorageItemField.checkFileContent(fileItem, page, state, field)) {
+        if (!StorageItemField.checkFileContent(filePart, page, state, field)) {
             return null;
         }
 
-        String fileName = fileItem.getName();
-
+        String fileName = filePart.getName();
+        String contentType = filePart.getContentType();
         Map<String, List<String>> httpHeaders = new LinkedHashMap<String, List<String>>();
 
         httpHeaders.put("Cache-Control", Collections.singletonList("public, max-age=31536000"));
-        httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(fileItem.getSize())));
-        httpHeaders.put("Content-Type", Collections.singletonList(fileItem.getContentType()));
+        httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(filePart.getSize())));
+        httpHeaders.put("Content-Type", Collections.singletonList(contentType));
 
         String storageSetting = field.as(ToolUi.class).getStorageSetting();
         StorageItem item = StorageItem.Static.createIn(storageSetting != null ? Settings.getOrDefault(String.class, storageSetting, null) : null);
-        String contentType = fileItem.getContentType();
 
-        item.setPath(createStorageItemPath(fileItem.getName(), null));
+        item.setPath(createStorageItemPath(filePart.getName(), null));
         item.setContentType(contentType);
         item.getMetadata().put("http.headers", httpHeaders);
         item.getMetadata().put("originalFilename", fileName);
-        item.setData(fileItem.getInputStream());
+        item.setData(filePart.getInputStream());
 
         if (contentType != null && contentType.startsWith("image/")) {
-            InputStream fileInput = fileItem.getInputStream();
+            InputStream fileInput = filePart.getInputStream();
 
             try {
                 ImageMetadataMap metadata = new ImageMetadataMap(fileInput);
@@ -337,20 +328,19 @@ public class StorageItemField extends PageServlet {
         return storageItem;
     }
 
-    public static boolean checkFileContent(FileItem file, ToolPageContext page, State state, ObjectField field) throws IOException {
+    public static boolean checkFileContent(Part filePart, ToolPageContext page, State state, ObjectField field) throws IOException {
 
-        String contentType = file.getContentType();
         String errorMessage = null;
 
-        if (!isAcceptedContentType(file)) {
+        if (!isAcceptedContentType(filePart)) {
             errorMessage = String.format(
                     "Invalid content type [%s]. Must match the pattern [%s].",
-                    file.getContentType(), getContentTypeGroups());
+                    filePart.getContentType(), getContentTypeGroups());
 
-        } else if (isDisguisedHtml(file)) {
+        } else if (isDisguisedHtml(filePart)) {
             errorMessage = String.format(
                     "Can't upload [%s] file disguising as HTML!",
-                    contentType);
+                    filePart.getContentType());
         }
 
         if (state != null && field != null) {
@@ -362,18 +352,18 @@ public class StorageItemField extends PageServlet {
         return StringUtils.isBlank(errorMessage);
     }
 
-    private static boolean isAcceptedContentType(FileItem file) throws IOException {
-        String contentType = file.getContentType();
+    private static boolean isAcceptedContentType(Part filePart) throws IOException {
+        String contentType = filePart.getContentType();
         return getContentTypeGroups().contains(contentType);
     }
 
-    private static boolean isDisguisedHtml(FileItem file) throws IOException {
+    private static boolean isDisguisedHtml(Part filePart) throws IOException {
         Set<String> contentTypeGroups = getContentTypeGroups();
 
         // Disallow HTML disguising as other content types per:
         // http://www.adambarth.com/papers/2009/barth-caballero-song.pdf
         if (!contentTypeGroups.contains("text/html")) {
-            InputStream input = file.getInputStream();
+            InputStream input = filePart.getInputStream();
 
             try {
                 byte[] buffer = new byte[1024];
