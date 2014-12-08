@@ -289,12 +289,6 @@ public class ImageFilePreview implements FileFieldWriter {
         if (fieldValue != null) {
             fieldValue.setMetadata(fieldValueMetadata);
         }
-
-        if (fieldValue != null &&
-                ("newUpload".equals(action) ||
-                        "dropbox".equals(action))) {
-            fieldValue.save();
-        }
     }
 
     public void writeImageEditor(ToolPageContext page) throws IOException, ServletException {
