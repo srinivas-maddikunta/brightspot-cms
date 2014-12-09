@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
 import java.io.File;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+@MultipartConfig
 @RoutingFilter.Path(application = "cms", value = "storageItemField")
 public class StorageItemField extends PageServlet {
 
