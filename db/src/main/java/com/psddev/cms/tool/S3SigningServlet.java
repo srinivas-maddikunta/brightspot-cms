@@ -3,6 +3,7 @@ package com.psddev.cms.tool;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
+import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
 import org.apache.commons.codec.binary.Base64;
 
@@ -19,8 +20,13 @@ public class S3SigningServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        
+        String defaultStorage = Settings.get(String.class, StorageItem.DEFAULT_STORAGE_SETTING);
+        if (StringUtils.isBlank(defaultStorage)) {
+            throw new ServletException(StorageItem.DEFAULT_STORAGE_SETTING + " not found in your context.xml");
+        }
 
-        String secret = ObjectUtils.to(String.class, Settings.get("dari/storage/psddevS3/secret"));
+        String secret = Settings.get(String.class, StorageItem.SETTING_PREFIX + "/" + defaultStorage + "/secret");
 
         if (StringUtils.isBlank(secret)) {
             throw new ServletException("dari/storage/psddevS3/secret not found in your context.xml");

@@ -1585,12 +1585,13 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "evaporate.js"));
         writeEnd();
 
+        String defaultStorage = Settings.get(String.class, StorageItem.DEFAULT_STORAGE_SETTING);
         writeStart("script", "type", "text/javascript");
             writeRaw("var _e_ = new Evaporate(");
                 write(ObjectUtils.toJson(ImmutableMap.of(
                     "signerUrl", "/cms/s3auth",
-                    "aws_key", Settings.get("dari/storage/psddevS3/access"),
-                    "bucket", Settings.get("dari/storage/psddevS3/bucket"))));
+                    "aws_key", Settings.get(String.class, StorageItem.SETTING_PREFIX + "/" + defaultStorage + "/access"),
+                    "bucket", Settings.get(String.class, StorageItem.SETTING_PREFIX + "/" + defaultStorage + "/bucket"))));
             writeRaw(");");
         writeEnd();
 
