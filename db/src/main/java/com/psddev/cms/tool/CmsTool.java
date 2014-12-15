@@ -10,7 +10,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -73,6 +72,9 @@ public class CmsTool extends Tool {
 
     @ToolUi.Tab("Defaults")
     private List<CommonTime> commonTimes;
+
+    @ToolUi.Tab("Dashboard")
+    private Dashboard defaultDashboard;
 
     @ToolUi.Tab("RTE")
     @ToolUi.CodeType("text/css")
@@ -458,6 +460,14 @@ public class CmsTool extends Tool {
         return commonTimes;
     }
 
+    public Dashboard getDefaultDashboard() {
+        return defaultDashboard;
+    }
+
+    public void setDefaultDashboard(Dashboard defaultDashboard) {
+        this.defaultDashboard = defaultDashboard;
+    }
+
     public void setCommonTimes(List<CommonTime> commonTimes) {
         this.commonTimes = commonTimes;
     }
@@ -754,23 +764,6 @@ public class CmsTool extends Tool {
         plugins.add(createArea2("Variations & Profiles", "adminVariations", "admin/adminVariations", "/admin/variations.jsp"));
         plugins.add(createArea2("Workflows", "adminWorkflows", "admin/adminWorkflows", "/admin/workflows.jsp"));
 
-        // Dashboard widgets.
-        double dashboardColumn = 0.0;
-        double dashboardRow = 0.0;
-
-        plugins.add(createJspWidget("Work Streams", "dashboard.workStreams", "/workStreams", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-        plugins.add(createJspWidget("Site Map", "dashboard.siteMap", "/misc/siteMap.jsp", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-        plugins.add(createJspWidget("Recent Activity", "dashboard.recentActivity", "/misc/recentActivity.jsp", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-
-        dashboardColumn ++;
-        dashboardRow = 0.0;
-
-        plugins.add(createJspWidget("Create New", "dashboard.createNew", "/createNew", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-        plugins.add(createJspWidget("Bulk Upload", "dashboard.bulkUpload", "/bulkUpload", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-        plugins.add(createJspWidget("Schedules", "dashboard.scheduledEvents", "/misc/scheduledEvents.jsp", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-        plugins.add(createPageWidget("Drafts", "dashboard.unpublishedDrafts", "/unpublishedDrafts", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-        plugins.add(createJspWidget("Resources", "dashboard.resources", "/resources", DASHBOARD_WIDGET_POSITION, dashboardColumn, dashboardRow ++));
-
         // Content right widgets.
         double rightColumn = 0.0;
         double rightRow = 0.0;
@@ -790,40 +783,6 @@ public class CmsTool extends Tool {
 
         urls.getUpdateDependencies().add(template);
 
-        // Content bottom widgets.
-        double bottomColumn = 0.0;
-        double bottomRow = 0.0;
-
-        plugins.add(createJspWidget("Search Engine Optimization", "seo", "/WEB-INF/widget/seo.jsp", CONTENT_BOTTOM_WIDGET_POSITION, bottomColumn, bottomRow ++));
-
-        // Dynamic dashboards
-        for (Dashboard dashboard : Query.from(Dashboard.class).iterable(0)) {
-            String dashboardName = dashboard.as(Dashboard.Data.class).getName();
-            String dashboardDisplayName = dashboard.getState().getLabel();
-            String dashboardInternalName = dashboard.as(Dashboard.Data.class).getInternalName();
-            String dashboardHierarchy = dashboard.getHierarchicalParent() + "/" + dashboardInternalName;
-            String dashboardUrl = "/dashboard/" + dashboardName;
-            String dashboardWidgetPosition = dashboard.as(Dashboard.Data.class).getWidgetPosition();
-            int dashboardNumOfColumns = dashboard.getDefaultNumberOfColumns();
-
-            plugins.add(createArea2(dashboardDisplayName, dashboardInternalName, dashboardHierarchy, dashboardUrl));
-
-            int i = 0;
-            List<? extends DashboardWidget> widgets = dashboard.getWidgets();
-            if (widgets != null) {
-                for (DashboardWidget widget : widgets) {
-                    UUID dashboardId = dashboard.getState().getId();
-                    UUID widgetId = widget.getState().getId();
-                    String widgetDisplayName = dashboardDisplayName + " " + widget.getState().getLabel();
-                    String widgetInternalName = widget.as(DashboardWidget.Data.class).getInternalName(dashboard);
-                    String widgetUrl = "/dashboardWidget/" + dashboardId + "/" + widgetId;
-                    double rowNum = Math.floor(i / dashboardNumOfColumns);
-                    double columnNum = (i ++ % dashboardNumOfColumns);
-
-                    plugins.add(createPageWidget(widgetDisplayName, widgetInternalName, widgetUrl, dashboardWidgetPosition, columnNum, rowNum));
-                }
-            }
-        }
         return plugins;
     }
 

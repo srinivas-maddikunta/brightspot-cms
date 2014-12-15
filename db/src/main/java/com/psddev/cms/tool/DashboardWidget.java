@@ -2,34 +2,17 @@ package com.psddev.cms.tool;
 
 import java.io.IOException;
 
-import com.psddev.cms.db.ToolUi;
-import com.psddev.dari.db.Modification;
-import com.psddev.dari.db.Recordable;
+import javax.servlet.ServletException;
 
-public interface DashboardWidget extends Recordable {
+import com.psddev.dari.db.Record;
+import com.psddev.dari.util.StringUtils;
 
-    public void writeHtml(ToolPageContext page, Dashboard dashboard) throws IOException;
+public abstract class DashboardWidget extends Record {
 
-    @FieldInternalNamePrefix("cms.dashboard.widget.")
-    public static final class Data extends Modification<DashboardWidget> {
+    public abstract void writeHtml(ToolPageContext page, Dashboard dashboard) throws IOException, ServletException;
 
-        @ToolUi.Hidden
-        private String name;
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getPermissionId(Dashboard dashboard) {
-            return "widget/" + getInternalName(dashboard);
-        }
-
-        public String getInternalName(Dashboard dashboard) {
-            return dashboard.as(Dashboard.Data.class).getInternalName() + "." + getName();
-        }
+    @Override
+    public String getLabel() {
+        return StringUtils.toLabel(getClass().getSimpleName());
     }
 }

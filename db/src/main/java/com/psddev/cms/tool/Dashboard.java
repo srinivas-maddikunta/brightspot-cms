@@ -1,121 +1,63 @@
 package com.psddev.cms.tool;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
+import java.util.ListIterator;
 
-import com.psddev.cms.db.ToolUi;
-import com.psddev.dari.db.Modification;
-import com.psddev.dari.db.ObjectIndex;
-import com.psddev.dari.db.ObjectType;
-import com.psddev.dari.db.Query;
-import com.psddev.dari.db.Recordable;
-import com.psddev.dari.util.ObjectUtils;
-import com.psddev.dari.util.StringUtils;
+import com.psddev.dari.db.Record;
+import com.psddev.dari.db.Recordable.Embedded;
+import com.psddev.dari.util.ClassFinder;
+import com.psddev.dari.util.TypeDefinition;
 
-public interface Dashboard extends Recordable {
+@Embedded
+public class Dashboard extends Record {
 
-    public List<? extends DashboardWidget> getWidgets();
+    private List<DashboardColumn> columns;
 
-    public default String getHierarchicalParent() {
-        return "dashboard";
-    }
+    public static Dashboard getDefaultDashboard() {
+        Dashboard dashboard = new Dashboard();
+        List<DashboardColumn> columns = dashboard.getColumns();
 
-    public default int getDefaultNumberOfColumns() {
-        return 2;
-    }
+        for (Class<? extends DefaultDashboardWidget> c : ClassFinder.Static.findClasses(DefaultDashboardWidget.class)) {
+            DefaultDashboardWidget widget = TypeDefinition.getInstance(c).newInstance();
+            int columnIndex = widget.getColumnIndex();
 
-    public default void writeHeaderHtml(ToolPageContext page) throws IOException {
-        page.writeHeader();
-    }
-
-    public default void writeFooterHtml(ToolPageContext page) throws IOException {
-        page.writeFooter();
-    }
-
-    @FieldInternalNamePrefix("cms.dashboard.")
-    public static final class Data extends Modification<Dashboard> {
-
-        public static final String INTERNAL_NAME_PREFIX = "cms.dashboard.";
-        public static final String WIDGET_POSITION_PREFIX = INTERNAL_NAME_PREFIX + "widgets.";
-
-        @ToolUi.Hidden
-        @Indexed(unique = true)
-        private String name;
-
-        @Override
-        public void beforeSave() {
-            if (ObjectUtils.isBlank(getName()) && !ObjectUtils.isBlank(getOriginalObject().getState().getLabel())) {
-                setName(StringUtils.toCamelCase(getLabel()).replaceAll("[^A-Za-z0-9]", ""));
+            while (columns.size() - 1 < columnIndex) {
+                columns.add(new DashboardColumn());
             }
 
-            List<? extends DashboardWidget> widgets = getOriginalObject().getWidgets();
+            columns.get(columnIndex).getWidgets().add(widget);
+        }
 
-            if (widgets != null) {
-                for (DashboardWidget widget : widgets) {
-                    if (widget != null && ObjectUtils.isBlank(widget.as(DashboardWidget.Data.class).getName()) && !ObjectUtils.isBlank(widget.getState().getLabel())) {
-                        String originalName = StringUtils.toCamelCase(widget.getState().getLabel()).replaceAll("[^A-Za-z0-9]", "");
-                        widget.as(DashboardWidget.Data.class).setName(originalName);
-                        int i = 0;
-                        for (DashboardWidget otherWidget : widgets) {
-                            if (widget.equals(otherWidget)) {
-                                continue;
-                            }
-                            if (widget.as(DashboardWidget.Data.class).getName().equals(otherWidget.as(DashboardWidget.Data.class).getName())) {
-                                widget.as(DashboardWidget.Data.class).setName(originalName + (++i));
-                                ObjectType widgetType = ObjectType.getInstance(widget.getClass());
-                                if (widgetType.isConcrete() && !widgetType.isEmbedded()) {
-                                    widget.getState().save();
-                                }
-                            }
-                        }
-                    }
+        double width = 1.0;
+
+        for (ListIterator<DashboardColumn> i = columns.listIterator(columns.size()); i.hasPrevious();) {
+            DashboardColumn column = i.previous();
+            width *= 1.61803398875;
+
+            column.setWidth(width);
+            Collections.sort(column.getWidgets(), new Comparator<DashboardWidget>() {
+
+                @Override
+                public int compare(DashboardWidget x, DashboardWidget y) {
+                    return ((DefaultDashboardWidget) x).getWidgetIndex() - ((DefaultDashboardWidget) y).getWidgetIndex();
                 }
-            }
+            });
         }
 
-        @Override
-        public boolean onDuplicate(ObjectIndex index) {
-            boolean corrected = false;
-            String originalName = getName();
-            int i = 0;
+        return dashboard;
+    }
 
-            while (Query.from(Dashboard.class).master().noCache().where("_id != ?", getId()).and("cms.dashboard.name = ?", getName()).hasMoreThan(0)) {
-                setName(originalName + "-" + (++i));
-            }
-
-            return corrected;
+    public List<DashboardColumn> getColumns() {
+        if (columns == null) {
+            columns = new ArrayList<>();
         }
+        return columns;
+    }
 
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public DashboardWidget getWidgetById(UUID widgetId) {
-            if (widgetId != null) {
-                for (DashboardWidget widget : getOriginalObject().getWidgets()) {
-                    if (widgetId.equals(widget.getState().getId())) {
-                        return widget;
-                    }
-                }
-            }
-            return null;
-        }
-
-        public String getWidgetPosition() {
-            return WIDGET_POSITION_PREFIX + getName();
-        }
-
-        public String getPermissionId() {
-            return "area/" + getOriginalObject().getHierarchicalParent() + "/" + getInternalName();
-        }
-
-        public String getInternalName() {
-            return INTERNAL_NAME_PREFIX + getName();
-        }
+    public void setColumns(List<DashboardColumn> columns) {
+        this.columns = columns;
     }
 }
