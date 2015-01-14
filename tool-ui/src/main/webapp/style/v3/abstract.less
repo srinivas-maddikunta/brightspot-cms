@@ -219,10 +219,11 @@ figure,
     display: inline-block;
     font-family: 'FontAwesome';
     -webkit-font-smoothing: antialiased;
+    font-size: 14px;
     font-weight: normal;
     padding-right: 0.25em;
     text-align: center;
-    width: 1em;
+    width: 14px;
 
     &:hover {
       text-decoration: none !important;
@@ -234,10 +235,10 @@ figure,
   display: inline-block;
   overflow: hidden;
   white-space: nowrap;
-  width: @length-fontSize;
+  width: 14px;
 
   &:before {
-    padding-right: 1.1em;
+    padding-right: 14px;
   }
 }
 
@@ -460,6 +461,14 @@ figure,
 .icon-umbrella { &:before { content: '\f0e9'; } }
 .icon-paste { &:before { content: '\f0ea'; } }
 .icon-exchange { &:before { content: '\f0ec'; } }
+.icon-double-angle-left { &:before { content: '\f100'; } }
+.icon-double-angle-right { &:before { content: '\f101'; } }
+.icon-double-angle-up { &:before { content: '\f102'; } }
+.icon-double-angle-down { &:before { content: '\f103'; } }
+.icon-angle-left { &:before { content: '\f104'; } }
+.icon-angle-right { &:before { content: '\f105'; } }
+.icon-angle-up { &:before { content: '\f106'; } }
+.icon-angle-down { &:before { content: '\f107'; } }
 .icon-desktop { &:before { content: '\f108'; } }
 .icon-laptop { &:before { content: '\f109'; } }
 .icon-reply { &:before { content: '\f112'; } }
@@ -484,16 +493,18 @@ figure,
 .icon-bullseye { &:before { content: '\f140'; }}
 
 .inputLike {
-  @size-border: 1px;
+  @-borderWidth: 1px;
+  @-paddingTB: @length-inputHeight - @length-lineHeight - (@-borderWidth * 2);
+  @-paddingTop: floor(@-paddingTB / 2);
 
   .background-flat(white);
   border-color: @color-border;
   border-radius: 2px;
   border-style: solid;
-  border-width: @size-border;
+  border-width: @-borderWidth;
   box-sizing: border-box;
   min-height: @length-inputHeight;
-  padding: ((@length-inputHeight - @length-lineHeight) / 2 - @size-border) 6px;
+  padding: @-paddingTop 6px (@-paddingTB - @-paddingTop) 6px;
   transition: border-color @time-fast, box-shadow @time-fast;
 
   &:hover,
@@ -585,6 +596,7 @@ figure,
     background-color: white;
     margin: 0 !important;
     padding: 20px 0 10px 0;
+    position: relative;
   }
 
   .objectInputs-small &:before {
@@ -656,7 +668,7 @@ figure,
 }
 
 .inputLargeLike {
-  padding: 10px 0 10px 30px;
+  padding: 10px 0 10px 41px;
 }
 
 .inputLarge {
@@ -668,12 +680,13 @@ figure,
   z-index: 0;
 
   &:before {
-    bottom: 25px;
+    bottom: 20px;
     border-color: @color-heading;
     border-style: solid;
     border-width: 0 0 1px 1px;
+    border-bottom-left-radius: 2px;
     content: '';
-    left: 15px;
+    left: 20px;
     position: absolute;
     width: 7.5px;
     top: 0;
@@ -685,6 +698,50 @@ figure,
 
   .inputContainer.state-focus > &:before {
     border-color: @color-focus;
+  }
+}
+
+.inputLayout-wrapper {
+  background-color: @color-heading;
+  border-radius: 2px;
+  margin-bottom: 10px;
+  width: 300px;
+}
+
+.inputLayout-constrain {
+  position: relative;
+}
+
+.inputLayout-container {
+  bottom: 5px;
+  left: 5px;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.inputLayout-element {
+  position: absolute;
+}
+
+.inputLayout-label {
+  .background-flat(@color-separator);
+  border-radius: 2px;
+  bottom: 5px;
+  cursor: pointer;
+  left: 5px;
+  padding: 5px;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+
+  &.inputLayout-label-placeholder {
+    .background-striped(@color-separator);
+    cursor: default;
+  }
+
+  &.inputLayout-label-selected {
+    .background-flat(@color-focus);
   }
 }
 
@@ -863,6 +920,10 @@ ul.links {
     box-sizing: border-box;
     border-bottom: @-length-border solid darken(white, 10%);
     padding: @-length-paddingTop 0 (@-length-height - @-length-paddingTop) 0;
+
+    &:last-child {
+      border-bottom-style: none;
+    }
 
     > .link {
       display: block;
@@ -1106,7 +1167,7 @@ table.links.table-striped {
 .paginationFirst {
   .link {
     .icon;
-    .icon-backward;
+    .icon-double-angle-left;
     .icon-only;
   }
 }
@@ -1115,7 +1176,7 @@ table.links.table-striped {
 .paginationPrevious {
   .link {
     .icon;
-    .icon-caret-left;
+    .icon-angle-left;
     .icon-only;
   }
 }
@@ -1124,7 +1185,7 @@ table.links.table-striped {
 .paginationNext {
   .link {
     .icon;
-    .icon-caret-right;
+    .icon-angle-right;
     .icon-only;
   }
 }
@@ -1133,7 +1194,7 @@ table.links.table-striped {
 .paginationLast {
   .link {
     .icon;
-    .icon-forward;
+    .icon-double-angle-right;
     .icon-only;
   }
 }
@@ -1245,6 +1306,7 @@ table.links.table-striped {
   cursor: pointer;
   display: inline-block;
   height: (@length-lineHeight + 2 * (@size-input-padding + @length-inputBorderWidth));
+  max-width: 100%;
   padding-right: 26px;
   position: relative;
   user-select: none;
@@ -1381,12 +1443,23 @@ table.links.table-striped {
   white-space: nowrap;
 }
 
+.under {
+  opacity: 0.05;
+  transition: all @time-fast;
+}
+
 .visibilityLabel {
+  @-paddingTopBottom: 2px;
+  @-fontSize: (@length-fontSize - (@-paddingTopBottom * 2));
+
   .background-flat(@color-placeholder);
-  border-radius: 3px;
-  font-size: (@length-fontSize - 4);
-  padding: 2px 3px;
+  border-radius: 2px;
+  display: inline-block;
+  font-size: @-fontSize;
+  line-height: round(@-fontSize * (@length-lineHeight / @length-fontSize));
+  padding: @-paddingTopBottom (@-paddingTopBottom * 1.5);
   text-transform: uppercase;
+  vertical-align: top;
 }
 
 .widget {
