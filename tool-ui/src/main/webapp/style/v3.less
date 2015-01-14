@@ -39,10 +39,10 @@
 @import 'v3/jquery.taxonomy.less';
 @import 'v3/jquery.workflow.less';
 @import 'leaflet/leaflet.css';
-@import 'leaflet/leaflet.ie.css';
 @import 'leaflet/leaflet.draw.css';
 @import 'leaflet/leaflet.draw.ie.css';
 @import 'leaflet/l.geosearch.css';
+@import 'leaflet/L.Control.Locate.min.css';
 @import 'nv.d3.css';
 @import 'v3/content/diff.less';
 @import 'v3/page/common-content';
@@ -214,6 +214,7 @@
   margin: -10px;
   overflow: hidden;
   padding: 10px 360px 10px 10px;
+  transition: all @time-fast;
 
   @media @media-tablet {
     padding-right: 210px;
@@ -429,9 +430,23 @@
     right: 10px;
   }
 
+  &.widget-publishing-hasClose .icon-wrench {
+    right: 40px;
+  }
+
   [name='workflowComment'] {
     margin-bottom: 5px;
   }
+}
+
+.widget-publishing-close {
+  .icon;
+  .icon-remove;
+
+  color: @color-text;
+  position: absolute;
+  right: 10px;
+  top: 6px;
 }
 
 .widget-publishingWorkflow {
@@ -493,9 +508,12 @@
 
   margin-bottom: 0;
 
-  [name='action-publish'] {
-    margin-left: 5px;
+  input[name='publishDate'],
+  .calendarButton {
+    margin-right: 10px;
+  }
 
+  [name='action-publish'] {
     & {
       .button-color(@color-publish);
 
