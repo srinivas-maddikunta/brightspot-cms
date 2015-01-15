@@ -8,3 +8,42 @@
   float: left;
   padding: 0 5px;
 }
+
+.dashboard-columns {
+  transition: transform 0.2s ease-out;
+
+  .widget {
+    > h1 {
+      cursor: move;
+    }
+  }
+
+  &.drag-active {
+    transform: scale(0.9);
+
+    .widget {
+      height: 200px;
+      overflow: hidden;
+
+      > h1 {
+        display: block;
+        position:absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      > *:not(h1) {
+        display: none;
+      }
+
+      &.drag-active {
+        opacity: 0.6;
+      }
+
+      &.widget-ghost {
+        background: gray;
+      }
+    }
+  }
+}
