@@ -56,7 +56,7 @@ $.plugin2('uploader', {
             var file = files[i];
 
             plugin._beforeUpload(file, $inputSmall, i);
-            var filePath = $caller.attr('data-path-start') + "/" + encodeURIComponent(file.name);
+            var filePath = ($caller.attr('data-path-start') || (Math.floor(Math.random() * 100) + '/' + Math.floor(Math.random() * 1000000))) + "/" + encodeURIComponent(file.name);
 
             (function($caller, file, filePath, i) {
                 window._e_.add({
