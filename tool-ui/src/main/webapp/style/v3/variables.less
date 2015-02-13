@@ -9,7 +9,7 @@
 @color-publish: #85bd43;
 @color-remove: #fb1a41;
 @color-schedule: #f5d449;
-@color-select: black;
+@color-shadow: fade(black, 20%);
 @color-separator: darken(white, 14%);
 @color-text: darken(white, 85%);
 
@@ -22,13 +22,14 @@
 @fontFamily-label: 'Open Sans', sans-serif;
 
 @length-fontSize: 13px;
-@length-iconSize: 18px;
+@length-iconSize: 14px;
 @length-inputBorderWidth: 1px;
 @length-inputHeight: 30px;
 @length-inputLabel-marginRight: 5px;
 @length-inputLabel-width: 140px;
-@length-lineHeight: 17px;
-@length-searchControlsWidth: 180px;
+@length-lineHeight: 18px;
+@length-searchControlsWidth: 200px;
+@length-toolBroadcast-height: 25px;
 @length-toolHeader-height: 70px;
 @length-toolTitle-width: 200px;
 @length-toolFooter-height: 40px;
@@ -40,24 +41,28 @@
 @media-tablet: ~'only screen and (max-width: 979px)';
 @media-phone: ~'only screen and (max-width: 767px)';
 
-.background-flat(@color, @text: contrast(@color, @color-text, white)) {
-  background-color: @color;
-  color: @text;
+.color-hover-darken(@color) {
+  color: @color;
 
   &:hover {
-    color: @text;
+    color: darken(@color, 5%);
   }
+}
+
+.color-hover-lighten(@color) {
+  color: @color;
+
+  &:hover {
+    color: lighten(@color, 5%);
+  }
+}
+
+.background-flat(@color) {
+  background-color: @color;
+  color: contrast(@color, @color-text, white);
 
   .link {
-    @link: contrast(@color, @color-link-dark, @color-link-light);
-
-    color: @link;
-    transition: color @time-fast;
-
-    &:hover {
-      color: darken(@link, 5%);
-      transition: none;
-    }
+    color: contrast(@color, @color-link-dark, @color-link-light);
   }
 }
 

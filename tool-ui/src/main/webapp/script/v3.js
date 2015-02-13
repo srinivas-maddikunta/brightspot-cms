@@ -9,6 +9,7 @@ requirejs.config({
     'leaflet.draw': [ 'leaflet' ],
     'l.control.geosearch': [ 'leaflet' ],
     'l.geosearch.provider.openstreetmap': [ 'l.control.geosearch' ],
+    'L.Control.Locate': [ 'leaflet' ],
     'nv.d3': [ 'd3' ],
     'pixastic/actions/blurfast': [ 'pixastic/pixastic.core' ],
     'pixastic/actions/brightness': [ 'pixastic/pixastic.core' ],
@@ -33,6 +34,7 @@ require([
   'jquery.mousewheel',
   'velocity',
 
+  'v3/input/carousel',
   'input/change',
   'input/code',
   'input/color',
@@ -48,16 +50,18 @@ require([
   'input/workflow',
 
   'jquery.calendar',
-  'jquery.dropdown',
+  'v3/jquery.dropdown',
   'jquery.editableplaceholder',
-  'jquery.popup',
-  'jquery.fixedscrollable',
+  'v3/plugin/popup',
+  'v3/plugin/fixed-scrollable',
   'v3/jquery.frame',
+  'v3/infinitescroll',
   'jquery.lazyload',
   'jquery.pagelayout',
   'jquery.pagethumbnails',
   'v3/jquery.repeatable',
   'jquery.sortable',
+  'v3/searchcarousel',
   'jquery.tabbed',
   'jquery.toggleable',
   'v3/jquery.uploader',
@@ -65,10 +69,13 @@ require([
   'nv.d3',
 
   'dashboard',
+  'v3/constrainedscroll',
   'content/diff',
   'content/lock',
   'v3/content/publish',
-  'content/state' ],
+  'content/layout-element',
+  'content/state',
+  'v3/tabs' ],
 
 function() {
   var $ = arguments[0];
@@ -116,8 +123,9 @@ function() {
   $doc.calendar('live', ':text.date');
   $doc.dropDown('live', 'select[multiple], select[data-searchable="true"]');
   $doc.editablePlaceholder('live', ':input[data-editable-placeholder]');
-  $doc.fixedScrollable('live', '.fixedScrollable, .searchResult-list, .popup[name="miscSearch"] .searchFiltersRest');
   $doc.uploader('live','.fileSelector .fileSelectorNewUpload, .bulkFileSelector');
+
+  bsp_fixedScrollable.live(document, '.fixedScrollable, .searchResult-list, .popup[name="miscSearch"] .searchFiltersRest');
 
   $doc.frame({
     'frameClassName': 'frame',
@@ -313,73 +321,6 @@ function() {
         }
       }));
     });
-  })();
-
-  // Make sure that most elements are always in view.
-  (function() {
-      var lastScrollTop = $win.scrollTop();
-
-      $win.scroll($.throttle(100, function() {
-          var scrollTop = $win.scrollTop();
-
-          $('.leftNav, .withLeftNav > .main, .contentForm-aside').each(function() {
-              var $element = $(this),
-                      elementTop = $element.offset().top,
-                      initialElementTop = $element.data('initialElementTop'),
-                      windowHeight,
-                      elementHeight,
-                      alignToTop;
-
-              if ($element.closest('.popup').length > 0) {
-                  return;
-              }
-
-              if (!initialElementTop) {
-                  initialElementTop = elementTop;
-                  $element.data('initialElementTop', initialElementTop);
-                  $element.css({
-                      'position': 'relative',
-                      'top': 0
-                  });
-              }
-
-              windowHeight = $win.height();
-              elementHeight = $element.outerHeight();
-              alignToTop = function() {
-                  $element.stop(true);
-                  $element.animate({
-                      'top': Math.max(scrollTop, 0)
-                  }, 'fast');
-              };
-
-              // The element height is less than the window height,
-              // so there's no need to account for the bottom alignment.
-              if (initialElementTop + elementHeight < windowHeight) {
-                  alignToTop();
-
-              // The user is scrolling down.
-              } else {
-                  if (lastScrollTop < scrollTop) {
-                      var windowBottom = scrollTop + windowHeight;
-                      var elementBottom = elementTop + elementHeight;
-                      if (windowBottom > elementBottom) {
-                          $element.stop(true);
-                          $element.animate({
-                              'top': Math.min(windowBottom, $('body').height()) - elementHeight - initialElementTop
-                          }, 'fast');
-                      }
-
-                  // The user is scrolling up.
-                  } else if (lastScrollTop > scrollTop) {
-                      if (elementTop > scrollTop + initialElementTop) {
-                          alignToTop();
-                      }
-                  }
-              }
-          });
-
-          lastScrollTop = scrollTop;
-      }));
   })();
 
   // Handle file uploads from drag-and-drop.
@@ -633,99 +574,250 @@ function() {
     var $popup = $(event.target);
     var $input = $popup.popup('source');
     var $container = $input;
-    var labels = '';
+    var fieldsLabel = '';
 
     while (true) {
       $container = $container.parent().closest('.inputContainer');
 
       if ($container.length > 0) {
-        labels = $container.find('> .inputLabel > label').text() + (labels ? ' \u2192 ' + labels : '');
+        fieldsLabel = $container.find('> .inputLabel > label').text() + (fieldsLabel ? ' \u2192 ' + fieldsLabel : '');
 
       } else {
         break;
       }
     }
 
-    $popup.find('> .content > .frame > h1').text(
-        'Select ' +
-        labels +
-        ' for ' +
-        $input.closest('.contentForm').attr('data-o-label'));
+    var label = 'Select ' + fieldsLabel;
+    var objectLabel = $input.closest('.contentForm').attr('data-o-label');
+
+    if (objectLabel) {
+      label += ' for ';
+      label += objectLabel;
+    }
+
+    $popup.find('> .content > .frame > h1').text(label);
   });
 
   $doc.on('open', '.popup[data-popup-source-class~="objectId-edit"]', function(event) {
-    $(event.target).popup('source').closest('.popup, .toolContent').addClass('under');
+    var $frame = $(event.target);
+
+    $frame.popup('source').closest('.popup, .toolContent').addClass('popup-objectId-edit-loading');
+    $frame.popup('container').removeClass('popup-objectId-edit-hide');
     $win.resize();
   });
 
+  var scrollTops = [ ];
+
   $doc.on('frame-load', '.popup[data-popup-source-class~="objectId-edit"] > .content > .frame', function(event) {
     var $frame = $(event.target);
+    var frameName = $frame.attr('name');
+
+    if (!frameName || frameName.indexOf('objectId-') !== 0) {
+      return;
+    }
+
+    var $parent = $frame.popup('source').closest('.popup, .toolContent');
+
+    $frame.css('opacity', 0);
 
     // Move the close button to the publishing widget.
-    var $publishing = $frame.find('.widget-publishing');
+    var $publishingControls = $frame.find('.widget-publishing > .widget-controls');
 
-    if ($publishing.length > 0) {
-      $publishing.append($('<a/>', {
+    if ($publishingControls.length > 0) {
+      $publishingControls.append($('<a/>', {
         'class': 'widget-publishing-close',
-        'click': function(event) {
+        'click': function() {
           $frame.popup('close');
           return false;
         }
       }));
-
-      $publishing.addClass('widget-publishing-hasClose');
-      $frame.popup('container').find('> .content > .closeButton').hide();
     }
 
-    // Scroll the frame into view.
-    var oldScrollTop = $win.scrollTop();
-    var $source = $frame.popup('source');
+    // Move the frame into view.
+    var scrollTop = $win.scrollTop();
 
-    $.data($source[0], 'oldScrollTop', oldScrollTop);
+    scrollTops.push(scrollTop);
 
-    $('html, body').animate({
-      'scrollTop': $source.offset().top - $('.toolHeader:visible').outerHeight(true)
-    });
+    scrollTop += $('.toolHeader').outerHeight(true);
+
+    setTimeout(function() {
+      var sourceOffset = $(event.target).popup('source').offset();
+
+      $frame.popup('container').css({
+        'top': scrollTop
+      });
+
+      $parent.removeClass('popup-objectId-edit-loading');
+      $parent.addClass('popup-objectId-edit-loaded');
+
+      $frame.prepend($('<div/>', {
+        'class': 'popup-objectId-edit-heading',
+        'text': $parent.find('.contentForm-main > .widget > h1').text()
+      }));
+
+      $frame.css({
+        'transform-origin': (sourceOffset.left / $win.width() * 100) + '% ' + ((sourceOffset.top - scrollTop) / $frame.outerHeight(true) * 100) + '%'
+      });
+
+      $frame.velocity({
+        'opacity': 0.5,
+        'scale': 0.01
+
+      }, {
+        'duration': 1,
+        'complete': function() {
+          $frame.velocity({
+            'opacity': 1,
+            'scale': 1
+
+          }, {
+            'duration': 300,
+            'easing': [ 0.175, 0.885, 0.32, 1.275 ],
+            'complete': function () {
+               $frame.css({
+                 'opacity': '',
+                 'transform': '',
+                 'transform-origin': ''
+               });
+            }
+          });
+        }
+      });
+    }, 1500);
   });
 
   $doc.on('close', '.popup[data-popup-source-class~="objectId-edit"]', function(event) {
-    var $source = $(event.target).popup('source');
-    var oldScrollTop = $.data($source[0], 'oldScrollTop');
+    scrollTops.pop();
 
-    if (oldScrollTop) {
-      $('html, body').animate({
-        'scrollTop': oldScrollTop
-      });
+    var $frame = $(event.target);
+    var $source = $frame.popup('source');
+    var $popup = $frame.popup('container');
+    var sourceOffset = $source.offset();
+    var $parent = $source.closest('.popup, .toolContent');
+
+    $popup.addClass('popup-objectId-edit-hiding');
+    $parent.removeClass('popup-objectId-edit-loading');
+    $parent.removeClass('popup-objectId-edit-loaded');
+
+    $frame.css({
+      'transform-origin': (sourceOffset.left / $win.width() * 100) + '% ' + ((sourceOffset.top - $win.scrollTop() - $('.toolHeader').outerHeight(true)) / $frame.outerHeight(true) * 100) + '%'
+    });
+
+    $frame.velocity({
+      'scale': 1
+
+    }, {
+      'duration': 1,
+      'complete': function() {
+        $frame.velocity({
+          'opacity': 0.5,
+          'scale': 0.01
+
+        }, {
+          'duration': 300,
+          'easing': [ 0.6, -0.28, 0.735, 0.045 ],
+          'complete': function() {
+            $popup.removeClass('popup-objectId-edit-hiding');
+            $popup.addClass('popup-objectId-edit-hide');
+            $frame.css({
+              'opacity': '',
+              'transform': '',
+              'transform-origin': ''
+            })
+          }
+        })
+      }
+    })
+  });
+
+  $win.on('mousewheel', function(event, delta, deltaX, deltaY) {
+    if (scrollTops.length === 0) {
+      return;
     }
 
-    $source.closest('.popup, .toolContent').removeClass('under');
-    $win.resize();
+    if (deltaY > 0 && $win.scrollTop() - deltaY < scrollTops[scrollTops.length - 1]) {
+      event.preventDefault();
+    }
   });
 
   $doc.ready(function() {
     (function() {
       var $nav = $('.toolNav');
+
+      var $split = $('<div/>', {
+        'class': 'toolNav-split',
+      });
+
+      var $left = $('<ul/>', {
+        'class': 'toolNav-splitLeft'
+      });
+
+      var $right = $('<div/>', {
+        'class': 'toolNav-splitRight'
+      });
+
+      $split.append($left);
+      $split.append($right);
+
+      $nav.find('> li').each(function() {
+        var $item = $(this);
+
+        if ($item.is(':first-child')) {
+          $item.find('> ul > li').each(function() {
+            var $subItem = $(this).find('> a');
+
+            $left.append($('<li/>', {
+              'html': $('<a/>', {
+                'href': $subItem.attr('href'),
+                'text': $subItem.text(),
+              }),
+
+              'mouseover': function() {
+                $left.find('> li').removeClass('state-hover');
+                $(this).addClass('state-hover');
+                $right.hide();
+              }
+            }));
+          });
+
+        } else {
+          var $sub = $item.find('> ul');
+
+          $right.append($sub);
+          $sub.hide();
+
+          $left.append($('<li/>', {
+            'class': 'toolNav-splitLeft-nested',
+            'text': $item.text(),
+            'mouseover': function() {
+              $left.find('> li').removeClass('state-hover');
+              $(this).addClass('state-hover');
+              $right.show();
+              $right.find('> ul').hide();
+              $sub.show();
+            }
+          }));
+        }
+      });
+
       var $toggle = $('<div/>', {
-        'class': 'toolNavToggle',
+        'class': 'toolNav-toggle',
         'click': function() {
-          $nav.toggle();
+          if ($split.is(':visible')) {
+            $split.popup('close');
+
+          } else {
+            $split.popup('open');
+            $left.find('> li:first-child').trigger('mouseover');
+          }
         }
       });
 
       $nav.before($toggle);
 
-      $win.click(function(event) {
-        var nav = $nav[0];
-        var toggle = $toggle[0];
-        var target = event.target;
-
-        if (nav !== target &&
-            !$.contains(nav, target) &&
-            toggle !== target &&
-            !$.contains(toggle, target)) {
-          $nav.hide();
-        }
-      });
+      $split.popup();
+      $split.popup('close');
+      $split.popup('container').addClass('toolNav-popup');
     })();
 
     $(this).trigger('create');

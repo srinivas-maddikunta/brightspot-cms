@@ -169,8 +169,19 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
 
 // --- Presentation ---
 
-%><% wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null); %>
+%><%
 
+wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null);
+
+    String search = wp.param(String.class, "search");
+
+    if (search != null) {
+        wp.writeStart("div", "class", "frame");
+            wp.writeStart("a", "href", wp.cmsUrl("/searchCarousel", "id", editingState.getId(), "search", search));
+            wp.writeEnd();
+        wp.writeEnd();
+    }
+%>
 <div class="content-edit">
     <form class="contentForm contentLock"
             method="post"
@@ -191,15 +202,6 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
         <div class="contentForm-main">
             <div class="widget widget-content">
                 <h1 class="breadcrumbs"><%
-                    String search = wp.param(String.class, "search");
-
-                    if (search != null) {
-                        wp.writeStart("span", "class", "breadcrumbItem frame");
-                            wp.writeStart("a", "href", StringUtils.addQueryParameters(search, "widget", true));
-                                wp.writeHtml("Search Result");
-                            wp.writeEnd();
-                        wp.writeEnd();
-                    }
 
                     wp.writeStart("span", "class", "breadcrumbItem icon icon-object");
                         wp.writeHtml(state.isNew() ? "New " : "Edit ");
@@ -299,7 +301,7 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
                             if (history != null) {
                                 wp.writeStart("div", "class", "contentDiffOld contentDiffLeft");
                                     wp.writeStart("h2").writeHtml("History").writeEnd();
-                                    wp.writeFormFields(editing);
+                                    wp.writeSomeFormFields(editing, true, null, null);
                                 wp.writeEnd();
                             }
 
@@ -308,7 +310,7 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
 
                                 wp.writeStart("div", "class", "contentDiffCurrent " + (history != null ? "contentDiffRight" : "contentDiffLeft"));
                                     wp.writeStart("h2").writeHtml("Current").writeEnd();
-                                    wp.writeFormFields(original.getOriginalObject());
+                                    wp.writeSomeFormFields(original.getOriginalObject(), true, null, null);
                                 wp.writeEnd();
 
                             } finally {
@@ -318,17 +320,17 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
                             if (draft != null) {
                                 wp.writeStart("div", "class", "contentDiffNew contentDiffRight");
                                     wp.writeStart("h2").writeHtml("Draft").writeEnd();
-                                    wp.writeFormFields(editing);
+                                    wp.writeSomeFormFields(editing, true, null, null);
                                 wp.writeEnd();
                             }
                         wp.writeEnd();
 
                     } else {
-                        wp.writeFormFields(editing);
+                        wp.writeSomeFormFields(editing, true, null, null);
                     }
 
                 } else {
-                    wp.writeFormFields(editing);
+                    wp.writeSomeFormFields(editing, true, null, null);
                 }
                 %>
             </div>
@@ -341,11 +343,13 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
                 <h1 class="icon icon-action-publish">Publishing</h1>
 
                 <%
-                wp.writeStart("a",
-                        "class", "icon icon-wrench icon-only",
-                        "href", wp.objectUrl("/contentTools", editing, "returnUrl", wp.url("")),
-                        "target", "contentTools");
-                    wp.writeHtml("Tools");
+                wp.writeStart("div", "class", "widget-controls");
+                    wp.writeStart("a",
+                            "class", "widget-publishing-tools",
+                            "href", wp.objectUrl("/contentTools", editing, "returnUrl", wp.url("")),
+                            "target", "contentTools");
+                        wp.writeHtml("Tools");
+                    wp.writeEnd();
                 wp.writeEnd();
 
                 if (workStream != null) {

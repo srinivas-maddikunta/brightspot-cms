@@ -7,15 +7,20 @@
     margin-left: 0;
 
     > li {
-      background-color: rgba(255, 255, 255, 0.5);
-      margin-bottom: 6px;
+      border: 1px solid @color-heading;
+      border-radius: 2px;
+      margin-bottom: 10px;
+      padding: 10px;
       position: relative;
 
       > .repeatableLabel {
         &:extend(.inputLabelLike all);
 
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
         cursor: pointer;
         left: 0;
+        margin: -10px -10px 10px -10px;
         padding-left: 35px;
         padding-right: 45px;
         position: relative;
@@ -46,23 +51,7 @@
       }
 
       > .objectInputs {
-        &:extend(.inputLargeLike all);
-
-        &:before {
-          bottom: 15px;
-          border-color: @color-heading;
-          border-style: solid;
-          border-width: 0 0 1px 1px;
-          content: '';
-          left: 15px;
-          position: absolute;
-          width: 7.5px;
-          top: 0;
-        }
-
-        &.state-focus:before {
-          border-color: @color-focus;
-        }
+        margin-bottom: -10px;
       }
 
       > .removeButton {
@@ -73,15 +62,13 @@
 
         color: @color-remove;
         position: absolute;
-        right: 5px;
-        top: 4px;
-      }
-
-      .inputContainer:first-child {
-        margin-top: 6px;
+        right: ((@length-inputHeight - @length-iconSize) / 2);
+        top: ((@length-inputHeight - @length-lineHeight) / 2);
       }
 
       &.state-focus {
+        border-color: @color-focus;
+
         > .repeatableLabel {
           .background-flat(@color-focus);
         }
@@ -92,6 +79,7 @@
 
         > .repeatableLabel {
           border-bottom-style: none;
+          margin-bottom: 0;
 
           &:before {
             content: '\25ba';
@@ -123,6 +111,13 @@
           .icon-plus;
           color: @color-link-dark;
         }
+
+        .previewable-image {
+          opacity: 0.5;
+        }
+        .previewable-label {
+          text-decoration: line-through;
+        }
       }
     }
   }
@@ -150,21 +145,71 @@
   }
 
   &.repeatableForm-previewable {
+    @preview-counter: preview-counter;
+    
     > ol,
     > ul {
       overflow: hidden;
+      
+      // For a numbered carousel create a CSS counter
+      counter-reset: @preview-counter;
 
       > li {
         background: white;
         box-sizing: border-box;
         float: left;
-        margin-right: 1%;
-        width: 24%;
+        margin-right: 10px;
+        width: 210px;
+        padding: 4px 4px 22px 4px;
+        border:1px solid #ccc;
+        border-radius:2px;
+        min-height:170px;
+        
+        counter-increment: @preview-counter;
 
-        &:nth-child(4n+1) {
-          clear: left;
+        .previewable-image {
+          width: 200px;
+          height:150px;
+          cursor: pointer;
+          
+          // Resize the image so it's largest dimension fills the tile completely
+          // and keeps the correct aspect ratio.
+          object-fit: cover;
+
+          // In case src is blank set a background color
+          background-color:#ddd;
         }
 
+        .previewable-label {
+          margin:2px 4px 8px;
+          height:2.5em;
+          overflow:hidden;
+        }
+        
+        .previewable-label-prefix {
+          font-weight:bold;
+        }
+
+        .previewable-controls {
+          height:22px;
+          position:absolute;
+          width:208px;
+          left:0;
+          bottom:0;
+          background-color:#f8f8f8;
+        }
+
+        .previewable-control-edit {
+          .icon;
+          .icon-pencil;
+          .icon-only;
+          position:absolute;
+          right:30px;
+          bottom:2px;
+          cursor:pointer;
+          color:#999;
+        }
+        
         > .repeatableLabel {
           box-sizing: border-box;
           overflow: hidden;
@@ -177,7 +222,10 @@
           .icon-only;
 
           left: auto;
-          right: 5px;
+          right: 8px;
+          top:auto;
+          bottom:2px;
+          color:#999;
         }
 
         .inputLabel {
@@ -222,6 +270,22 @@
             }
           }
         }
+
+        &:before {
+          content: counter(@preview-counter);
+          position:absolute;
+          top:10px;
+          left:10px;
+          background:rgba(64,64,64,0.7);
+          border:2px solid white;
+          border-radius:50%;
+          color:white;
+          height: 20px;
+          width:20px;
+          text-align:center;
+          line-height:16px;
+        }
+
       }
     }
 
@@ -231,6 +295,30 @@
       margin: 0 10px 0 0;
     }
   }
+}
+
+.repeatablePreviewControls {
+
+  margin-bottom:.5em;
+  
+  .action-upload {
+    margin-right:1em;
+  }
+  
+}
+
+.view-switcher {
+  float:right;
+}
+
+.view-switcher-active {
+
+    color:black;
+
+    &:hover {
+        text-decoration: none;
+        color:black;
+    }
 }
 
 .repeatableForm > ol > li.collapsed > .frame,
@@ -563,7 +651,7 @@
           height: @length-size;
           line-height: @length-size;
           position: absolute;
-          right: 10px;
+          left: 10px;
           text-align: center;
           top: 10px;
           width: @length-size;
@@ -582,8 +670,6 @@
 }
 
 .repeatableText {
-  @-length-buttonOffset: (@length-inputHeight - @length-iconSize) / 2;
-
   > ol, > ul {
     margin-bottom: 0;
 
@@ -603,9 +689,10 @@
 
         color: @color-remove;
         position: absolute;
-        right: @-length-buttonOffset;
-        top: @-length-buttonOffset;
+        right: ((@length-inputHeight - @length-iconSize) / 2);
+        top: ((@length-inputHeight - @length-lineHeight) / 2);
         user-select: none;
+        width: @length-iconSize;
       }
 
       &.toBeRemoved {
@@ -657,10 +744,12 @@
 
       .icon;
       .icon-plus;
+      .icon-only;
 
       position: absolute;
-      right: @-length-buttonOffset;
-      top: @-length-buttonOffset;
+      right: ((@length-inputHeight - @length-iconSize) / 2);
+      top: ((@length-inputHeight - @length-lineHeight) / 2);
+      width: @length-iconSize;
     }
   }
 

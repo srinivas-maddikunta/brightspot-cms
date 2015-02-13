@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
+import com.psddev.cms.db.ToolUiLayoutElement;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -1292,10 +1293,7 @@ public class ToolPageContext extends WebPageContext {
                         String firstName = nameParts[0];
 
                         writeStart("div", "class", "toolUserDisplay");
-                            writeStart("a",
-                                    "href", cmsUrl("/toolUserDashboard"),
-                                    "target", "toolUserDashboard");
-
+                            writeStart("div", "class", "toolUserWelcome");
                                 writeHtml("Welcome, ");
 
                                 if (firstName.equals(firstName.toLowerCase(Locale.ENGLISH))) {
@@ -1305,16 +1303,36 @@ public class ToolPageContext extends WebPageContext {
                                 } else {
                                     writeHtml(firstName);
                                 }
+                            writeEnd();
 
-                                writeStart("span", "class", "toolUserAvatar");
+                            writeStart("div", "class", "toolUserControls");
+                                writeStart("ul", "class", "piped");
+                                    writeStart("li");
+                                        writeStart("a",
+                                                "class", "icon icon-object-toolUser",
+                                                "href", cmsUrl("/toolUserDashboard"),
+                                                "target", "toolUserDashboard");
+                                            writeHtml("Profile");
+                                        writeEnd();
+                                    writeEnd();
+
+                                    writeStart("li");
+                                        writeStart("a",
+                                                "class", "icon icon-action-logOut",
+                                                "href", cmsUrl("/misc/logOut.jsp"));
+                                            writeHtml("Log Out");
+                                        writeEnd();
+                                    writeEnd();
+                                writeEnd();
+                            writeEnd();
+
+                            writeStart("span", "class", "toolUserAvatar");
+                                writeStart("a",
+                                        "href", cmsUrl("/toolUserDashboard"),
+                                        "target", "toolUserDashboard");
                                     if (avatar != null) {
-                                            writeTag("img",
-                                                    "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
-
-                                    } else {
-                                        for (String namePart : nameParts) {
-                                            writeHtml(namePart.substring(0, 1).toUpperCase(Locale.ENGLISH));
-                                        }
+                                        writeElement("img",
+                                                "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
                                     }
                                 writeEnd();
                             writeEnd();
@@ -2203,11 +2221,13 @@ public class ToolPageContext extends WebPageContext {
      * Writes some form fields for the given {@code object}.
      *
      * @param object Can't be {@code null}.
+     * @param includeGlobals {@true} to include global fields.
      * @param includeFields {@code null} to include all fields.
      * @param excludeFields {@code null} to exclude no fields.
      */
     public void writeSomeFormFields(
             Object object,
+            boolean includeGlobals,
             Collection<String> includeFields,
             Collection<String> excludeFields)
             throws IOException, ServletException {
@@ -2220,7 +2240,12 @@ public class ToolPageContext extends WebPageContext {
             fields.addAll(type.getFields());
         }
 
-        if (!fields.isEmpty()) {
+        if (includeGlobals && !fields.isEmpty()) {
+            writeElement("input",
+                    "type", "hidden",
+                    "name", state.getId() + "/_includeGlobals",
+                    "value", true);
+
             for (ObjectField field : state.getDatabase().getEnvironment().getFields()) {
                 if (Boolean.FALSE.equals(field.getState().get("cms.ui.hidden"))) {
                     fields.add(field);
@@ -2236,12 +2261,26 @@ public class ToolPageContext extends WebPageContext {
                 request.setAttribute("containerObject", object);
             }
 
+            List<ToolUiLayoutElement> layoutPlaceholders = type.as(ToolUi.class).getLayoutPlaceholders();
+            String layoutPlaceholdersJson = null;
+
+            if (!layoutPlaceholders.isEmpty()) {
+                List<Map<String, Object>> jsons = new ArrayList<Map<String, Object>>();
+
+                for (ToolUiLayoutElement element : layoutPlaceholders) {
+                    jsons.add(element.toMap());
+                }
+
+                layoutPlaceholdersJson = ObjectUtils.toJson(jsons);
+            }
+
             writeStart("div",
                     "class", "objectInputs",
                     "data-type", type != null ? type.getInternalName() : null,
                     "data-id", state.getId(),
                     "data-object-id", state.getId(),
-                    "data-widths", "{ \"objectInputs-small\": { \"<=\": 350 } }");
+                    "data-widths", "{ \"objectInputs-small\": { \"<=\": 350 } }",
+                    "data-layout-placeholders", layoutPlaceholdersJson);
 
                 Object original = Query.fromAll().where("_id = ?", state.getId()).master().noCache().first();
 
@@ -2381,7 +2420,7 @@ public class ToolPageContext extends WebPageContext {
      * @param object Can't be {@code null}.
      */
     public void writeFormFields(Object object) throws IOException, ServletException {
-        writeSomeFormFields(object, null, null);
+        writeSomeFormFields(object, false, null, null);
     }
 
     /**

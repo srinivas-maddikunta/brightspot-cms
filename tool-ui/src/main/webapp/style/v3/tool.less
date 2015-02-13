@@ -3,9 +3,9 @@
   .message-error;
 
   border-radius: 0;
-  height: 25px;
+  height: @length-toolBroadcast-height;
   left: 0;
-  line-height: 25px;
+  line-height: @length-toolBroadcast-height;
   overflow: hidden;
   padding: 0 20px 0 40px;
   position: fixed;
@@ -16,9 +16,9 @@
   z-index: 100;
 
   &:before {
-    height: 25px;
+    height: @length-toolBroadcast-height;
     left: 20px;
-    line-height: 25px;
+    line-height: @length-toolBroadcast-height;
     top: 0;
   }
 }
@@ -27,7 +27,7 @@
   margin-top: 100px;
 
   .toolHeader {
-    top: 25px;
+    top: @length-toolBroadcast-height;
   }
 
   .contentPreview {
@@ -57,12 +57,12 @@
   font-size: @-height;
   font-weight: bold;
   height: @-height;
-  left: 55px;
+  left: 65px;
   line-height: @-height;
   position: absolute;
   text-transform: uppercase;
   top: ((@length-toolHeader-height - @-height) / 2);
-  width: (@length-toolTitle-width - 35px);
+  width: (@length-toolTitle-width - 40px);
 
   .link {
     color: @color-text;
@@ -108,46 +108,56 @@
 }
 
 .toolUserDisplay {
-  @-length-padding: 10px;
-  @-length-size: @length-toolHeader-height - (@-length-padding * 2);
+  @-padding: 10px;
+  @-avatar-size: @length-toolHeader-height - (@-padding * 2);
 
   display: block;
-  line-height: @-length-size;
   right: 20px;
-  overflow: hidden;
+  padding-right: (@-padding + @-avatar-size);
   position: absolute;
-  top: @-length-padding;
+  top: @-padding;
 
   .toolHeader-hasEnvironment & {
     right: 70px;
   }
 
-  .link {
-    color: @color-text;
+  .toolUserWelcome {
     font-weight: 700;
+    margin-top: floor((@-avatar-size / 2) - @length-lineHeight);
+    text-align: right;
+  }
 
-    &:hover {
-      color: @color-text;
-      text-decoration: none;
-    }
+  .toolUserControls {
+    font-size: floor(@length-fontSize * 0.8);
+    text-align: right;
   }
 
   .toolUserAvatar {
-    .background-flat(@color-heading);
-    border-radius: 100%;
+    background-color: @color-focus;
+    background-image: url(icon/avatar.svg);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: (@-avatar-size - 15px);
+    border-radius: 50%;
     color: @color-border;
     display: inline-block;
-    height: @-length-size;
+    height: @-avatar-size;
     margin-left: 10px;
+    position: absolute;
+    right: 0;
+    top: 0;
     text-align: center;
     vertical-align: middle;
-    width: @-length-size;
-
-    &:hover {
-      color: @color-border;
-    }
+    width: @-avatar-size;
 
     img {
+      border-radius: 100%;
+      height: 100%;
+      width: 100%;
+    }
+
+    .link {
+      display: block;
       height: 100%;
       width: 100%;
     }
@@ -189,40 +199,119 @@
     }
 
     label {
-      color: @color-note;
-      cursor: pointer;
-      font-family: @fontFamily-label;
-      font-weight: bold;
+      color: @color-placeholder;
+      font-style: italic;
       left: 0;
-      padding-left: 26px;
+      padding-left: @length-inputHeight;
     }
 
     input[type='text'] {
-      padding-left: 25px;
+      padding-left: @length-inputHeight;
       width: 100%;
     }
   }
 }
 
 .toolSearchSaved {
-  border-right: 2px solid @color-separator;
+  .background-flat(@color-heading);
+  bottom: -15px;
   box-sizing: border-box;
   display: block;
-  left: (-40 - @length-toolTitle-width);
-  padding-right: 20px;
+  left: (-60 - @length-toolTitle-width);
+  padding: 20px;
   position: absolute;
-  top: 5px;
-  width: (@length-toolTitle-width + 21);
+  top: -15px;
+  width: (@length-toolTitle-width + 40);
 }
 
-.toolNavToggle {
-  &:extend(.button all);
+.toolNav {
+  display: none;
+}
+
+.toolNav-split {
+  overflow: hidden;
+  position: relative;
+
+  .link {
+    &, &:hover {
+      color: @color-text;
+      text-decoration: none;
+    }
+  }
+
+  ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    @-item-height: 40px;
+
+    cursor: pointer;
+    height: @-item-height;
+    line-height: @-item-height;
+    padding: 0 20px;
+
+    &:hover,
+    &.state-hover {
+      background-color: fade(@color-focus, 10%);
+    }
+
+    .link {
+      display: block;
+    }
+  }
+}
+
+.toolNav-splitLeft {
+  float: left;
+  min-width: (@length-toolTitle-width + 40px);
+
+  li {
+    position: relative;
+
+    &.toolNav-splitLeft-nested {
+      .icon;
+      .icon-angle-right;
+
+      &:before {
+        padding-right: 0;
+        position: absolute;
+        right: 20px;
+        width: auto;
+      }
+    }
+  }
+}
+
+.toolNav-splitRight {
+  float: left;
+
+  &:before {
+    background-color: @color-separator;
+    bottom: 0;
+    content: '';
+    left: (@length-toolTitle-width + 39px);
+    position: absolute;
+    top: 0;
+    width: 2px;
+  }
+
+  ul {
+    min-width: (@length-toolTitle-width + 40px);
+  }
+}
+
+.toolNav-toggle {
+  @-size: 30px;
 
   .icon;
   .icon-reorder;
 
-  @-size: @length-inputHeight;
-
+  .background-flat(@color-focus);
+  border-radius: 2px;
+  cursor: pointer;
   height: @-size;
   left: 20px;
   padding: 0;
@@ -238,48 +327,37 @@
   }
 }
 
-.toolNav {
-  border-top: 2px solid @color-separator;
-  display: none;
-  left: 0;
-  list-style-type: none;
-  margin: 0;
-  overflow: hidden;
-  padding: 20px 50px 30px 40px;
-  position: fixed;
-  top: (@length-toolHeader-height - 1px);
-  width: 100%;
+.toolNav-popup {
+  left: 0 !important;
+  margin: 4px 0 0 0 !important;
+  max-width: none !important;
+  position: fixed !important;
+  top: (@length-toolHeader-height - 14) !important;
+  width: auto !important;
+  z-index: 101 !important;
 
-  &:before {
-    background-color: white;
-    bottom: 10px;
-    box-shadow: 0 0 10px fade(black, 20%);
-    content: '';
-    left: 0;
-    position: absolute;
-    right: 10px;
-    top: 0;
-    z-index: -1;
+  .hasToolBroadcast & {
+    top: (@length-toolBroadcast-height + @length-toolHeader-height - 14) !important;
   }
 
-  > li {
-    float: left;
-    margin-right: 60px;
+  &:before {
+    top: @length-toolHeader-height !important;
 
-    &:last-child {
-      margin-right: 0;
+    .hasToolBroadcast & {
+      top: (@length-toolBroadcast-height + @length-toolHeader-height) !important;
     }
+  }
 
-    > .link {
-      &:extend(h2 all);
+  > .content {
+    border-radius: 0 !important;
+    border-bottom-right-radius: 2px !important;
+    border-style: none !important;
+    border-top: 2px solid @color-separator !important;
+    box-shadow: 0 40px 80px -40px black !important;
+    padding: 0 !important;
 
-      color: @color-text;
-    }
-
-    > ul {
-      &:extend(ul.links all);
-
-      margin: 0;
+    > .closeButton {
+      display: none;
     }
   }
 }
@@ -331,11 +409,14 @@
 }
 
 .searchControls {
-  border-right: 2px solid @color-separator;
+  @-borderWidth: 2px;
+  @-padding: 20px;
+
+  border-right: @-borderWidth solid @color-separator;
   box-sizing: border-box;
   float: left;
-  padding-right: 20px;
-  width: (@length-searchControlsWidth + 20);
+  padding-right: @-padding;
+  width: (@length-searchControlsWidth + @-padding + @-borderWidth);
 
   input[type=text],
   select {
@@ -376,6 +457,10 @@
   }
 }
 
+.searchFiltersRest-single {
+  margin-top: -30px;
+}
+
 .searchMissing {
   .icon;
   .icon-share-alt;
@@ -391,8 +476,8 @@
 
   &:before {
     position: absolute;
-    right: 4px;
-    top: 7px;
+    right: 0;
+    top: 6px;
     transform: rotate(90deg);
   }
 }
@@ -454,13 +539,13 @@
     position: relative;
 
     input[type='text'] {
-      padding-right: 25px;
+      padding-right: @length-inputHeight;
     }
 
     .icon-action-edit {
-      bottom: ((@length-inputHeight - @length-iconSize) / 2);
+      bottom: ((@length-inputHeight - @length-lineHeight) / 2);
       position: absolute;
-      right: 5px;
+      right: ((@length-inputHeight - @length-iconSize) / 2);
     }
   }
 }
@@ -496,12 +581,12 @@
   }
 
   .select {
-    margin-bottom: 5px;
+    margin-bottom: 10px;
   }
 }
 
 .searchResult {
-  margin-left: (@length-searchControlsWidth + 40);
+  margin-left: (@length-searchControlsWidth + 42);
   position: relative;
 }
 
