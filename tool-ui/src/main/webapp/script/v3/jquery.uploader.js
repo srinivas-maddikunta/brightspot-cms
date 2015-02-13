@@ -18,7 +18,7 @@ $.plugin2('uploader', {
         var $fileSelector = $inputSmall.find('.fileSelector').first();
 
         $.ajax({
-            url: '/cms/filePreview',
+            url: CONTEXT_PATH + 'filePreview',
             data: { displayProgress : 'true' },
             dataType: 'html'
         }).done(function(html) {
@@ -100,7 +100,7 @@ $.plugin2('uploader', {
         $uploadPreview.removeClass('loading');
 
         $.ajax({
-            url: '/cms/filePreview',
+            url: CONTEXT_PATH + 'filePreview',
             dataType: 'html',
             data: params
         }).done(function(html) {
@@ -132,7 +132,7 @@ $.plugin2('uploader', {
         params[inputName + '.path'] = filePath;
 
         $.ajax({
-            url: '/cms/content/uploadFiles',
+            url: CONTEXT_PATH + 'content/uploadFiles',
             dataType: 'html',
             data: params
         }).done(function(html) {

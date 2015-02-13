@@ -1609,7 +1609,7 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript");
             writeRaw("var _e_ = new Evaporate(");
                 write(ObjectUtils.toJson(ImmutableMap.of(
-                    "signerUrl", "/cms/s3auth",
+                    "signerUrl", cmsUrl("/s3auth"),
                     "aws_key", Settings.get(String.class, StorageItem.SETTING_PREFIX + "/" + defaultStorage + "/access"),
                     "bucket", Settings.get(String.class, StorageItem.SETTING_PREFIX + "/" + defaultStorage + "/bucket"))));
             writeRaw(");");
