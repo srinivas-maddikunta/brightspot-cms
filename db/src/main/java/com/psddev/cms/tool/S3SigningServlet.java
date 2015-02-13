@@ -1,6 +1,5 @@
 package com.psddev.cms.tool;
 
-import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
@@ -20,7 +19,7 @@ public class S3SigningServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        
+
         String defaultStorage = Settings.get(String.class, StorageItem.DEFAULT_STORAGE_SETTING);
         if (StringUtils.isBlank(defaultStorage)) {
             throw new ServletException(StorageItem.DEFAULT_STORAGE_SETTING + " not found in your context.xml");
