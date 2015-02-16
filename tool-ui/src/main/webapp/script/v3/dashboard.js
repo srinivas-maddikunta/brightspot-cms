@@ -31,34 +31,27 @@ function($, bsp_utils) {
       //webkit bug not fixed, cannot use drop event v. 39.0.2171.99 https://bugs.webkit.org/show_bug.cgi?id=37012
       //$widgets.on('drop'     , drop);
 
-      //$widgets.on('dragstart', dragStart);
-      //$widgets.on('dragend'  , dragEnd);
-      //$widgets.on('dragover' , dragOver);
-      //$widgets.on('dragenter', dragEnter);
-      //$widgets.on('dragleave', dragLeave);
-      //$widgets.on('drop'     , drop);
-
       function dragStart(e) {
         console.log('START() -  begin');
         settings.state.activeWidget = this;
 
         toggleEditMode(e);
 
-        //settings.state.activeWidget = this;
-        e.originalEvent.dataTransfer.setData('text/html', settings.state.activeWidget.innerHTML);
-        e.originalEvent.dataTransfer.effectAllowed = 'move';
-        e.originalEvent.dataTransfer.dropEffect = 'move';
+        var dataTransfer = e.originalEvent.dataTransfer;
+        dataTransfer.setData('text/html', settings.state.activeWidget.innerHTML);
+        dataTransfer.effectAllowed = 'move';
+        dataTransfer.dropEffect = 'move';
 
         console.log('START() -  end');
       }
 
       function dragOver(e) {
-        e.preventDefault();
-        e.stopPropagation();
+        if (e.preventDefault) e.preventDefault();
         console.log('OVER() -  begin');
 
-        e.originalEvent.dataTransfer.effectAllowed = 'move';
-        e.originalEvent.dataTransfer.dropEffect = 'move';
+        var dataTransfer = e.originalEvent.dataTransfer;
+        dataTransfer.effectAllowed = 'move';
+        dataTransfer.dropEffect = 'move';
         console.log('OVER() -  end');
 
         return false;
@@ -96,6 +89,7 @@ function($, bsp_utils) {
         }
 
         console.log('ENTER() - end');
+        return false;
       }
 
       function dragLeave(e) {
@@ -125,8 +119,7 @@ function($, bsp_utils) {
       }
 
       //function drop(e) {
-      //  e.preventDefault();
-      //  e.stopPropagation();
+      //  if (e.stopPropagation) e.stopPropagation();
       //  console.log("DROP() - begin");
       //
       //  console.log("DROP() - end");
@@ -151,7 +144,9 @@ function($, bsp_utils) {
       function toggleEditMode(e) {
         var $widget = $(e.target);
         $widget.toggleClass(settings.dragClass);
-        $dashboard.toggleClass(settings.dragClass);
+        //fixes chrome issue where drag end is fired when dom is manipulated in dragstart
+        //https://code.google.com/p/chromium/issues/detail?id=168544
+        setTimeout(function() { $dashboard.toggleClass(settings.dragClass); }, 2);
       }
 
     }
