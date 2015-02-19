@@ -39,6 +39,11 @@ public class DashboardPage extends PageServlet {
         }
 
         page.writeHeader();
+            page.writeStart("div", "class", "dashboard-toolbar");
+                page.writeStart("button", "class", "dashboard-edit");
+                    page.write("Edit");
+                page.writeEnd();
+            page.writeEnd();
             page.writeStart("div", "class", "dashboard-columns");
                 List<DashboardColumn> columns = dashboard.getColumns();
                 double totalWidth = 0;

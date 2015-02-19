@@ -1,156 +1,180 @@
 define([
-    'jquery',
-    'bsp-utils'],
+        'jquery',
+        'bsp-utils'],
 
-function($, bsp_utils) {
+    function ($, bsp_utils) {
 
-  bsp_utils.onDomInsert(document, '.dashboard-columns', {
+        bsp_utils.onDomInsert(document, '.dashboard-columns', {
 
-    'insert': function(dashboard) {
+            'insert': function (dashboard) {
 
-      var defaults = {
-        dragClass        : 'drag-active',
-        placeholderClass : 'widget-ghost',
-        throttleInterval : 100
-      };
+                var defaults = {
+                    dragClass: 'drag-active',
+                    editModeClass: 'dashboard-editable',
+                    placeholderClass: 'widget-ghost',
+                    throttleInterval: 100
+                };
 
-      var settings = $.extend({}, defaults, {state : {}});
+                var settings = $.extend({}, defaults, {state: {}});
 
-      var $dashboard = $(dashboard);
-      var $widgets = $dashboard.find('.dashboard-widget');
+                var $dashboard = $(dashboard);
+                var $columns = $dashboard.find('.dashboard-column');
+                var $widgets = $dashboard.find('.dashboard-widget');
 
-      $widgets.each(function() {
-        $(this).attr('draggable', 'true');
-      });
+                $('body').on('click', '.dashboard-edit', function () {
+                    $dashboard.toggleClass(settings.editModeClass);
+                    $widgets.prop('draggable', !$widgets.prop('draggable'));
 
-      $widgets.on('dragstart', dragStart);
-      $widgets.on('dragend'  , dragEnd);
-      $widgets.on('dragover' , bsp_utils.throttle(settings.throttleInterval, dragOver));
-      $widgets.on('dragenter', bsp_utils.throttle(settings.throttleInterval, dragEnter));
-      $widgets.on('dragleave', bsp_utils.throttle(settings.throttleInterval, dragLeave));
-      //webkit bug not fixed, cannot use drop event v. 39.0.2171.99 https://bugs.webkit.org/show_bug.cgi?id=37012
-      //$widgets.on('drop'     , drop);
+                    var enteredEditMode = $dashboard.hasClass(settings.editModeClass);
 
-      function dragStart(e) {
-        console.log('START() -  begin');
-        settings.state.activeWidget = this;
+                    if (enteredEditMode) {
+                        $widgets.find('.widget').prepend($('<div/>', {'class': 'widget-overlay'}));
+                        $columns.each(function (i, el) {
+                            var $el = $(el);
+                            $el.append(
+                                $('<div />', {
+                                    'class': 'dashboard-widget dashboard-add-widget'
+                                }).append(
+                                    $('<a/>', {
+                                        'class': 'widget',
+                                        'href': '/cms/addWidget?col=' + i,
+                                        'target': 'addWidget'
+                                    })
+                                )
+                            );
+                        });
+                    } else {
+                        $dashboard.find('.dashboard-add-widget, .widget-overlay').detach();
+                    }
+                });
 
-        toggleEditMode(e);
+                $widgets.on('dragstart', dragStart);
+                $widgets.on('dragend', dragEnd);
+                $widgets.on('dragover', bsp_utils.throttle(settings.throttleInterval, dragOver));
+                $widgets.on('dragenter', bsp_utils.throttle(settings.throttleInterval, dragEnter));
+                $widgets.on('dragleave', bsp_utils.throttle(settings.throttleInterval, dragLeave));
+                //webkit bug not fixed, cannot use drop event v. 39.0.2171.99 https://bugs.webkit.org/show_bug.cgi?id=37012
+                //$widgets.on('drop'     , drop);
 
-        var dataTransfer = e.originalEvent.dataTransfer;
-        dataTransfer.setData('text/html', settings.state.activeWidget.innerHTML);
-        dataTransfer.effectAllowed = 'move';
-        dataTransfer.dropEffect = 'move';
+                function dragStart(e) {
+                    settings.state.activeWidget = this;
 
-        console.log('START() -  end');
-      }
+                    var $widget = $(e.target);
+                    $widget.toggleClass(settings.dragClass);
 
-      function dragOver(e) {
-        if (e.preventDefault) e.preventDefault();
-        console.log('OVER() -  begin');
+                    var dataTransfer = e.originalEvent.dataTransfer;
+                    dataTransfer.setData('text/html', settings.state.activeWidget.innerHTML);
+                    dataTransfer.effectAllowed = 'move';
+                    dataTransfer.dropEffect = 'move';
+                }
 
-        var dataTransfer = e.originalEvent.dataTransfer;
-        dataTransfer.effectAllowed = 'move';
-        dataTransfer.dropEffect = 'move';
-        console.log('OVER() -  end');
+                function dragOver(e) {
+                    if (e.preventDefault) e.preventDefault();
 
-        return false;
-      }
+                    var dataTransfer = e.originalEvent.dataTransfer;
+                    dataTransfer.effectAllowed = 'move';
+                    dataTransfer.dropEffect = 'move';
 
-      function dragEnter(e) {
-        console.log('ENTER() -  begin');
-        e.preventDefault();
+                    return false;
+                }
 
-        if (this === settings.state.dragTarget || this === settings.state.placeholder || this === settings.state.activeWidget) {
-          return;
-        }
+                function dragEnter(e) {
+                    e.preventDefault();
 
-        settings.state.dragTarget = this;
+                    if (this === settings.state.dragTarget || this === settings.state.placeholder || this === settings.state.activeWidget) {
+                        return;
+                    }
 
-        var $dragTarget = $(this);
+                    settings.state.dragTarget = this;
 
-        if ($dragTarget.hasClass(settings.dragClass) || $dragTarget.hasClass(settings.placeholderClass)) {
-          console.log('LEAVE() - self found, exiting drag over');
-          return;
-        }
+                    var $dragTarget = $(this);
 
-        var prev = $dragTarget.prev();
+                    if ($dragTarget.hasClass(settings.dragClass) || $dragTarget.hasClass(settings.placeholderClass)) {
+                        return;
+                    }
 
-        if (prev) {
+                    var prev = $dragTarget.prev();
 
-          if (typeof settings.state.placeholder === 'undefined') {
-            settings.state.placeholder =  $('<div />', {'class' : 'widget ' + settings.placeholderClass});
-          }
+                    if (prev) {
 
-          if (!prev.hasClass(settings.placeholderClass)) {
-            $dragTarget.before(settings.state.placeholder);
-          }
+                        if (typeof settings.state.placeholder === 'undefined') {
+                            settings.state.placeholder = $('<div />', {'class': 'widget ' + settings.placeholderClass});
+                        }
 
-        }
+                        if (!prev.hasClass(settings.placeholderClass)) {
+                            $dragTarget.before(settings.state.placeholder);
+                        }
 
-        console.log('ENTER() - end');
-        return false;
-      }
+                    }
 
-      function dragLeave(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("LEAVE() - begin");
+                    return false;
+                }
 
+                function dragLeave(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-        if (this === settings.state.dragTarget || this === settings.state.placeholder || this === settings.state.activeWidget) {
-          return;
-        }
+                    if (this === settings.state.dragTarget || this === settings.state.placeholder || this === settings.state.activeWidget) {
+                        return;
+                    }
 
-        var $dropTarget = $(this);
-        var prev = $dropTarget.prev();
+                    var $dropTarget = $(this);
+                    var prev = $dropTarget.prev();
 
-        if (prev) {
+                    if (prev) {
 
-          if (prev.hasClass(settings.placeholderClass)) {
-            prev.detach();
-          }
+                        if (prev.hasClass(settings.placeholderClass)) {
+                            prev.detach();
+                        }
 
-        }
+                    }
 
-        settings.state.dragTarget = null;
+                    settings.state.dragTarget = null;
+                }
 
-        console.log("LEAVE() - end");
-      }
+                //function drop(e) {
+                //  if (e.stopPropagation) e.stopPropagation();
+                //  console.log("DROP() - begin");
+                //
+                //  console.log("DROP() - end");
+                //}
 
-      //function drop(e) {
-      //  if (e.stopPropagation) e.stopPropagation();
-      //  console.log("DROP() - begin");
-      //
-      //  console.log("DROP() - end");
-      //}
+                function dragEnd(e) {
+                    var $widget = $(e.target);
+                    $widget.toggleClass(settings.dragClass);
 
-      function dragEnd(e) {
-        console.log("END() - begin");
-        toggleEditMode(e);
+                    if (!settings.state.dragTarget) {
+                        return;
+                    }
 
-        if (!settings.state.dragTarget) {
-          return;
-        }
+                    $(settings.state.placeholder).replaceWith(settings.state.activeWidget);
 
-        $(settings.state.placeholder).replaceWith(settings.state.activeWidget);
-
-        //e.originalEvent.dataTransfer.dropEffect = 'move';
+                    //e.originalEvent.dataTransfer.dropEffect = 'move';
+                }
 
 
-        console.log('END() - end');
-      }
+            }
 
-      function toggleEditMode(e) {
-        var $widget = $(e.target);
-        $widget.toggleClass(settings.dragClass);
-        //fixes chrome issue where drag end is fired when dom is manipulated in dragstart
-        //https://code.google.com/p/chromium/issues/detail?id=168544
-        setTimeout(function() { $dashboard.toggleClass(settings.dragClass); }, 2);
-      }
+        });
 
-    }
+        bsp_utils.onDomInsert(document, 'meta[name="addWidget"]', {
 
-  });
+            'insert': function (meta) {
+                var $meta = $(meta);
+                $meta.closest('.popup').trigger('close.popup');
+                $.ajax({
+                    'type': 'get',
+                    'url': $meta.attr('content')
+                }).done(function (html) {
+                    $.ajax({
+                        'type': 'post',
+                        'url': $meta.attr('data-updateUrl')
+                    }).done(function (html) {
+                        console.log("donze");
+                    });
+                });
+            }
 
-});
+        });
+
+    });

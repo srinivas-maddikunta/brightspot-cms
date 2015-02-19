@@ -13,28 +13,38 @@
   transition: transform 0.2s ease-out;
 
   .widget {
+    margin-bottom:0;
+    display:block;
     > h1 {
       cursor: move;
     }
   }
 
-  &.drag-active {
-    transform: scale(0.9);
+  .dashboard-widget {
+    margin-bottom: 10px;
+  }
+
+  &.dashboard-editable {
+    transform: translate(14%);
+    max-width: 80%;
+
+    .dashboard-widget {
+      border: 2px dashed gray;
+    }
 
     .widget {
       height: 200px;
       overflow: hidden;
+      position:relative;
 
-      > h1 {
-        display: block;
+      .widget-overlay {
         position:absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-      }
-
-      > *:not(h1) {
-        display: none;
+        left: 0;
+        top: 40px;
+        z-index: 1;
+        width:100%;
+        height:100%;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.9) 100%);
       }
 
       &.drag-active {
@@ -43,6 +53,19 @@
 
       &.widget-ghost {
         background: gray;
+      }
+    }
+
+    .dashboard-add-widget .widget {
+      background:none;
+      position:relative;
+      &:before {
+        position:absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        content: '+';
+        font-size:100px;
       }
     }
   }

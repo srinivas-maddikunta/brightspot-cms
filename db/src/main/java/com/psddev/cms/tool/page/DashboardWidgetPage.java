@@ -10,11 +10,11 @@ import com.psddev.cms.tool.DashboardColumn;
 import com.psddev.cms.tool.DashboardWidget;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StringUtils;
-import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UuidUtils;
 
 @RoutingFilter.Path(application = "cms", value = "/dashboardWidget")
@@ -61,7 +61,7 @@ public class DashboardWidgetPage extends PageServlet {
                 where("_id = ?", widgetId).
                 first();
 
-        if (widget == null) {
+        if (widget == null && dashboard != null) {
             COLUMNS: for (DashboardColumn column : dashboard.getColumns()) {
                 if (column != null) {
                     for (DashboardWidget w : column.getWidgets()) {
@@ -75,7 +75,12 @@ public class DashboardWidgetPage extends PageServlet {
         }
 
         if (widget == null) {
-            widget = (DashboardWidget) TypeDefinition.getInstance(ObjectUtils.getClassByName(widgetClassName)).newInstance();
+            widget = (DashboardWidget) ObjectType.getInstance(ObjectUtils.getClassByName(widgetClassName)).createObject(widgetId);
+            //widget = (DashboardWidget) TypeDefinition.getInstance(ObjectUtils.getClassByName(widgetClassName)).newInstance();
+        }
+
+        if (page.paramOrDefault(Boolean.class, "save", false)) {
+            widget.save();
         }
 
         widget.writeHtml(page, dashboard);
