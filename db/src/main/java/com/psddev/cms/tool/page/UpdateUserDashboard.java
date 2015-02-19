@@ -56,15 +56,7 @@ public class UpdateUserDashboard extends PageServlet {
     private void addWidget(ToolPageContext page) {
 
         ToolUser user = page.getUser();
-        Dashboard dashboard = user.getDashboard();
-
-        if (dashboard == null) {
-            dashboard = page.getCmsTool().getDefaultDashboard();
-
-            if (dashboard == null) {
-                dashboard = Dashboard.getDefaultDashboard();
-            }
-        }
+        Dashboard dashboard = getDashboard(page);
 
         UUID widgetId = page.param(UUID.class, "id");
         int columnIndex = page.param(int.class, "col");
@@ -72,10 +64,6 @@ public class UpdateUserDashboard extends PageServlet {
 
         if (widgetId == null) {
             throw new IllegalArgumentException("id is a required parameter");
-        }
-
-        if (ObjectUtils.isBlank(columns)) {
-            columns.add(new DashboardColumn());
         }
 
         DashboardWidget widget = Query.findById(DashboardWidget.class, widgetId);
@@ -91,6 +79,57 @@ public class UpdateUserDashboard extends PageServlet {
 
     private void moveWidget(ToolPageContext page) {
 
+        ToolUser user = page.getUser();
+        Dashboard dashboard = getDashboard(page);
+
+        int targetX = page.param(int.class, "targetX");
+        int targetY = page.param(int.class, "targetY");
+        int originalX = page.param(int.class, "originalX");
+        int originalY = page.param(int.class, "originalY");
+        UUID widgetId = page.param(UUID.class, "id");
+
+        if (widgetId == null) {
+            throw new IllegalArgumentException("id is a required parameter");
+        }
+
+        List<DashboardColumn> columns = dashboard.getColumns();
+        DashboardWidget movedWidget = columns.get(originalY).getWidgets().get(originalX);
+        columns.get(originalY).getWidgets().remove(originalX);
+        columns.get(targetY).getWidgets().add(targetX, movedWidget);
+
+
+
+//        DashboardWidget movedWidget = null;
+//        for (DashboardColumn column : columns) {
+//            LOGGER.info("DASHBOARD COLUMNS LOOP");
+//            if (column == null) {
+//                continue;
+//            }
+//            for (DashboardWidget w : column.getWidgets()) {
+//                if (w == null) {
+//                    continue;
+//                }
+//
+//                LOGGER.info("COLUMN WIDGETS LOOP");
+//                LOGGER.info("MOVED WIDGET ID " + widgetId);
+//                LOGGER.info("CURRENT WIDGET ID " + w.getId());
+//
+//                if (w.getId() == widgetId) {
+//                    LOGGER.info("WIDGET FOUND");
+//                    movedWidget = w;
+//                    break;
+//                }
+//            }
+//        }
+//
+//        if (movedWidget == null) {
+//            throw new IllegalArgumentException("widget with " + widgetId + " was not found");
+//        }
+
+//        DashboardColumn targetColumn = columns.get(y);
+//        targetColumn.getWidgets().add(x, movedWidget);
+        user.setDashboard(dashboard);
+        user.save();
     }
 
     private void removeWidget(ToolPageContext page) {
@@ -99,5 +138,28 @@ public class UpdateUserDashboard extends PageServlet {
 
     private void addColumn(ToolPageContext page) {
         return;
+    }
+
+    private Dashboard getDashboard(ToolPageContext page) {
+
+        Dashboard dashboard = page.getUser().getDashboard();
+
+        if (dashboard == null) {
+            dashboard = page.getCmsTool().getDefaultDashboard();
+
+            if (dashboard == null) {
+                dashboard = Dashboard.getDefaultDashboard();
+            }
+        }
+
+        List<DashboardColumn> columns = dashboard.getColumns();
+
+        if (ObjectUtils.isBlank(columns)) {
+            columns.add(new DashboardColumn());
+            dashboard.setColumns(columns);
+        }
+
+        return dashboard;
+
     }
 }

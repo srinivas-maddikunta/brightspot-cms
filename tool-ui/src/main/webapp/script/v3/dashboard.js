@@ -58,6 +58,11 @@ define([
 
                 function dragStart(e) {
                     settings.state.activeWidget = this;
+                    var $this = $(this);
+
+                    settings.state.originalY = $this.closest('.dashboard-column').index();
+                    settings.state.originalX = $this.index();
+
 
                     var $widget = $(e.target);
                     $widget.toggleClass(settings.dragClass);
@@ -143,11 +148,30 @@ define([
                     var $widget = $(e.target);
                     $widget.toggleClass(settings.dragClass);
 
+                    var dragTarget = settings.state.dragTarget;
+                    var activeWidget = $(settings.state.activeWidget);
                     if (!settings.state.dragTarget) {
                         return;
                     }
 
-                    $(settings.state.placeholder).replaceWith(settings.state.activeWidget);
+                    $(settings.state.placeholder).replaceWith(activeWidget);
+                    var column = activeWidget.closest('.dashboard-column');
+                    var y = column.index();
+                    var x = activeWidget.index();
+
+                    $.ajax({
+                        'type' : 'post',
+                        'url'  : '/cms/misc/updateUserDashboard/',
+                        'data' :
+                            {
+                                'action' : 'dashboardWidgets-move',
+                                'targetX'      : activeWidget.index(),
+                                'targetY'      : column.index(),
+                                'originalX'   : settings.state.originalX,
+                                'originalY'   : settings.state.originalY,
+                                'id'     : activeWidget.attr('data-widget-id')
+                            }
+                    });
 
                     //e.originalEvent.dataTransfer.dropEffect = 'move';
                 }
