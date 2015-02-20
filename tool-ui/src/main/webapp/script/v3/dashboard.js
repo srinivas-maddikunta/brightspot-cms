@@ -148,7 +148,6 @@ define([
                     var $widget = $(e.target);
                     $widget.toggleClass(settings.dragClass);
 
-                    var dragTarget = settings.state.dragTarget;
                     var activeWidget = $(settings.state.activeWidget);
                     if (!settings.state.dragTarget) {
                         return;
@@ -186,17 +185,21 @@ define([
             'insert': function (meta) {
                 var $meta = $(meta);
                 $meta.closest('.popup').trigger('close.popup');
+                var col = $meta.attr('data-column');
+                var newWidget =
+                    $('<div/>', {'class' : 'frame dashboard-widget', 'draggable' : 'true'}).append(
+                        $('<a/>', { 'href' : $meta.attr('content')})
+                    );
+
+                $($('.dashboard-columns').find('.dashboard-column').get(col)).find('.dashboard-add-widget').before(newWidget);
+                newWidget.find('a:only-child').click();
+
                 $.ajax({
-                    'type': 'get',
-                    'url': $meta.attr('content')
-                }).done(function (html) {
-                    $.ajax({
-                        'type': 'post',
-                        'url': $meta.attr('data-updateUrl')
-                    }).done(function (html) {
-                        console.log("donze");
-                    });
+                    'type': 'post',
+                    'url' : $meta.attr('data-updateUrl'),
+                    'data': { 'col' : $meta.attr('data-column')}
                 });
+
             }
 
         });

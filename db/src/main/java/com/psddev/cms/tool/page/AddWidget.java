@@ -31,7 +31,8 @@ public class AddWidget extends PageServlet {
 
             page.writeTag("meta", "name", "addWidget",
                     "content", page.cmsUrl("/dashboardWidget/user/" + widgetInstance.getClass().getName() + "/" + widgetInstance.getId() + "/", "save", "true"),
-                    "data-updateUrl", page.cmsUrl("/misc/updateUserDashboard/", "action", "dashboardWidgets-add", "id", widgetInstance.getId(), "col", page.paramOrDefault(int.class, "col", 0)));
+                    "data-updateUrl", page.cmsUrl("/misc/updateUserDashboard/", "action", "dashboardWidgets-add", "id", widgetInstance.getId()),
+                    "data-column", page.param(int.class, "col"));
         } else {
             page.writeStart("div", "class", "widget");
                 page.writeStandardForm(new NewWidget());

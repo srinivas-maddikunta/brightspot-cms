@@ -76,9 +76,9 @@ public class DashboardWidgetPage extends PageServlet {
 
         if (widget == null) {
             widget = (DashboardWidget) ObjectType.getInstance(ObjectUtils.getClassByName(widgetClassName)).createObject(widgetId);
-            //widget = (DashboardWidget) TypeDefinition.getInstance(ObjectUtils.getClassByName(widgetClassName)).newInstance();
         }
 
+        //TODO remove unnecessary save
         if (page.paramOrDefault(Boolean.class, "save", false)) {
             widget.save();
         }
