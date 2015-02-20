@@ -13,8 +13,9 @@ import com.psddev.dari.db.Record;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.UuidUtils;
 
-@RoutingFilter.Path(application = "cms", value = "/addWidget")
-public class AddWidget extends PageServlet {
+//TODO merge into UpdateUserDashboard
+@RoutingFilter.Path(application = "cms", value = "/createWidget")
+public class CreateDashboardWidget extends PageServlet {
 
     @Override
     protected String getPermissionId() {
@@ -29,10 +30,14 @@ public class AddWidget extends PageServlet {
             ObjectType widgetType = ObjectType.getInstance(newWidgetTypeId);
             Record widgetInstance = (Record) widgetType.createObject(UuidUtils.createSequentialUuid());
 
-            page.writeTag("meta", "name", "addWidget",
-                    "content", page.cmsUrl("/dashboardWidget/user/" + widgetInstance.getClass().getName() + "/" + widgetInstance.getId() + "/", "save", "true"),
-                    "data-updateUrl", page.cmsUrl("/misc/updateUserDashboard/", "action", "dashboardWidgets-add", "id", widgetInstance.getId()),
-                    "data-column", page.param(int.class, "col"));
+            //TODO properly create widget with all state values etc.
+
+            page.getRequest().setAttribute("widget", widgetInstance);
+            UpdateUserDashboard.reallyDoService(page);
+            page.writeTag("meta",
+                    "name", "widget",
+                    "content", page.cmsUrl("/dashboardWidget/user/" + widgetInstance.getClass().getName() + "/" + widgetInstance.getId() + "/"),
+                    "data-column", page.param(String.class, "col"));
         } else {
             page.writeStart("div", "class", "widget");
                 page.writeStandardForm(new NewWidget());

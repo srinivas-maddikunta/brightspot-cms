@@ -78,11 +78,6 @@ public class DashboardWidgetPage extends PageServlet {
             widget = (DashboardWidget) ObjectType.getInstance(ObjectUtils.getClassByName(widgetClassName)).createObject(widgetId);
         }
 
-        //TODO remove unnecessary save
-        if (page.paramOrDefault(Boolean.class, "save", false)) {
-            widget.save();
-        }
-
         widget.writeHtml(page, dashboard);
     }
 }

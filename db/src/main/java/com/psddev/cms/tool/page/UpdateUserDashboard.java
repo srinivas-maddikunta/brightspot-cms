@@ -12,7 +12,6 @@ import com.psddev.cms.tool.DashboardColumn;
 import com.psddev.cms.tool.DashboardWidget;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
-import com.psddev.dari.db.Query;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 
@@ -26,7 +25,10 @@ public class UpdateUserDashboard extends PageServlet {
 
     @Override
     protected void doService(ToolPageContext page) throws IOException, ServletException {
+        reallyDoService(page);
+    }
 
+    protected static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
         if (!page.isFormPost()) {
             throw new IllegalStateException("Form must be posted!");
         }
@@ -39,11 +41,13 @@ public class UpdateUserDashboard extends PageServlet {
                 case "dashboardWidgets-remove" :
                     removeWidget(page);
                     break;
+                case "dashboardWidgets-move" :
+                    moveWidget(page);
+                    break;
                 case "dashboardColumns-add" :
                     addColumn(page);
                     break;
-                case "dashboardWidgets-move" :
-                    moveWidget(page);
+                case "dashboardColumns-resize" :
                     break;
                 default :
                     return;
@@ -51,31 +55,26 @@ public class UpdateUserDashboard extends PageServlet {
         }
     }
 
-    private void addWidget(ToolPageContext page) {
+    private static void addWidget(ToolPageContext page) {
 
         ToolUser user = page.getUser();
         Dashboard dashboard = getDashboard(page);
 
-        UUID widgetId = page.param(UUID.class, "id");
         int columnIndex = page.param(int.class, "col");
         List<DashboardColumn> columns = dashboard.getColumns();
 
-        if (widgetId == null) {
-            throw new IllegalArgumentException("id is a required parameter");
-        }
-
-        DashboardWidget widget = Query.findById(DashboardWidget.class, widgetId);
+        Object widget = page.getRequest().getAttribute("widget");
 
         if (widget == null) {
-            throw new IllegalArgumentException("widget with id " + widgetId + " was not found");
+            throw new IllegalArgumentException("No widget found on request");
         }
 
-        columns.get(columnIndex).getWidgets().add(widget);
+        columns.get(columnIndex).getWidgets().add((DashboardWidget) widget);
         user.setDashboard(dashboard);
         user.save();
     }
 
-    private void moveWidget(ToolPageContext page) {
+    private static void moveWidget(ToolPageContext page) {
 
         ToolUser user = page.getUser();
         Dashboard dashboard = getDashboard(page);
@@ -99,15 +98,15 @@ public class UpdateUserDashboard extends PageServlet {
         user.save();
     }
 
-    private void removeWidget(ToolPageContext page) {
+    private static void removeWidget(ToolPageContext page) {
         return;
     }
 
-    private void addColumn(ToolPageContext page) {
+    private static void addColumn(ToolPageContext page) {
         return;
     }
 
-    private Dashboard getDashboard(ToolPageContext page) {
+    private static Dashboard getDashboard(ToolPageContext page) {
 
         Dashboard dashboard = page.getUser().getDashboard();
 

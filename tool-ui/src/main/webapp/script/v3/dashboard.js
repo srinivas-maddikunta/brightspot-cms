@@ -37,8 +37,8 @@ define([
                                 }).append(
                                     $('<a/>', {
                                         'class': 'widget',
-                                        'href': '/cms/addWidget?col=' + i,
-                                        'target': 'addWidget'
+                                        'href': '/cms/createWidget?col=' + i + '&action=dashboardWidgets-add',
+                                        'target': 'createWidget'
                                     })
                                 )
                             );
@@ -180,7 +180,7 @@ define([
 
         });
 
-        bsp_utils.onDomInsert(document, 'meta[name="addWidget"]', {
+        bsp_utils.onDomInsert(document, 'meta[name="widget"]', {
 
             'insert': function (meta) {
                 var $meta = $(meta);
@@ -194,11 +194,11 @@ define([
                 $($('.dashboard-columns').find('.dashboard-column').get(col)).find('.dashboard-add-widget').before(newWidget);
                 newWidget.find('a:only-child').click();
 
-                $.ajax({
-                    'type': 'post',
-                    'url' : $meta.attr('data-updateUrl'),
-                    'data': { 'col' : $meta.attr('data-column')}
-                });
+                //$.ajax({
+                //    'type': 'post',
+                //    'url' : $meta.attr('data-updateUrl'),
+                //    'data': { 'col' : $meta.attr('data-column')}
+                //});
 
             }
 
