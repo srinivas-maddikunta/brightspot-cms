@@ -44,21 +44,21 @@ define([
                                 )
                             );
                         });
-
-                        $widgets.find('h1').on({
-                            mouseenter: function(e) {
-                                $(this).append(
-                                    $('<a/>', {'class' : 'widget-remove', 'href' : '/cms/misc/updateUserDashboard'})
-                                );
-                            },
-                            mouseleave: function() {
-                                $(this).find('.widget-remove').detach();
-                            }
-                        });
                     } else {
                         $dashboard.find('.dashboard-add-widget, .widget-overlay').detach();
                     }
                 });
+
+                $body.on({
+                    mouseenter: function(e) {
+                        $(this).append(
+                            $('<a/>', {'class' : 'widget-remove', 'href' : '/cms/misc/updateUserDashboard'})
+                        );
+                    },
+                    mouseleave: function() {
+                        $(this).find('.widget-remove').detach();
+                    }
+                }, '.' + settings.editModeClass + ' .dashboard-widget h1')
 
                 $body.on('click', '.widget-remove', function(event) {
                     event.preventDefault();
