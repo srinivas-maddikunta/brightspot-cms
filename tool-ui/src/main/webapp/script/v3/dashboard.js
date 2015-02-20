@@ -17,11 +17,12 @@ define([
 
                 var settings = $.extend({}, defaults, {state: {}});
 
+                var $body = $('body');
                 var $dashboard = $(dashboard);
                 var $columns = $dashboard.find('.dashboard-column');
                 var $widgets = $dashboard.find('.dashboard-widget');
 
-                $('body').on('click', '.dashboard-edit', function () {
+                $body.on('click', '.dashboard-edit', function () {
                     $dashboard.toggleClass(settings.editModeClass);
                     $widgets.prop('draggable', !$widgets.prop('draggable'));
 
@@ -37,17 +38,43 @@ define([
                                 }).append(
                                     $('<a/>', {
                                         'class': 'widget',
-                                        'href': '/cms/createWidget?col=' + i + '&action=dashboardWidgets-add',
+                                        'href': '/cms/createWidget?y=' + i + '&action=dashboardWidgets-add',
                                         'target': 'createWidget'
                                     })
                                 )
                             );
                         });
 
-                        //$columns.last().after($('<a />'))
+                        $widgets.find('h1').on({
+                            mouseenter: function(e) {
+                                $(this).append(
+                                    $('<a/>', {'class' : 'widget-remove', 'href' : '/cms/misc/updateUserDashboard'})
+                                );
+                            },
+                            mouseleave: function() {
+                                $(this).find('.remove-widget').detach();
+                            }
+                        });
                     } else {
                         $dashboard.find('.dashboard-add-widget, .widget-overlay').detach();
                     }
+                });
+
+                $body.on('click', '.widget-remove', function(event) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    var $a = $(this);
+                    var $widget = $a.closest('.dashboard-widget');
+                    $.ajax({
+                        'url' : $a.attr('href'),
+                        'type': 'post',
+                        'data': {
+                            'x' : $widget.index(),
+                            'y' : $widget.closest('.dashboard-column').index(),
+                            'action' : 'dashboardWidgets-remove'
+                        }
+                    });
+                    $widget.detach();
                 });
 
                 $widgets.on('dragstart', dragStart);
@@ -162,8 +189,8 @@ define([
                         'data' :
                             {
                                 'action'    : 'dashboardWidgets-move',
-                                'targetX'   : activeWidget.index(),
-                                'targetY'   : activeWidget.closest('.dashboard-column').index(),
+                                'x'         : activeWidget.index(),
+                                'y'         : activeWidget.closest('.dashboard-column').index(),
                                 'originalX' : settings.state.originalX,
                                 'originalY' : settings.state.originalY,
                                 'id'        : activeWidget.attr('data-widget-id')

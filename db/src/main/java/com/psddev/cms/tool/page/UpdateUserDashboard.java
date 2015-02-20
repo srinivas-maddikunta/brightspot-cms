@@ -17,6 +17,9 @@ import com.psddev.dari.util.RoutingFilter;
 @RoutingFilter.Path(application = "cms", value = "/misc/updateUserDashboard")
 public class UpdateUserDashboard extends PageServlet {
 
+    private static final String COLUMN_INDEX_KEY = "y";
+    private static final String ROW_INDEX_KEY = "x";
+
     @Override
     protected String getPermissionId() {
         return "area/dashboard";
@@ -59,7 +62,7 @@ public class UpdateUserDashboard extends PageServlet {
         ToolUser user = page.getUser();
         Dashboard dashboard = getDashboard(page);
 
-        int columnIndex = page.param(int.class, "col");
+        int columnIndex = page.param(int.class, COLUMN_INDEX_KEY);
         List<DashboardColumn> columns = dashboard.getColumns();
 
         Object widget = page.getRequest().getAttribute("widget");
@@ -78,8 +81,8 @@ public class UpdateUserDashboard extends PageServlet {
         ToolUser user = page.getUser();
         Dashboard dashboard = getDashboard(page);
 
-        int targetX = page.param(int.class, "targetX");
-        int targetY = page.param(int.class, "targetY");
+        int targetX = page.param(int.class, ROW_INDEX_KEY);
+        int targetY = page.param(int.class, COLUMN_INDEX_KEY);
         int originalX = page.param(int.class, "originalX");
         int originalY = page.param(int.class, "originalY");
 
@@ -93,7 +96,13 @@ public class UpdateUserDashboard extends PageServlet {
     }
 
     private static void removeWidget(ToolPageContext page) {
-        return;
+        int row = page.param(int.class, ROW_INDEX_KEY);
+        int col = page.param(int.class, COLUMN_INDEX_KEY);
+        ToolUser user = page.getUser();
+        Dashboard dashboard = getDashboard(page);
+        dashboard.getColumns().get(col).getWidgets().remove(row);
+        user.setDashboard(dashboard);
+        user.save();
     }
 
     private static void addColumn(ToolPageContext page) {
