@@ -6,8 +6,6 @@ import java.util.UUID;
 
 import javax.servlet.ServletException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DashboardColumn;
@@ -20,8 +18,6 @@ import com.psddev.dari.util.RoutingFilter;
 
 @RoutingFilter.Path(application = "cms", value = "/misc/updateUserDashboard")
 public class UpdateUserDashboard extends PageServlet {
-
-    private static Logger LOGGER = LoggerFactory.getLogger(UpdateUserDashboard.class);
 
     @Override
     protected String getPermissionId() {
@@ -49,6 +45,8 @@ public class UpdateUserDashboard extends PageServlet {
                 case "dashboardWidgets-move" :
                     moveWidget(page);
                     break;
+                default :
+                    return;
             }
         }
     }
@@ -97,37 +95,6 @@ public class UpdateUserDashboard extends PageServlet {
         columns.get(originalY).getWidgets().remove(originalX);
         columns.get(targetY).getWidgets().add(targetX, movedWidget);
 
-
-
-//        DashboardWidget movedWidget = null;
-//        for (DashboardColumn column : columns) {
-//            LOGGER.info("DASHBOARD COLUMNS LOOP");
-//            if (column == null) {
-//                continue;
-//            }
-//            for (DashboardWidget w : column.getWidgets()) {
-//                if (w == null) {
-//                    continue;
-//                }
-//
-//                LOGGER.info("COLUMN WIDGETS LOOP");
-//                LOGGER.info("MOVED WIDGET ID " + widgetId);
-//                LOGGER.info("CURRENT WIDGET ID " + w.getId());
-//
-//                if (w.getId() == widgetId) {
-//                    LOGGER.info("WIDGET FOUND");
-//                    movedWidget = w;
-//                    break;
-//                }
-//            }
-//        }
-//
-//        if (movedWidget == null) {
-//            throw new IllegalArgumentException("widget with " + widgetId + " was not found");
-//        }
-
-//        DashboardColumn targetColumn = columns.get(y);
-//        targetColumn.getWidgets().add(x, movedWidget);
         user.setDashboard(dashboard);
         user.save();
     }
