@@ -121,8 +121,12 @@ if (selected instanceof Page) {
 WorkStream workStream = Query.from(WorkStream.class).where("_id = ?", wp.param(UUID.class, "workStreamId")).first();
 
 if (workStream != null) {
+    
+    Draft draft = wp.getOverlaidDraft(editing);
+    Object workstreamObject = (draft != null) ? draft : editing;
+
     if (wp.param(boolean.class, "action-skipWorkStream")) {
-        workStream.skip(wp.getUser(), editing);
+        workStream.skip(wp.getUser(), workstreamObject);
         wp.redirect("", "action-skipWorkStream", null);
         return;
 
@@ -132,7 +136,7 @@ if (workStream != null) {
         return;
     }
 
-    State.getInstance(editing).as(WorkStream.Data.class).complete(workStream, wp.getUser());
+    State.getInstance(workstreamObject).as(WorkStream.Data.class).complete(workStream, wp.getUser());
 }
 
 if (wp.tryDelete(editing) ||
@@ -169,8 +173,19 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
 
 // --- Presentation ---
 
-%><% wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null); %>
+%><%
 
+wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null);
+
+    String search = wp.param(String.class, "search");
+
+    if (search != null) {
+        wp.writeStart("div", "class", "frame");
+            wp.writeStart("a", "href", wp.cmsUrl("/searchCarousel", "id", editingState.getId(), "search", search));
+            wp.writeEnd();
+        wp.writeEnd();
+    }
+%>
 <div class="content-edit">
     <form class="contentForm contentLock"
             method="post"
@@ -191,15 +206,6 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
         <div class="contentForm-main">
             <div class="widget widget-content">
                 <h1 class="breadcrumbs"><%
-                    String search = wp.param(String.class, "search");
-
-                    if (search != null) {
-                        wp.writeStart("span", "class", "breadcrumbItem frame");
-                            wp.writeStart("a", "href", StringUtils.addQueryParameters(search, "widget", true));
-                                wp.writeHtml("Search Result");
-                            wp.writeEnd();
-                        wp.writeEnd();
-                    }
 
                     wp.writeStart("span", "class", "breadcrumbItem icon icon-object");
                         wp.writeHtml(state.isNew() ? "New " : "Edit ");
@@ -341,11 +347,13 @@ if (!Query.from(CmsTool.class).first().isDisableContentLocking() &&
                 <h1 class="icon icon-action-publish">Publishing</h1>
 
                 <%
-                wp.writeStart("a",
-                        "class", "icon icon-wrench icon-only",
-                        "href", wp.objectUrl("/contentTools", editing, "returnUrl", wp.url("")),
-                        "target", "contentTools");
-                    wp.writeHtml("Tools");
+                wp.writeStart("div", "class", "widget-controls");
+                    wp.writeStart("a",
+                            "class", "widget-publishing-tools",
+                            "href", wp.objectUrl("/contentTools", editing, "returnUrl", wp.url("")),
+                            "target", "contentTools");
+                        wp.writeHtml("Tools");
+                    wp.writeEnd();
                 wp.writeEnd();
 
                 if (workStream != null) {

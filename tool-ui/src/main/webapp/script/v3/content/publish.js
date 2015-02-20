@@ -124,8 +124,11 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
       $('.contentForm-aside').each(function() {
         var aside = this;
         var $aside = $(aside);
+        var asideTop = $aside.css('top');
 
+        $aside.css('top', '');
         $.data(aside, OFFSET_DATA_KEY, $aside.offset());
+        $aside.css('top', asideTop);
 
         var asideWidth = $aside.width();
         var $widget = $aside.find('.widget-publishing');
@@ -152,7 +155,9 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         var publishing = $publishing[0];
 
         if (asideOffset.top - windowScrollTop <= toolHeaderHeight) {
-          $widgets.css('margin-top', $.data(publishing, HEIGHT_DATA_KEY));
+          $widgets.css({
+            'padding-top': $.data(publishing, HEIGHT_DATA_KEY)
+          });
 
           $publishing.css({
             'left': asideOffset.left,
@@ -162,9 +167,21 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
             'z-index': 1
           });
 
+          // Hide the right rail widgets when under the publishing widget.
+          var asideTop = $aside.closest('.popup').length > 0 ? parseInt($aside.css('top'), 10) || 0 : 0;
+          var clipPathTop = (windowScrollTop - asideOffset.top - asideTop + toolHeaderHeight + 20) + 'px';
+          var clipPath = 'inset(' + clipPathTop + ' 0 0 0)';
+
+          $widgets.css({
+            '-webkit-clip-path': clipPath,
+            'clip-path': clipPath
+          });
+
         } else {
           $widgets.css({
-            'margin-top': '',
+            '-webkit-clip-path': '',
+            'clip-path': '',
+            'padding-top': ''
           });
 
           $publishing.css({

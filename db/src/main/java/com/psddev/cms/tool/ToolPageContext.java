@@ -675,8 +675,14 @@ public class ToolPageContext extends WebPageContext {
         Object object;
         WorkStream workStream = Query.findById(WorkStream.class, param(UUID.class, "workStreamId"));
 
+        UUID draftId = param(UUID.class, DRAFT_ID_PARAMETER);
         if (!isFormPost() && workStream != null) {
             object = workStream.next(getUser());
+            if (object instanceof Draft) {
+                objectId = ((Draft) object).getObjectId();
+                draftId = ((Draft) object).getId();
+                object = Query.fromAll().where("_id = ?", objectId).resolveInvisible().first();
+            }
 
         } else {
             object = Query.fromAll().where("_id = ?", objectId).resolveInvisible().first();
@@ -732,8 +738,6 @@ public class ToolPageContext extends WebPageContext {
                 }
             }
         }
-
-        UUID draftId = param(UUID.class, DRAFT_ID_PARAMETER);
 
         if (object == null) {
             Object draftObject = Query.fromAll().where("_id = ?", draftId).first();
@@ -1273,7 +1277,12 @@ public class ToolPageContext extends WebPageContext {
                     writeStart("h1", "class", "toolTitle");
                         writeStart("a", "href", cmsUrl("/"));
                             if (companyLogo != null) {
-                                writeElement("img", "src", companyLogo.getPublicUrl(), "alt", companyName);
+                                writeElement("img",
+                                        "alt", companyName,
+                                        "src", JspUtils.isSecure(getRequest()) ?
+                                                companyLogo.getSecurePublicUrl() :
+                                                companyLogo.getPublicUrl());
+
                             } else {
                                 writeHtml(companyName);
                             }
@@ -1293,10 +1302,7 @@ public class ToolPageContext extends WebPageContext {
                         String firstName = nameParts[0];
 
                         writeStart("div", "class", "toolUserDisplay");
-                            writeStart("a",
-                                    "href", cmsUrl("/toolUserDashboard"),
-                                    "target", "toolUserDashboard");
-
+                            writeStart("div", "class", "toolUserWelcome");
                                 writeHtml("Welcome, ");
 
                                 if (firstName.equals(firstName.toLowerCase(Locale.ENGLISH))) {
@@ -1306,16 +1312,36 @@ public class ToolPageContext extends WebPageContext {
                                 } else {
                                     writeHtml(firstName);
                                 }
+                            writeEnd();
 
-                                writeStart("span", "class", "toolUserAvatar");
+                            writeStart("div", "class", "toolUserControls");
+                                writeStart("ul", "class", "piped");
+                                    writeStart("li");
+                                        writeStart("a",
+                                                "class", "icon icon-object-toolUser",
+                                                "href", cmsUrl("/toolUserDashboard"),
+                                                "target", "toolUserDashboard");
+                                            writeHtml("Profile");
+                                        writeEnd();
+                                    writeEnd();
+
+                                    writeStart("li");
+                                        writeStart("a",
+                                                "class", "icon icon-action-logOut",
+                                                "href", cmsUrl("/misc/logOut.jsp"));
+                                            writeHtml("Log Out");
+                                        writeEnd();
+                                    writeEnd();
+                                writeEnd();
+                            writeEnd();
+
+                            writeStart("span", "class", "toolUserAvatar");
+                                writeStart("a",
+                                        "href", cmsUrl("/toolUserDashboard"),
+                                        "target", "toolUserDashboard");
                                     if (avatar != null) {
-                                            writeTag("img",
-                                                    "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
-
-                                    } else {
-                                        for (String namePart : nameParts) {
-                                            writeHtml(namePart.substring(0, 1).toUpperCase(Locale.ENGLISH));
-                                        }
+                                        writeElement("img",
+                                                "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
                                     }
                                 writeEnd();
                             writeEnd();
@@ -1464,20 +1490,9 @@ public class ToolPageContext extends WebPageContext {
         }
 
         CmsTool cms = getCmsTool();
-        String companyName = cms.getCompanyName();
         String extraCss = cms.getExtraCss();
         String extraJavaScript = cms.getExtraJavaScript();
-
-        if (ObjectUtils.isBlank(companyName)) {
-            companyName = "Brightspot";
-        }
-
-        ToolUser user = getUser();
-        String theme = ObjectUtils.firstNonNull(user != null ? user.getTheme() : null, cms.getTheme(), "cms");
-
-        if ("v2".equals(theme)) {
-            theme = "cms";
-        }
+        String theme = "v3";
 
         if (getCmsTool().isUseNonMinifiedCss()) {
             writeElement("link", "rel", "stylesheet/less", "type", "text/less", "href", cmsResource("/style/" + theme + ".less"));
@@ -2211,6 +2226,11 @@ public class ToolPageContext extends WebPageContext {
         }
 
         if (includeGlobals && !fields.isEmpty()) {
+            writeElement("input",
+                    "type", "hidden",
+                    "name", state.getId() + "/_includeGlobals",
+                    "value", true);
+
             for (ObjectField field : state.getDatabase().getEnvironment().getFields()) {
                 if (Boolean.FALSE.equals(field.getState().get("cms.ui.hidden"))) {
                     fields.add(field);
@@ -2244,7 +2264,6 @@ public class ToolPageContext extends WebPageContext {
                     "data-type", type != null ? type.getInternalName() : null,
                     "data-id", state.getId(),
                     "data-object-id", state.getId(),
-                    "data-widths", "{ \"objectInputs-small\": { \"<=\": 350 } }",
                     "data-layout-placeholders", layoutPlaceholdersJson);
 
                 Object original = Query.fromAll().where("_id = ?", state.getId()).master().noCache().first();
