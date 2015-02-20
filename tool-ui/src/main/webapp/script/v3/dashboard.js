@@ -43,6 +43,8 @@ define([
                                 )
                             );
                         });
+
+                        //$columns.last().after($('<a />'))
                     } else {
                         $dashboard.find('.dashboard-add-widget, .widget-overlay').detach();
                     }
@@ -59,15 +61,14 @@ define([
                 function dragStart(e) {
                     settings.state.activeWidget = this;
                     var $this = $(this);
+                    var $widget = $(e.target);
+                    var dataTransfer = e.originalEvent.dataTransfer;
 
                     settings.state.originalY = $this.closest('.dashboard-column').index();
                     settings.state.originalX = $this.index();
 
-
-                    var $widget = $(e.target);
                     $widget.toggleClass(settings.dragClass);
 
-                    var dataTransfer = e.originalEvent.dataTransfer;
                     dataTransfer.setData('text/html', settings.state.activeWidget.innerHTML);
                     dataTransfer.effectAllowed = 'move';
                     dataTransfer.dropEffect = 'move';
@@ -154,21 +155,18 @@ define([
                     }
 
                     $(settings.state.placeholder).replaceWith(activeWidget);
-                    var column = activeWidget.closest('.dashboard-column');
-                    var y = column.index();
-                    var x = activeWidget.index();
 
                     $.ajax({
                         'type' : 'post',
                         'url'  : '/cms/misc/updateUserDashboard/',
                         'data' :
                             {
-                                'action' : 'dashboardWidgets-move',
-                                'targetX'      : activeWidget.index(),
-                                'targetY'      : column.index(),
-                                'originalX'   : settings.state.originalX,
-                                'originalY'   : settings.state.originalY,
-                                'id'     : activeWidget.attr('data-widget-id')
+                                'action'    : 'dashboardWidgets-move',
+                                'targetX'   : activeWidget.index(),
+                                'targetY'   : activeWidget.closest('.dashboard-column').index(),
+                                'originalX' : settings.state.originalX,
+                                'originalY' : settings.state.originalY,
+                                'id'        : activeWidget.attr('data-widget-id')
                             }
                     });
 

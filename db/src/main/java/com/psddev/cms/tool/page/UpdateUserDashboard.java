@@ -2,7 +2,6 @@ package com.psddev.cms.tool.page;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 import javax.servlet.ServletException;
 
@@ -83,11 +82,6 @@ public class UpdateUserDashboard extends PageServlet {
         int targetY = page.param(int.class, "targetY");
         int originalX = page.param(int.class, "originalX");
         int originalY = page.param(int.class, "originalY");
-        UUID widgetId = page.param(UUID.class, "id");
-
-        if (widgetId == null) {
-            throw new IllegalArgumentException("id is a required parameter");
-        }
 
         List<DashboardColumn> columns = dashboard.getColumns();
         DashboardWidget movedWidget = columns.get(originalY).getWidgets().get(originalX);
