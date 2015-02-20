@@ -52,7 +52,7 @@ define([
                                 );
                             },
                             mouseleave: function() {
-                                $(this).find('.remove-widget').detach();
+                                $(this).find('.widget-remove').detach();
                             }
                         });
                     } else {
