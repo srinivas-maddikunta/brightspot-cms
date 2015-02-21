@@ -4,79 +4,118 @@ define([
 
     function ($, bsp_utils) {
 
+        var settings = {
+            dragClass: 'drag-active',
+            editModeClass: 'dashboard-editable',
+            placeholderClass: 'widget-ghost',
+            throttleInterval: 100,
+            dashboardSelector: '.dashboard-columns',
+            columnSelector: '.dashboard-column',
+            widgetSelector: '.dashboard-widget',
+            addColumnClass: 'dashboard-addColumnButton',
+            addWidgetClass: 'dashboard-addWidgetButton',
+            removeWidgetClass: 'widget-remove'
+        };
+
         bsp_utils.onDomInsert(document, '.dashboard-columns', {
 
             'insert': function (dashboard) {
 
-                var defaults = {
-                    dragClass: 'drag-active',
-                    editModeClass: 'dashboard-editable',
-                    placeholderClass: 'widget-ghost',
-                    throttleInterval: 100
-                };
-
-                var settings = $.extend({}, defaults, {state: {}});
+                settings = $.extend({}, settings, {state: {}});
 
                 var $body = $('body');
                 var $dashboard = $(dashboard);
-                var $columns = $dashboard.find('.dashboard-column');
-                var $widgets = $dashboard.find('.dashboard-widget');
+                var $columns = $dashboard.find(settings.columnSelector);
+                var $widgets = $dashboard.find(settings.widgetSelector);
 
+                /**
+                 * Enables dashboard edit mode
+                 */
                 $body.on('click', '.dashboard-edit', function () {
                     $dashboard.toggleClass(settings.editModeClass);
                     $widgets.prop('draggable', !$widgets.prop('draggable'));
 
-                    var enteredEditMode = $dashboard.hasClass(settings.editModeClass);
+                    if ($dashboard.hasClass(settings.editModeClass)) {
+                        //$widgets.find('.widget').prepend($('<div/>', {'class': 'widget-overlay'}));
+                        //nested pseudo elements would be a nice alternative to this...
 
-                    if (enteredEditMode) {
-                        $widgets.find('.widget').prepend($('<div/>', {'class': 'widget-overlay'}));
-                        $columns.each(function (i, el) {
-                            var $el = $(el);
-                            $el.append(
-                                $('<div />', {
-                                    'class': 'dashboard-widget dashboard-add-widget'
-                                }).append(
-                                    $('<a/>', {
-                                        'class': 'widget',
-                                        'href': '/cms/createWidget?y=' + i + '&action=dashboardWidgets-add',
-                                        'target': 'createWidget'
-                                    })
-                                )
-                            );
+                        var addColumnButtonWidth = 32;
+
+                        $columns.each(function(yIndex, col) {
+                            var $col = $(col);
+                            $col.find(settings.widgetSelector).each(function(xIndex, widget) {
+                                var $widget = $(widget);
+                                if (xIndex === 0) {
+                                    $widget.before(getCreateWidgetButton(xIndex, yIndex));
+                                }
+                                $widget.after(getCreateWidgetButton(xIndex + 1, yIndex));
+                            });
+
+                            if (yIndex === 0) {
+                                $col.before(getAddColumnButton(yIndex, $col.innerHeight(), addColumnButtonWidth));
+                            }
+                            $col.after(getAddColumnButton(yIndex + 1, $col.innerHeight(), addColumnButtonWidth));
+                        });
+
+                        //resizes columns to fit all buttons
+                        var dashboardWidth = $dashboard.width();
+                        var addColumnButtonCount = $columns.size() + 1;
+                        var realDashboardSpace = dashboardWidth - (addColumnButtonCount * addColumnButtonWidth);
+                        $columns.each(function() {
+                            var originalWidth = this.style.width;
+                            $(this).data('originalWidth', originalWidth);
+                            var newWidth = realDashboardSpace * (originalWidth.replace('%', '') / 100);
+                            $(this).css('width', newWidth + 'px');
                         });
                     } else {
-                        $dashboard.find('.dashboard-add-widget, .widget-overlay').detach();
+                        $dashboard.find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass).detach();
+                        $columns.each(function() {
+                            var $this = $(this);
+                            $this.css('width', $this.data('originalWidth'));
+                        });
                     }
                 });
 
+                /**
+                 * Hover events to show/hide remove widget button
+                 * when dashboard edit mode is enabled
+                 */
                 $body.on({
                     mouseenter: function(e) {
                         $(this).append(
-                            $('<a/>', {'class' : 'widget-remove', 'href' : '/cms/misc/updateUserDashboard'})
+                            $('<a/>', {'class' : settings.removeWidgetClass, 'href' : '/cms/misc/updateUserDashboard'})
                         );
                     },
                     mouseleave: function() {
-                        $(this).find('.widget-remove').detach();
+                        $(this).find('.'+ settings.removeWidgetClass).detach();
                     }
-                }, '.' + settings.editModeClass + ' .dashboard-widget h1')
+                }, '.' + settings.editModeClass + ' ' + settings.widgetSelector + ' h1');
 
-                $body.on('click', '.widget-remove', function(event) {
+                /**
+                 * Handles removing of widgets
+                 */
+                $body.on('click', '.' + settings.removeWidgetClass, function(event) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
                     var $a = $(this);
-                    var $widget = $a.closest('.dashboard-widget');
+                    var $widget = $a.closest(settings.widgetSelector);
+                    var $column = $widget.closest(settings.columnSelector);
                     $.ajax({
                         'url' : $a.attr('href'),
                         'type': 'post',
                         'data': {
-                            'x' : $widget.index(),
-                            'y' : $widget.closest('.dashboard-column').index(),
+                            'x' : getRowIndex($widget),
+                            'y' : getColumnIndex($column),
                             'action' : 'dashboardWidgets-remove'
                         }
                     });
+                    $widget.next('.' + settings.addWidgetClass).detach();
                     $widget.detach();
                 });
 
+                /**
+                 * Drag events for widgets when in edit mode
+                 */
                 $widgets.on('dragstart', dragStart);
                 $widgets.on('dragend', dragEnd);
                 $widgets.on('dragover', bsp_utils.throttle(settings.throttleInterval, dragOver));
@@ -91,8 +130,8 @@ define([
                     var $widget = $(e.target);
                     var dataTransfer = e.originalEvent.dataTransfer;
 
-                    settings.state.originalY = $this.closest('.dashboard-column').index();
-                    settings.state.originalX = $this.index();
+                    settings.state.originalY = getColumnIndex($this.closest(settings.columnSelector));
+                    settings.state.originalX = getRowIndex($this);
 
                     $widget.toggleClass(settings.dragClass);
 
@@ -181,7 +220,12 @@ define([
                         return;
                     }
 
+                    activeWidget.next('.' + settings.addWidgetClass).detach();
                     $(settings.state.placeholder).replaceWith(activeWidget);
+
+                    var x = getRowIndex(activeWidget);
+                    var y = getColumnIndex(activeWidget.closest(settings.columnSelector));
+                    activeWidget.after(getCreateWidgetButton(x + 1, y));
 
                     $.ajax({
                         'type' : 'post',
@@ -189,8 +233,8 @@ define([
                         'data' :
                             {
                                 'action'    : 'dashboardWidgets-move',
-                                'x'         : activeWidget.index(),
-                                'y'         : activeWidget.closest('.dashboard-column').index(),
+                                'x'         : x,
+                                'y'         : y,
                                 'originalX' : settings.state.originalX,
                                 'originalY' : settings.state.originalY,
                                 'id'        : activeWidget.attr('data-widget-id')
@@ -200,33 +244,50 @@ define([
                     //e.originalEvent.dataTransfer.dropEffect = 'move';
                 }
 
+                function getColumnIndex(column) {
+                    return $(column).closest(settings.dashboardSelector).find(settings.columnSelector + ':not(.' + settings.addColumnClass+ ')').index(column);
+                }
 
-            }
+                function getRowIndex(widget) {
+                    return $(widget).closest(settings.columnSelector).find(settings.widgetSelector + ':not(.' + settings.addWidgetClass + ')').index(widget);
+                }
 
-        });
-
-        bsp_utils.onDomInsert(document, 'meta[name="widget"]', {
-
-            'insert': function (meta) {
-                var $meta = $(meta);
-                $meta.closest('.popup').trigger('close.popup');
-                var col = $meta.attr('data-column');
-                var newWidget =
-                    $('<div/>', {'class' : 'frame dashboard-widget', 'draggable' : 'true'}).append(
-                        $('<a/>', { 'href' : $meta.attr('content')})
+                function getCreateWidgetButton(x, y) {
+                    return $('<div />', {
+                        'class': 'dashboard-widget ' + settings.addWidgetClass
+                    }).append(
+                        $('<a/>', {
+                            'class': 'widget',
+                            'href': '/cms/createWidget?y=' + y + '&x=' + x + '&action=dashboardWidgets-add',
+                            'target': 'createWidget'
+                        })
                     );
+                }
 
-                $($('.dashboard-columns').find('.dashboard-column').get(col)).find('.dashboard-add-widget').before(newWidget);
-                newWidget.find('a:only-child').click();
+                function getAddColumnButton(y, height, width) {
+                    return $('<a/>', {'class' : 'dashboard-column ' + settings.addColumnClass, 'style' : 'height: ' + height + 'px; width: ' + width + 'px;'});
+                }
 
-                //$.ajax({
-                //    'type': 'post',
-                //    'url' : $meta.attr('data-updateUrl'),
-                //    'data': { 'col' : $meta.attr('data-column')}
-                //});
+                bsp_utils.onDomInsert(document, 'meta[name="widget"]', {
 
+                    'insert': function (meta) {
+                        var $meta = $(meta);
+                        $meta.closest('.popup').trigger('close.popup');
+                        var newWidget =
+                            $('<div/>', {'class' : 'frame dashboard-widget', 'draggable' : 'true'}).append(
+                                $('<a/>', { 'href' : $meta.attr('content')})
+                            );
+
+                        var x = $meta.attr('data-x');
+                        var y = $meta.attr('data-y');
+
+                        $($($('.dashboard-columns').find(settings.columnSelector + ':not(.' + settings.addColumnClass+ ')').get(y)).find(settings.widgetSelector + ':not(.'+ settings.addWidgetClass + ')').get(x)).before(newWidget);
+                        newWidget.find('a:only-child').click();
+                        newWidget.after(getCreateWidgetButton(x + 1, y));
+                    }
+
+                });
             }
 
         });
-
     });

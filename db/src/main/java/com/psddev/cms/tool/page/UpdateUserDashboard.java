@@ -63,6 +63,7 @@ public class UpdateUserDashboard extends PageServlet {
         Dashboard dashboard = getDashboard(page);
 
         int columnIndex = page.param(int.class, COLUMN_INDEX_KEY);
+        int rowIndex = page.param(int.class, ROW_INDEX_KEY);
         List<DashboardColumn> columns = dashboard.getColumns();
 
         Object widget = page.getRequest().getAttribute("widget");
@@ -71,7 +72,14 @@ public class UpdateUserDashboard extends PageServlet {
             throw new IllegalArgumentException("No widget found on request");
         }
 
-        columns.get(columnIndex).getWidgets().add((DashboardWidget) widget);
+        List<DashboardWidget> widgets = columns.get(columnIndex).getWidgets();
+
+        if (rowIndex >= widgets.size()) {
+            widgets.add((DashboardWidget) widget);
+        } else {
+            widgets.add(rowIndex, (DashboardWidget) widget);
+        }
+
         user.setDashboard(dashboard);
         user.save();
     }

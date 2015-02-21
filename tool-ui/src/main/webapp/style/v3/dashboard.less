@@ -29,8 +29,12 @@
   }
 
   &.dashboard-editable {
-    transform: translate(14%);
-    max-width: 80%;
+    //transform: translate(14%);
+    //max-width: 80%;
+
+    .dashboard-column {
+      padding: 0 10px;
+    }
 
     .dashboard-widget {
       border: 2px dashed gray;
@@ -41,15 +45,20 @@
       overflow: hidden;
       position:relative;
 
-      .widget-overlay {
-        position:absolute;
-        left: 0;
-        top: 40px;
-        z-index: 1;
-        width:100%;
-        height:100%;
-        background: linear-gradient(to bottom, rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.9) 100%);
+      > *:not(h1) {
+        opacity: 0.5;
+        pointer-events: none;
       }
+
+//      .widget-overlay {
+//        position:absolute;
+//        left: 0;
+//        top: 40px;
+//        z-index: 1;
+//        width:100%;
+//        height:100%;
+//        background: linear-gradient(to bottom, rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.9) 100%);
+//      }
 
       &.drag-active {
         opacity: 0.6;
@@ -57,6 +66,7 @@
 
       &.widget-ghost {
         background: gray;
+        margin-bottom: 10px;
       }
 
       .widgetControls a.action {
@@ -64,19 +74,42 @@
       }
     }
 
-    .dashboard-add-widget .widget {
-      background:none;
+    .dashboard-addWidgetButton {
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .widget {
+        background:none;
+        position:relative;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        &:before {
+          position:absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          content: '+';
+          font-size: 32px;
+          line-height: 32px;
+        }
+      }
+    }
+
+    .dashboard-addColumnButton {
+      display:block;
+      border: 2px dashed gray;
       position:relative;
-      height: 50px;
+      padding: 0;
       &:before {
         position:absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         content: '+';
-        font-size:80px;
-        height: 80px;
-        line-height: 80px;
+        font-size: 32px;
+        line-height: 32px;
       }
     }
   }

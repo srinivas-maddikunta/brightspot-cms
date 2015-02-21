@@ -37,7 +37,8 @@ public class CreateDashboardWidget extends PageServlet {
             page.writeTag("meta",
                     "name", "widget",
                     "content", page.cmsUrl("/dashboardWidget/user/" + widgetInstance.getClass().getName() + "/" + widgetInstance.getId() + "/"),
-                    "data-column", page.param(String.class, "col"));
+                    "data-y", page.param(String.class, "y"),
+                    "data-x", page.param(String.class, "x"));
         } else {
             page.writeStart("div", "class", "widget");
                 page.writeStandardForm(new NewWidget());
