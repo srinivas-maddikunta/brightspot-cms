@@ -47,36 +47,12 @@ define([
                     $widgets.prop('draggable', !$widgets.prop('draggable'));
 
                     if ($dashboard.hasClass(settings.editModeClass)) {
-                        //$widgets.find('.widget').prepend($('<div/>', {'class': 'widget-overlay'}));
-                        //nested pseudo elements would be a nice alternative to this...
-
-                        var addColumnButtonWidth = 32;
 
                         $columns.each(function(yIndex, col) {
                             var $col = $(col);
-                            $col.find(settings.widgetSelector).each(function(xIndex, widget) {
-                                var $widget = $(widget);
-                                if (xIndex === 0) {
-                                    $widget.before(getCreateWidgetButton(xIndex, yIndex));
-                                }
-                                $widget.after(getCreateWidgetButton(xIndex + 1, yIndex));
+                            $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
+                                attachButtons(dashboardWidget);
                             });
-
-                            if (yIndex === 0) {
-                                $col.before(getAddColumnButton(yIndex, $col.innerHeight(), addColumnButtonWidth));
-                            }
-                            $col.after(getAddColumnButton(yIndex + 1, $col.innerHeight(), addColumnButtonWidth));
-                        });
-
-                        //resizes columns to fit all buttons
-                        var dashboardWidth = $dashboard.width();
-                        var addColumnButtonCount = $columns.size() + 1;
-                        var realDashboardSpace = dashboardWidth - (addColumnButtonCount * addColumnButtonWidth);
-                        $columns.each(function() {
-                            var originalWidth = this.style.width;
-                            $(this).data('originalWidth', originalWidth);
-                            var newWidth = realDashboardSpace * (originalWidth.replace('%', '') / 100);
-                            $(this).css('width', newWidth + 'px');
                         });
                     } else {
                         $dashboard.find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass).detach();
@@ -244,33 +220,45 @@ define([
                     //e.originalEvent.dataTransfer.dropEffect = 'move';
                 }
 
-                function getColumnIndex(column) {
-                    return $(column).closest(settings.dashboardSelector).find(settings.columnSelector + ':not(.' + settings.addColumnClass+ ')').index(column);
+                function getColumnIndex(dashboardWidget) {
+                    return $(dashboardWidget).closest(settings.columnSelector).index();
                 }
 
-                function getRowIndex(widget) {
-                    return $(widget).closest(settings.columnSelector).find(settings.widgetSelector + ':not(.' + settings.addWidgetClass + ')').index(widget);
+                function getRowIndex(dashboardWidget) {
+                    return $(dashboardWidget).index();
                 }
 
-                function getCreateWidgetButton(x, y) {
-                    return $('<div />', {
-                        'class': 'dashboard-widget ' + settings.addWidgetClass
-                    }).append(
-                        $('<a/>', {
-                            'class': 'widget',
-                            'href': '/cms/createWidget?y=' + y + '&x=' + x + '&action=dashboardWidgets-add',
-                            'target': 'createWidget'
-                        })
-                    );
-                }
-
-                function getAddColumnButton(y, height, width) {
+                function getAddRowButton(x, y) {
                     return $('<a/>', {
-                        'class' : 'dashboard-column ' + settings.addColumnClass,
-                        'style' : 'height: ' + height + 'px; width: ' + width + 'px;',
-                        'href'  : '/cms/createWidget?y=' + y + '&x=' + 0 + '&action=dashboardWidgets-add&addColumn=true',
-                        'target': 'createWidget'
-                    });
+                                'class': settings.addWidgetClass,
+                                'href': '/cms/createWidget?y=' + y + '&x=' + x + '&action=dashboardWidgets-add',
+                                'target': 'createWidget'
+                            });
+
+                }
+
+                function getAddColumnButton(y) {
+                    return $('<a/>', {
+                               'class' : settings.addColumnClass,
+                               'href'  : '/cms/createWidget?y=' + y + '&x=' + 0 + '&action=dashboardWidgets-add&addColumn=true',
+                               'target': 'createWidget'
+                           });
+                }
+
+                function attachButtons(dashboardWidget) {
+                    console.log('begin attaching buttons');
+                    var $dashboardWidget = $(dashboardWidget);
+                    var xIndex = getRowIndex(dashboardWidget);
+                    var yIndex = getColumnIndex(dashboardWidget);
+                    var $widget = $dashboardWidget.find('.widget').first();
+                    console.log($widget);
+
+                    $widget.before(getAddRowButton(xIndex, yIndex));
+                    $widget.before(getAddColumnButton(yIndex));
+
+                    $widget.after(getAddRowButton(xIndex + 1, yIndex));
+                    $widget.after(getAddColumnButton(yIndex + 1));
+                    console.log('end attaching buttons');
                 }
 
                 bsp_utils.onDomInsert(document, 'meta[name="widget"]', {
@@ -278,7 +266,7 @@ define([
                     'insert': function (meta) {
                         var $meta = $(meta);
                         $meta.closest('.popup').trigger('close.popup');
-                        var newWidget =
+                        var newDashboardWidget =
                             $('<div/>', {'class' : 'frame dashboard-widget', 'draggable' : 'true'}).append(
                                 $('<a/>', { 'href' : $meta.attr('content')})
                             );
@@ -287,26 +275,39 @@ define([
                         var y = $meta.attr('data-y');
 
                         var $dashboard = $('.dashboard-columns');
-                        var $columns = $dashboard.find(settings.columnSelector + ':not(.' + settings.addColumnClass + ')');
+                        var $columns = $dashboard.find(settings.columnSelector);
+                        var $column = $($columns.get(y));
 
                         if ($meta.attr('data-add-column') === 'true') {
-                            $($columns.get(y)).before($('<div/>', {
-                                'class' : 'dashboard-column'
-                            }));
+                            var newColumn = $('<div/>', {
+                                'class' : 'dashboard-column',
+                                'style' : 'flex-grow: 1'
+                            });
+                            $column.before(newColumn);
+                            $column = newColumn;
                         }
 
-                        var $column = $($columns.get(y));
-                        var widgetInRow = $column.find(settings.widgetSelector + ':not(.'+ settings.addWidgetClass + ')').get(x);
+                        var widgetInRow = $column.find(settings.widgetSelector).get(x);
 
                         if (widgetInRow) {
-                            $(widgetInRow).before(newWidget);
+                            $(widgetInRow).before(newDashboardWidget);
                         } else {
-                            $column.append(newWidget);
+                            $column.append(newDashboardWidget);
                         }
 
 
-                        newWidget.find('a:only-child').click();
-                        newWidget.after(getCreateWidgetButton(x + 1, y));
+                        newDashboardWidget.find('a:only-child').click();
+                        attachButtons(newDashboardWidget);
+                        var attachInterval = setInterval(function() {
+                            console.log("interval fired...");
+                            var newWidget = newDashboardWidget.find('.widget').first();
+                            if (newWidget) {
+                                console.log('attaching butttons!');
+                                attachButtons(newDashboardWidget);
+                                clearInterval(attachInterval);
+                                console.log("interval cleared...");
+                            }
+                        }, 1);
                     }
 
                 });

@@ -46,20 +46,13 @@ public class DashboardPage extends PageServlet {
             page.writeEnd();
             page.writeStart("div", "class", "dashboard-columns");
                 List<DashboardColumn> columns = dashboard.getColumns();
-                double totalWidth = 0;
-
-                for (DashboardColumn column : columns) {
-                    double width = column.getWidth();
-                    totalWidth += width > 0 ? width : 1;
-                }
 
                 for (int c = 0, cSize = columns.size(); c < cSize; ++ c) {
                     DashboardColumn column = columns.get(c);
-                    double width = column.getWidth();
 
                     page.writeStart("div",
                             "class", "dashboard-column",
-                            "style", page.cssString("width", ((width > 0 ? width : 1) / totalWidth * 100) + "%"));
+                            "style", page.cssString("flex-grow", column.getSize()));
 
                         List<DashboardWidget> widgets = column.getWidgets();
 

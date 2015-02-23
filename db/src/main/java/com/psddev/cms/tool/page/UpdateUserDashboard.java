@@ -76,7 +76,8 @@ public class UpdateUserDashboard extends PageServlet {
 
         if (shouldAddColumn) {
             column = new DashboardColumn();
-            columns.add(columnIndex, new DashboardColumn());
+            column.setSize(1);
+            columns.add(columnIndex, column);
         } else {
             column = columns.get(columnIndex);
         }

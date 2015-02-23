@@ -8,17 +8,17 @@ import com.psddev.dari.db.Record;
 @DashboardColumn.Embedded
 public class DashboardColumn extends Record {
 
-    private double width;
+    private int size;
 
     @Embedded
     private List<DashboardWidget> widgets;
 
-    public double getWidth() {
-        return width > 0.0 ? width : 50.0;
+    public int getSize() {
+        return (size == 0) ? 1 : size;
     }
 
-    public void setWidth(double width) {
-        this.width = width;
+    public void setSize(int size) {
+        this.size = size;
     }
 
     public List<DashboardWidget> getWidgets() {
