@@ -13,7 +13,7 @@ import com.psddev.dari.db.Record;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.UuidUtils;
 
-//TODO merge into UpdateUserDashboard
+//TODO merge into UpdateUserDashboard?
 @RoutingFilter.Path(application = "cms", value = "/createWidget")
 public class CreateDashboardWidget extends PageServlet {
 
@@ -38,7 +38,8 @@ public class CreateDashboardWidget extends PageServlet {
                     "name", "widget",
                     "content", page.cmsUrl("/dashboardWidget/user/" + widgetInstance.getClass().getName() + "/" + widgetInstance.getId() + "/"),
                     "data-y", page.param(String.class, "y"),
-                    "data-x", page.param(String.class, "x"));
+                    "data-x", page.param(String.class, "x"),
+                    "data-add-column", page.param(boolean.class, "addColumn"));
         } else {
             page.writeStart("div", "class", "widget");
                 page.writeStandardForm(new NewWidget());

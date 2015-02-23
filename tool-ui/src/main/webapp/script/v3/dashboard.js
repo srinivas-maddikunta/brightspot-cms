@@ -29,6 +29,17 @@ define([
                 var $widgets = $dashboard.find(settings.widgetSelector);
 
                 /**
+                 * Drag events for widgets when in edit mode
+                 */
+                $widgets.on('dragstart', dragStart);
+                $widgets.on('dragend', dragEnd);
+                $widgets.on('dragover', bsp_utils.throttle(settings.throttleInterval, dragOver));
+                $widgets.on('dragenter', bsp_utils.throttle(settings.throttleInterval, dragEnter));
+                $widgets.on('dragleave', bsp_utils.throttle(settings.throttleInterval, dragLeave));
+                //webkit bug not fixed, cannot use drop event v. 39.0.2171.99 https://bugs.webkit.org/show_bug.cgi?id=37012
+                //$widgets.on('drop'     , drop);
+
+                /**
                  * Enables dashboard edit mode
                  */
                 $body.on('click', '.dashboard-edit', function () {
@@ -112,17 +123,6 @@ define([
                     $widget.next('.' + settings.addWidgetClass).detach();
                     $widget.detach();
                 });
-
-                /**
-                 * Drag events for widgets when in edit mode
-                 */
-                $widgets.on('dragstart', dragStart);
-                $widgets.on('dragend', dragEnd);
-                $widgets.on('dragover', bsp_utils.throttle(settings.throttleInterval, dragOver));
-                $widgets.on('dragenter', bsp_utils.throttle(settings.throttleInterval, dragEnter));
-                $widgets.on('dragleave', bsp_utils.throttle(settings.throttleInterval, dragLeave));
-                //webkit bug not fixed, cannot use drop event v. 39.0.2171.99 https://bugs.webkit.org/show_bug.cgi?id=37012
-                //$widgets.on('drop'     , drop);
 
                 function dragStart(e) {
                     settings.state.activeWidget = this;
@@ -265,7 +265,12 @@ define([
                 }
 
                 function getAddColumnButton(y, height, width) {
-                    return $('<a/>', {'class' : 'dashboard-column ' + settings.addColumnClass, 'style' : 'height: ' + height + 'px; width: ' + width + 'px;'});
+                    return $('<a/>', {
+                        'class' : 'dashboard-column ' + settings.addColumnClass,
+                        'style' : 'height: ' + height + 'px; width: ' + width + 'px;',
+                        'href'  : '/cms/createWidget?y=' + y + '&x=' + 0 + '&action=dashboardWidgets-add&addColumn=true',
+                        'target': 'createWidget'
+                    });
                 }
 
                 bsp_utils.onDomInsert(document, 'meta[name="widget"]', {
@@ -281,7 +286,25 @@ define([
                         var x = $meta.attr('data-x');
                         var y = $meta.attr('data-y');
 
-                        $($($('.dashboard-columns').find(settings.columnSelector + ':not(.' + settings.addColumnClass+ ')').get(y)).find(settings.widgetSelector + ':not(.'+ settings.addWidgetClass + ')').get(x)).before(newWidget);
+                        var $dashboard = $('.dashboard-columns');
+                        var $columns = $dashboard.find(settings.columnSelector + ':not(.' + settings.addColumnClass + ')');
+
+                        if ($meta.attr('data-add-column') === 'true') {
+                            $($columns.get(y)).before($('<div/>', {
+                                'class' : 'dashboard-column'
+                            }));
+                        }
+
+                        var $column = $($columns.get(y));
+                        var widgetInRow = $column.find(settings.widgetSelector + ':not(.'+ settings.addWidgetClass + ')').get(x);
+
+                        if (widgetInRow) {
+                            $(widgetInRow).before(newWidget);
+                        } else {
+                            $column.append(newWidget);
+                        }
+
+
                         newWidget.find('a:only-child').click();
                         newWidget.after(getCreateWidgetButton(x + 1, y));
                     }

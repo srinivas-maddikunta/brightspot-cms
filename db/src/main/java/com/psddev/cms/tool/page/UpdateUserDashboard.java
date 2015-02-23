@@ -31,6 +31,7 @@ public class UpdateUserDashboard extends PageServlet {
     }
 
     protected static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
+
         if (!page.isFormPost()) {
             throw new IllegalStateException("Form must be posted!");
         }
@@ -57,6 +58,11 @@ public class UpdateUserDashboard extends PageServlet {
         }
     }
 
+    /**
+     * Adds a widget to a user's dashboard,
+     * also conditionally adds a column
+     * @param page
+     */
     private static void addWidget(ToolPageContext page) {
 
         ToolUser user = page.getUser();
@@ -64,7 +70,16 @@ public class UpdateUserDashboard extends PageServlet {
 
         int columnIndex = page.param(int.class, COLUMN_INDEX_KEY);
         int rowIndex = page.param(int.class, ROW_INDEX_KEY);
+        boolean shouldAddColumn = page.param(boolean.class, "addColumn");
         List<DashboardColumn> columns = dashboard.getColumns();
+        DashboardColumn column;
+
+        if (shouldAddColumn) {
+            column = new DashboardColumn();
+            columns.add(columnIndex, new DashboardColumn());
+        } else {
+            column = columns.get(columnIndex);
+        }
 
         Object widget = page.getRequest().getAttribute("widget");
 
@@ -72,7 +87,7 @@ public class UpdateUserDashboard extends PageServlet {
             throw new IllegalArgumentException("No widget found on request");
         }
 
-        List<DashboardWidget> widgets = columns.get(columnIndex).getWidgets();
+        List<DashboardWidget> widgets = column.getWidgets();
 
         if (rowIndex >= widgets.size()) {
             widgets.add((DashboardWidget) widget);
@@ -84,6 +99,10 @@ public class UpdateUserDashboard extends PageServlet {
         user.save();
     }
 
+    /**
+     * Moves a widget on a user's dashboard
+     * @param page
+     */
     private static void moveWidget(ToolPageContext page) {
 
         ToolUser user = page.getUser();
@@ -103,20 +122,44 @@ public class UpdateUserDashboard extends PageServlet {
         user.save();
     }
 
+    /**
+     * Removes a widget from the user's dashboard
+     * @param page
+     */
     private static void removeWidget(ToolPageContext page) {
-        int row = page.param(int.class, ROW_INDEX_KEY);
-        int col = page.param(int.class, COLUMN_INDEX_KEY);
+
         ToolUser user = page.getUser();
         Dashboard dashboard = getDashboard(page);
+
+        int row = page.param(int.class, ROW_INDEX_KEY);
+        int col = page.param(int.class, COLUMN_INDEX_KEY);
+
         dashboard.getColumns().get(col).getWidgets().remove(row);
         user.setDashboard(dashboard);
         user.save();
     }
 
+    /**
+     * Adds a column to the user's dashboard
+     * @param page
+     */
     private static void addColumn(ToolPageContext page) {
-        return;
+
+        ToolUser user = page.getUser();
+        Dashboard dashboard = getDashboard(page);
+
+        int col = page.param(int.class, COLUMN_INDEX_KEY);
+        dashboard.getColumns().add(col, new DashboardColumn());
+
+        user.setDashboard(dashboard);
+        user.save();
     }
 
+    /**
+     * Gets a dashboard for the user to edit
+     * @param page
+     * @return Dashboard
+     */
     private static Dashboard getDashboard(ToolPageContext page) {
 
         Dashboard dashboard = page.getUser().getDashboard();
