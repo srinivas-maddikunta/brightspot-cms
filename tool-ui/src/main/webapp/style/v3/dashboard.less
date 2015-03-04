@@ -1,4 +1,4 @@
-@-dashboard-button-size : 32px;
+@-dashboard-button-size : 72px;
 @-dashboard-widget-border: darken(white, 28%);
 @-dashboard-add-button-bg: darken(white, 28%);
 @-dashboard-widget-margin: 12px;
@@ -16,6 +16,21 @@
   padding: 0 5px;
 }
 
+.dashboard-edit {
+  position:fixed;
+  bottom: 0;
+  right: 0;
+
+  &.toggled {
+    background: @color-focus;
+    color: white;
+  }
+}
+
+.dashboard-widget {
+  margin-bottom: 10px;
+}
+
 .dashboard-columns {
   transition: transform 0.2s ease-out;
 
@@ -29,30 +44,13 @@
 
   .widget-remove {
     .popup-closeButton;
-  }
-
-  .dashboard-widget {
-    margin-bottom: 10px;
+    color: white;
   }
 
   &.dashboard-editable {
 
-    .dashboard-widget {
-      &:hover {
-        //transform: scale(0.9);
-        .widget {
-          margin-left: @-dashboard-button-size;
-          margin-top: @-dashboard-button-size;
-        }
-        .dashboard-addWidgetButton {
-          &:first-of-type {
-            top: -@-dashboard-button-size;
-          }
-        }
-        .dashboard-addWidgetButton, .dashboard-addColumnButton {
-          display: block;
-        }
-      }
+    .dashboard-column {
+      background: #efefef;
     }
 
     .widget {
@@ -60,25 +58,8 @@
       overflow: hidden;
       position:relative;
       white-space:nowrap;
-      //width: calc(~'100% - ' @-widget-size-reduction);
-      //display:inline-block;
       display: block;
-      border: 2px dashed @-dashboard-widget-border;
-
-      > *:not(h1) {
-        opacity: 0.5;
-        pointer-events: none;
-      }
-
-//      .widget-overlay {
-//        position:absolute;
-//        left: 0;
-//        top: 40px;
-//        z-index: 1;
-//        width:100%;
-//        height:100%;
-//        background: linear-gradient(to bottom, rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.9) 100%);
-//      }
+      border: 0;
 
       &.drag-active {
         opacity: 0.6;
@@ -89,49 +70,85 @@
         margin-bottom: 10px;
       }
 
+      h1 {
+        background: @color-focus;
+        color: white;
+        font-weight: normal;
+        text-shadow: none;
+      }
+
+      > *:not(h1) {
+        opacity: 0.2;
+        pointer-events: none;
+      }
+
       .widgetControls a.action {
         display:none;
       }
     }
+  }
+}
 
-    .dashboard-addColumnButton, .dashboard-addWidgetButton {
-      position:absolute;
-      background: @-dashboard-add-button-bg;
-      display: none;
-      &:before {
-        position:absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        content: '+';
-        font-size: 32px;
-        line-height: 32px;
-        text-decoration: none !important;
-      }
-    }
+.dashboard-column-gutter {
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+  width: 80px;
+  position:relative;
+  cursor: ew-resize;
+}
 
-    .dashboard-addWidgetButton {
-      height: @-dashboard-button-size;
-      width: 100%;
-      &:first-of-type {
-        top: 0;
-      }
-      &:last-of-type {
-        bottom: 0;
-      }
-    }
+.dashboard-addColumnButton, .dashboard-addWidgetButton {
+  background: @-dashboard-add-button-bg;
+}
 
-    .dashboard-addColumnButton {
-      height: 200px;
-      width: @-dashboard-button-size;
-      &:nth-child(2) {
-        left: 0;
-        top: 0;
-      }
-      &:nth-child(4) {
-        right: 0;
-        top: 0;
-      }
+.dashboard-add-widget-container {
+  position:relative;
+  width: 100%;
+  height: @-dashboard-button-size + 28px;
+
+  span {
+    &:before {
+      display: block;
+      content: '+';
+      font-size: 32px;
+      line-height: 32px;
+      text-decoration: none !important;
     }
+  }
+}
+
+.dashboard-addWidgetButton {
+  position: absolute;
+  display:block;
+  width: @-dashboard-button-size;
+  height: @-dashboard-button-size;
+  margin: 14px 0;
+  text-align: center;
+  border: 2px dashed #b4b4b4;
+  left: 50%;
+  transform: translateX(-50%);
+  background: none;
+  color: #b4b4b4;
+  padding: 4px;
+
+  &:hover {
+    background: white;
+    border: 0;
+    border-bottom: 2px solid #b8b8b8;
+    color: @color-focus;
+    border-radius: 2px;
+  }
+}
+
+.drag-handle {
+  .icon;
+  cursor: ew-resize;
+  &:before {
+    width: 100%;
+    content: "\f141\0020\f141";
+  }
+  &:after {
+    width: 100%;
+    content: "\f141\0020\f141";
   }
 }

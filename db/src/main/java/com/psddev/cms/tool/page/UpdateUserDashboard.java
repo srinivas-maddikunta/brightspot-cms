@@ -51,7 +51,7 @@ public class UpdateUserDashboard extends PageServlet {
                     addColumn(page);
                     break;
                 case "dashboardColumns-resize" :
-                    resizeColumn(page);
+                    resizeColumns(page);
                     break;
                 default :
                     return;
@@ -157,18 +157,22 @@ public class UpdateUserDashboard extends PageServlet {
         user.save();
     }
 
-    private static void resizeColumn(ToolPageContext page) {
+    private static void resizeColumns(ToolPageContext page) {
         ToolUser user = page.getUser();
         Dashboard dashboard = getDashboard(page);
 
-        int col = page.param(int.class, COLUMN_INDEX_KEY);
-        int size = page.param(int.class, "size");
+        List<Integer> columnIndexes = page.params(int.class, COLUMN_INDEX_KEY);
+        List<Integer> sizes = page.params(int.class, "size");
 
-        if (size == 0) {
+        if (ObjectUtils.isBlank(columnIndexes) || ObjectUtils.isBlank(sizes)) {
             return;
         }
 
-        dashboard.getColumns().get(col).setSize(size);
+        List<DashboardColumn> columns = dashboard.getColumns();
+
+        for (int i : columnIndexes) {
+            columns.get(i).setSize(sizes.get(i));
+        }
 
         user.setDashboard(dashboard);
         user.save();

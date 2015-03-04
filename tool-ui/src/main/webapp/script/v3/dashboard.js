@@ -15,8 +15,11 @@ define([
             widgetSelector: '.dashboard-widget',
             addColumnClass: 'dashboard-addColumnButton',
             addWidgetClass: 'dashboard-addWidgetButton',
+            addWidgetContainerClass: 'dashboard-add-widget-container',
             removeWidgetClass: 'widget-remove',
-            columnSizerClass: 'columnSizer'
+            columnSizerClass: 'columnSizer',
+            columnGutterClass: 'dashboard-column-gutter',
+            minColumnWidth: 320
         };
 
         bsp_utils.onDomInsert(document, '.dashboard-columns', {
@@ -33,18 +36,71 @@ define([
                 /**
                  * Drag events for widgets when in edit mode
                  */
-                $widgets.on('dragstart', dragStart);
-                $widgets.on('dragend', dragEnd);
-                $widgets.on('dragover', bsp_utils.throttle(settings.throttleInterval, dragOver));
-                $widgets.on('dragenter', bsp_utils.throttle(settings.throttleInterval, dragEnter));
-                $widgets.on('dragleave', bsp_utils.throttle(settings.throttleInterval, dragLeave));
+                $widgets
+                    .on('dragstart', dragStart)
+                    .on('dragend', dragEnd)
+                    .on('dragover', bsp_utils.throttle(settings.throttleInterval, dragOver))
+                    .on('dragenter', bsp_utils.throttle(settings.throttleInterval, dragEnter))
+                    .on('dragleave', bsp_utils.throttle(settings.throttleInterval, dragLeave));
                 //webkit bug not fixed, cannot use drop event v. 39.0.2171.99 https://bugs.webkit.org/show_bug.cgi?id=37012
                 //$widgets.on('drop'     , drop);
+
+                /**
+                 * Drag events for resizing columns
+                 */
+                $body
+                    .on('dragstart', '.' + settings.columnGutterClass, bsp_utils.throttle(settings.throttleInterval, function(e) {
+
+                        var $gutter = $(this);
+                        var originalEvent = e.originalEvent;
+                        var dataTransfer = originalEvent.dataTransfer;
+
+                        dataTransfer.originalX = originalEvent.pageX;
+                        dataTransfer.prevColumnWidth = $gutter.prev(settings.columnSelector).width();
+                        dataTransfer.effectAllowed = 'none';
+                        dataTransfer.nextColumnWidth = $gutter.next(settings.columnSelector).width();
+                        //dataTransfer.setDragImage($('<div/>').get(0), 0, 0);
+                    }))
+                    .on('drag', '.' + settings.columnGutterClass, bsp_utils.throttle(settings.throttleInterval, function(e) {
+
+                        var $gutter = $(this);
+                        var originalEvent = e.originalEvent;
+                        var dataTransfer = originalEvent.dataTransfer;
+                        var horizontalDiff = originalEvent.pageX - dataTransfer.originalX;
+                        var prevColNewWidth = dataTransfer.prevColumnWidth + horizontalDiff;
+                        var nextColNewWidth = dataTransfer.nextColumnWidth - horizontalDiff;
+
+                        if (prevColNewWidth >= 320 && nextColNewWidth >= 320) {
+                            $gutter.prev(settings.columnSelector).width(prevColNewWidth);
+                            $gutter.next(settings.columnSelector).width(nextColNewWidth);
+                        }
+                    }))
+                    .on('dragend', '.' + settings.columnGutterClass, function(e) {
+                        var params = {
+                            action : 'dashboardColumns-resize',
+                            y : [],
+                            size : []
+                        };
+
+                        $columns.each(function(yIndex, col) {
+                            params.y.push(yIndex);
+                            params.size.push($(col).width());
+                        });
+
+                        $.ajax({
+                            'url' : '/cms/misc/updateUserDashboard',
+                            'type' : 'POST',
+                            'data' : $.param(params, true)
+                        });
+
+                        console.log(params);
+                    });
 
                 /**
                  * Enables dashboard edit mode
                  */
                 $body.on('click', '.dashboard-edit', function () {
+                    $(this).toggleClass('toggled');
                     $dashboard.toggleClass(settings.editModeClass);
                     $widgets.prop('draggable', !$widgets.prop('draggable'));
 
@@ -52,13 +108,13 @@ define([
 
                         $columns.each(function(yIndex, col) {
                             var $col = $(col);
-                            addColumnSizer($col);
+                            insertColumnGutter($col);
                             $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
-                                attachButtons(dashboardWidget);
+                                insertRowButtons(dashboardWidget);
                             });
                         });
                     } else {
-                        $dashboard.find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass + ', .' + settings.columnSizerClass).detach();
+                        $dashboard.find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass + ', .' + settings.columnSizerClass + ', .' + settings.columnGutterClass + ', .' + settings.addWidgetContainerClass).remove();
                     }
                 });
 
@@ -73,7 +129,7 @@ define([
                         );
                     },
                     mouseleave: function() {
-                        $(this).find('.'+ settings.removeWidgetClass).detach();
+                        $(this).find('.'+ settings.removeWidgetClass).remove();
                     }
                 }, '.' + settings.editModeClass + ' ' + settings.widgetSelector + ' h1');
 
@@ -113,7 +169,7 @@ define([
                                 'y'      : getColumnIndex($column),
                                 'size'   : $input.val()
                             }
-                        })
+                        });
 
                         $column.css('flex-grow', $input.val());
                     }
@@ -148,7 +204,10 @@ define([
                 function dragEnter(e) {
                     e.preventDefault();
 
-                    if (this === settings.state.dragTarget || this === settings.state.placeholder || this === settings.state.activeWidget) {
+                    if (this === settings.state.dragTarget
+                        || this === settings.state.placeholder
+                        || this === settings.state.activeWidget
+                        || typeof settings.state.activeWidget === 'undefined') {
                         return false;
                     }
 
@@ -215,7 +274,7 @@ define([
                         return false;
                     }
 
-                    activeWidget.next('.' + settings.addWidgetClass).detach();
+                    activeWidget.next('.' + settings.addWidgetClass).remove();
                     $(settings.state.placeholder).replaceWith(activeWidget);
 
                     var x = getRowIndex(activeWidget);
@@ -250,44 +309,64 @@ define([
                     return $(dashboardWidget).closest('.dashboard-column').find('.dashboard-widget').index(dashboardWidget);
                 }
 
-                function getAddRowButton(x, y) {
-                    return $('<a/>', {
-                                'class': settings.addWidgetClass,
-                                'href': '/cms/createWidget?x=' + x + '&y=' + y + '&action=dashboardWidgets-add',
-                                'target': 'createWidget'
-                            });
+                function getAddWidgetButton(x, y, isAddColumnOperation) {
+                    if (typeof isAddColumnOperation === 'undefined') {
+                        isAddColumnOperation = false;
+                    }
 
+                    return $('<a/>', {
+                        'class': settings.addWidgetClass,
+                        'href': '/cms/createWidget?x=' + x + '&y=' + y + '&action=dashboardWidgets-add&addColumn=' + isAddColumnOperation,
+                        'target': 'createWidget'
+                    }).append($('<span/>').text("Add Widget"));
                 }
 
-                function getAddColumnButton(y) {
-                    return $('<a/>', {
-                               'class' : settings.addColumnClass,
-                               'href'  : '/cms/createWidget?x=' + 0 + '&y=' + y + '&action=dashboardWidgets-add&addColumn=true',
-                               'target': 'createWidget'
-                           });
+                function getAddRowContainerAndButton(x, y) {
+                    return $('<div/>', {
+                        'class' : settings.addWidgetContainerClass
+                    }).append(getAddWidgetButton(x, y));
                 }
 
-                function attachButtons(dashboardWidget) {
+                function getColumnGutterAndButton(y) {
+                    return $('<div/>', {
+                        'class' : settings.columnGutterClass,
+                        'draggable' : true
+                    }).append($('<div/>', {
+                        'class' : 'drag-handle'
+                    })).append(getAddWidgetButton(0, y, true));
+                }
+
+                function insertRowButtons(dashboardWidget) {
                     var $dashboardWidget = $(dashboardWidget);
                     var xIndex = getRowIndex(dashboardWidget);
                     var yIndex = getColumnIndexFromWidget(dashboardWidget);
-                    var $widget = $dashboardWidget.find('.widget').first();
+                    //var $widget = $dashboardWidget.find('.widget').first();
 
-                    $widget.before(getAddRowButton(xIndex, yIndex));
-                    $widget.before(getAddColumnButton(yIndex));
+                    if (xIndex === 0) {
+                        $dashboardWidget.before(getAddRowContainerAndButton(xIndex, yIndex));
+                    }
+                    //$widget.before(getAddColumnButton(yIndex));
 
-                    $widget.after(getAddRowButton(xIndex + 1, yIndex));
-                    $widget.after(getAddColumnButton(yIndex + 1));
+                    $dashboardWidget.after(getAddRowContainerAndButton(xIndex + 1, yIndex));
+                    //$widget.after(getAddColumnButton(yIndex + 1));
                 }
 
-                function addColumnSizer(dashboardColumn) {
+                function insertColumnGutter(dashboardColumn) {
                     var $dashboardColumn = $(dashboardColumn);
-                    $dashboardColumn.prepend($('<input/>', {
-                            'class': settings.columnSizerClass,
-                            'name' : getColumnIndex(dashboardColumn),
-                            'value': $dashboardColumn.css('flex-grow')
-                        }
-                    ));
+                    var columnIndex = getColumnIndex($dashboardColumn);
+
+                    if (columnIndex === 0) {
+                        $dashboardColumn.before(getColumnGutterAndButton(columnIndex));
+                    }
+
+                    $dashboardColumn.after(getColumnGutterAndButton(columnIndex + 1));
+
+                    //$dashboardColumn.prepend($('<input/>', {
+                    //        'class': settings.columnSizerClass,
+                    //        'name' : getColumnIndex(dashboardColumn),
+                    //        'value': $dashboardColumn.css('flex-grow')
+                    //    }
+                    //));
                 }
 
                 bsp_utils.onDomInsert(document, 'meta[name="widget"]', {
@@ -326,12 +405,13 @@ define([
 
 
                         newDashboardWidget.find('a:only-child').click();
-                        attachButtons(newDashboardWidget);
+                        insertRowButtons(newDashboardWidget);
                         var attachInterval = setInterval(function() {
                             var newWidget = newDashboardWidget.find('.widget').first();
                             if (newWidget) {
-                                attachButtons(newDashboardWidget);
-                                clearInterval(attachInterval);
+                                //attachButtons(newDashboardWidget);
+                                insertRowButtons(attachInterval);
+                                this.clearInterval();
                             }
                         }, 1);
                     }
