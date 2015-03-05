@@ -17,7 +17,6 @@ define([
             addWidgetClass: 'dashboard-addWidgetButton',
             addWidgetContainerClass: 'dashboard-add-widget-container',
             removeWidgetClass: 'widget-remove',
-            columnSizerClass: 'columnSizer',
             columnGutterClass: 'dashboard-column-gutter',
             minColumnWidth: 320
         };
@@ -56,10 +55,9 @@ define([
                         var dataTransfer = originalEvent.dataTransfer;
 
                         dataTransfer.originalX = originalEvent.pageX;
-                        dataTransfer.prevColumnWidth = $gutter.prev(settings.columnSelector).width();
+                        dataTransfer.prevColumnWidth = $gutter.prev(settings.columnSelector).data('actualWidth');
                         dataTransfer.effectAllowed = 'none';
-                        dataTransfer.nextColumnWidth = $gutter.next(settings.columnSelector).width();
-                        //dataTransfer.setDragImage($('<div/>').get(0), 0, 0);
+                        dataTransfer.nextColumnWidth = $gutter.next(settings.columnSelector).data('actualWidth');
                     }))
                     .on('drag', '.' + settings.columnGutterClass, bsp_utils.throttle(settings.throttleInterval, function(e) {
 
@@ -79,12 +77,12 @@ define([
                         var params = {
                             action : 'dashboardColumns-resize',
                             y : [],
-                            size : []
+                            width : []
                         };
 
                         $columns.each(function(yIndex, col) {
                             params.y.push(yIndex);
-                            params.size.push($(col).width());
+                            params.width.push($(col).width());
                         });
 
                         $.ajax({
@@ -92,8 +90,6 @@ define([
                             'type' : 'POST',
                             'data' : $.param(params, true)
                         });
-
-                        console.log(params);
                     });
 
                 /**
@@ -101,6 +97,7 @@ define([
                  */
                 $body.on('click', '.dashboard-edit', function () {
                     $(this).toggleClass('toggled');
+
                     $dashboard.toggleClass(settings.editModeClass);
                     $widgets.prop('draggable', !$widgets.prop('draggable'));
 
@@ -108,6 +105,7 @@ define([
 
                         $columns.each(function(yIndex, col) {
                             var $col = $(col);
+                            $col.data('actualWidth', $col.width());
                             insertColumnGutter($col);
                             $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
                                 insertRowButtons(dashboardWidget);
@@ -153,26 +151,12 @@ define([
                     });
                     $widget.next('.' + settings.addWidgetClass).detach();
                     $widget.detach();
-                });
 
-                $body.on('change', '.' + settings.columnSizerClass, function() {
-                    var $input = $(this);
-                    var $column = $input.parent();
-                    var currentSize = $column.css('flex-grow');
-
-                    if (!(currentSize === $input.val())) {
-                        $.ajax({
-                            'url' : settings.updateUrl,
-                            'type'   : 'post',
-                            'data': {
-                                'action' : 'dashboardColumns-resize',
-                                'y'      : getColumnIndex($column),
-                                'size'   : $input.val()
-                            }
-                        });
-
-                        $column.css('flex-grow', $input.val());
+                    //if no widgets remain in column, remove column
+                    if ($column.find(settings.widgetSelector).size() === 0) {
+                        $column.remove();
                     }
+
                 });
 
                 function dragStart(e) {
@@ -309,7 +293,7 @@ define([
                     return $(dashboardWidget).closest('.dashboard-column').find('.dashboard-widget').index(dashboardWidget);
                 }
 
-                function getAddWidgetButton(x, y, isAddColumnOperation) {
+                function createAddWidgetButton(x, y, isAddColumnOperation) {
                     if (typeof isAddColumnOperation === 'undefined') {
                         isAddColumnOperation = false;
                     }
@@ -321,19 +305,19 @@ define([
                     }).append($('<span/>').text("Add Widget"));
                 }
 
-                function getAddRowContainerAndButton(x, y) {
+                function createAddRowContainerAndButton(x, y) {
                     return $('<div/>', {
                         'class' : settings.addWidgetContainerClass
-                    }).append(getAddWidgetButton(x, y));
+                    }).append(createAddWidgetButton(x, y));
                 }
 
-                function getColumnGutterAndButton(y) {
+                function createColumnGutterAndButton(y) {
                     return $('<div/>', {
                         'class' : settings.columnGutterClass,
                         'draggable' : true
                     }).append($('<div/>', {
                         'class' : 'drag-handle'
-                    })).append(getAddWidgetButton(0, y, true));
+                    })).append(createAddWidgetButton(0, y, true));
                 }
 
                 function insertRowButtons(dashboardWidget) {
@@ -343,11 +327,11 @@ define([
                     //var $widget = $dashboardWidget.find('.widget').first();
 
                     if (xIndex === 0) {
-                        $dashboardWidget.before(getAddRowContainerAndButton(xIndex, yIndex));
+                        $dashboardWidget.before(createAddRowContainerAndButton(xIndex, yIndex));
                     }
                     //$widget.before(getAddColumnButton(yIndex));
 
-                    $dashboardWidget.after(getAddRowContainerAndButton(xIndex + 1, yIndex));
+                    $dashboardWidget.after(createAddRowContainerAndButton(xIndex + 1, yIndex));
                     //$widget.after(getAddColumnButton(yIndex + 1));
                 }
 
@@ -356,17 +340,10 @@ define([
                     var columnIndex = getColumnIndex($dashboardColumn);
 
                     if (columnIndex === 0) {
-                        $dashboardColumn.before(getColumnGutterAndButton(columnIndex));
+                        $dashboardColumn.before(createColumnGutterAndButton(columnIndex));
                     }
 
-                    $dashboardColumn.after(getColumnGutterAndButton(columnIndex + 1));
-
-                    //$dashboardColumn.prepend($('<input/>', {
-                    //        'class': settings.columnSizerClass,
-                    //        'name' : getColumnIndex(dashboardColumn),
-                    //        'value': $dashboardColumn.css('flex-grow')
-                    //    }
-                    //));
+                    $dashboardColumn.after(createColumnGutterAndButton(columnIndex + 1));
                 }
 
                 bsp_utils.onDomInsert(document, 'meta[name="widget"]', {
@@ -389,9 +366,10 @@ define([
                         if ($meta.attr('data-add-column') === 'true') {
                             var newColumn = $('<div/>', {
                                 'class' : 'dashboard-column',
-                                'style' : 'flex-grow: 1'
+                                'style' : 'flex: 320 320 auto'
                             });
                             $column.before(newColumn);
+                            insertColumnGutter(newColumn);
                             $column = newColumn;
                         }
 

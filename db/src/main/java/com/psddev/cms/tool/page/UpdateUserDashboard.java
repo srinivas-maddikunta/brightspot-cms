@@ -77,7 +77,7 @@ public class UpdateUserDashboard extends PageServlet {
 
         if (shouldAddColumn) {
             column = new DashboardColumn();
-            column.setSize(1);
+            column.setWidth(DashboardColumn.MINIMUM_WIDTH);
             columns.add(columnIndex, column);
         } else {
             column = columns.get(columnIndex);
@@ -133,10 +133,16 @@ public class UpdateUserDashboard extends PageServlet {
         ToolUser user = page.getUser();
         Dashboard dashboard = getDashboard(page);
 
-        int row = page.param(int.class, ROW_INDEX_KEY);
-        int col = page.param(int.class, COLUMN_INDEX_KEY);
+        int rowIndex = page.param(int.class, ROW_INDEX_KEY);
+        int colIndex = page.param(int.class, COLUMN_INDEX_KEY);
+        List<DashboardColumn> columns = dashboard.getColumns();
+        DashboardColumn column = columns.get(colIndex);
+        column.getWidgets().remove(rowIndex);
 
-        dashboard.getColumns().get(col).getWidgets().remove(row);
+        if (ObjectUtils.isBlank(column.getWidgets())) {
+            columns.remove(colIndex);
+        }
+
         user.setDashboard(dashboard);
         user.save();
     }
@@ -162,16 +168,16 @@ public class UpdateUserDashboard extends PageServlet {
         Dashboard dashboard = getDashboard(page);
 
         List<Integer> columnIndexes = page.params(int.class, COLUMN_INDEX_KEY);
-        List<Integer> sizes = page.params(int.class, "size");
+        List<Integer> widths = page.params(int.class, "width");
 
-        if (ObjectUtils.isBlank(columnIndexes) || ObjectUtils.isBlank(sizes)) {
+        if (ObjectUtils.isBlank(columnIndexes) || ObjectUtils.isBlank(widths)) {
             return;
         }
 
         List<DashboardColumn> columns = dashboard.getColumns();
 
         for (int i : columnIndexes) {
-            columns.get(i).setSize(sizes.get(i));
+            columns.get(i).setWidth(widths.get(i));
         }
 
         user.setDashboard(dashboard);

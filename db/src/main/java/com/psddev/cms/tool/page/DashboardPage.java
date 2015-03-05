@@ -47,7 +47,7 @@ public class DashboardPage extends PageServlet {
 
                     page.writeStart("div",
                             "class", "dashboard-column",
-                            "style", page.cssString("flex-grow", column.getSize()));
+                            "style", page.cssString("flex", column.getWidth() + " 320 auto"));
 
                         List<DashboardWidget> widgets = column.getWidgets();
 
