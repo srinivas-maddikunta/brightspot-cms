@@ -97,23 +97,7 @@ define([
                  */
                 $body.on('click', '.dashboard-edit', function () {
                     $(this).toggleClass('toggled');
-
-                    $dashboard.toggleClass(settings.editModeClass);
-                    $widgets.prop('draggable', !$widgets.prop('draggable'));
-
-                    if ($dashboard.hasClass(settings.editModeClass)) {
-
-                        $columns.each(function(yIndex, col) {
-                            var $col = $(col);
-                            $col.data('actualWidth', $col.width());
-                            insertColumnGutter($col);
-                            $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
-                                insertRowButtons(dashboardWidget);
-                            });
-                        });
-                    } else {
-                        $dashboard.find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass + ', .' + settings.columnSizerClass + ', .' + settings.columnGutterClass + ', .' + settings.addWidgetContainerClass).remove();
-                    }
+                    toggleEditMode();
                 });
 
                 /**
@@ -149,7 +133,7 @@ define([
                             'action' : 'dashboardWidgets-remove'
                         }
                     });
-                    $widget.next('.' + settings.addWidgetClass).detach();
+
                     $widget.detach();
 
                     //if no widgets remain in column, remove column
@@ -157,6 +141,7 @@ define([
                         $column.remove();
                     }
 
+                    refreshEditElements();
                 });
 
                 function dragStart(e) {
@@ -191,7 +176,8 @@ define([
                     if (this === settings.state.dragTarget
                         || this === settings.state.placeholder
                         || this === settings.state.activeWidget
-                        || typeof settings.state.activeWidget === 'undefined') {
+                        || typeof settings.state.activeWidget === 'undefined'
+                        || settings.state.activeWidget === null) {
                         return false;
                     }
 
@@ -224,7 +210,9 @@ define([
                     e.preventDefault();
                     e.stopPropagation();
 
-                    if (this === settings.state.dragTarget || this === settings.state.placeholder || this === settings.state.activeWidget) {
+                    if (this === settings.state.dragTarget
+                        || this === settings.state.placeholder
+                        || this === settings.state.activeWidget) {
                         return false;
                     }
 
@@ -242,13 +230,6 @@ define([
                     settings.state.dragTarget = null;
                 }
 
-                //function drop(e) {
-                //  if (e.stopPropagation) e.stopPropagation();
-                //  console.log("DROP() - begin");
-                //
-                //  console.log("DROP() - end");
-                //}
-
                 function dragEnd(e) {
                     var $widget = $(e.target);
                     $widget.toggleClass(settings.dragClass);
@@ -258,11 +239,13 @@ define([
                         return false;
                     }
 
-                    activeWidget.next('.' + settings.addWidgetClass).remove();
-                    $(settings.state.placeholder).replaceWith(activeWidget);
-
                     var x = getRowIndex(activeWidget);
                     var y = getColumnIndexFromWidget(activeWidget);
+
+                    $(settings.state.placeholder).replaceWith(activeWidget);
+                    settings.state.activeWidget = null;
+
+                    refreshEditElements();
 
                     $.ajax({
                         'type' : 'post',
@@ -277,8 +260,49 @@ define([
                                 'id'        : activeWidget.attr('data-widget-id')
                             }
                     });
+                }
 
-                    //e.originalEvent.dataTransfer.dropEffect = 'move';
+                function toggleEditMode() {
+
+                    $dashboard.toggleClass(settings.editModeClass);
+                    $widgets.prop('draggable', !$widgets.prop('draggable'));
+
+                    if ($dashboard.hasClass(settings.editModeClass)) {
+
+                        $columns.each(function(yIndex, col) {
+                            var $col = $(col);
+                            $col.data('actualWidth', $col.width());
+                            insertColumnGutter($col);
+                            $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
+                                insertRowButtons(dashboardWidget);
+                            });
+                        });
+                    } else {
+                        removeAllEditElements($dashboard);
+                    }
+
+                }
+
+                function refreshEditElements() {
+                    removeAllEditElements($dashboard);
+                    addAllEditElements($dashboard);
+                }
+
+                function addAllEditElements(dashboard) {
+                    var $dashboard = $(dashboard);
+
+                    $dashboard.find(settings.columnSelector).each(function(yIndex, col) {
+                        var $col = $(col);
+                        $col.data('actualWidth', $col.width());
+                        insertColumnGutter($col);
+                        $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
+                            insertRowButtons(dashboardWidget);
+                        });
+                    });
+                }
+
+                function removeAllEditElements(dashboard) {
+                    $(dashboard).find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass + ', .' + settings.columnGutterClass + ', .' + settings.addWidgetContainerClass).remove();
                 }
 
                 function getColumnIndexFromWidget(dashboardWidget) {
@@ -324,15 +348,12 @@ define([
                     var $dashboardWidget = $(dashboardWidget);
                     var xIndex = getRowIndex(dashboardWidget);
                     var yIndex = getColumnIndexFromWidget(dashboardWidget);
-                    //var $widget = $dashboardWidget.find('.widget').first();
 
                     if (xIndex === 0) {
                         $dashboardWidget.before(createAddRowContainerAndButton(xIndex, yIndex));
                     }
-                    //$widget.before(getAddColumnButton(yIndex));
 
                     $dashboardWidget.after(createAddRowContainerAndButton(xIndex + 1, yIndex));
-                    //$widget.after(getAddColumnButton(yIndex + 1));
                 }
 
                 function insertColumnGutter(dashboardColumn) {
