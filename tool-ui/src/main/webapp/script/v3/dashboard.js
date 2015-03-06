@@ -336,12 +336,19 @@ define([
                 }
 
                 function createColumnGutterAndButton(y) {
-                    return $('<div/>', {
-                        'class' : settings.columnGutterClass,
-                        'draggable' : true
-                    }).append($('<div/>', {
-                        'class' : 'drag-handle'
-                    })).append(createAddWidgetButton(0, y, true));
+
+                    var $gutter = $('<div/>', {
+                        'class' : settings.columnGutterClass
+                    });
+
+                    //first and last columns are not draggable
+                    if (y !== 0 && y !== $columns.size()) {
+                        $gutter.attr('draggable', true);
+                        $gutter.append($('<div/>', {
+                            'class' : 'drag-handle'
+                        }));
+                    }
+                    return $gutter.append(createAddWidgetButton(0, y, true));
                 }
 
                 function insertRowButtons(dashboardWidget) {
@@ -404,15 +411,7 @@ define([
 
 
                         newDashboardWidget.find('a:only-child').click();
-                        insertRowButtons(newDashboardWidget);
-                        var attachInterval = setInterval(function() {
-                            var newWidget = newDashboardWidget.find('.widget').first();
-                            if (newWidget) {
-                                //attachButtons(newDashboardWidget);
-                                insertRowButtons(attachInterval);
-                                this.clearInterval();
-                            }
-                        }, 1);
+                        refreshEditElements();
                     }
 
                 });
