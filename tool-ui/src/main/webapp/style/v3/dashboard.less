@@ -48,6 +48,7 @@
   }
 
   &.dashboard-editable {
+    margin: -20px 0;
 
     .dashboard-column {
       background: #efefef;
@@ -90,8 +91,8 @@
 }
 
 .dashboard-column-gutter {
-  border-left: 1px solid black;
-  border-right: 1px solid black;
+  border-left: 1px solid @color-shadow;
+  border-right: 1px solid @color-shadow;
   width: 80px;
   position:relative;
   cursor: ew-resize;
@@ -105,16 +106,6 @@
   position:relative;
   width: 100%;
   height: @-dashboard-button-size + 28px;
-
-  span {
-    &:before {
-      display: block;
-      content: '+';
-      font-size: 32px;
-      line-height: 32px;
-      text-decoration: none !important;
-    }
-  }
 }
 
 .dashboard-addWidgetButton {
@@ -137,18 +128,34 @@
     border-bottom: 2px solid #b8b8b8;
     color: @color-focus;
     border-radius: 2px;
+    text-decoration: none ;
+  }
+
+  span {
+    &:before {
+      display: block;
+      content: '+';
+      font-size: 28px;
+      text-decoration: none !important;
+    }
+  }
+
+  .dashboard-column-gutter & {
+    margin-top: 148px;
   }
 }
 
 .drag-handle {
   .icon;
   cursor: ew-resize;
-  &:before {
-    width: 100%;
+  color: @color-shadow;
+  &:before, &:after {
+    width:100%;
+    font-size: 14px;
     content: "\f141\0020\f141";
-  }
-  &:after {
-    width: 100%;
-    content: "\f141\0020\f141";
+    font-family: "FontAwesome";
+    text-align: center;
+    display:block;
+    height: 6px;
   }
 }
