@@ -67,7 +67,6 @@ public class DashboardPage extends PageServlet {
                 }
             page.writeEnd();
             page.writeStart("button", "class", "dashboard-edit");
-                page.write("Edit Dashboard");
             page.writeEnd();
         page.writeFooter();
     }

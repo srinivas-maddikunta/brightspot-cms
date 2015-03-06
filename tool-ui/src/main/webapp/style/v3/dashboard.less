@@ -1,8 +1,4 @@
 @-dashboard-button-size : 72px;
-@-dashboard-widget-border: darken(white, 28%);
-@-dashboard-add-button-bg: darken(white, 28%);
-@-dashboard-widget-margin: 12px;
-@-widget-size-reduction: (@-dashboard-button-size * 2) + (@-dashboard-widget-margin * 2);
 
 .dashboard-columns {
   margin: 0 -5px;
@@ -20,11 +16,26 @@
   position:fixed;
   bottom: 0;
   right: 0;
+  font-weight: normal;
+
+  &:before {
+    content: 'Edit Dashboard';
+  }
 
   &.toggled {
     background: @color-focus;
     color: white;
+
+    &:before {
+      font-family: 'FontAwesome';
+      content: '\f00c';
+      padding-right: 8px;
+    }
+    &:after {
+      content: 'Done Editing';
+    }
   }
+
 }
 
 .dashboard-widget {
@@ -99,7 +110,7 @@
 }
 
 .dashboard-addColumnButton, .dashboard-addWidgetButton {
-  background: @-dashboard-add-button-bg;
+  background: darken(white, 28%);
 }
 
 .dashboard-add-widget-container {
