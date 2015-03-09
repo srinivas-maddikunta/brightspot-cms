@@ -59,7 +59,7 @@ define([
                         dataTransfer.effectAllowed = 'none';
                         dataTransfer.nextColumnWidth = $gutter.next(settings.columnSelector).data('actualWidth');
                     }))
-                    .on('drag', '.' + settings.columnGutterClass, bsp_utils.throttle(settings.throttleInterval, function(e) {
+                    .on('drag', '.' + settings.columnGutterClass, bsp_utils.throttle(20, function(e) {
 
                         var $gutter = $(this);
                         var originalEvent = e.originalEvent;
