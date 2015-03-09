@@ -167,6 +167,7 @@ define([
                         var originalEvent = e.originalEvent;
                         var dataTransfer = originalEvent.dataTransfer;
 
+                        dataTransfer.setData('text/plain', ' ');
                         dataTransfer.originalX = originalEvent.pageX;
                         dataTransfer.prevColumnWidth = $gutter.prev(settings.columnSelector).data('actualWidth');
                         dataTransfer.effectAllowed = 'none';
