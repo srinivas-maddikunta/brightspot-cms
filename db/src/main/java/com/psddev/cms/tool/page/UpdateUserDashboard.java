@@ -117,7 +117,14 @@ public class UpdateUserDashboard extends PageServlet {
 
         List<DashboardColumn> columns = dashboard.getColumns();
         DashboardWidget movedWidget = columns.get(originalY).getWidgets().get(originalX);
-        columns.get(originalY).getWidgets().remove(originalX);
+        DashboardColumn oldColumn = columns.get(originalY);
+
+        //remove column if it will have no more widgets after move
+        if (oldColumn.getWidgets().size() <=1) {
+            columns.remove(oldColumn);
+        }
+
+        oldColumn.getWidgets().remove(originalX);
         columns.get(targetY).getWidgets().add(targetX, movedWidget);
 
         user.setDashboard(dashboard);

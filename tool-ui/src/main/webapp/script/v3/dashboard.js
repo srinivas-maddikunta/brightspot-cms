@@ -36,11 +36,124 @@ define([
                  * Drag events for widgets when in edit mode
                  */
                 $widgets
-                    .on('dragstart', dragStart)
-                    .on('dragend', dragEnd)
-                    .on('dragover', bsp_utils.throttle(settings.throttleInterval, dragOver))
-                    .on('dragenter', bsp_utils.throttle(settings.throttleInterval, dragEnter))
-                    .on('dragleave', bsp_utils.throttle(settings.throttleInterval, dragLeave));
+                    .on('dragstart', function(e) {
+                        settings.state.activeWidget = this;
+                        var $this = $(this);
+                        var $widget = $(e.target);
+                        var dataTransfer = e.originalEvent.dataTransfer;
+
+                        settings.state.originalY = getColumnIndexFromWidget($this.closest(settings.columnSelector));
+                        settings.state.originalX = getRowIndex($this);
+
+                        $widget.toggleClass(settings.dragClass);
+
+                        dataTransfer.setData('text/html', settings.state.activeWidget.innerHTML);
+                        dataTransfer.effectAllowed = 'move';
+                        dataTransfer.dropEffect = 'move';
+                    })
+                    .on('dragend', function(e) {
+                        var $widget = $(e.target);
+                        $widget.toggleClass(settings.dragClass);
+
+                        var activeWidget = $(settings.state.activeWidget);
+                        if (!settings.state.dragTarget) {
+                            return false;
+                        }
+
+                        var x = getRowIndex(activeWidget);
+                        var y = getColumnIndexFromWidget(activeWidget);
+
+                        var $oldColumn = $($(settings.columnSelector).get(y));
+                        if ($oldColumn.find(settings.widgetSelector).size() <= 1) {
+                            $oldColumn.remove();
+                        }
+
+                        $(settings.state.placeholder).replaceWith(activeWidget);
+                        settings.state.activeWidget = null;
+
+                        refreshEditElements();
+
+                        $.ajax({
+                            'type' : 'post',
+                            'url'  : settings.updateUrl,
+                            'data' :
+                            {
+                                'action'    : 'dashboardWidgets-move',
+                                'x'         : x,
+                                'y'         : y,
+                                'originalX' : settings.state.originalX,
+                                'originalY' : settings.state.originalY,
+                                'id'        : activeWidget.attr('data-widget-id')
+                            }
+                        });
+                    })
+                    .on('dragover', bsp_utils.throttle(settings.throttleInterval, function(e) {
+                        if (e.preventDefault) e.preventDefault();
+
+                        var dataTransfer = e.originalEvent.dataTransfer;
+                        dataTransfer.effectAllowed = 'move';
+                        dataTransfer.dropEffect = 'move';
+
+                        return false;
+                    }))
+                    .on('dragenter', bsp_utils.throttle(settings.throttleInterval, function(e) {
+                        e.preventDefault();
+
+                        if (this === settings.state.dragTarget
+                            || this === settings.state.placeholder
+                            || this === settings.state.activeWidget
+                            || typeof settings.state.activeWidget === 'undefined'
+                            || settings.state.activeWidget === null) {
+                            return false;
+                        }
+
+                        settings.state.dragTarget = this;
+
+                        var $dragTarget = $(this);
+
+                        if ($dragTarget.hasClass(settings.dragClass) || $dragTarget.hasClass(settings.placeholderClass)) {
+                            return false;
+                        }
+
+                        var prev = $dragTarget.prev();
+
+                        if (prev) {
+
+                            if (typeof settings.state.placeholder === 'undefined') {
+                                settings.state.placeholder = $('<div />', {'class': 'widget ' + settings.placeholderClass});
+                            }
+
+                            if (!prev.hasClass(settings.placeholderClass)) {
+                                $dragTarget.before(settings.state.placeholder);
+                            }
+
+                        }
+
+                        return false;
+                    }))
+                    .on('dragleave', bsp_utils.throttle(settings.throttleInterval, function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (this === settings.state.dragTarget
+                            || this === settings.state.placeholder
+                            || this === settings.state.activeWidget) {
+                            return false;
+                        }
+
+                        var $dropTarget = $(this);
+                        var prev = $dropTarget.prev();
+
+                        if (prev) {
+
+                            if (prev.hasClass(settings.placeholderClass)) {
+                                prev.detach();
+                            }
+
+                        }
+
+                        settings.state.dragTarget = null;
+                    }));
                 //webkit bug not fixed, cannot use drop event v. 39.0.2171.99 https://bugs.webkit.org/show_bug.cgi?id=37012
                 //$widgets.on('drop'     , drop);
 
@@ -143,124 +256,6 @@ define([
 
                     refreshEditElements();
                 });
-
-                function dragStart(e) {
-                    settings.state.activeWidget = this;
-                    var $this = $(this);
-                    var $widget = $(e.target);
-                    var dataTransfer = e.originalEvent.dataTransfer;
-
-                    settings.state.originalY = getColumnIndexFromWidget($this.closest(settings.columnSelector));
-                    settings.state.originalX = getRowIndex($this);
-
-                    $widget.toggleClass(settings.dragClass);
-
-                    dataTransfer.setData('text/html', settings.state.activeWidget.innerHTML);
-                    dataTransfer.effectAllowed = 'move';
-                    dataTransfer.dropEffect = 'move';
-                }
-
-                function dragOver(e) {
-                    if (e.preventDefault) e.preventDefault();
-
-                    var dataTransfer = e.originalEvent.dataTransfer;
-                    dataTransfer.effectAllowed = 'move';
-                    dataTransfer.dropEffect = 'move';
-
-                    return false;
-                }
-
-                function dragEnter(e) {
-                    e.preventDefault();
-
-                    if (this === settings.state.dragTarget
-                        || this === settings.state.placeholder
-                        || this === settings.state.activeWidget
-                        || typeof settings.state.activeWidget === 'undefined'
-                        || settings.state.activeWidget === null) {
-                        return false;
-                    }
-
-                    settings.state.dragTarget = this;
-
-                    var $dragTarget = $(this);
-
-                    if ($dragTarget.hasClass(settings.dragClass) || $dragTarget.hasClass(settings.placeholderClass)) {
-                        return false;
-                    }
-
-                    var prev = $dragTarget.prev();
-
-                    if (prev) {
-
-                        if (typeof settings.state.placeholder === 'undefined') {
-                            settings.state.placeholder = $('<div />', {'class': 'widget ' + settings.placeholderClass});
-                        }
-
-                        if (!prev.hasClass(settings.placeholderClass)) {
-                            $dragTarget.before(settings.state.placeholder);
-                        }
-
-                    }
-
-                    return false;
-                }
-
-                function dragLeave(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    if (this === settings.state.dragTarget
-                        || this === settings.state.placeholder
-                        || this === settings.state.activeWidget) {
-                        return false;
-                    }
-
-                    var $dropTarget = $(this);
-                    var prev = $dropTarget.prev();
-
-                    if (prev) {
-
-                        if (prev.hasClass(settings.placeholderClass)) {
-                            prev.detach();
-                        }
-
-                    }
-
-                    settings.state.dragTarget = null;
-                }
-
-                function dragEnd(e) {
-                    var $widget = $(e.target);
-                    $widget.toggleClass(settings.dragClass);
-
-                    var activeWidget = $(settings.state.activeWidget);
-                    if (!settings.state.dragTarget) {
-                        return false;
-                    }
-
-                    var x = getRowIndex(activeWidget);
-                    var y = getColumnIndexFromWidget(activeWidget);
-
-                    $(settings.state.placeholder).replaceWith(activeWidget);
-                    settings.state.activeWidget = null;
-
-                    refreshEditElements();
-
-                    $.ajax({
-                        'type' : 'post',
-                        'url'  : settings.updateUrl,
-                        'data' :
-                            {
-                                'action'    : 'dashboardWidgets-move',
-                                'x'         : x,
-                                'y'         : y,
-                                'originalX' : settings.state.originalX,
-                                'originalY' : settings.state.originalY,
-                                'id'        : activeWidget.attr('data-widget-id')
-                            }
-                    });
-                }
 
                 function toggleEditMode() {
 
