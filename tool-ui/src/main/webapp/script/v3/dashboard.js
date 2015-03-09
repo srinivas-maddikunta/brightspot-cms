@@ -205,6 +205,8 @@ define([
                             'type' : 'POST',
                             'data' : $.param(params, true)
                         });
+
+                        return false;
                     });
 
                 /**
