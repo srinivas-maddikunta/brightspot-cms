@@ -183,10 +183,12 @@ define([
                         var nextColNewWidth = dataTransfer.nextColumnWidth - horizontalDiff;
 
                         if (prevColNewWidth >= 320 && nextColNewWidth >= 320) {
-                            //$gutter.prev(settings.columnSelector).width(prevColNewWidth);
-                            //$gutter.next(settings.columnSelector).width(nextColNewWidth);
+                            $gutter.prev(settings.columnSelector).width(prevColNewWidth);
+                            $gutter.next(settings.columnSelector).width(nextColNewWidth);
                             $gutter.next(settings.columnSelector).css('flex', nextColNewWidth + ' 320 auto');
                             $gutter.prev(settings.columnSelector).css('flex', prevColNewWidth + ' 320 auto');
+                            //$gutter.next(settings.columnSelector).css('flex-grow', nextColNewWidth);
+                            //$gutter.prev(settings.columnSelector).css('flex-grow', prevColNewWidth);
                         }
                     }))
                     .on('dragend', '.' + settings.columnGutterClass, function(e) {
