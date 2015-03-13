@@ -33,7 +33,6 @@ public class Dashboard extends Record {
 
         for (ListIterator<DashboardColumn> i = columns.listIterator(columns.size()); i.hasPrevious();) {
             DashboardColumn column = i.previous();
-            column.setSize(1);
             Collections.sort(column.getWidgets(), new Comparator<DashboardWidget>() {
                 @Override
                 public int compare(DashboardWidget x, DashboardWidget y) {
