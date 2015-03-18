@@ -57,11 +57,6 @@
     }
   }
 
-  .widget-remove {
-    .popup-closeButton;
-    color: white;
-  }
-
   &.dashboard-editable {
     margin: -20px 0;
 
@@ -102,6 +97,19 @@
         display:none;
       }
     }
+  }
+}
+
+.widget-remove {
+  .popup-closeButton;
+  color: white;
+  height: 28px;
+  top: 0;
+  &:hover {
+    color: darken(white, 5%);
+    background: none;
+    box-shadow: none;
+    border: 0;
   }
 }
 
