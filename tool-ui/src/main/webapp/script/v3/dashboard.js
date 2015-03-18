@@ -120,7 +120,11 @@ define([
                         if (prev) {
 
                             if (typeof settings.state.placeholder === 'undefined') {
-                                settings.state.placeholder = $('<div />', {'class': 'widget ' + settings.placeholderClass});
+                                settings.state.placeholder =
+                                    $('<div />', {'class': 'widget ' + settings.placeholderClass})
+                                        .after($('<a/>', {
+                                            'class': settings.addWidgetClass,
+                                        }).append($('<span/>').text("Add Widget")));
                             }
 
                             if (!prev.hasClass(settings.placeholderClass)) {
@@ -221,21 +225,6 @@ define([
                 });
 
                 /**
-                 * Hover events to show/hide remove widget button
-                 * when dashboard edit mode is enabled
-                 */
-                $body.on({
-                    mouseenter: function(e) {
-                        $(this).append(
-                            $('<a/>', {'class' : settings.removeWidgetClass, 'href' : settings.updateUrl})
-                        );
-                    },
-                    mouseleave: function() {
-                        $(this).find('.'+ settings.removeWidgetClass).remove();
-                    }
-                }, '.' + settings.editModeClass + ' ' + settings.widgetSelector + ' h1');
-
-                /**
                  * Handles removing of widgets
                  */
                 $body.on('click', '.' + settings.removeWidgetClass, function(event) {
@@ -270,15 +259,7 @@ define([
                     $widgets.prop('draggable', !$widgets.prop('draggable'));
 
                     if ($dashboard.hasClass(settings.editModeClass)) {
-
-                        $columns.each(function(yIndex, col) {
-                            var $col = $(col);
-                            $col.data('actualWidth', $col.width());
-                            insertColumnGutter($col);
-                            $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
-                                insertRowButtons(dashboardWidget);
-                            });
-                        });
+                        addAllEditElements($dashboard);
                     } else {
                         removeAllEditElements($dashboard);
                     }
@@ -299,12 +280,15 @@ define([
                         insertColumnGutter($col);
                         $col.find(settings.widgetSelector).each(function(xIndex, dashboardWidget) {
                             insertRowButtons(dashboardWidget);
+                            $(dashboardWidget).find('h1').first().append($('<a/>', {'class' : settings.removeWidgetClass, 'href' : settings.updateUrl}));
                         });
                     });
                 }
 
                 function removeAllEditElements(dashboard) {
-                    $(dashboard).find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass + ', .' + settings.columnGutterClass + ', .' + settings.addWidgetContainerClass).remove();
+                    $(dashboard)
+                        .find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass + ', .' + settings.columnGutterClass + ', .' + settings.addWidgetContainerClass + ', .' + settings.removeWidgetClass)
+                        .remove();
                 }
 
                 function getColumnIndexFromWidget(dashboardWidget) {
