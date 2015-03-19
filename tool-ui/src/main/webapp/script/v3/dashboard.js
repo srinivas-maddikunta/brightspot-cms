@@ -177,8 +177,9 @@ define([
                         var $gutter = $(this);
                         var originalEvent = e.originalEvent;
                         var dataTransfer = originalEvent.dataTransfer;
-
-                        dataTransfer.setData('text/plain', ' ');
+                        
+                        //hides ghost element created from drag event
+                        dataTransfer.setDragImage(this, 10000, 10000);
                         dataTransfer.originalX = originalEvent.pageX;
                         dataTransfer.prevColumnWidth = $gutter.prev(settings.columnSelector).data('actualWidth');
                         dataTransfer.effectAllowed = 'none';
