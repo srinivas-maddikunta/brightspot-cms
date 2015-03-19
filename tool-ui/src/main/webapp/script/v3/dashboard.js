@@ -69,7 +69,7 @@ define([
                         }
 
                         $(settings.state.placeholder).replaceWith(activeWidget);
-                        settings.state.activeWidget = null;
+                        settings.state = {};
 
                         refreshEditElements();
 
@@ -87,51 +87,58 @@ define([
                             }
                         });
                     })
-                    .on('dragover', bsp_utils.throttle(settings.throttleInterval, function(e) {
-                        if (e.preventDefault) e.preventDefault();
-
-                        var dataTransfer = e.originalEvent.dataTransfer;
-                        dataTransfer.effectAllowed = 'move';
-                        dataTransfer.dropEffect = 'move';
-
-                        return false;
-                    }))
+                    //.on('dragover', bsp_utils.throttle(settings.throttleInterval, function(e) {
+                    //    if (e.preventDefault) e.preventDefault();
+                    //
+                    //    var dataTransfer = e.originalEvent.dataTransfer;
+                    //    dataTransfer.effectAllowed = 'move';
+                    //    dataTransfer.dropEffect = 'move';
+                    //
+                    //    return false;
+                    //}))
                     .on('dragenter', bsp_utils.throttle(settings.throttleInterval, function(e) {
                         e.preventDefault();
+                        var $dragTarget = $(this);
 
-                        if (this === settings.state.dragTarget
-                            || this === settings.state.placeholder
-                            || this === settings.state.activeWidget
+                        /**
+                         * Do nothing if:
+                         * 1. dragging over widget placeholder
+                         * 2. activeWidget does not exist
+                         * 3. dragging over widget placeholder
+                         */
+                        if (this === settings.state.placeholder
                             || typeof settings.state.activeWidget === 'undefined'
-                            || settings.state.activeWidget === null) {
+                            || settings.state.activeWidget === null
+                            || $dragTarget.hasClass(settings.placeholderClass)) {
                             return false;
+                        }
+
+                        /**
+                         * If dragging over currently active widget,
+                         * remove placeholder from UI
+                         */
+                        if (this === settings.state.activeWidget) {
+                            $(settings.state.placeholder).remove();
+                            settings.state.dragTarget = null;
+                            return false;
+                        }
+
+                        var siblingPlaceholder = $dragTarget.siblings('.' + settings.placeholderClass);
+                        var insertAfter = siblingPlaceholder.size() > 0 && siblingPlaceholder.index() > $dragTarget.index();
+
+                        if (typeof settings.state.placeholder !== 'undefined') {
+                            $(settings.state.placeholder).remove();
+                        }
+
+                        settings.state.placeholder = createPlaceholderElements(!insertAfter);
+
+                        if (insertAfter) {
+                            $dragTarget.before(settings.state.placeholder);
+                        } else {
+                            $dragTarget.after(settings.state.placeholder);
                         }
 
                         settings.state.dragTarget = this;
-
-                        var $dragTarget = $(this);
-
-                        if ($dragTarget.hasClass(settings.dragClass) || $dragTarget.hasClass(settings.placeholderClass)) {
-                            return false;
-                        }
-
-                        var prev = $dragTarget.prev();
-
-                        if (prev) {
-
-                            if (typeof settings.state.placeholder === 'undefined') {
-                                settings.state.placeholder =
-                                    $('<div />', {'class': 'widget ' + settings.placeholderClass})
-                                        .after($('<a/>', {
-                                            'class': settings.addWidgetClass,
-                                        }).append($('<span/>').text("Add Widget")));
-                            }
-
-                            if (!prev.hasClass(settings.placeholderClass)) {
-                                $dragTarget.before(settings.state.placeholder);
-                            }
-
-                        }
 
                         return false;
                     }))
@@ -145,13 +152,13 @@ define([
                             return false;
                         }
 
-                        var $dropTarget = $(this);
-                        var prev = $dropTarget.prev();
+                        var $dragTarget = $(this);
+                        var prev = $dragTarget.prev();
 
                         if (prev) {
 
                             if (prev.hasClass(settings.placeholderClass)) {
-                                prev.detach();
+                                prev.remove();
                             }
 
                         }
@@ -187,12 +194,8 @@ define([
                         var nextColNewWidth = dataTransfer.nextColumnWidth - horizontalDiff;
 
                         if (prevColNewWidth >= 320 && nextColNewWidth >= 320) {
-                            $gutter.prev(settings.columnSelector).width(prevColNewWidth);
-                            $gutter.next(settings.columnSelector).width(nextColNewWidth);
-                            $gutter.next(settings.columnSelector).css('flex', nextColNewWidth + ' 320 auto');
-                            $gutter.prev(settings.columnSelector).css('flex', prevColNewWidth + ' 320 auto');
-                            //$gutter.next(settings.columnSelector).css('flex-grow', nextColNewWidth);
-                            //$gutter.prev(settings.columnSelector).css('flex-grow', prevColNewWidth);
+                            $gutter.next(settings.columnSelector).css('flex', nextColNewWidth + ' 320 1px');
+                            $gutter.prev(settings.columnSelector).css('flex', prevColNewWidth + ' 320 1px');
                         }
                     }))
                     .on('dragend', '.' + settings.columnGutterClass, function(e) {
@@ -335,6 +338,21 @@ define([
                         }));
                     }
                     return $gutter.append(createAddWidgetButton(0, y, true));
+                }
+
+                function createPlaceholderElements(addButtonBefore) {
+                    var container = $('<div/>');
+                    var placeholderWidget = $('<div />', {'class': 'widget ' + settings.placeholderClass});
+
+                    container.append(placeholderWidget);
+
+                    if (addButtonBefore === true) {
+                        container.prepend(createAddRowContainerAndButton(0, 0));
+                    } else {
+                        container.append(createAddRowContainerAndButton(0, 0));
+                    }
+
+                    return container.contents();
                 }
 
                 function insertRowButtons(dashboardWidget) {
