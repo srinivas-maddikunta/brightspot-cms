@@ -185,7 +185,7 @@ define([
                         dataTransfer.effectAllowed = 'none';
                         dataTransfer.nextColumnWidth = $gutter.next(settings.columnSelector).data('actualWidth');
                     }))
-                    .on('drag', '.' + settings.columnGutterClass, bsp_utils.throttle(20, function(e) {
+                    .on('drag', '.' + settings.columnGutterClass, bsp_utils.throttle(10, function(e) {
 
                         var $gutter = $(this);
                         var originalEvent = e.originalEvent;
@@ -197,7 +197,11 @@ define([
                         if (prevColNewWidth >= 320 && nextColNewWidth >= 320) {
                             $gutter.next(settings.columnSelector).css('flex', nextColNewWidth + ' 320 1px');
                             $gutter.prev(settings.columnSelector).css('flex', prevColNewWidth + ' 320 1px');
+                            $gutter.next(settings.columnSelector).data('actualWidth', nextColNewWidth);
+                            $gutter.prev(settings.columnSelector).data('actualWidth', prevColNewWidth);
                         }
+
+                        return false;
                     }))
                     .on('dragend', '.' + settings.columnGutterClass, function(e) {
                         var params = {
