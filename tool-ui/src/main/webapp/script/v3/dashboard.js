@@ -124,18 +124,18 @@ define([
                         }
 
                         var siblingPlaceholder = $dragTarget.siblings('.' + settings.placeholderClass);
-                        var insertAfter = siblingPlaceholder.size() > 0 && siblingPlaceholder.index() > $dragTarget.index();
+                        var insertAfter = siblingPlaceholder.size() > 0 && siblingPlaceholder.index() < $dragTarget.index();
 
                         if (typeof settings.state.placeholder !== 'undefined') {
                             $(settings.state.placeholder).remove();
                         }
 
-                        settings.state.placeholder = createPlaceholderElements(!insertAfter);
+                        settings.state.placeholder = createPlaceholderElements(insertAfter);
 
                         if (insertAfter) {
-                            $dragTarget.before(settings.state.placeholder);
-                        } else {
                             $dragTarget.after(settings.state.placeholder);
+                        } else {
+                            $dragTarget.before(settings.state.placeholder);
                         }
 
                         settings.state.dragTarget = this;
@@ -177,7 +177,7 @@ define([
                         var $gutter = $(this);
                         var originalEvent = e.originalEvent;
                         var dataTransfer = originalEvent.dataTransfer;
-                        
+
                         //hides ghost element created from drag event
                         dataTransfer.setDragImage(this, 10000, 10000);
                         dataTransfer.originalX = originalEvent.pageX;
