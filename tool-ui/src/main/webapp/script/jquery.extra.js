@@ -142,131 +142,131 @@ $.throttle = function(interval, throttledFunction) {
 
 // Handles mouse dragging movements.
 (function() {
-    //var $dragCover,
-    //        endDrag,
-    //        $dragElement,
-    //        startDrag,
-    //        dragStartTimeout,
-    //        startPageX,
-    //        startPageY,
-    //        lastPageX,
-    //        lastPageY,
-    //        dragMoveCallback,
-    //        dragEndCallback;
-    //
-    //$dragCover = $('<div/>', {
-    //    'css': {
-    //        'height': '100%',
-    //        'left': 0,
-    //        'position': 'fixed',
-    //        'top': 0,
-    //        'user-select': 'none',
-    //        'width': '100%',
-    //        'z-index': 1000000
-    //    }
-    //});
-    //
-    //endDrag = function(event) {
-    //    if (dragStartTimeout) {
-    //        clearTimeout(dragStartTimeout);
-    //        dragStartTimeout = null;
-    //    }
-    //
-    //    dragMoveCallback = null;
-    //
-    //    $(doc.body).css('user-select', '');
-    //
-    //    if ($dragElement) {
-    //        $dragElement.unbind('.drag');
-    //        $dragElement = null;
-    //    }
-    //
-    //    if (dragEndCallback) {
-    //        dragEndCallback(event);
-    //        dragEndCallback = null;
-    //    }
-    //};
+    var $dragCover,
+            endDrag,
+            $dragElement,
+            startDrag,
+            dragStartTimeout,
+            startPageX,
+            startPageY,
+            lastPageX,
+            lastPageY,
+            dragMoveCallback,
+            dragEndCallback;
 
-    //$.drag = function(element, event, startCallback, moveCallback, endCallback) {
-    //    var data;
-    //
-    //    // Skip unless left click.
-    //    if (event.which !== 1 ||
-    //            event.altKey ||
-    //            event.ctrlKey ||
-    //            event.metaKey ||
-    //            event.shiftKey) {
-    //        return;
-    //    }
-    //
-    //    data = {
-    //        '$dragCover': $dragCover
-    //    };
-    //
-    //    // Reset in case we're in a bad state.
-    //    endDrag(event);
-    //
-    //    // Suppress native browser drag behaviors.
-    //    $(doc.body).css('user-select', 'none');
-    //
-    //    $dragElement = $(element);
-    //    $dragElement.bind('dragstart.drag', function() {
-    //        return false;
-    //    });
-    //
-    //    startPageX = lastPageX = event.pageX;
-    //    startPageY = lastPageY = event.pageY;
-    //
-    //    startDrag = function() {
-    //        var drag = function() {
-    //            dragMoveCallback = function(event) {
-    //                return moveCallback.call(element, event, data);
-    //            };
-    //
-    //            dragEndCallback = function(event) {
-    //                return endCallback.call(element, event, data);
-    //            };
-    //
-    //            $(doc.body).append($dragCover);
-    //            startCallback.call(element, event, data);
-    //        };
-    //
-    //        if (event.dragImmediately) {
-    //            drag();
-    //
-    //        } else {
-    //            dragStartTimeout = setTimeout(function() {
-    //                var deltaX = lastPageX - startPageX,
-    //                        deltaY = lastPageY - startPageY;
-    //
-    //                if (Math.sqrt(deltaX * deltaX + deltaY * deltaY) < (event.dragDistance || 5)) {
-    //                    startDrag();
-    //                    return;
-    //                }
-    //
-    //                drag();
-    //            }, (event.dragDelay || 100));
-    //        }
-    //    };
-    //
-    //    startDrag();
-    //};
+    $dragCover = $('<div/>', {
+        'css': {
+            'height': '100%',
+            'left': 0,
+            'position': 'fixed',
+            'top': 0,
+            'user-select': 'none',
+            'width': '100%',
+            'z-index': 1000000
+        }
+    });
 
-    //$win.mousemove($.throttle(50, function(event) {
-    //    if (dragStartTimeout) {
-    //        lastPageX = event.pageX;
-    //        lastPageY = event.pageY;
-    //    }
-    //
-    //    if (dragMoveCallback) {
-    //        dragMoveCallback(event);
-    //    }
-    //}));
-    //
-    //$win.mouseup(function(event) {
-    //    endDrag(event);
-    //    $dragCover.remove();
-    //});
+    endDrag = function(event) {
+        if (dragStartTimeout) {
+            clearTimeout(dragStartTimeout);
+            dragStartTimeout = null;
+        }
+
+        dragMoveCallback = null;
+
+        $(doc.body).css('user-select', '');
+
+        if ($dragElement) {
+            $dragElement.unbind('.drag');
+            $dragElement = null;
+        }
+
+        if (dragEndCallback) {
+            dragEndCallback(event);
+            dragEndCallback = null;
+        }
+    };
+
+    $.drag = function(element, event, startCallback, moveCallback, endCallback) {
+        var data;
+
+        // Skip unless left click.
+        if (event.which !== 1 ||
+                event.altKey ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey) {
+            return;
+        }
+
+        data = {
+            '$dragCover': $dragCover
+        };
+
+        // Reset in case we're in a bad state.
+        endDrag(event);
+
+        // Suppress native browser drag behaviors.
+        $(doc.body).css('user-select', 'none');
+
+        $dragElement = $(element);
+        $dragElement.bind('dragstart.drag', function() {
+            return false;
+        });
+
+        startPageX = lastPageX = event.pageX;
+        startPageY = lastPageY = event.pageY;
+
+        startDrag = function() {
+            var drag = function() {
+                dragMoveCallback = function(event) {
+                    return moveCallback.call(element, event, data);
+                };
+
+                dragEndCallback = function(event) {
+                    return endCallback.call(element, event, data);
+                };
+
+                $(doc.body).append($dragCover);
+                startCallback.call(element, event, data);
+            };
+
+            if (event.dragImmediately) {
+                drag();
+
+            } else {
+                dragStartTimeout = setTimeout(function() {
+                    var deltaX = lastPageX - startPageX,
+                            deltaY = lastPageY - startPageY;
+
+                    if (Math.sqrt(deltaX * deltaX + deltaY * deltaY) < (event.dragDistance || 5)) {
+                        startDrag();
+                        return;
+                    }
+
+                    drag();
+                }, (event.dragDelay || 100));
+            }
+        };
+
+        startDrag();
+    };
+
+    $win.mousemove($.throttle(50, function(event) {
+        if (dragStartTimeout) {
+            lastPageX = event.pageX;
+            lastPageY = event.pageY;
+        }
+
+        if (dragMoveCallback) {
+            dragMoveCallback(event);
+        }
+    }));
+
+    $win.mouseup(function(event) {
+        endDrag(event);
+        $dragCover.remove();
+    });
 }());
 
 // Returns true if the element should be in fixed CSS position.

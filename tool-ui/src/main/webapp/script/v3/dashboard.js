@@ -31,12 +31,14 @@ define([
                 var $dashboard = $(dashboard);
                 var $columns = $dashboard.find(settings.columnSelector);
                 var $widgets = $dashboard.find(settings.widgetSelector);
+                var draggableWidgetSelector = settings.widgetSelector + '[draggable="true"]';
 
                 /**
                  * Drag events for widgets when in edit mode
                  */
-                $widgets
-                    .on('dragstart', function(e) {
+                $body
+                    .on('dragstart', draggableWidgetSelector, function(e) {
+
                         settings.state.activeWidget = this;
                         var $this = $(this);
                         var $widget = $(e.target);
@@ -51,7 +53,7 @@ define([
                         dataTransfer.effectAllowed = 'move';
                         dataTransfer.dropEffect = 'move';
                     })
-                    .on('dragend', function(e) {
+                    .on('dragend', draggableWidgetSelector, function(e) {
                         var $widget = $(e.target);
                         $widget.toggleClass(settings.dragClass);
 
@@ -86,6 +88,7 @@ define([
                                 'id'        : activeWidget.attr('data-widget-id')
                             }
                         });
+
                     })
                     //.on('dragover', bsp_utils.throttle(settings.throttleInterval, function(e) {
                     //    if (e.preventDefault) e.preventDefault();
@@ -96,7 +99,7 @@ define([
                     //
                     //    return false;
                     //}))
-                    .on('dragenter', bsp_utils.throttle(settings.throttleInterval, function(e) {
+                    .on('dragenter', draggableWidgetSelector, bsp_utils.throttle(settings.throttleInterval, function(e) {
                         e.preventDefault();
                         var $dragTarget = $(this);
 
@@ -142,7 +145,7 @@ define([
 
                         return false;
                     }))
-                    .on('dragleave', bsp_utils.throttle(settings.throttleInterval, function(e) {
+                    .on('dragleave', draggableWidgetSelector, bsp_utils.throttle(settings.throttleInterval, function(e) {
                         e.preventDefault();
                         e.stopPropagation();
 
@@ -173,6 +176,8 @@ define([
                  */
                 $body
                     .on('dragstart', '.' + settings.columnGutterClass, bsp_utils.throttle(settings.throttleInterval, function(e) {
+
+                        // using this to disable global drag handling from v3.js #331
 
                         var $gutter = $(this);
                         var originalEvent = e.originalEvent;
@@ -280,6 +285,7 @@ define([
                 }
 
                 function addAllEditElements(dashboard) {
+                    DISABLE_DRAG_AND_DROP = true;
                     var $dashboard = $(dashboard);
 
                     $dashboard.find(settings.columnSelector).each(function(yIndex, col) {
@@ -294,6 +300,7 @@ define([
                 }
 
                 function removeAllEditElements(dashboard) {
+                    DISABLE_DRAG_AND_DROP = false;
                     $(dashboard)
                         .find('.' + settings.addWidgetClass + ', .' + settings.addColumnClass + ', .' + settings.columnGutterClass + ', .' + settings.addWidgetContainerClass + ', .' + settings.removeWidgetClass)
                         .remove();
