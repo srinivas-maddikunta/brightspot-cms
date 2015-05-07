@@ -118,38 +118,52 @@ public class ImageHotSpot {
                 Integer x1 = null;
                 Integer y1 = null;
                 for (HotSpotPoint hotSpot : hotSpots) {
-                    x1 = x1 == null || hotSpot.as(HotSpotPoint.Data.class).getX() < x1 ? hotSpot.as(HotSpotPoint.Data.class).getX() : x1;
-                    y1 = y1 == null || hotSpot.as(HotSpotPoint.Data.class).getY() < y1 ? hotSpot.as(HotSpotPoint.Data.class).getY() : y1;
-                    if (hotSpot instanceof HotSpotRegion) {
-                        x2 = x2 == null || (hotSpot.as(HotSpotPoint.Data.class).getX() + hotSpot.as(HotSpotRegion.Data.class).getWidth()) > x2 ? (hotSpot.as(HotSpotPoint.Data.class).getX() +  hotSpot.as(HotSpotRegion.Data.class).getWidth()) : x2;
-                        y2 = y2 == null || (hotSpot.as(HotSpotPoint.Data.class).getY() + hotSpot.as(HotSpotRegion.Data.class).getHeight()) > y2 ? (hotSpot.as(HotSpotPoint.Data.class).getY() +  hotSpot.as(HotSpotRegion.Data.class).getHeight()) : y2;
+                    HotSpotPoint.Data hotSpotData = hotSpot.as(HotSpotPoint.Data.class);
+                    if (hotSpotData.getX() != null && hotSpotData.getY() != null) {
+                        x1 = x1 == null || hotSpotData.getX() < x1 ? hotSpotData.getX() : x1;
+                        y1 = y1 == null || hotSpotData.getY() < y1 ? hotSpotData.getY() : y1;
+                        if (hotSpot instanceof HotSpotRegion) {
+                            HotSpotRegion.Data hotSpotRegionData = hotSpot.as(HotSpotRegion.Data.class);
+                            if (hotSpotRegionData.getWidth() != null && hotSpotRegionData.getHeight() != null) {
+                                x2 = x2 == null || (hotSpotData.getX() + hotSpotRegionData.getWidth()) > x2 ? (hotSpotData.getX() + hotSpotRegionData.getWidth()) : x2;
+                                y2 = y2 == null || (hotSpotData.getY() + hotSpotRegionData.getHeight()) > y2 ? (hotSpotData.getY() + hotSpotRegionData.getHeight()) : y2;
+                            }
+                        }
                     }
                 }
 
+                if (x1 == null || y1 == null) {
+                    return null;
+                }
+
                 x1 = ((Double) (x1 * widthScaleFactor)).intValue();
-                x2 = ((Double) (x2 * widthScaleFactor)).intValue();
                 y1 = ((Double) (y1 * heightScaleFactor)).intValue();
-                y2 = ((Double) (y2 * heightScaleFactor)).intValue();
 
-                int centerX = (x1 + x2) / 2;
-                int centerY = (y1 + y2) / 2;
+                if (x2 != null && y2 != null) {
+                    x2 = ((Double) (x2 * widthScaleFactor)).intValue();
+                    y2 = ((Double) (y2 * heightScaleFactor)).intValue();
 
-                x1 = centerX - (cropWidth / 2);
-                x2 = centerX + (cropWidth / 2);
-                y1 = centerY - (cropHeight / 2);
-                y2 = centerY + (cropHeight / 2);
+                    int centerX = (x1 + x2) / 2;
+                    int centerY = (y1 + y2) / 2;
+
+                    x1 = centerX - (cropWidth / 2);
+                    x2 = centerX + (cropWidth / 2);
+                    y1 = centerY - (cropHeight / 2);
+                    y2 = centerY + (cropHeight / 2);
+                }
 
                 if (x1 < 0) {
                     x1 = 0;
-                } else if (x2 > imageWidth) {
+                } else if (x2 != null && x2 > imageWidth) {
                     x1 = x1 - x2 + imageWidth;
                 }
 
                 if (y1 < 0) {
                     y1 = 0;
-                } else if (y2 > cropHeight) {
+                } else if (y2 != null && y2 > cropHeight) {
                     y1 = y1 - y2 + cropHeight;
                 }
+
                 return Arrays.asList(x1, y1, cropWidth, cropHeight);
             }
         }
