@@ -8,8 +8,17 @@ import com.psddev.dari.db.Record;
 
 public class ColumnDefinition extends Record {
 
+    private String name;
     private int height;
     private int width;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public int getHeight() {
         return height;

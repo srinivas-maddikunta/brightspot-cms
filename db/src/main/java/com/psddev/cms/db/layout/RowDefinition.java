@@ -78,7 +78,10 @@ public class RowDefinition extends Content {
                     continue;
                 }
 
-                ObjectField field = columnDefinition.createColumnField(newRowType, "column" + (i +1), topOffset, leftOffset);
+                ObjectField field = columnDefinition.createColumnField(newRowType,
+                        ObjectUtils.firstNonBlank(columnDefinition.getName(), "column" + (i +1)),
+                        topOffset,
+                        leftOffset);
                 leftOffset += columnDefinition.getWidth();
                 fields.add(field);
             }
