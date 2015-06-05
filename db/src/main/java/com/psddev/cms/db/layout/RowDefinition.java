@@ -6,7 +6,6 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 import com.psddev.cms.db.Content;
-import com.psddev.cms.db.ToolUi;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.ObjectField;
@@ -91,17 +90,9 @@ public class RowDefinition extends Content {
 
         typeState.putAll(rowType.getState().getSimpleValues());
         typeState.setId(typeId);
-
-        newRowType.setAssignableClassNames(null);
+        
         newRowType.setAbstract(false);
         newRowType.setEmbedded(true);
-        newRowType.setGroups(null);
-        newRowType.setIndexes(null);
-        newRowType.setJavaBeanProperty(null);
-        newRowType.setModificationClasses(null);
-        newRowType.setObjectClassName(null);
-        newRowType.setSuperClassNames(null);
-        newRowType.as(ToolUi.class).setNoteHtml(null);
 
         newRowType.setDisplayName(getName());
         newRowType.setFields(fields);
