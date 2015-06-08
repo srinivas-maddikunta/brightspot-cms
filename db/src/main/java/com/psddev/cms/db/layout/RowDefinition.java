@@ -15,7 +15,7 @@ import com.psddev.dari.util.ObjectUtils;
 
 public class RowDefinition extends Content {
 
-    @Indexed
+    @Indexed(unique = true)
     @Required
     private String name;
 
