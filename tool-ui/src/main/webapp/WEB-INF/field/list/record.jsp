@@ -588,9 +588,18 @@ if (!isValueExternal) {
                 ObjectType itemType = itemState.getType();
                 Date itemPublishDate = itemState.as(Content.ObjectModification.class).getPublishDate();
 
+                String previewField = itemType.getPreviewField();
+
+                if (previewField.lastIndexOf("/") != -1) {
+                    previewField = previewField.substring(0, previewField.lastIndexOf("/"));
+                }
+
+                State previewState = State.getInstance(itemState.get(previewField));
+
                 wp.writeStart("li",
                         "data-type", wp.getObjectLabel(itemType),
                         "data-label", wp.getObjectLabel(item),
+                        "data-visibility", previewState != null ? previewState.getVisibilityLabel() : null,
                         
                         // Add the image url for the preview thumbnail, plus the field name that provided the thumbnail
                         // so if that field is changed the front-end knows that the thumbnail should also be updated
