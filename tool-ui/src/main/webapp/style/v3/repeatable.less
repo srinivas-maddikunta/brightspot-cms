@@ -1,3 +1,18 @@
+// Mixin to display a [Draft] indicator
+// Use in an :after rule such as:
+// .myclass[data-visibility]:after { .draft-label; }
+.draft-label() {
+  content: attr(data-visibility);
+  position:absolute;
+  left:1em;
+  top:3em; // push down below the counter
+  color:#fff;
+  background-color: rgba(0,0,0,0.8);
+  border: 2px solid rgba(255,255,255,0.8);
+  padding:2px 4px;
+  border-radius:2px;
+}
+
 .repeatableForm {
   > ol,
   > ul {
@@ -284,6 +299,10 @@
           width:20px;
           text-align:center;
           line-height:16px;
+        }
+
+        &[data-visibility]:after {
+          .draft-label;
         }
 
       }

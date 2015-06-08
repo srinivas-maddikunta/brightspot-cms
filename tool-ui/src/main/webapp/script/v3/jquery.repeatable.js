@@ -1251,6 +1251,7 @@ The HTML within the repeatable element must conform to these standards:
                 var $carouselTile;
                 var preview = $item.attr('data-preview');
                 var label = $item.attr('data-label');
+                var draft;
                 
                 if (!carousel) {
                     return;
@@ -1275,6 +1276,12 @@ The HTML within the repeatable element must conform to these standards:
                     'data-dynamic-text': '${content.label}'
 
                 }).appendTo($carouselTile);
+
+                // Determine if the item is a draft, and if so add an indicator to the carousel tile
+                draft = $item.attr('data-visibility');
+                if (draft) {
+                    $carouselTile.attr('data-visibility', draft);
+                }
                 
                 // On the item, save a reference to the carousel tile,
                 // so later if user changes sort order of the items,
