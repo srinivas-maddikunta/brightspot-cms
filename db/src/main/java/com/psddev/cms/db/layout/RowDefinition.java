@@ -42,7 +42,7 @@ public class RowDefinition extends Content {
     }
 
     public String createInstanceTypeName() {
-        return "cms.row" + getId();
+        return "com.psddev.cms.db.layout.row." + getName();
     }
 
     public List<ObjectField> createFields(ObjectType type, int topOffset, int leftOffset) {
