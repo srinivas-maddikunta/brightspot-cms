@@ -74,6 +74,7 @@ public abstract class Column extends Record {
             List<ObjectField> newFields = new ArrayList<>();
 
             for (RowDefinition rowDefinition : getRowDefinitions()) {
+                rowDefinition.getState().getExtras().put("isEmbedded", true);
                 List<ObjectField> rowFields = rowDefinition.createFields(type, topOffset, leftOffset);
 
                 for (ObjectField field : rowFields) {

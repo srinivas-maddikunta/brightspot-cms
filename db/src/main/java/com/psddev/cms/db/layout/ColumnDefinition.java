@@ -43,6 +43,4 @@ public class ColumnDefinition extends Record {
 
         return column.createFields(objectType, width, topOffset, leftOffset);
     }
-
-
 }

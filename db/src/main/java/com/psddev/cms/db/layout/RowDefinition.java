@@ -75,6 +75,11 @@ public class RowDefinition extends Content {
      */
     @Override
     public void afterSave() {
+
+        if (ObjectUtils.firstNonNull((Boolean) this.getState().getExtra("isEmbedded"), false)) {
+            return;
+        }
+
         DatabaseEnvironment environment = Database.Static.getDefault().getEnvironment();
         ObjectType newRowType = new ObjectType();
         String typeName = createInstanceTypeName();
