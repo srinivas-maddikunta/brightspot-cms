@@ -13,6 +13,10 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 
+/**
+ * Allows creation of editorially defined
+ * {@link Row} ObjectTypes.
+ */
 public class RowDefinition extends Content {
 
     @Indexed(unique = true)
@@ -63,7 +67,11 @@ public class RowDefinition extends Content {
     }
 
     /**
-     * Dynamically generates new ObjectType representation of Row
+     * Generates new {@link Row} ObjectType, based on
+     * the {@link RowDefinition}. Fields for each column
+     * will be created. The Field UI is defined by calculating
+     * values to create a {@link com.psddev.cms.db.ToolUiLayoutElement}
+     * for each field.
      */
     @Override
     public void afterSave() {
