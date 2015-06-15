@@ -2286,10 +2286,10 @@ public class ToolPageContext extends WebPageContext {
                 request.setAttribute("containerObject", object);
             }
 
-            List<ToolUiLayoutElement> layoutPlaceholders = type.as(ToolUi.class).getLayoutPlaceholders();
+            List<ToolUiLayoutElement> layoutPlaceholders = type != null ? type.as(ToolUi.class).getLayoutPlaceholders() : null;
             String layoutPlaceholdersJson = null;
 
-            if (!layoutPlaceholders.isEmpty()) {
+            if (!ObjectUtils.isBlank(layoutPlaceholders)) {
                 List<Map<String, Object>> jsons = new ArrayList<Map<String, Object>>();
 
                 for (ToolUiLayoutElement element : layoutPlaceholders) {
@@ -3215,6 +3215,10 @@ public class ToolPageContext extends WebPageContext {
      * @param If {@code null}, returns {@code true}.
      */
     public boolean hasPermission(String permissionId) {
+        ToolPermissionProvider provider = getToolPermissionProvider();
+        if (provider != null) {
+            return provider.hasPermission(this, permissionId);
+        }
         ToolUser user = getUser();
 
         return user != null &&
@@ -3237,6 +3241,20 @@ public class ToolPageContext extends WebPageContext {
                 return true;
             }
         }
+    }
+
+    private transient boolean checkedPermissionProvider;
+    private transient ToolPermissionProvider permissionProvider;
+
+    /**
+     * Returns the {@link ToolPermissionProvider} if configured.
+     */
+    private ToolPermissionProvider getToolPermissionProvider() {
+        if (!checkedPermissionProvider) {
+            permissionProvider = ToolPermissionProvider.getDefault();
+            checkedPermissionProvider = true;
+        }
+        return permissionProvider;
     }
 
     // --- Content.Static bridge ---
@@ -3264,10 +3282,17 @@ public class ToolPageContext extends WebPageContext {
     }
 
     /**
-     * @see Content.Static#trash
+     * @see {@link com.psddev.cms.db.Content.Static#trash(Object, com.psddev.cms.db.Site, com.psddev.cms.db.ToolUser)}
      */
     public void trash(Object object) {
         Content.Static.trash(object, getSite(), getUser());
+    }
+
+    /**
+     * @see {@link com.psddev.cms.db.Content.Static#restore(Object, com.psddev.cms.db.Site, com.psddev.cms.db.ToolUser)}
+     */
+    public void restore(Object object) {
+        Content.Static.restore(object, getSite(), getUser());
     }
 
     /** @see Content.Static#purge */
