@@ -27,7 +27,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
       $.each(placeholders, function(i, placeholder) {
         setMaxes(placeholder);
-      })
+      });
 
       $fields.each(function() {
         setMaxes($.parseJSON($(this).attr('data-layout-field')));
@@ -44,7 +44,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         'css': {
           'padding-bottom': (maxBottom / maxRight * 100) + '%'
         }
-      })
+      });
 
       var $container = $('<div/>', {
         'class': 'inputLayout-container'
