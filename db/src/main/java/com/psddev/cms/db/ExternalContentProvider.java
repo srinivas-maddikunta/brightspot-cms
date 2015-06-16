@@ -95,10 +95,78 @@ public interface ExternalContentProvider {
         }
     }
 
-    /**
-     * {@link ExternalContentProvider} for
-     * <a href="https://pinterest.com/">Pinterest</a>.
-     */
+    public static class Instagram extends ExternalContentProvider.RichExternalContentProvider {
+
+        private static final Pattern URL_PATTERN = Pattern.compile("(?i)https?://instagr(?:\\.am|am\\.com)/p/([^/]+).*");
+
+        @Override
+        protected Pattern getUrlPattern() {
+            return URL_PATTERN;
+        }
+
+        @Override
+        protected void updateHtml(Matcher urlMatcher, HtmlWriter html) throws IOException {
+            html.writeStart("iframe",
+                    "src", "//instagram.com/p/" + urlMatcher.group(1) + "/embed/",
+                    "width", 640,
+                    "height", 640,
+                    "frameborder", 0,
+                    "scrolling", "no");
+            html.writeEnd();
+        }
+
+        @Override
+        protected void updateResponse(Map<String, Object> response) {
+            response.put("width", 640);
+            response.put("height", 640);
+        }
+    }
+
+    public static class Vine extends RichExternalContentProvider {
+
+        private static final Pattern URL_PATTERN = Pattern.compile("\"(?i)https?:(//vine.co/[^/]+/[^/]+).*\"");
+
+        @Override
+        protected Pattern getUrlPattern() {
+            return URL_PATTERN;
+        }
+
+        @Override
+        protected void updateHtml(Matcher urlMatcher, HtmlWriter html) throws IOException {
+            html.writeStart("iframe",
+                    "src", "https://vine.co/v/" + urlMatcher.group(1) + "/embed/simple",
+                    "width", 600,
+                    "height", 600,
+                    "frameborder", 0,
+                    "scrolling", "no");
+            html.writeEnd();
+        }
+
+        @Override
+        protected void updateResponse(Map<String, Object> response) {
+            response.put("width", 600);
+            response.put("height", 600);
+        }
+    }
+
+    public static class Storify extends RichExternalContentProvider {
+
+        private static final Pattern URL_PATTERN = Pattern.compile("(?i)https?:(//storify.com/[^/]+/[^/]+).*");
+
+        @Override
+        protected Pattern getUrlPattern() {
+            return URL_PATTERN;
+        }
+
+        @Override
+        protected void updateHtml(Matcher urlMatcher, HtmlWriter html) throws IOException {
+            html.writeStart("script",
+                    "type", "text/javascript",
+                    "src", urlMatcher.group(1) + ".js");
+            html.writeEnd();
+        }
+    }
+
     public static class Pinterest extends RichExternalContentProvider {
 
         private static final Pattern URL_PATTERN = Pattern.compile("(?i)https?://(?:www\\.)?pinterest.com/([^/]+)(/[^/]+)?.*");
@@ -128,27 +196,23 @@ public interface ExternalContentProvider {
             html.writeEnd();
 
             html.writeStart("script", "type", "text/javascript");
-                html.writeRaw("(function() {");
-                    html.writeRaw("var w = window, d, f, p;");
-                    html.writeRaw("if (w.BRIGHTSPOT_PINTEREST) { return; }");
-                    html.writeRaw("d = w.document, f = d.getElementsByTagName('SCRIPT')[0], p = d.createElement('SCRIPT');");
-                    html.writeRaw("p.type = 'text/javascript';");
-                    html.writeRaw("p.async = true;");
-                    html.writeRaw("p.src = '//assets.pinterest.com/js/pinit.js';");
-                    html.writeRaw("f.parentNode.insertBefore(p, f);");
-                    html.writeRaw("w.BRIGHTSPOT_PINTEREST = true;");
-                html.writeRaw("})()");
+            html.writeRaw("(function() {");
+            html.writeRaw("var w = window, d, f, p;");
+            html.writeRaw("if (w.BRIGHTSPOT_PINTEREST) { return; }");
+            html.writeRaw("d = w.document, f = d.getElementsByTagName('SCRIPT')[0], p = d.createElement('SCRIPT');");
+            html.writeRaw("p.type = 'text/javascript';");
+            html.writeRaw("p.async = true;");
+            html.writeRaw("p.src = '//assets.pinterest.com/js/pinit.js';");
+            html.writeRaw("f.parentNode.insertBefore(p, f);");
+            html.writeRaw("w.BRIGHTSPOT_PINTEREST = true;");
+            html.writeRaw("})()");
             html.writeEnd();
         }
     }
 
-    /**
-     * {@link ExternalContentProvider} for
-     * <a href="http://storify.com/">Storify</a>.
-     */
-    public static class Storify extends RichExternalContentProvider {
+    public static class Facebook extends RichExternalContentProvider {
 
-        private static final Pattern URL_PATTERN = Pattern.compile("(?i)https?:(//storify.com/[^/]+/[^/]+).*");
+        private static final Pattern URL_PATTERN = Pattern.compile("(?i)https?://(?:www\\.)?facebook.com/([^/]+)(/[^/]+)?.*");
 
         @Override
         protected Pattern getUrlPattern() {
@@ -156,11 +220,21 @@ public interface ExternalContentProvider {
         }
 
         @Override
-        protected void updateHtml(Matcher urlMatcher, HtmlWriter html) throws IOException {
-            html.writeStart("script",
-                    "type", "text/javascript",
-                    "src", urlMatcher.group(1) + ".js");
-            html.writeEnd();
+        protected void updateHtml(Matcher matcher, HtmlWriter page) throws IOException {
+            page.writeStart("script");
+            page.writeRaw("(function(d, s, id) {\n" +
+                    "  var js, fjs = d.getElementsByTagName(s)[0];\n" +
+                    "  if (d.getElementById(id)) return;\n" +
+                    "  js = d.createElement(s); js.id = id;\n" +
+                    "  js.src = \"//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.2\";\n" +
+                    "  fjs.parentNode.insertBefore(js, fjs);\n" +
+                    "}(document, 'script', 'facebook-jssdk'));");
+            page.writeEnd();
+
+            page.writeStart("div",
+                    "class", "fb-post",
+                    "data-href", matcher.group(0));
+            page.writeEnd();
         }
     }
 }
