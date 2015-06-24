@@ -59,13 +59,13 @@ abstract class LayoutNode {
      */
     public static class ContainerNode extends LayoutNode {
 
-        private Collection<LayoutNode> childNodes;
+        private List<LayoutNode> childNodes;
 
-        public Collection<LayoutNode> getChildNodes() {
+        public List<LayoutNode> getChildNodes() {
             return childNodes;
         }
 
-        public void setChildNodes(Collection<LayoutNode> childNodes) {
+        public void setChildNodes(List<LayoutNode> childNodes) {
             this.childNodes = childNodes;
         }
     }
