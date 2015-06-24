@@ -68,8 +68,6 @@ abstract class LayoutNode {
         this.layoutTopOffset = layoutTopOffset;
     }
 
-
-
     /**
      * A ContainerNode is a node that contains multiple
      * child nodes.
@@ -80,6 +78,9 @@ abstract class LayoutNode {
         private List<LayoutNode> childNodes;
 
         public List<LayoutNode> getChildNodes() {
+            if (childNodes == null) {
+                childNodes = new ArrayList<>();
+            }
             return childNodes;
         }
 
