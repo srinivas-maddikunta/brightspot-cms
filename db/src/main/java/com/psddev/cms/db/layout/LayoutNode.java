@@ -23,19 +23,10 @@ abstract class LayoutNode {
 
     // Calculated values
     protected transient Collection<LayoutNode> siblings;
-    protected transient double relativeWidth;
-    protected transient int depth;
-    protected transient int layoutWidth;
+    protected transient double layoutWidth;
+    protected transient double layoutLeftOffset;
+    protected transient int layoutHeight;
     protected transient int layoutTopOffset;
-    protected transient int layoutLeftOffset;
-
-    public double getRelativeWidth() {
-        return relativeWidth;
-    }
-
-    public void setRelativeWidth(double relativeWidth) {
-        this.relativeWidth = relativeWidth;
-    }
 
     public int getWidth() {
         return width;
@@ -52,6 +43,32 @@ abstract class LayoutNode {
     public void setParent(LayoutNode parent) {
         this.parent = parent;
     }
+
+    protected double getLayoutWidth() {
+        return layoutWidth;
+    }
+
+    protected void setLayoutWidth(double layoutWidth) {
+        this.layoutWidth = layoutWidth;
+    }
+
+    protected double getLayoutLeftOffset() {
+        return layoutLeftOffset;
+    }
+
+    protected void setLayoutLeftOffset(double layoutLeftOffset) {
+        this.layoutLeftOffset = layoutLeftOffset;
+    }
+
+    protected int getLayoutTopOffset() {
+        return layoutTopOffset;
+    }
+
+    protected void setLayoutTopOffset(int layoutTopOffset) {
+        this.layoutTopOffset = layoutTopOffset;
+    }
+
+
 
     /**
      * A ContainerNode is a node that contains multiple
@@ -126,37 +143,45 @@ abstract class LayoutNode {
      */
     public static void setAllLayoutAttributesFromRoot(LayoutNode rootNode) {
         setAllLayoutAttributes(rootNode, 1, 0, 0);
-
-        //TODO: euclidean to calculate lcm for realWidth of all elements
     }
 
     /**
      * Recursively sets layout fields
      * @param node for visiting all descendant nodes
      * @param relativeWidth
-     * @param layoutTopOffset
-     * @param layoutLeftOffset
      */
-    private static void setAllLayoutAttributes(LayoutNode node, double relativeWidth, int layoutTopOffset, int layoutLeftOffset) {
+    private static void setAllLayoutAttributes(LayoutNode node, double relativeWidth, double leftOffset, int topOffset) {
         // sets relative width for both node types
-        node.setRelativeWidth(relativeWidth);
-        node.layoutTopOffset = layoutTopOffset;
-        node.layoutLeftOffset = layoutLeftOffset;
+        node.setLayoutWidth(relativeWidth);
+        node.setLayoutLeftOffset(leftOffset);
+        node.setLayoutTopOffset(topOffset);
 
         // recursively sets calculated layout fields
         if (node instanceof ContainerNode) {
             ContainerNode containerNode = (ContainerNode) node;
             List<LayoutNode> childNodes = containerNode.getChildNodes();
-            int widthsProduct = 0;
-            for (LayoutNode childNode : childNodes) {
-                widthsProduct = widthsProduct == 0 ? childNode.getWidth() : widthsProduct * childNode.getWidth();
-            }
 
-            for (LayoutNode childNode : childNodes) {
-                setAllLayoutAttributes(childNode,
-                        relativeWidth / widthsProduct * childNode.getWidth(),
-                        layoutTopOffset,
-                        layoutLeftOffset);
+            if (containerNode.getContainerType().equals(ContainerNode.ContainerType.ROW)) {
+                // TODO: calculate height/topOffsets so siblings match heights
+                // TODO: determine if editors should be able to define heights in RowDefinition for visual preview purposes
+
+                //gets cumulative width product
+                int cumulativeWidth = 0;
+                for (LayoutNode childNode : childNodes) {
+                    cumulativeWidth = cumulativeWidth == 0 ? childNode.getWidth() : cumulativeWidth + childNode.getWidth();
+                }
+
+                for (LayoutNode childNode : childNodes) {
+                    double calculatedWidth = relativeWidth / cumulativeWidth * childNode.getWidth();
+                    setAllLayoutAttributes(childNode, calculatedWidth, leftOffset, topOffset);
+                    leftOffset += calculatedWidth;
+                }
+            } else {
+
+                // recursive call to set
+                for (LayoutNode childNode : childNodes) {
+                    setAllLayoutAttributes(childNode, relativeWidth, leftOffset, topOffset + 1);
+                }
             }
         }
     }
