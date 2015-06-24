@@ -92,6 +92,8 @@ public class RowDefinition extends Content {
         for (LayoutNode.FieldNode fieldNode : LayoutNode.getAllFieldNodes(rootNode)) {
             ObjectField realField = new ObjectField(type, fieldNode.getFieldWithToolUiLayoutElement().toDefinition());
             realField.setInternalType(ObjectField.RECORD_TYPE);
+
+            //TODO: add type restrictions to Column$Cell
             realField.getTypes().add(ObjectType.getInstance(Record.class));
             fields.add(realField);
         }
