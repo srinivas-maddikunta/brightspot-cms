@@ -34,6 +34,7 @@ public abstract class Column extends Record {
 
             LayoutNode.FieldNode fieldNode = new LayoutNode.FieldNode();
             fieldNode.setField(field);
+            fieldNode.setWidth(width);
             return fieldNode;
         }
 
