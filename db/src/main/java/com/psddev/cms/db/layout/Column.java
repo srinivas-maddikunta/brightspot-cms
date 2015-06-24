@@ -3,24 +3,13 @@ package com.psddev.cms.db.layout;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.psddev.cms.db.ToolUi;
-import com.psddev.cms.db.ToolUiLayoutElement;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Record;
 
 public abstract class Column extends Record {
 
-    abstract List<ObjectField> createFields(ObjectType type, int width, int topOffset, int leftOffset);
-
-    static void setLayoutField(ObjectField field, int width, int topOffset, int leftOffset) {
-        ToolUiLayoutElement layoutElement = new ToolUiLayoutElement();
-        layoutElement.setTop(topOffset);
-        layoutElement.setLeft(leftOffset);
-        layoutElement.setWidth(width);
-        layoutElement.setHeight(1);
-        field.as(ToolUi.class).setLayoutField(layoutElement);
-    }
+    abstract LayoutNode createLayoutNodes(ObjectType type, int width);
 
     public static class Cell extends Column {
         @Required
@@ -35,18 +24,17 @@ public abstract class Column extends Record {
         }
 
         @Override
-        List<ObjectField> createFields(ObjectType type, int width, int topOffset, int leftOffset) {
+        LayoutNode createLayoutNodes(ObjectType type, int width) {
             ObjectField field = new ObjectField(type, null);
 
             field.setDisplayName(this.getName());
             field.setInternalName(this.getName());
             field.setInternalType(ObjectField.RECORD_TYPE);
             field.getTypes().add(ObjectType.getInstance(Cell.class));
-            setLayoutField(field, width, topOffset, leftOffset);
 
-            List<ObjectField> fields = new ArrayList<>();
-            fields.add(field);
-            return fields;
+            LayoutNode.FieldNode fieldNode = new LayoutNode.FieldNode();
+            fieldNode.setField(field);
+            return fieldNode;
         }
 
     }
@@ -69,23 +57,21 @@ public abstract class Column extends Record {
         }
 
         @Override
-        List<ObjectField> createFields(ObjectType type, int width, int topOffset, int leftOffset) {
+        LayoutNode createLayoutNodes(ObjectType type, int width) {
 
-            List<ObjectField> newFields = new ArrayList<>();
+            LayoutNode.ContainerNode containerNode = new LayoutNode.ContainerNode();
+            containerNode.setWidth(width);
 
             for (RowDefinition rowDefinition : getRowDefinitions()) {
                 rowDefinition.getState().getExtras().put("isEmbedded", true);
-                List<ObjectField> rowFields = rowDefinition.createFields(type, topOffset, leftOffset);
-
-                for (ObjectField field : rowFields) {
-                    setLayoutField(field, width, topOffset, leftOffset);
-                    topOffset += 1;
+                LayoutNode node = rowDefinition.createLayoutNode(type);
+                if (node != null) {
+                    node.setParent(containerNode);
+                    containerNode.getChildNodes().add(node);
                 }
-
-                newFields.addAll(rowFields);
             }
 
-            return newFields;
+            return containerNode;
         }
     }
 }

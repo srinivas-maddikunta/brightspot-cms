@@ -17,14 +17,25 @@ import com.psddev.dari.db.ObjectField;
  */
 abstract class LayoutNode {
 
-    // Values from Definition
+    // Values from Definitions
     private int width;
     private LayoutNode parent;
 
     // Calculated values
     protected transient Collection<LayoutNode> siblings;
-    protected transient int realWidth;
+    protected transient double relativeWidth;
     protected transient int depth;
+    protected transient int layoutWidth;
+    protected transient int layoutTopOffset;
+    protected transient int layoutLeftOffset;
+
+    public double getRelativeWidth() {
+        return relativeWidth;
+    }
+
+    public void setRelativeWidth(double relativeWidth) {
+        this.relativeWidth = relativeWidth;
+    }
 
     public int getWidth() {
         return width;
@@ -69,10 +80,6 @@ abstract class LayoutNode {
 
         private ObjectField field;
 
-        // Calculated values
-        protected transient int topOffset;
-        protected transient int leftOffset;
-
         private ObjectField getField() {
             return field;
         }
@@ -89,51 +96,24 @@ abstract class LayoutNode {
 
         private ToolUiLayoutElement getToolUiLayoutElement() {
             ToolUiLayoutElement layoutElement = new ToolUiLayoutElement();
-            layoutElement.setTop(topOffset);
-            layoutElement.setLeft(leftOffset);
-            layoutElement.setWidth(realWidth);
+            layoutElement.setTop(layoutTopOffset);
+            layoutElement.setLeft(layoutLeftOffset);
+            layoutElement.setWidth(layoutWidth);
             layoutElement.setHeight(1);
 
             return layoutElement;
         }
     }
 
-    public static LayoutNode findSmallestLayoutNode(LayoutNode node) {
+    public static void setAllLayoutAttributesFromRoot(LayoutNode rootNode) {
+        setAllLayoutAttributes(rootNode, 1);
+    }
 
-        if (node == null) {
-            return null;
-        }
+    private static void setAllLayoutAttributes(LayoutNode node, double nodeWidth) {
+        node.setRelativeWidth(nodeWidth);
 
-        Queue<LayoutNode> nodeQueue = new LinkedList<>();
-        nodeQueue.add(node);
-        int depth = 0;
-        LayoutNode deepestNode = node;
-        deepestNode.depth = depth;
+        //TOOD: calculate layout fields
 
-        while (!nodeQueue.isEmpty()) {
-            LayoutNode currentNode = nodeQueue.remove();
-
-            if (currentNode == null) {
-                continue;
-            }
-
-            if (currentNode instanceof ContainerNode) {
-                ((ContainerNode) currentNode).getChildNodes().stream().forEach(childNode -> nodeQueue.add(childNode));
-                depth++;
-            } else {
-                FieldNode fieldNode = (FieldNode) currentNode;
-                fieldNode.depth = depth;
-
-                if (fieldNode.depth > deepestNode.depth ||
-                        (fieldNode.depth == deepestNode.depth
-                                && fieldNode.getWidth() < deepestNode.getWidth())) {
-
-                    deepestNode = fieldNode;
-                }
-            }
-        }
-
-        return deepestNode;
     }
 
     public static List<FieldNode> getAllFieldNodes(LayoutNode rootNode) {

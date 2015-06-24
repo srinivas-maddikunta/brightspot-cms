@@ -49,21 +49,53 @@ public class RowDefinition extends Content {
         return "com.psddev.cms.db.layout.row." + getName();
     }
 
-    public List<ObjectField> createFields(ObjectType type, int topOffset, int leftOffset) {
-        List<ColumnDefinition> columnDefinitions = this.getColumnDefinitions();
+    private LayoutNode createRootNode(ObjectType type) {
 
-        List<ObjectField> newFields = new ArrayList<>();
-        for (ColumnDefinition columnDefinition : columnDefinitions) {
-            List<ObjectField> columnFields = columnDefinition.createFields(type, topOffset, leftOffset);
+        LayoutNode rootNode = createLayoutNode(type);
 
-            if (!ObjectUtils.isBlank(columnFields)) {
-                newFields.addAll(columnFields);
-            }
-
-            leftOffset += columnDefinition.getWidth();
+        if (rootNode == null) {
+            return null;
         }
 
-        return newFields;
+        LayoutNode.setAllLayoutAttributesFromRoot(rootNode);
+
+        return rootNode;
+    }
+
+    //TODO: clean up this method....should be very simple all layout logic should be in layout node
+    public LayoutNode createLayoutNode(ObjectType type) {
+
+        List<ColumnDefinition> columnDefinitions = this.getColumnDefinitions();
+
+        LayoutNode.ContainerNode containerNode =  new LayoutNode.ContainerNode();
+
+        List<LayoutNode> childNodes = new ArrayList<>();
+        for (ColumnDefinition columnDefinition : columnDefinitions) {
+            LayoutNode columnNode = columnDefinition.createLayoutNodes(type);
+            if (columnNode != null) {
+                columnNode.setParent(containerNode);
+                childNodes.add(columnNode);
+            }
+        }
+
+        containerNode.setChildNodes(childNodes);
+
+        return containerNode;
+    }
+
+    private List<ObjectField> createFields(ObjectType type) {
+
+        LayoutNode rootNode = createRootNode(type);
+
+        List<ObjectField> fields = new ArrayList<>();
+        for (LayoutNode.FieldNode fieldNode : LayoutNode.getAllFieldNodes(rootNode)) {
+            ObjectField realField = new ObjectField(type, fieldNode.getFieldWithToolUiLayoutElement().toDefinition());
+            realField.setInternalType(ObjectField.RECORD_TYPE);
+            realField.getTypes().add(ObjectType.getInstance(Cell.class));
+            fields.add(realField);
+        }
+
+        return fields;
     }
 
     /**
@@ -93,23 +125,8 @@ public class RowDefinition extends Content {
         }
 
         UUID typeId = newRowType.getId();
-        List<ObjectField> fields = new ArrayList<>();
         ObjectType rowType = ObjectType.getInstance(Row.class);
-
-        // dynamically creates column fields
-        List<ColumnDefinition> columnDefinitions = getColumnDefinitions();
-
-        int topOffset = 0;
-        int leftOffset = 0;
-        for (ColumnDefinition columnDefinition : columnDefinitions) {
-
-            List<ObjectField> createdFields = columnDefinition.createFields(newRowType, topOffset, leftOffset);
-            if (!ObjectUtils.isBlank(createdFields)) {
-                fields.addAll(createdFields);
-            }
-
-            leftOffset += columnDefinition.getWidth();
-        }
+        List<ObjectField> fields = createFields(newRowType);
 
         State typeState = newRowType.getState();
 

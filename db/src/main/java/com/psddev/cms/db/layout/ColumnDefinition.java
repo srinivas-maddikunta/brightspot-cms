@@ -1,8 +1,5 @@
 package com.psddev.cms.db.layout;
 
-import java.util.List;
-
-import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Record;
 
@@ -34,13 +31,13 @@ public class ColumnDefinition extends Record {
         this.width = width;
     }
 
-    public List<ObjectField> createFields(ObjectType objectType, int topOffset, int leftOffset) {
+    public LayoutNode createLayoutNodes(ObjectType objectType) {
         Column column = this.getColumn();
 
         if (column == null) {
             return null;
         }
 
-        return column.createFields(objectType, width, topOffset, leftOffset);
+        return column.createLayoutNodes(objectType, width);
     }
 }
