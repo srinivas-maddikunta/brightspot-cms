@@ -1,17 +1,17 @@
 package com.psddev.cms.db;
 
+import java.util.Map;
+
 import com.psddev.dari.db.Record;
 import com.psddev.dari.util.CompactMap;
-
-import java.util.Map;
 
 @ToolUiLayoutElement.Embedded
 public class ToolUiLayoutElement extends Record {
 
     private String name;
-    private int left;
+    private double left;
+    private double width;
     private int top;
-    private int width;
     private int height;
     private String dynamicText;
 
@@ -23,12 +23,20 @@ public class ToolUiLayoutElement extends Record {
         this.name = name;
     }
 
-    public int getLeft() {
+    public double getLeft() {
         return left;
     }
 
-    public void setLeft(int left) {
+    public void setLeft(double left) {
         this.left = left;
+    }
+
+    public double getWidth() {
+        return width;
+    }
+
+    public void setWidth(double width) {
+        this.width = width;
     }
 
     public int getTop() {
@@ -37,14 +45,6 @@ public class ToolUiLayoutElement extends Record {
 
     public void setTop(int top) {
         this.top = top;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public void setWidth(int width) {
-        this.width = width;
     }
 
     public int getHeight() {
