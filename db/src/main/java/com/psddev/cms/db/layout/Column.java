@@ -60,6 +60,7 @@ public abstract class Column extends Record {
         LayoutNode createLayoutNodes(ObjectType type, int width) {
 
             LayoutNode.ContainerNode containerNode = new LayoutNode.ContainerNode();
+            containerNode.setContainerType(LayoutNode.ContainerNode.ContainerType.COLUMN);
             containerNode.setWidth(width);
 
             for (RowDefinition rowDefinition : getRowDefinitions()) {

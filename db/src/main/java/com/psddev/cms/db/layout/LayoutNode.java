@@ -59,6 +59,7 @@ abstract class LayoutNode {
      */
     public static class ContainerNode extends LayoutNode {
 
+        private ContainerType containerType;
         private List<LayoutNode> childNodes;
 
         public List<LayoutNode> getChildNodes() {
@@ -67,6 +68,18 @@ abstract class LayoutNode {
 
         public void setChildNodes(List<LayoutNode> childNodes) {
             this.childNodes = childNodes;
+        }
+
+        public ContainerType getContainerType() {
+            return containerType;
+        }
+
+        public void setContainerType(ContainerType containerType) {
+            this.containerType = containerType;
+        }
+
+        enum ContainerType {
+            ROW, COLUMN
         }
     }
 
@@ -105,15 +118,47 @@ abstract class LayoutNode {
         }
     }
 
+    /**
+     * Given a root node, will visit all descendant nodes
+     * and assign relative widths and offsets to each FieldNode
+     *
+     * @param rootNode is the node from which to evaluate descendant nodes
+     */
     public static void setAllLayoutAttributesFromRoot(LayoutNode rootNode) {
-        setAllLayoutAttributes(rootNode, 1);
+        setAllLayoutAttributes(rootNode, 1, 0, 0);
+
+        //TODO: euclidean to calculate lcm for realWidth of all elements
     }
 
-    private static void setAllLayoutAttributes(LayoutNode node, double nodeWidth) {
-        node.setRelativeWidth(nodeWidth);
+    /**
+     * Recursively sets layout fields
+     * @param node for visiting all descendant nodes
+     * @param relativeWidth
+     * @param layoutTopOffset
+     * @param layoutLeftOffset
+     */
+    private static void setAllLayoutAttributes(LayoutNode node, double relativeWidth, int layoutTopOffset, int layoutLeftOffset) {
+        // sets relative width for both node types
+        node.setRelativeWidth(relativeWidth);
+        node.layoutTopOffset = layoutTopOffset;
+        node.layoutLeftOffset = layoutLeftOffset;
 
-        //TOOD: calculate layout fields
+        // recursively sets calculated layout fields
+        if (node instanceof ContainerNode) {
+            ContainerNode containerNode = (ContainerNode) node;
+            List<LayoutNode> childNodes = containerNode.getChildNodes();
+            int widthsProduct = 0;
+            for (LayoutNode childNode : childNodes) {
+                widthsProduct = widthsProduct == 0 ? childNode.getWidth() : widthsProduct * childNode.getWidth();
+            }
 
+            for (LayoutNode childNode : childNodes) {
+                setAllLayoutAttributes(childNode,
+                        relativeWidth / widthsProduct * childNode.getWidth(),
+                        layoutTopOffset,
+                        layoutLeftOffset);
+            }
+        }
     }
 
     public static List<FieldNode> getAllFieldNodes(LayoutNode rootNode) {

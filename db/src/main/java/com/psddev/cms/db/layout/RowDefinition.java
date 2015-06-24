@@ -63,12 +63,12 @@ public class RowDefinition extends Content {
         return rootNode;
     }
 
-    //TODO: clean up this method....should be very simple all layout logic should be in layout node
     public LayoutNode createLayoutNode(ObjectType type) {
 
         List<ColumnDefinition> columnDefinitions = this.getColumnDefinitions();
 
         LayoutNode.ContainerNode containerNode =  new LayoutNode.ContainerNode();
+        containerNode.setContainerType(LayoutNode.ContainerNode.ContainerType.ROW);
 
         List<LayoutNode> childNodes = new ArrayList<>();
         for (ColumnDefinition columnDefinition : columnDefinitions) {
