@@ -10,6 +10,7 @@ import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
+import com.psddev.dari.db.Record;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 
@@ -91,7 +92,7 @@ public class RowDefinition extends Content {
         for (LayoutNode.FieldNode fieldNode : LayoutNode.getAllFieldNodes(rootNode)) {
             ObjectField realField = new ObjectField(type, fieldNode.getFieldWithToolUiLayoutElement().toDefinition());
             realField.setInternalType(ObjectField.RECORD_TYPE);
-            realField.getTypes().add(ObjectType.getInstance(Cell.class));
+            realField.getTypes().add(ObjectType.getInstance(Record.class));
             fields.add(realField);
         }
 
