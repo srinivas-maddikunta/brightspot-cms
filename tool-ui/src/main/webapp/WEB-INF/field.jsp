@@ -61,6 +61,10 @@ if (ObjectUtils.isBlank(tab)) {
     tab = ui.getTab();
 }
 
+if (!isHidden && (!ObjectUtils.isBlank(tab) && !ContentField.DEFAULT_TAB_VALUE.equals(tab)) && !wp.hasPermission("tab/" + StringUtils.toNormalized(tab))) {
+    isHidden = true;
+}
+
 if (ObjectUtils.isBlank(label)) {
     label = field.getLabel();
 }
@@ -161,6 +165,13 @@ try {
         if (layoutField != null) {
             wp.write("\" data-layout-field=\"");
             wp.writeHtml(ObjectUtils.toJson(layoutField.toMap()));
+        }
+
+        String languageTag = ui.getLanguageTag();
+
+        if (languageTag != null) {
+            wp.write("\" lang=\"");
+            wp.writeHtml(languageTag);
         }
 
         wp.write("\">");

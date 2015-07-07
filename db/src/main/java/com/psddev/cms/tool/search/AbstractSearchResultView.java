@@ -6,8 +6,8 @@ import java.util.Map;
 
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
-import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.cms.tool.CmsTool;
+import com.psddev.cms.tool.QueryRestriction;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.SearchResultItem;
 import com.psddev.cms.tool.SearchResultView;
@@ -22,7 +22,6 @@ import com.psddev.dari.util.StringUtils;
 public abstract class AbstractSearchResultView implements SearchResultView {
 
     private static final String SORT_SETTING_PREFIX = "sort/";
-    private static final String SORT_SHOW_MISSING_SETTING_PREFIX = "sortShowMissing/";
 
     protected ToolPageContext page;
     protected Search search;
@@ -62,10 +61,23 @@ public abstract class AbstractSearchResultView implements SearchResultView {
         this.search = search;
         this.itemWriter = itemWriter;
 
+        // Ensure that the ToolUser has a current SearchResultSelection.
+        ToolUser user = page.getUser();
+
+        if (user != null && user.getCurrentSearchResultSelection() == null) {
+            user.resetCurrentSelection();
+        }
+
         doWriteHtml();
     }
 
     protected abstract void doWriteHtml() throws IOException;
+
+    protected void writeQueryRestrictionsHtml() throws IOException {
+        for (Class<? extends QueryRestriction> qrc : QueryRestriction.classIterable()) {
+            page.writeQueryRestrictionForm(qrc);
+        }
+    }
 
     protected void writeFieldsHtml() throws IOException {
         ObjectType type = search.getSelectedType();
@@ -78,42 +90,19 @@ public abstract class AbstractSearchResultView implements SearchResultView {
                             "typeId", type != null ? type.getId() : null));
 
                 page.writeHtml("Fields: ");
-                page.writeHtml(user != null &&
-                        user.getSearchResultFieldsByTypeId().get(type != null ? type.getId().toString() : "") != null ?
-                        "Custom" :
-                        "Default");
+                page.writeHtml(user != null
+                        && user.getSearchResultFieldsByTypeId().get(type != null ? type.getId().toString() : "") != null
+                        ? "Custom"
+                        : "Default");
             page.writeEnd();
         page.writeEnd();
     }
 
     protected ObjectField updateSort() {
         ObjectType selectedType = search.getSelectedType();
-
-        if (selectedType != null) {
-            if (search.getSort() != null) {
-                AuthenticationFilter.Static.putUserSetting(page.getRequest(), SORT_SETTING_PREFIX + selectedType.getId(), search.getSort());
-                AuthenticationFilter.Static.putUserSetting(page.getRequest(), SORT_SHOW_MISSING_SETTING_PREFIX + selectedType.getId(), ObjectUtils.to(String.class, search.isShowMissing()));
-
-            } else {
-                Object sortSetting = AuthenticationFilter.Static.getUserSetting(page.getRequest(), SORT_SETTING_PREFIX + selectedType.getId());
-
-                if (!ObjectUtils.isBlank(sortSetting)) {
-                    search.setSort(sortSetting.toString());
-
-                    Object showMissingSetting = AuthenticationFilter.Static.getUserSetting(page.getRequest(), SORT_SHOW_MISSING_SETTING_PREFIX + selectedType.getId());
-
-                    if (!ObjectUtils.isBlank(showMissingSetting)) {
-                        search.setShowMissing(ObjectUtils.to(Boolean.class, showMissingSetting));
-                    }
-                }
-            }
-        }
+        ToolUi ui = selectedType == null ? null : selectedType.as(ToolUi.class);
 
         if (search.getSort() == null) {
-            ToolUi ui = selectedType == null ? null : selectedType.as(ToolUi.class);
-
-            search.setShowMissing(true);
-
             if (ui != null && ui.getDefaultSortField() != null) {
                 search.setSort(ui.getDefaultSortField());
 
@@ -123,9 +112,9 @@ public abstract class AbstractSearchResultView implements SearchResultView {
             } else {
                 Map<String, String> f = search.getFieldFilters().get("cms.content.publishDate");
 
-                if (f != null &&
-                        (f.get("") != null ||
-                        f.get("x") != null)) {
+                if (f != null
+                        && (f.get("") != null
+                        || f.get("x") != null)) {
                     search.setSort("cms.content.publishDate");
 
                 } else {
@@ -177,22 +166,49 @@ public abstract class AbstractSearchResultView implements SearchResultView {
                         page.writeEnd();
                     }
                 page.writeEnd();
-
-                page.writeHtml(" ");
-
-                page.writeElement("input",
-                        "id", page.createId(),
-                        "type", "checkbox",
-                        "name", Search.SHOW_MISSING_PARAMETER,
-                        "value", "true",
-                        "checked", search.isShowMissing() ? "checked" : null);
-
-                page.writeHtml(" ");
-
-                page.writeStart("label", "for", page.getId());
-                    page.writeHtml("Show Missing");
-                page.writeEnd();
             page.writeEnd();
+        page.writeEnd();
+    }
+
+    protected void writeLimitsHtml(PaginatedResult<?> result) throws IOException {
+        int resultLimit = result.getLimit();
+
+        page.writeStart("div", "class", "searchResult-limits");
+        {
+            page.writeStart("form",
+                    "method", "get",
+                    "action", page.url(null));
+            {
+                for (String name : page.paramNamesList()) {
+                    if (Search.LIMIT_PARAMETER.equals(name)) {
+                        continue;
+                    }
+
+                    for (String value : page.params(String.class, name)) {
+                        page.writeElement("input",
+                                "type", "hidden",
+                                "name", name,
+                                "value", value);
+                    }
+                }
+
+                page.writeStart("select",
+                        "data-bsp-autosubmit", "",
+                        "name", Search.LIMIT_PARAMETER);
+                {
+                    for (int limit : new int[]{10, 20, 50}) {
+                        page.writeStart("option",
+                                "selected", limit == resultLimit ? "selected" : null,
+                                "value", limit);
+                        page.writeHtml("Show: ");
+                        page.writeHtml(limit);
+                        page.writeEnd();
+                    }
+                }
+                page.writeEnd();
+            }
+            page.writeEnd();
+        }
         page.writeEnd();
     }
 

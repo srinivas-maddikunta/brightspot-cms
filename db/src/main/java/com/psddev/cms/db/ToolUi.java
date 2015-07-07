@@ -39,6 +39,8 @@ public class ToolUi extends Modification<Object> {
     private boolean displayFirst;
     private boolean displayLast;
     private boolean dropDown;
+    private boolean dropDownSortDescending;
+    private String dropDownSortField;
     private Boolean expanded;
     private Boolean filterable;
     private boolean globalFilter;
@@ -50,6 +52,7 @@ public class ToolUi extends Modification<Object> {
     private String inputSearcherPath;
     private String storagePreviewProcessorApplication;
     private String storagePreviewProcessorPath;
+    private String languageTag;
     private ToolUiLayoutElement layoutField;
     private List<ToolUiLayoutElement> layoutPlaceholders;
     private String noteHtml;
@@ -127,6 +130,22 @@ public class ToolUi extends Modification<Object> {
         this.dropDown = dropDown;
     }
 
+    public boolean isDropDownSortDescending() {
+        return dropDownSortDescending;
+    }
+
+    public void setDropDownSortDescending(boolean dropDownSortDescending) {
+        this.dropDownSortDescending = dropDownSortDescending;
+    }
+
+    public String getDropDownSortField() {
+        return dropDownSortField;
+    }
+
+    public void setDropDownSortField(String dropDownSortField) {
+        this.dropDownSortField = dropDownSortField;
+    }
+
     public boolean isExpanded() {
         return Boolean.TRUE.equals(expanded);
     }
@@ -158,10 +177,10 @@ public class ToolUi extends Modification<Object> {
 
         ObjectField field = (ObjectField) object;
 
-        if (field.isDeprecated() ||
-                isHidden() ||
-                !ObjectField.RECORD_TYPE.equals(field.getInternalItemType()) ||
-                field.isEmbedded()) {
+        if (field.isDeprecated()
+                || isHidden()
+                || !ObjectField.RECORD_TYPE.equals(field.getInternalItemType())
+                || field.isEmbedded()) {
             return false;
         }
 
@@ -258,6 +277,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setStoragePreviewProcessorApplication(String storagePreviewProcessorApplication) {
         this.storagePreviewProcessorApplication = storagePreviewProcessorApplication;
+    }
+
+    public String getLanguageTag() {
+        return languageTag;
+    }
+
+    public void setLanguageTag(String languageTag) {
+        this.languageTag = languageTag;
     }
 
     public ToolUiLayoutElement getLayoutField() {
@@ -416,10 +443,10 @@ public class ToolUi extends Modification<Object> {
 
         String fieldType = field.getInternalType();
 
-        return ObjectField.DATE_TYPE.equals(fieldType) ||
-                ObjectField.NUMBER_TYPE.equals(fieldType) ||
-                ObjectField.TEXT_TYPE.equals(fieldType) ||
-                field.isMetric();
+        return ObjectField.DATE_TYPE.equals(fieldType)
+                || ObjectField.NUMBER_TYPE.equals(fieldType)
+                || ObjectField.TEXT_TYPE.equals(fieldType)
+                || field.isMetric();
     }
 
     public Set<String> getStandardImageSizes() {
@@ -653,6 +680,8 @@ public class ToolUi extends Modification<Object> {
     @Target(ElementType.FIELD)
     public @interface DropDown {
         boolean value() default true;
+        String sortField() default "";
+        boolean sortDescending() default false;
     }
 
     private static class DropDownProcessor implements ObjectField.AnnotationProcessor<DropDown> {
@@ -660,6 +689,8 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, ObjectField field, DropDown annotation) {
             field.as(ToolUi.class).setDropDown(annotation.value());
+            field.as(ToolUi.class).setDropDownSortField(StringUtils.isBlank(annotation.sortField()) ? null : annotation.sortField());
+            field.as(ToolUi.class).setDropDownSortDescending(annotation.sortDescending());
         }
     }
 
@@ -712,7 +743,7 @@ public class ToolUi extends Modification<Object> {
     @Inherited
     @ObjectType.AnnotationProcessorClass(GlobalFilterProcessor.class)
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.TYPE, ElementType.METHOD })
+    @Target({ ElementType.TYPE })
     public @interface GlobalFilter {
         boolean value() default true;
     }
@@ -844,6 +875,33 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, ObjectField field, InputSearcherPath annotation) {
             field.as(ToolUi.class).setInputSearcherPath(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies the language of the text in the target type or field.
+     */
+    @Documented
+    @Inherited
+    @ObjectField.AnnotationProcessorClass(LanguageTagProcessor.class)
+    @ObjectType.AnnotationProcessorClass(LanguageTagProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ ElementType.FIELD, ElementType.TYPE })
+    public @interface LanguageTag {
+
+        public String value();
+    }
+
+    private static class LanguageTagProcessor implements ObjectField.AnnotationProcessor<LanguageTag>, ObjectType.AnnotationProcessor<LanguageTag> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, LanguageTag annotation) {
+            field.as(ToolUi.class).setLanguageTag(annotation.value());
+        }
+
+        @Override
+        public void process(ObjectType type, LanguageTag annotation) {
+            type.as(ToolUi.class).setLanguageTag(annotation.value());
         }
     }
 
@@ -1209,9 +1267,9 @@ public class ToolUi extends Modification<Object> {
     private static class SuggestedMaximumProcessor implements ObjectField.AnnotationProcessor<Annotation> {
         @Override
         public void process(ObjectType type, ObjectField field, Annotation annotation) {
-            field.as(ToolUi.class).setSuggestedMaximum(annotation instanceof FieldSuggestedMaximum ?
-                    ((FieldSuggestedMaximum) annotation).value() :
-                    ((SuggestedMaximum) annotation).value());
+            field.as(ToolUi.class).setSuggestedMaximum(annotation instanceof FieldSuggestedMaximum
+                    ? ((FieldSuggestedMaximum) annotation).value()
+                    : ((SuggestedMaximum) annotation).value());
         }
     }
 
@@ -1227,9 +1285,9 @@ public class ToolUi extends Modification<Object> {
     private static class SuggestedMinimumProcessor implements ObjectField.AnnotationProcessor<Annotation> {
         @Override
         public void process(ObjectType type, ObjectField field, Annotation annotation) {
-            field.as(ToolUi.class).setSuggestedMinimum(annotation instanceof FieldSuggestedMinimum ?
-                    ((FieldSuggestedMinimum) annotation).value() :
-                    ((SuggestedMinimum) annotation).value());
+            field.as(ToolUi.class).setSuggestedMinimum(annotation instanceof FieldSuggestedMinimum
+                    ? ((FieldSuggestedMinimum) annotation).value()
+                    : ((SuggestedMinimum) annotation).value());
         }
     }
 

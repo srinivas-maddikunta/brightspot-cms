@@ -14,6 +14,7 @@ com.psddev.dari.db.ObjectFieldComparator,
 com.psddev.dari.db.ObjectType,
 com.psddev.dari.db.State,
 
+com.psddev.dari.util.CompactMap,
 com.psddev.dari.util.CssUnit,
 com.psddev.dari.util.HtmlGrid,
 com.psddev.dari.util.HtmlObject,
@@ -378,7 +379,7 @@ UUID containerObjectId = State.getInstance(request.getAttribute("containerObject
                                                                     "data-label", itemState != null ? itemState.getLabel() : null,
                                                                     "data-typeIds", itemTypeIdsCsv,
                                                                     "data-pathed", ToolUi.isOnlyPathed(field),
-                                                                    "data-additional-query", field.getPredicate(),
+                                                                    "data-dynamic-predicate", field.getPredicate(),
                                                                     "data-preview", preview != null ? preview.getUrl() : null,
                                                                     "name", inputName,
                                                                     "value", itemState != null ? itemState.getId() : null);
@@ -528,7 +529,7 @@ UUID containerObjectId = State.getInstance(request.getAttribute("containerObject
                                                                 "data-searcher-path", field.as(ToolUi.class).getInputSearcherPath(),
                                                                 "data-typeIds", itemTypeIdsCsv,
                                                                 "data-pathed", ToolUi.isOnlyPathed(field),
-                                                                "data-additional-query", field.getPredicate(),
+                                                                "data-dynamic-predicate", field.getPredicate(),
                                                                 "name", inputName);
                                                     }
                                                 writer.end();
@@ -590,7 +591,13 @@ if (!isValueExternal) {
                 wp.writeStart("li",
                         "data-type", wp.getObjectLabel(itemType),
                         "data-label", wp.getObjectLabel(item),
-                        "data-preview", wp.getPreviewThumbnailUrl(item));
+                        
+                        // Add the image url for the preview thumbnail, plus the field name that provided the thumbnail
+                        // so if that field is changed the front-end knows that the thumbnail should also be updated
+                        "data-preview", wp.getPreviewThumbnailUrl(item),
+                        "data-preview-field", itemType.getPreviewField()
+                        
+                        );
                     wp.writeElement("input",
                             "type", "hidden",
                             "name", idName,
@@ -606,14 +613,19 @@ if (!isValueExternal) {
                             "name", publishDateName,
                             "value", itemPublishDate != null ? itemPublishDate.getTime() : null);
 
-                    wp.writeElement("input",
-                            "type", "hidden",
-                            "name", dataName,
-                            "value", ObjectUtils.toJson(itemState.getSimpleValues()),
-                            "data-form-fields-url", wp.cmsUrl(
-                                    "/contentFormFields",
-                                    "typeId", itemType.getId(),
-                                    "id", itemState.getId()));
+                    if (!itemState.hasAnyErrors()) {
+                        wp.writeElement("input",
+                                "type", "hidden",
+                                "name", dataName,
+                                "value", ObjectUtils.toJson(itemState.getSimpleValues()),
+                                "data-form-fields-url", wp.cmsUrl(
+                                        "/contentFormFields",
+                                        "typeId", itemType.getId(),
+                                        "id", itemState.getId()));
+
+                    } else {
+                        wp.writeFormFields(item);
+                    }
                 wp.writeEnd();
             }
 
@@ -621,7 +633,10 @@ if (!isValueExternal) {
                 wp.writeStart("script", "type", "text/template");
                     wp.writeStart("li",
                             "class", !bulkUploadTypes.isEmpty() ? "collapsed" : null,
-                            "data-type", wp.getObjectLabel(type));
+                            "data-type", wp.getObjectLabel(type),
+                            // Add the name of the preview field so the front end knows
+                            // if that field is updated it should update the thumbnail
+                            "data-preview-field", type.getPreviewField());
                         wp.writeStart("a",
                                 "href", wp.cmsUrl("/content/repeatableObject.jsp",
                                         "inputName", inputName,
@@ -632,7 +647,7 @@ if (!isValueExternal) {
             }
         wp.writeEnd();
 
-        if (!bulkUploadTypes.isEmpty()) {
+        if (!bulkUploadTypes.isEmpty() && !field.as(ToolUi.class).isReadOnly()) {
             StringBuilder typeIdsQuery = new StringBuilder();
 
             for (ObjectType type : bulkUploadTypes) {
@@ -703,7 +718,7 @@ if (!isValueExternal) {
             writer.writeEnd();
         writer.end();
 
-        if (previewable) {
+        if (previewable && !field.as(ToolUi.class).isReadOnly()) {
             writer.start("a",
                     "class", "action-upload",
                     "href", wp.url("/content/uploadFiles?" + typeIdsQuery, "containerId", containerObjectId),

@@ -81,15 +81,15 @@ public class ExternalContent extends Content implements Renderer {
         Integer width = getMaximumWidth();
         Integer height = getMaximumHeight();
 
-        if (!ObjectUtils.isBlank(url) &&
-                (response == null ||
-                !ObjectUtils.equals(url, response.get("_url")) ||
-                !ObjectUtils.equals(width, ObjectUtils.to(Integer.class, response.get("_maximumWidth"))) ||
-                !ObjectUtils.equals(height, ObjectUtils.to(Integer.class, response.get("_maximumHeight"))))) {
+        if (!ObjectUtils.isBlank(url)
+                && (response == null
+                || !ObjectUtils.equals(url, response.get("_url"))
+                || !ObjectUtils.equals(width, ObjectUtils.to(Integer.class, response.get("_maximumWidth")))
+                || !ObjectUtils.equals(height, ObjectUtils.to(Integer.class, response.get("_maximumHeight"))))) {
 
             for (Class<? extends ExternalContentProvider> providerClass : ClassFinder.Static.findClasses(ExternalContentProvider.class)) {
-                if (providerClass.isInterface() ||
-                        Modifier.isAbstract(providerClass.getModifiers())) {
+                if (providerClass.isInterface()
+                        || Modifier.isAbstract(providerClass.getModifiers())) {
                     continue;
                 }
 
@@ -108,7 +108,7 @@ public class ExternalContent extends Content implements Renderer {
             }
 
             try {
-                for (Element link : getOrCreateDocument().select("link[rel=alternate][type=application/json+oembed]")) {
+                for (Element link : getOrCreateDocument().select("link[type=application/json+oembed]")) {
                     String oEmbedUrl = link.attr("href");
 
                     if (!ObjectUtils.isBlank(oEmbedUrl)) {

@@ -82,11 +82,11 @@ public class AuthenticationFilter extends AbstractFilter {
 
         if (ObjectUtils.to(boolean.class, request.getParameter("_clearPreview"))) {
             Static.removeCurrentPreview(request, response);
-            response.sendRedirect(new UrlBuilder(request).
-                    currentPath().
-                    currentParameters().
-                    parameter("_clearPreview", null).
-                    toString());
+            response.sendRedirect(new UrlBuilder(request)
+                    .currentPath()
+                    .currentParameters()
+                    .parameter("_clearPreview", null)
+                    .toString());
             return;
         }
 
@@ -163,6 +163,27 @@ public class AuthenticationFilter extends AbstractFilter {
             dc.setSecure(secure && JspUtils.isSecure(request));
             dc.setPath("/");
             JspUtils.setSignedCookie(response, dc);
+        }
+
+        /**
+         * Logs in the given tool {@code user} with the given {@code token}.
+         *
+         * @param request Can't be {@code null}.
+         * @param response Can't be {@code null}.
+         * @param user Can't be {@code null}.
+         * @param token May be {@code null}.
+         */
+        public static void logIn(HttpServletRequest request, HttpServletResponse response, ToolUser user, String token) {
+            if (token == null) {
+                logIn(request, response, user);
+
+            } else {
+                setSignedCookie(request, response, TOOL_USER_COOKIE, token, -1, true);
+                setSignedCookie(request, response, INSECURE_TOOL_USER_COOKIE, token, -1, false);
+                request.setAttribute(USER_ATTRIBUTE, user);
+                request.setAttribute(USER_TOKEN, token);
+                request.setAttribute(USER_CHECKED_ATTRIBUTE, Boolean.TRUE);
+            }
         }
 
         /**
@@ -259,19 +280,20 @@ public class AuthenticationFilter extends AbstractFilter {
         public static boolean requireUser(ServletContext context, HttpServletRequest request, HttpServletResponse response) throws IOException {
             String toolUrlPrefix = Settings.get(String.class, ToolPageContext.TOOL_URL_PREFIX_SETTING);
 
-            if (!ObjectUtils.isBlank(toolUrlPrefix) &&
-                    !new UrlBuilder(request).
-                            currentScheme().
-                            currentHost().
-                            currentPath().
-                            toString().startsWith(toolUrlPrefix)) {
+            if (!ObjectUtils.isBlank(toolUrlPrefix)
+                    && !new UrlBuilder(request)
+                    .currentScheme()
+                    .currentHost()
+                    .currentPath()
+                    .toString()
+                    .startsWith(toolUrlPrefix)) {
 
                 response.sendRedirect(
-                        StringUtils.removeEnd(toolUrlPrefix, "/") +
-                        new UrlBuilder(request).
-                                currentPath().
-                                currentParameters().
-                                toString());
+                        StringUtils.removeEnd(toolUrlPrefix, "/")
+                                + new UrlBuilder(request)
+                                .currentPath()
+                                .currentParameters()
+                                .toString());
 
                 return true;
             }
@@ -286,7 +308,7 @@ public class AuthenticationFilter extends AbstractFilter {
                 ForwardingDatabase db = new ForwardingDatabase() {
                     @Override
                     protected <T> Query<T> filterQuery(Query<T> query) {
-                        return query.clone().master().resolveInvisible();
+                        return query.clone().master().resolveInvisible().option(Database.DISABLE_FUNNEL_CACHE_QUERY_OPTION, true);
                     }
                 };
 
@@ -294,6 +316,18 @@ public class AuthenticationFilter extends AbstractFilter {
                 Database.Static.setIgnoreReadConnection(true);
                 Database.Static.overrideDefault(db);
                 request.setAttribute(DATABASE_OVERRIDDEN_ATTRIBUTE, Boolean.TRUE);
+
+                ToolPageContext page = new ToolPageContext(context, request, response);
+                String tfaUrl = page.cmsUrl("toolUserTfa");
+                String qrUrl = page.cmsUrl("qrCode");
+                if (user.isTfaRequired() && !user.isTfaEnabled() && !request.getRequestURI().startsWith(tfaUrl) && !request.getRequestURI().startsWith(qrUrl)) {
+                    user = Query.from(ToolUser.class).where("_id = ?", user.getId()).noCache().master().first();
+                    if (user != null && user.isTfaRequired() && !user.isTfaEnabled()) {
+                        tfaUrl = page.cmsUrl("toolUserTfa", RETURN_PATH_PARAMETER, JspUtils.getAbsolutePath(request, ""));
+                        response.sendRedirect(tfaUrl);
+                        return true;
+                    }
+                }
 
             } else if (!JspUtils.getEmbeddedServletPath(context, request.getServletPath()).equals(LOG_IN_PATH)) {
                 @SuppressWarnings("resource")
@@ -383,10 +417,10 @@ public class AuthenticationFilter extends AbstractFilter {
                     preview = null;
 
                 } else {
-                    preview = Query.
-                            from(Preview.class).
-                            where("_id = ?", ObjectUtils.to(UUID.class, cookieValue.substring(PREVIEW_COOKIE.length()))).
-                            first();
+                    preview = Query
+                            .from(Preview.class)
+                            .where("_id = ?", ObjectUtils.to(UUID.class, cookieValue.substring(PREVIEW_COOKIE.length())))
+                            .first();
 
                     request.setAttribute(PREVIEW_ATTRIBUTE, preview);
                 }

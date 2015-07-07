@@ -17,18 +17,14 @@ public class FullscreenSearchResultAction implements SearchResultAction {
             SearchResultSelection selection)
             throws IOException {
 
-        if (selection != null) {
-            return;
-        }
-
         page.writeStart("div", "class", "searchResult-action-simple");
             page.writeStart("a",
                     "class", "button",
                     "target", "_top",
-                    "href", new UrlBuilder(page.getRequest()).
-                            absolutePath(page.cmsUrl("/searchAdvancedFull")).
-                            currentParameters().
-                            parameter(Search.NAME_PARAMETER, null));
+                    "href", new UrlBuilder(page.getRequest())
+                            .absolutePath(page.cmsUrl("/searchAdvancedFull"))
+                            .currentParameters()
+                            .parameter(Search.NAME_PARAMETER, null));
                 page.writeHtml("Fullscreen");
             page.writeEnd();
         page.writeEnd();

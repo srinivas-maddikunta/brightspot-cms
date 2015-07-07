@@ -26,6 +26,7 @@ import java.util.UUID;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Site;
+import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.db.Workflow;
@@ -171,7 +172,6 @@ public class Search extends Record {
         setSort(page.param(String.class, SORT_PARAMETER));
         setShowDrafts(page.param(boolean.class, SHOW_DRAFTS_PARAMETER));
         setVisibilities(page.params(String.class, VISIBILITIES_PARAMETER));
-        setShowMissing(page.param(boolean.class, SHOW_MISSING_PARAMETER));
         setSuggestions(page.param(boolean.class, SUGGESTIONS_PARAMETER));
         setOffset(page.param(long.class, OFFSET_PARAMETER));
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
@@ -317,10 +317,12 @@ public class Search extends Record {
         this.visibilities = visibilities;
     }
 
+    @Deprecated
     public boolean isShowMissing() {
         return showMissing;
     }
 
+    @Deprecated
     public void setShowMissing(boolean showMissing) {
         this.showMissing = showMissing;
     }
@@ -450,10 +452,9 @@ public class Search extends Record {
             } else if ("w".equals(visibility)) {
                 Set<String> ss = new HashSet<String>();
 
-                for (Workflow w : (selectedType == null ?
-                        Query.from(Workflow.class) :
-                        Query.from(Workflow.class).where("contentTypes = ?", selectedType)).
-                        selectAll()) {
+                for (Workflow w : (selectedType == null
+                        ? Query.from(Workflow.class)
+                        : Query.from(Workflow.class).where("contentTypes = ?", selectedType)).selectAll()) {
                     for (WorkflowState s : w.getStates()) {
                         String value = s.getName();
 
@@ -534,11 +535,10 @@ public class Search extends Record {
                         UUID mainObjectId = ObjectUtils.to(UUID.class, qsHttp.getHeaderField("Brightspot-Main-Object-Id"));
 
                         if (mainObjectId != null) {
-                            return Query.
-                                    fromAll().
-                                    or("_id = ?", mainObjectId).
-                                    or("* matches ?", mainObjectId).
-                                    sortRelevant(100.0, "_id = ?", mainObjectId);
+                            return Query.fromAll()
+                                    .or("_id = ?", mainObjectId)
+                                    .or("* matches ?", mainObjectId)
+                                    .sortRelevant(100.0, "_id = ?", mainObjectId);
                         }
 
                     } finally {
@@ -618,28 +618,24 @@ public class Search extends Record {
             }
 
         } else if (sort != null) {
-            ObjectField sortField = selectedType != null ?
-                    selectedType.getFieldGlobally(sort) :
-                    Database.Static.getDefault().getEnvironment().getField(sort);
+            ObjectField sortField = selectedType != null
+                    ? selectedType.getFieldGlobally(sort)
+                    : Database.Static.getDefault().getEnvironment().getField(sort);
 
             if (sortField != null) {
                 if (sortField.isMetric()) {
                     metricSort = true;
                 }
 
-                String sortName = selectedType != null ?
-                        selectedType.getInternalName() + "/" + sort :
-                        sort;
+                String sortName = selectedType != null
+                        ? selectedType.getInternalName() + "/" + sort
+                        : sort;
 
                 if (ObjectField.TEXT_TYPE.equals(sortField.getInternalType())) {
                     query.sortAscending(sortName);
 
                 } else {
                     query.sortDescending(sortName);
-                }
-
-                if (!isShowMissing()) {
-                    query.and(sortName + " != missing");
                 }
             }
         }
@@ -655,8 +651,8 @@ public class Search extends Record {
         } else {
 
             // Strip http: or https: from the query for search by path below.
-            if (queryString.length() > 8 &&
-                    StringUtils.matches(queryString, "(?i)https?://.*")) {
+            if (queryString.length() > 8
+                    && StringUtils.matches(queryString, "(?i)https?://.*")) {
                 int slashAt = queryString.indexOf("/", 8);
 
                 if (slashAt > -1) {
@@ -668,20 +664,20 @@ public class Search extends Record {
             if (isAllSearchable && queryString.startsWith("/") && queryString.length() > 1) {
                 List<String> paths = new ArrayList<String>();
 
-                for (Directory directory : Query.
-                        from(Directory.class).
-                        where("path ^=[c] ?", queryString).
-                        selectAll()) {
+                for (Directory directory : Query
+                        .from(Directory.class)
+                        .where("path ^=[c] ?", queryString)
+                        .selectAll()) {
                     paths.add(directory.getRawPath());
                 }
 
                 int lastSlashAt = queryString.lastIndexOf("/");
 
                 if (lastSlashAt > 0) {
-                    for (Directory directory : Query.
-                            from(Directory.class).
-                            where("path ^=[c] ?", queryString.substring(0, lastSlashAt)).
-                            selectAll()) {
+                    for (Directory directory : Query
+                            .from(Directory.class)
+                            .where("path ^=[c] ?", queryString.substring(0, lastSlashAt))
+                            .selectAll()) {
                         paths.add(directory.getRawPath() + queryString.substring(lastSlashAt + 1));
                     }
                 }
@@ -742,8 +738,8 @@ public class Search extends Record {
                 for (ObjectType t : environment.getTypes()) {
                     String name = t.getDisplayName();
 
-                    if (!ObjectUtils.isBlank(name) &&
-                            q.contains(name.replaceAll("\\s+", "").toLowerCase(Locale.ENGLISH))) {
+                    if (!ObjectUtils.isBlank(name)
+                            && q.contains(name.replaceAll("\\s+", "").toLowerCase(Locale.ENGLISH))) {
                         query.sortRelevant(20.0, "_type = ?", t.as(ToolUi.class).findDisplayTypes());
                     }
                 }
@@ -755,10 +751,10 @@ public class Search extends Record {
         String additionalPredicate = getAdditionalPredicate();
 
         if (!ObjectUtils.isBlank(additionalPredicate)) {
-            Object parent = Query.
-                    from(Object.class).
-                    where("_id = ?", getParentId()).
-                    first();
+            Object parent = Query
+                    .from(Object.class)
+                    .where("_id = ?", getParentId())
+                    .first();
             if (parent == null && getParentTypeId() != null) {
                 ObjectType parentType = ObjectType.getInstance(getParentTypeId());
                 parent = parentType.createObject(null);
@@ -840,8 +836,8 @@ public class Search extends Record {
             }
         }
 
-        if (site != null &&
-                !site.isAllSitesAccessible()) {
+        if (site != null
+                && !site.isAllSitesAccessible()) {
             Set<ObjectType> globalTypes = new HashSet<ObjectType>();
 
             if (selectedType != null) {
@@ -867,8 +863,8 @@ public class Search extends Record {
 
             query.and(visibilitiesPredicate);
 
-        } else if (selectedType == null &&
-                isAllSearchable) {
+        } else if (selectedType == null
+                && isAllSearchable) {
             Set<String> comparisonKeys = new HashSet<String>();
             DatabaseEnvironment environment = Database.Static.getDefault().getEnvironment();
 
@@ -930,13 +926,13 @@ public class Search extends Record {
                         int s = normalized[1] + j * binSizes[1];
                         int l = normalized[2] + k * binSizes[2];
 
-                        if ((i != 0 || j != 0 || k != 0) &&
-                                (h >= 0 && h < 360) &&
-                                (s >= 0 && s <= 100) &&
-                                s != 20 &&
-                                (s != 0 || h == 0) &&
-                                (l >= 0 && l <= 100) &&
-                                (l < 100 && l > 0 || s == 0)) {
+                        if ((i != 0 || j != 0 || k != 0)
+                                && (h >= 0 && h < 360)
+                                && (s >= 0 && s <= 100)
+                                && s != 20
+                                && (s != 0 || h == 0)
+                                && (l >= 0 && l <= 100)
+                                && (l < 100 && l > 0 || s == 0)) {
 
                             fieldNames.add("color.distribution/n_" + h + "_" + s + "_" + l);
                         }
@@ -945,9 +941,9 @@ public class Search extends Record {
             }
 
             String originFieldName =
-                    "color.distribution/n_" + normalized[0] +
-                    "_" + normalized[1] +
-                    "_" + normalized[2];
+                    "color.distribution/n_" + normalized[0]
+                            + "_" + normalized[1]
+                            + "_" + normalized[2];
 
             fieldNames.add(originFieldName);
             query.and(StringUtils.join(new ArrayList<String>(fieldNames), " > 0 || ") + " > 0");
@@ -960,6 +956,10 @@ public class Search extends Record {
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.updateSearchQuery(this, query);
+        }
+
+        if (page != null) {
+            QueryRestriction.updateQueryUsingAll(query, page);
         }
 
         return query;
@@ -984,8 +984,13 @@ public class Search extends Record {
     }
 
     private void addGlobalTypes(Set<ObjectType> globalTypes, ObjectType type) {
-        if (type != null && type.getGroups().contains(ObjectType.class.getName())) {
-            globalTypes.add(type);
+        if (type != null) {
+            Set<String> groups = type.getGroups();
+
+            if (groups.contains(ObjectType.class.getName())
+                    || groups.contains(ToolEntity.class.getName())) {
+                globalTypes.add(type);
+            }
         }
     }
 

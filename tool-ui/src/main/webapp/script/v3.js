@@ -34,16 +34,13 @@ require([
   'jquery.mousewheel',
   'velocity',
 
-  'ResizeSensor',
-  'ElementQueries',
-
   'v3/input/carousel',
   'input/change',
   'input/code',
   'input/color',
   'input/focus',
   'input/grid',
-  'input/image',
+  'v3/input/image',
   'input/location',
   'v3/input/object',
   'input/query',
@@ -55,6 +52,7 @@ require([
   'jquery.calendar',
   'v3/jquery.dropdown',
   'jquery.editableplaceholder',
+  'evaporate',
   'v3/plugin/popup',
   'v3/plugin/fixed-scrollable',
   'v3/jquery.frame',
@@ -68,6 +66,7 @@ require([
   'jquery.tabbed',
   'v3/taxonomy',
   'jquery.toggleable',
+  'v3/upload',
   'nv.d3',
 
   'v3/dashboard',
@@ -76,7 +75,8 @@ require([
   'content/lock',
   'v3/content/publish',
   'content/layout-element',
-  'content/state',
+  'v3/content/state',
+  'v3/search-result-check-all',
   'v3/tabs' ],
 
 function() {
@@ -707,6 +707,11 @@ function() {
     var $frame = $(event.target);
     var $source = $frame.popup('source');
     var $popup = $frame.popup('container');
+
+    if ($.data($popup[0], 'popup-close-cancelled')) {
+      return;
+    }
+
     var sourceOffset = $source.offset();
     var $parent = $source.closest('.popup, .toolContent');
 
@@ -738,7 +743,8 @@ function() {
               'opacity': '',
               'transform': '',
               'transform-origin': ''
-            })
+            });
+            $popup.remove();
           }
         })
       }

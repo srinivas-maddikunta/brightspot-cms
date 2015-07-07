@@ -80,7 +80,9 @@ $.plugin2('frame', {
         $frame.empty();
       }
 
-      $frame.popup('open');
+      if ($frame.parent().frame('container').length == 0) {
+        $frame.popup('open');
+      }
 
       return version;
     };
@@ -105,17 +107,6 @@ $.plugin2('frame', {
         $frame.trigger('create');
         $frame.trigger('load');
         $frame.trigger('frame-load');
-
-        function updateElementQueries() {
-          if (ElementQueries.instance) {
-            ElementQueries.update();
-
-          } else {
-            setTimeout(updateElementQueries, 10);
-          }
-        }
-
-        updateElementQueries();
 
         $win.resize();
       }

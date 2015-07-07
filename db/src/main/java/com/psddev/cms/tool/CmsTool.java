@@ -73,6 +73,10 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("Defaults")
     private List<CommonTime> commonTimes;
 
+    @ToolUi.Tab("Defaults")
+    @DisplayName("Two Factor Authentication Required?")
+    private boolean tfaRequired;
+
     @ToolUi.Tab("Dashboard")
     private Dashboard defaultDashboard;
 
@@ -107,6 +111,9 @@ public class CmsTool extends Tool {
 
     @ToolUi.Tab("Debug")
     private boolean disableAutomaticallySavingDrafts;
+
+    @ToolUi.Tab("Debug")
+    private boolean enableFrontEndUploader;
 
     @ToolUi.Tab("Debug")
     private boolean displayTypesNotAssociatedWithJavaClasses;
@@ -149,6 +156,10 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("Debug")
     @ToolUi.Values({ "v3" })
     private String theme;
+
+    @ToolUi.Tab("Debug")
+    @ToolUi.Note("Restrict grid css file lookup to these paths")
+    private List<String> gridCssPaths;
 
     private boolean enableCrossDomainInlineEditing;
 
@@ -476,6 +487,14 @@ public class CmsTool extends Tool {
         this.commonTimes = commonTimes;
     }
 
+    public boolean isTfaRequired() {
+        return tfaRequired;
+    }
+
+    public void setTfaRequired(boolean tfaRequired) {
+        this.tfaRequired = tfaRequired;
+    }
+
     public String getDefaultTextOverlayCss() {
         return defaultTextOverlayCss;
     }
@@ -565,8 +584,8 @@ public class CmsTool extends Tool {
      */
     @Deprecated
     public boolean isUseNonMinified() {
-        return isUseNonMinifiedCss() &&
-                isUseNonMinifiedJavaScript();
+        return isUseNonMinifiedCss()
+                && isUseNonMinifiedJavaScript();
     }
 
     /**
@@ -585,6 +604,14 @@ public class CmsTool extends Tool {
 
     public void setDisableAutomaticallySavingDrafts(boolean disableAutomaticallySavingDrafts) {
         this.disableAutomaticallySavingDrafts = disableAutomaticallySavingDrafts;
+    }
+
+    public boolean isEnableFrontEndUploader() {
+        return enableFrontEndUploader;
+    }
+
+    public void setEnableFrontEndUploader(boolean enableFrontEndUploader) {
+        this.enableFrontEndUploader = enableFrontEndUploader;
     }
 
     public boolean isDisplayTypesNotAssociatedWithJavaClasses() {
@@ -695,6 +722,14 @@ public class CmsTool extends Tool {
     @Deprecated
     public void setTheme(String theme) {
         this.theme = theme;
+    }
+
+    public List<String> getGridCssPaths() {
+        return gridCssPaths;
+    }
+
+    public void setGridCssPaths(List<String> gridCssPaths) {
+        this.gridCssPaths = gridCssPaths;
     }
 
     public boolean isEnableCrossDomainInlineEditing() {
@@ -851,6 +886,7 @@ public class CmsTool extends Tool {
             this.file = file;
         }
 
+        @Override
         public String getUrl() {
             StorageItem file = getFile();
             return file != null ? file.getPublicUrl() : null;
@@ -936,9 +972,9 @@ public class CmsTool extends Tool {
         protected void doRepeatingTask(DateTime runTime) {
             Date newLastUpdate = Query.from(CmsTool.class).lastUpdate();
 
-            if (newLastUpdate != null &&
-                    (oldLastUpdate == null ||
-                    !newLastUpdate.equals(oldLastUpdate))) {
+            if (newLastUpdate != null
+                    && (oldLastUpdate == null
+                    || !newLastUpdate.equals(oldLastUpdate))) {
                 oldLastUpdate = newLastUpdate;
                 Map<String, Object> settings = new CompactMap<String, Object>();
 
@@ -952,4 +988,5 @@ public class CmsTool extends Tool {
             }
         }
     }
+
 }

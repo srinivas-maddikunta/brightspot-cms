@@ -14,7 +14,7 @@ import javax.servlet.ServletException;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.Dashboard;
-import com.psddev.cms.tool.DefaultDashboardWidget;
+import com.psddev.cms.tool.DashboardWidget;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.AggregateQueryResult;
 import com.psddev.dari.db.Database;
@@ -27,20 +27,10 @@ import com.psddev.dari.util.PaginatedResult;
 import com.psddev.dari.util.StringUtils;
 
 @SuppressWarnings("deprecation")
-public class SiteMapWidget extends DefaultDashboardWidget {
+public class SiteMapWidget extends DashboardWidget {
 
     private static final int[] LIMITS = { 10, 20, 50 };
     private static final String URL_TYPE = "url";
-
-    @Override
-    public int getColumnIndex() {
-        return 0;
-    }
-
-    @Override
-    public int getWidgetIndex() {
-        return 2;
-    }
 
     @Override
     public void writeHtml(ToolPageContext page, Dashboard dashboard) throws IOException, ServletException {
@@ -79,17 +69,17 @@ public class SiteMapWidget extends DefaultDashboardWidget {
             }
 
             if (valueObject != null) {
-                result = new AggregateQueryResult<>(offset, limit, new DirectoryQueryIterator(Query.
-                        from(Directory.class).
-                        where("path startsWith ?", ((Directory) valueObject).getPath()).
-                        sortAscending("path")) {
+                result = new AggregateQueryResult<>(offset, limit, new DirectoryQueryIterator(Query
+                        .from(Directory.class)
+                        .where("path startsWith ?", ((Directory) valueObject).getPath())
+                        .sortAscending("path")) {
 
                     @Override
                     protected Query<?> createQuery(Directory directory) {
-                        return (itemType != null ? Query.fromType(itemType) : Query.fromAll()).
-                                and(page.siteItemsSearchPredicate()).
-                                and(directory.itemsPredicate(page.getSite())).
-                                sortAscending(Directory.PATHS_FIELD);
+                        return (itemType != null ? Query.fromType(itemType) : Query.fromAll())
+                                .and(page.siteItemsSearchPredicate())
+                                .and(directory.itemsPredicate(page.getSite()))
+                                .sortAscending(Directory.PATHS_FIELD);
                     }
                 });
 
@@ -97,24 +87,24 @@ public class SiteMapWidget extends DefaultDashboardWidget {
             }
 
         } else if (valueObject != null) {
-            Query<?> query = (itemType != null ? Query.fromType(itemType) : Query.fromAll()).
-                    and(page.siteItemsPredicate()).
-                    and("* matches ?", value).
-                    and("cms.directory.paths != missing");
+            Query<?> query = (itemType != null ? Query.fromType(itemType) : Query.fromAll())
+                    .and(page.siteItemsPredicate())
+                    .and("* matches ?", value)
+                    .and("cms.directory.paths != missing");
 
             if (query.hasMoreThan(250)) {
-                result = new AggregateQueryResult<>(offset, limit, new DirectoryQueryIterator(Query.
-                        from(Directory.class).
-                        where("path startsWith /").
-                        sortAscending("path")) {
+                result = new AggregateQueryResult<>(offset, limit, new DirectoryQueryIterator(Query
+                        .from(Directory.class)
+                        .where("path startsWith /")
+                        .sortAscending("path")) {
 
                     @Override
                     protected Query<?> createQuery(Directory directory) {
-                        return (itemType != null ? Query.fromType(itemType) : Query.fromAll()).
-                                and(page.siteItemsPredicate()).
-                                and(directory.itemsPredicate(page.getSite())).
-                                and("* matches ?", value).
-                                and("cms.directory.paths != missing");
+                        return (itemType != null ? Query.fromType(itemType) : Query.fromAll())
+                                .and(page.siteItemsPredicate())
+                                .and(directory.itemsPredicate(page.getSite()))
+                                .and("* matches ?", value)
+                                .and("cms.directory.paths != missing");
                     }
                 });
 
@@ -291,9 +281,9 @@ public class SiteMapWidget extends DefaultDashboardWidget {
                         page.writeEnd();
                     }
 
-                    if (result.getOffset() > 0 ||
-                            result.hasNext() ||
-                            result.getItems().size() > LIMITS[0]) {
+                    if (result.getOffset() > 0
+                            || result.hasNext()
+                            || result.getItems().size() > LIMITS[0]) {
                         page.writeStart("li");
                             page.writeStart("form",
                                     "data-bsp-autosubmit", "",

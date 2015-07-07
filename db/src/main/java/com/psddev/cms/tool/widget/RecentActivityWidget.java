@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import javax.servlet.ServletException;
 
+import com.psddev.cms.tool.QueryRestriction;
 import org.joda.time.DateTime;
 
 import com.psddev.cms.db.Content;
@@ -60,10 +61,10 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
             result = null;
 
         } else {
-            Query<?> contentQuery = (itemType != null ? Query.fromType(itemType) : Query.fromGroup(Content.SEARCHABLE_GROUP)).
-                    where(page.siteItemsSearchPredicate()).
-                    and(Content.UPDATE_DATE_FIELD + " != missing").
-                    sortDescending(Content.UPDATE_DATE_FIELD);
+            Query<?> contentQuery = (itemType != null ? Query.fromType(itemType) : Query.fromGroup(Content.SEARCHABLE_GROUP))
+                    .where(page.siteItemsSearchPredicate())
+                    .and(Content.UPDATE_DATE_FIELD + " != missing")
+                    .sortDescending(Content.UPDATE_DATE_FIELD);
 
             switch (type) {
                 case ROLE :
@@ -88,6 +89,8 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                 contentQuery.and(visibilitiesPredicate);
             }
 
+            QueryRestriction.updateQueryUsingAll(contentQuery, page);
+
             try {
                 result = contentQuery.select(offset, limit);
 
@@ -107,6 +110,10 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
             page.writeEnd();
 
             page.writeStart("div", "class", "widget-filters");
+                for (Class<? extends QueryRestriction> c : QueryRestriction.classIterable()) {
+                    page.writeQueryRestrictionForm(c);
+                }
+
                 page.writeStart("form",
                         "method", "get",
                         "action", page.url(null));
@@ -219,9 +226,9 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                         page.writeEnd();
                     }
 
-                    if (result.getOffset() > 0 ||
-                            result.hasNext() ||
-                            result.getItems().size() > LIMITS[0]) {
+                    if (result.getOffset() > 0
+                            || result.hasNext()
+                            || result.getItems().size() > LIMITS[0]) {
                         page.writeStart("li");
                             page.writeStart("form",
                                     "data-bsp-autosubmit", "",

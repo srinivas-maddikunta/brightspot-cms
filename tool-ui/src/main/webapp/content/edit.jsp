@@ -2,10 +2,8 @@
 
 com.psddev.cms.db.Content,
 com.psddev.cms.db.ContentLock,
-com.psddev.cms.db.ContentSection,
 com.psddev.cms.db.Directory,
 com.psddev.cms.db.Draft,
-com.psddev.cms.db.DraftStatus,
 com.psddev.cms.db.Guide,
 com.psddev.cms.db.GuidePage,
 com.psddev.cms.db.History,
@@ -13,10 +11,8 @@ com.psddev.cms.db.Page,
 com.psddev.cms.db.PageFilter,
 com.psddev.cms.db.Renderer,
 com.psddev.cms.db.Schedule,
-com.psddev.cms.db.Section,
 com.psddev.cms.db.Site,
 com.psddev.cms.db.Template,
-com.psddev.cms.db.ToolSearch,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.db.ToolUser,
 com.psddev.cms.db.Variation,
@@ -34,20 +30,16 @@ com.psddev.dari.db.ObjectType,
 com.psddev.dari.db.Query,
 com.psddev.dari.db.Singleton,
 com.psddev.dari.db.State,
-com.psddev.dari.util.DateUtils,
 com.psddev.dari.util.HtmlWriter,
 com.psddev.dari.util.JspUtils,
 com.psddev.dari.util.ObjectUtils,
-com.psddev.dari.util.PaginatedResult,
 com.psddev.dari.util.StringUtils,
 
 java.io.StringWriter,
 java.util.ArrayList,
 java.util.Date,
 java.util.LinkedHashMap,
-java.util.LinkedHashSet,
 java.util.List,
-java.util.ListIterator,
 java.util.Map,
 java.util.Set,
 java.util.UUID,
@@ -153,6 +145,11 @@ if (copy != null) {
     State editingState = State.getInstance(editing);
     editingState.setValues(State.getInstance(copy).getSimpleValues());
     editingState.setId(null);
+    editingState.as(Directory.ObjectModification.class).clearPaths();
+    for (Site consumer : editingState.as(Site.ObjectModification.class).getConsumers()) {
+        editingState.as(Directory.ObjectModification.class).clearSitePaths(consumer);
+    }
+    editingState.as(Site.ObjectModification.class).setOwner(site);
 }
 
 // Directory directory = Query.findById(Directory.class, wp.uuidParam("directoryId"));
@@ -166,11 +163,9 @@ boolean lockedOut = false;
 boolean editAnyway = wp.param(boolean.class, "editAnyway");
 boolean optInLock = wp.param(boolean.class, "lock");
 
-if (!wp.getCmsTool().isDisableContentLocking() &&
-        wp.hasPermission("type/" + editingState.getTypeId() + "/write")) {
-
+if (!wp.getCmsTool().isDisableContentLocking()) {
     if (wp.getCmsTool().isOptInContentLocking()) {
-        if (optInLock) {
+        if (optInLock && wp.hasPermission("type/" + editingState.getTypeId() + "/write")) {
             contentLock = ContentLock.Static.lock(editing, null, user);
             lockedOut = !user.equals(contentLock.getOwner());
 
@@ -179,7 +174,7 @@ if (!wp.getCmsTool().isDisableContentLocking() &&
             lockedOut = contentLock != null && !user.equals(contentLock.getOwner());
         }
 
-    } else {
+    } else if (wp.hasPermission("type/" + editingState.getTypeId() + "/write")) {
         contentLock = ContentLock.Static.lock(editing, null, user);
         lockedOut = !user.equals(contentLock.getOwner());
     }
@@ -224,7 +219,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 <h1 class="breadcrumbs"><%
 
                     wp.writeStart("span", "class", "breadcrumbItem icon icon-object");
-                        wp.writeHtml(state.isNew() ? "New " : "Edit ");
+                        wp.writeHtml(state.as(Content.ObjectModification.class).isDraft() ? "Draft " : (state.isNew() ? "New " : "Edit "));
 
                         if (compatibleTypes.size() < 2) {
                             wp.write(wp.objectLabel(state.getType()));
@@ -243,10 +238,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                             wp.write("</select>");
                         }
 
-                        if (!state.isNew()) {
-                            wp.write(": " );
-                            wp.write(wp.objectLabel(editing));
-                        }
+                        wp.write(": " );
+                        wp.write(wp.getObjectLabelOrDefault(editing, "<em>Untitled</em>"));
                     wp.writeEnd();
 
                     if (selected instanceof Page &&
@@ -275,9 +268,9 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         <a class="icon icon-beaker" href="<%= wp.url("", "ab", !wp.param(boolean.class, "ab")) %>">A/B</a>
                     <% } %>
                     <%
-                    GuidePage guide = Guide.Static.getPageProductionGuide(template);
+                    GuidePage guide = Guide.Static.getPageTypeProductionGuide(state.getType());
                     if (guide != null && guide.getDescription() != null && !guide.getDescription().isEmpty()) {
-                        wp.write("<a class=\"icon icon-object-guide\" target=\"guideType\" href=\"", wp.objectUrl("/content/guideType.jsp", selected, "templateId", template.getId(), "variationId", wp.uuidParam("variationId"), "popup", true), "\">PG</a>");
+                        wp.write("<a class=\"icon icon-object-guide\" target=\"guideType\" href=\"", wp.objectUrl("/content/guideType.jsp", selected, "pageGuideId", guide.getId(),  "popup", true), "\">PG</a>");
                     }
                     %>
                 </div>
@@ -364,7 +357,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 <%
                 wp.writeStart("div", "class", "widget-controls");
-                    if (!lockedOut && wp.getCmsTool().isOptInContentLocking()) {
+                    if (!wp.getCmsTool().isDisableContentLocking() && !lockedOut && wp.getCmsTool().isOptInContentLocking()) {
                         wp.writeStart("a",
                                 "class", "icon icon-only icon-" + (optInLock ? "lock" : "unlock"),
                                 "href", wp.url("", "lock", !optInLock));
@@ -401,7 +394,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         wp.writeHtml(" working on ");
 
                         wp.writeStart("a",
-                                "href", wp.objectUrl("/content/workStreamEdit.jsp", workStream),
+                                "href", wp.objectUrl("/content/editWorkStream", workStream),
                                 "target", "workStream");
                             wp.writeObjectLabel(workStream);
                         wp.writeEnd();
