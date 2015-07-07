@@ -120,7 +120,7 @@ public class UpdateUserDashboard extends PageServlet {
         DashboardColumn oldColumn = columns.get(originalY);
 
         //remove column if it will have no more widgets after move
-        if (oldColumn.getWidgets().size() <=1) {
+        if (oldColumn.getWidgets().size() <= 1) {
             columns.remove(oldColumn);
         }
 
