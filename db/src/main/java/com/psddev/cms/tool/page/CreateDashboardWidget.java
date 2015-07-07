@@ -33,7 +33,7 @@ public class CreateDashboardWidget extends PageServlet {
             //TODO properly create widget with all state values etc.
 
             page.getRequest().setAttribute("widget", widgetInstance);
-            UpdateUserDashboard.reallyDoService(page);
+            UpdateUserDashboard.processAction(page);
             page.writeTag("meta",
                     "name", "widget",
                     "content", page.cmsUrl("/dashboardWidget/user/" + widgetInstance.getClass().getName() + "/" + widgetInstance.getId() + "/"),

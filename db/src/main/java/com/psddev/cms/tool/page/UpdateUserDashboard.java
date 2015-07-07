@@ -27,10 +27,10 @@ public class UpdateUserDashboard extends PageServlet {
 
     @Override
     protected void doService(ToolPageContext page) throws IOException, ServletException {
-        reallyDoService(page);
+        processAction(page);
     }
 
-    protected static void reallyDoService(ToolPageContext page) throws IOException, ServletException {
+    protected static void processAction(ToolPageContext page) throws IOException, ServletException {
 
         if (!page.isFormPost()) {
             throw new IllegalStateException("Form must be posted!");
