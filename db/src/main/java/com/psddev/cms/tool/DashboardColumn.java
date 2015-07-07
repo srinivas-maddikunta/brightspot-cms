@@ -8,18 +8,18 @@ import com.psddev.dari.db.Record;
 @DashboardColumn.Embedded
 public class DashboardColumn extends Record {
 
-    public static final int MINIMUM_WIDTH = 320;
+    public static final double MINIMUM_WIDTH = 320;
 
-    private int width;
+    private double width;
 
     @Embedded
     private List<DashboardWidget> widgets;
 
-    public int getWidth() {
+    public double getWidth() {
         return (width < MINIMUM_WIDTH) ? MINIMUM_WIDTH : width;
     }
 
-    public void setWidth(int width) {
+    public void setWidth(double width) {
         this.width = width;
     }
 
