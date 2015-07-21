@@ -118,18 +118,13 @@ public abstract class LayoutNode {
 
         public ObjectField getFieldWithToolUiLayoutElement() {
             ObjectField field = this.getField();
-            field.as(ToolUi.class).setLayoutField(getToolUiLayoutElement());
-            return field;
-        }
-
-        private ToolUiLayoutElement getToolUiLayoutElement() {
             ToolUiLayoutElement layoutElement = new ToolUiLayoutElement();
             layoutElement.setTop(layoutTopOffset);
             layoutElement.setLeft(layoutLeftOffset);
             layoutElement.setWidth(layoutWidth);
             layoutElement.setHeight(1);
-
-            return layoutElement;
+            field.as(ToolUi.class).setLayoutField(layoutElement);
+            return field;
         }
     }
 
@@ -142,7 +137,7 @@ public abstract class LayoutNode {
     public static void setAllLayoutAttributesFromRoot(LayoutNode rootNode) {
         setAllLayoutAttributes(rootNode, 1, 0, 0);
     }
-    
+
     private static void setAllLayoutAttributes(LayoutNode node, double relativeWidth, double leftOffset, int topOffset) {
         // sets relative width for both node types
         node.setLayoutWidth(relativeWidth);
