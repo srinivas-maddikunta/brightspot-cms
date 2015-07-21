@@ -1,7 +1,6 @@
 package com.psddev.cms.db.layout;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -22,10 +21,8 @@ public abstract class LayoutNode {
     private LayoutNode parent;
 
     // Calculated values
-    protected transient Collection<LayoutNode> siblings;
     protected transient double layoutWidth;
     protected transient double layoutLeftOffset;
-    protected transient int layoutHeight;
     protected transient int layoutTopOffset;
 
     public int getWidth() {
