@@ -142,12 +142,7 @@ public abstract class LayoutNode {
     public static void setAllLayoutAttributesFromRoot(LayoutNode rootNode) {
         setAllLayoutAttributes(rootNode, 1, 0, 0);
     }
-
-    /**
-     * Recursively sets layout fields
-     * @param node for visiting all descendant nodes
-     * @param relativeWidth
-     */
+    
     private static void setAllLayoutAttributes(LayoutNode node, double relativeWidth, double leftOffset, int topOffset) {
         // sets relative width for both node types
         node.setLayoutWidth(relativeWidth);
