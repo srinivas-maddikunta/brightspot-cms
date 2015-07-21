@@ -15,7 +15,7 @@ import com.psddev.dari.db.ObjectField;
  * a layout structure visually represented by nested
  * rows and columns.
  */
-abstract class LayoutNode {
+public abstract class LayoutNode {
 
     // Values from Definitions
     private int width;
