@@ -67,21 +67,20 @@ public class RowDefinition extends Content {
 
         List<ColumnDefinition> columnDefinitions = this.getColumnDefinitions();
 
-        LayoutNode.ContainerNode containerNode =  new LayoutNode.ContainerNode();
-        containerNode.setContainerType(LayoutNode.ContainerNode.ContainerType.ROW);
+        RowNode rowNode =  new RowNode();
 
         List<LayoutNode> childNodes = new ArrayList<>();
         for (ColumnDefinition columnDefinition : columnDefinitions) {
             LayoutNode columnNode = columnDefinition.createLayoutNode(type);
             if (columnNode != null) {
-                columnNode.setParent(containerNode);
+                columnNode.setParent(rowNode);
                 childNodes.add(columnNode);
             }
         }
 
-        containerNode.setChildNodes(childNodes);
+        rowNode.setChildNodes(childNodes);
 
-        return containerNode;
+        return rowNode;
     }
 
     private List<ObjectField> createFields(ObjectType type) {
@@ -89,7 +88,7 @@ public class RowDefinition extends Content {
         LayoutNode rootNode = createRootNode(type);
 
         List<ObjectField> fields = new ArrayList<>();
-        for (LayoutNode.FieldNode fieldNode : LayoutNode.getAllFieldNodes(rootNode)) {
+        for (FieldNode fieldNode : LayoutNode.getAllFieldNodes(rootNode)) {
             ObjectField realField = new ObjectField(type, fieldNode.getFieldWithToolUiLayoutElement().toDefinition());
             realField.setInternalType(ObjectField.RECORD_TYPE);
 

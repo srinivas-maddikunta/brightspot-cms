@@ -32,7 +32,7 @@ public abstract class Column extends Record {
             field.setInternalType(ObjectField.RECORD_TYPE);
             field.getTypes().add(ObjectType.getInstance(Cell.class));
 
-            LayoutNode.FieldNode fieldNode = new LayoutNode.FieldNode();
+            FieldNode fieldNode = new FieldNode();
             fieldNode.setField(field);
             fieldNode.setWidth(width);
             return fieldNode;
@@ -60,20 +60,19 @@ public abstract class Column extends Record {
         @Override
         protected LayoutNode createLayoutNode(ObjectType type, int width) {
 
-            LayoutNode.ContainerNode containerNode = new LayoutNode.ContainerNode();
-            containerNode.setContainerType(LayoutNode.ContainerNode.ContainerType.COLUMN);
-            containerNode.setWidth(width);
+            ColumnNode columnNode = new ColumnNode();
+            columnNode.setWidth(width);
 
             for (RowDefinition rowDefinition : getRowDefinitions()) {
                 rowDefinition.getState().getExtras().put("isEmbedded", true);
                 LayoutNode node = rowDefinition.createLayoutNode(type);
                 if (node != null) {
-                    node.setParent(containerNode);
-                    containerNode.getChildNodes().add(node);
+                    node.setParent(columnNode);
+                    columnNode.getChildNodes().add(node);
                 }
             }
 
-            return containerNode;
+            return columnNode;
         }
     }
 }

@@ -5,10 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import com.psddev.cms.db.ToolUi;
-import com.psddev.cms.db.ToolUiLayoutElement;
-import com.psddev.dari.db.ObjectField;
-
 /**
  * LayoutNode is a tree implementation to represent
  * a layout structure visually represented by nested
@@ -66,69 +62,6 @@ public abstract class LayoutNode {
     }
 
     /**
-     * A ContainerNode is a node that contains multiple
-     * child nodes.
-     */
-    public static class ContainerNode extends LayoutNode {
-
-        private ContainerType containerType;
-        private List<LayoutNode> childNodes;
-
-        public List<LayoutNode> getChildNodes() {
-            if (childNodes == null) {
-                childNodes = new ArrayList<>();
-            }
-            return childNodes;
-        }
-
-        public void setChildNodes(List<LayoutNode> childNodes) {
-            this.childNodes = childNodes;
-        }
-
-        public ContainerType getContainerType() {
-            return containerType;
-        }
-
-        public void setContainerType(ContainerType containerType) {
-            this.containerType = containerType;
-        }
-
-        enum ContainerType {
-            ROW, COLUMN
-        }
-    }
-
-    /**
-     * FieldNode is a leaf node in the layout that is equivalent
-     * to a cell in a grid. A FieldNode consists of an ObjectField
-     * and relevant calculated data to present the field
-     * using ToolUiElements.
-     */
-    public static class FieldNode extends LayoutNode {
-
-        private ObjectField field;
-
-        private ObjectField getField() {
-            return field;
-        }
-
-        public void setField(ObjectField field) {
-            this.field = field;
-        }
-
-        public ObjectField getFieldWithToolUiLayoutElement() {
-            ObjectField field = this.getField();
-            ToolUiLayoutElement layoutElement = new ToolUiLayoutElement();
-            layoutElement.setTop(layoutTopOffset);
-            layoutElement.setLeft(layoutLeftOffset);
-            layoutElement.setWidth(layoutWidth);
-            layoutElement.setHeight(1);
-            field.as(ToolUi.class).setLayoutField(layoutElement);
-            return field;
-        }
-    }
-
-    /**
      * Given a root node, will visit all descendant nodes
      * and assign relative widths and offsets to each FieldNode
      *
@@ -149,7 +82,7 @@ public abstract class LayoutNode {
             ContainerNode containerNode = (ContainerNode) node;
             List<LayoutNode> childNodes = containerNode.getChildNodes();
 
-            if (containerNode.getContainerType().equals(ContainerNode.ContainerType.ROW)) {
+            if (containerNode instanceof RowNode) {
                 // TODO: calculate height/topOffsets so siblings match heights
                 // TODO: determine if editors should be able to define heights in RowDefinition for visual preview purposes
 
