@@ -24,6 +24,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
@@ -251,8 +254,8 @@ public class ToolPageContext extends WebPageContext {
     @SuppressWarnings("deprecation")
     public boolean isPreviewable(Object object) {
         if (object != null) {
-            if (object instanceof Page &&
-                    !(object instanceof Template)) {
+            if (object instanceof Page
+                    && !(object instanceof Template)) {
                 return true;
 
             } else if (object instanceof Renderer) {
@@ -269,8 +272,8 @@ public class ToolPageContext extends WebPageContext {
                     } else {
                         Renderer.TypeModification rendererData = type.as(Renderer.TypeModification.class);
 
-                        return !ObjectUtils.isBlank(rendererData.getPath()) ||
-                                !ObjectUtils.isBlank(rendererData.getPaths());
+                        return !ObjectUtils.isBlank(rendererData.getPath())
+                                || !ObjectUtils.isBlank(rendererData.getPaths());
                     }
                 }
             }
@@ -326,8 +329,8 @@ public class ToolPageContext extends WebPageContext {
                 String toolClassName = entry.getValue().getProperty(Application.MAIN_CLASS_SETTING);
                 Class<?> objectClass = ObjectUtils.getClassByName(toolClassName);
 
-                if (objectClass != null &&
-                        Tool.class.isAssignableFrom(objectClass)) {
+                if (objectClass != null
+                        && Tool.class.isAssignableFrom(objectClass)) {
                     tools.put(entry.getKey(), getToolByClass((Class<Tool>) objectClass));
                 }
             }
@@ -695,8 +698,8 @@ public class ToolPageContext extends WebPageContext {
             if (workStream == null) {
                 ObjectType objectType = State.getInstance(object).getType();
 
-                if (!ObjectUtils.isBlank(validTypes) &&
-                        !validTypes.contains(objectType)) {
+                if (!ObjectUtils.isBlank(validTypes)
+                        && !validTypes.contains(objectType)) {
                     StringBuilder tb = new StringBuilder();
 
                     for (ObjectType type : validTypes) {
@@ -755,11 +758,11 @@ public class ToolPageContext extends WebPageContext {
         } else {
             State state = State.getInstance(object);
 
-            History history = Query.
-                    from(History.class).
-                    where("id = ?", param(UUID.class, HISTORY_ID_PARAMETER)).
-                    and("objectId = ?", objectId).
-                    first();
+            History history = Query
+                    .from(History.class)
+                    .where("id = ?", param(UUID.class, HISTORY_ID_PARAMETER))
+                    .and("objectId = ?", objectId)
+                    .first();
 
             if (history != null) {
                 state.getExtras().put(OVERLAID_HISTORY_EXTRA, history);
@@ -767,11 +770,11 @@ public class ToolPageContext extends WebPageContext {
                 state.setStatus(StateStatus.SAVED);
 
             } else if (objectId != null) {
-                Object draftObject = Query.
-                        fromAll().
-                        where("id = ?", draftId).
-                        and("com.psddev.cms.db.Draft/objectId = ?", objectId).
-                        first();
+                Object draftObject = Query
+                        .fromAll()
+                        .where("id = ?", draftId)
+                        .and("com.psddev.cms.db.Draft/objectId = ?", objectId)
+                        .first();
 
                 if (draftObject instanceof Draft) {
                     Draft draft = (Draft) draftObject;
@@ -825,19 +828,6 @@ public class ToolPageContext extends WebPageContext {
             }
         }
 
-        if (object != null) {
-            State state = State.getInstance(object);
-            Content.ObjectModification contentData = state.as(Content.ObjectModification.class);
-
-            if (contentData.isDraft()) {
-                Draft draft = Query.from(Draft.class).where("objectId = ?", state.getId()).first();
-
-                if (draft != null) {
-                    state.getExtras().put(OVERLAID_DRAFT_EXTRA, draft);
-                }
-            }
-        }
-
         return object;
     }
 
@@ -883,9 +873,9 @@ public class ToolPageContext extends WebPageContext {
     public Object findOrReserve() {
         UUID selectedTypeId = param(UUID.class, TYPE_ID_PARAMETER);
 
-        return findOrReserve(selectedTypeId != null ?
-                new UUID[] { selectedTypeId } :
-                new UUID[0]);
+        return findOrReserve(selectedTypeId != null
+                ? new UUID[] { selectedTypeId }
+                : new UUID[0]);
     }
 
     /**
@@ -974,10 +964,10 @@ public class ToolPageContext extends WebPageContext {
 
             if (preview != null) {
                 if (ImageEditor.Static.getDefault() != null) {
-                    return new ImageTag.Builder(preview).
-                            setHeight(300).
-                            setResizeOption(ResizeOption.ONLY_SHRINK_LARGER).
-                            toUrl();
+                    return new ImageTag.Builder(preview)
+                            .setHeight(300)
+                            .setResizeOption(ResizeOption.ONLY_SHRINK_LARGER)
+                            .toUrl();
 
                 } else {
                     return preview.getPublicUrl();
@@ -1106,9 +1096,9 @@ public class ToolPageContext extends WebPageContext {
             }
         }
 
-        return timeZone == null ?
-                DateTimeZone.getDefault() :
-                timeZone;
+        return timeZone == null
+                ? DateTimeZone.getDefault()
+                : timeZone;
     }
 
     /**
@@ -1118,9 +1108,9 @@ public class ToolPageContext extends WebPageContext {
      * @return May be {@code null}.
      */
     public DateTime toUserDateTime(Object dateTime) {
-        return dateTime != null ?
-                new DateTime(dateTime, getUserDateTimeZone()) :
-                null;
+        return dateTime != null
+                ? new DateTime(dateTime, getUserDateTimeZone())
+                : null;
     }
 
     /**
@@ -1131,9 +1121,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTimeWith(Object dateTime, String format) throws IOException {
-        return dateTime != null ?
-                toUserDateTime(dateTime).toString(format) :
-                "N/A";
+        return dateTime != null
+                ? toUserDateTime(dateTime).toString(format)
+                : "N/A";
     }
 
     /**
@@ -1145,9 +1135,9 @@ public class ToolPageContext extends WebPageContext {
     public String formatUserDateTime(Object dateTime) throws IOException {
         return formatUserDateTimeWith(
                 dateTime,
-                new DateTime(dateTime).getYear() == new DateTime().getYear() ?
-                    "EEE MMM dd hh:mm aa" :
-                    "EEE MMM dd yyyy hh:mm aa");
+                new DateTime(dateTime).getYear() == new DateTime().getYear()
+                        ? "EEE MMM dd hh:mm aa"
+                        : "EEE MMM dd yyyy hh:mm aa");
     }
 
     /**
@@ -1160,9 +1150,9 @@ public class ToolPageContext extends WebPageContext {
     public String formatUserDate(Object dateTime) throws IOException {
         return formatUserDateTimeWith(
                 dateTime,
-                new DateTime(dateTime).getYear() == new DateTime().getYear() ?
-                    "EEE MMM dd" :
-                    "EEE MMM dd yyyy");
+                new DateTime(dateTime).getYear() == new DateTime().getYear()
+                        ? "EEE MMM dd"
+                        : "EEE MMM dd yyyy");
     }
 
     /**
@@ -1236,13 +1226,13 @@ public class ToolPageContext extends WebPageContext {
             Schedule currentSchedule = getUser() != null ? getUser().getCurrentSchedule() : null;
             String broadcastMessage = cms.getBroadcastMessage();
             Date broadcastExpiration = cms.getBroadcastExpiration();
-            boolean hasBroadcast = !ObjectUtils.isBlank(broadcastMessage) &&
-                    (broadcastExpiration == null ||
-                    broadcastExpiration.after(new Date()));
+            boolean hasBroadcast = !ObjectUtils.isBlank(broadcastMessage)
+                    && (broadcastExpiration == null
+                    || broadcastExpiration.after(new Date()));
 
             writeTag("body", "class",
-                    (currentSchedule != null || hasBroadcast ? "hasToolBroadcast " : "") +
-                    (user != null ? "" : "noToolUser "));
+                    (currentSchedule != null || hasBroadcast ? "hasToolBroadcast " : "")
+                            + (user != null ? "" : "noToolUser "));
                 if (currentSchedule != null || hasBroadcast) {
                     writeStart("div", "class", "toolBroadcast");
                         if (currentSchedule != null) {
@@ -1283,9 +1273,9 @@ public class ToolPageContext extends WebPageContext {
                             if (companyLogo != null) {
                                 writeElement("img",
                                         "alt", companyName,
-                                        "src", JspUtils.isSecure(getRequest()) ?
-                                                companyLogo.getSecurePublicUrl() :
-                                                companyLogo.getPublicUrl());
+                                        "src", JspUtils.isSecure(getRequest())
+                                                ? companyLogo.getSecurePublicUrl()
+                                                : companyLogo.getPublicUrl());
 
                             } else {
                                 writeHtml(companyName);
@@ -1306,37 +1296,6 @@ public class ToolPageContext extends WebPageContext {
                         String firstName = nameParts[0];
 
                         writeStart("div", "class", "toolUserDisplay");
-                            writeStart("div", "class", "toolUserWelcome");
-                                writeHtml("Welcome, ");
-
-                                if (firstName.equals(firstName.toLowerCase(Locale.ENGLISH))) {
-                                    writeHtml(firstName.substring(0, 1).toUpperCase(Locale.ENGLISH));
-                                    writeHtml(firstName.substring(1));
-
-                                } else {
-                                    writeHtml(firstName);
-                                }
-                            writeEnd();
-
-                            writeStart("div", "class", "toolUserControls");
-                                writeStart("ul", "class", "piped");
-                                    writeStart("li");
-                                        writeStart("a",
-                                                "href", cmsUrl("/profilePanel"),
-                                                "target", "profilePanel");
-                                            writeHtml("Profile");
-                                        writeEnd();
-                                    writeEnd();
-
-                                    writeStart("li");
-                                        writeStart("a",
-                                                "href", cmsUrl("/misc/logOut.jsp"));
-                                            writeHtml("Log Out");
-                                        writeEnd();
-                                    writeEnd();
-                                writeEnd();
-                            writeEnd();
-
                             writeStart("span", "class", "toolUserAvatar");
                                 writeStart("a",
                                         "href", cmsUrl("/profilePanel"),
@@ -1347,6 +1306,62 @@ public class ToolPageContext extends WebPageContext {
                                     }
                                 writeEnd();
                             writeEnd();
+
+                            writeStart("div", "class", "toolUser");
+                                writeStart("div", "class", "toolUserWelcome");
+                                    writeHtml("Welcome, ");
+
+                                    if (firstName.equals(firstName.toLowerCase(Locale.ENGLISH))) {
+                                        writeHtml(firstName.substring(0, 1).toUpperCase(Locale.ENGLISH));
+                                        writeHtml(firstName.substring(1));
+
+                                    } else {
+                                        writeHtml(firstName);
+                                    }
+                                writeEnd();
+
+                                writeStart("div", "class", "toolUserControls");
+                                    writeStart("ul", "class", "piped");
+                                        writeStart("li");
+                                            writeStart("a",
+                                                    "href", cmsUrl("/profilePanel"),
+                                                    "target", "profilePanel");
+                                                writeHtml("Profile");
+                                            writeEnd();
+                                        writeEnd();
+
+                                        writeStart("li");
+                                            writeStart("a",
+                                                    "href", cmsUrl("/misc/logOut.jsp"));
+                                                writeHtml("Log Out");
+                                            writeEnd();
+                                        writeEnd();
+                                    writeEnd();
+                                writeEnd();
+                            writeEnd();
+
+                            if (Site.Static.findAll().size() > 0) {
+                                writeStart("div", "class", "toolUserSite");
+                                    writeStart("div", "class", "toolUserSiteDisplay");
+                                        writeHtml("Site: ");
+                                        writeHtml(site != null ? site.getLabel() : "Global");
+                                    writeEnd();
+
+                                    writeStart("div", "class", "toolUserSiteControls");
+                                        writeStart("ul", "class", "piped");
+                                        if (user.findOtherAccessibleSites().size() > 0 || (user.getCurrentSite() != null && user.hasPermission("site/global"))) {
+                                            writeStart("li");
+                                                writeStart("a",
+                                                    "href", cmsUrl("/siteSwitch"),
+                                                    "target", "siteSwitch");
+                                                    writeHtml("Switch");
+                                                writeEnd();
+                                            writeEnd();
+                                        }
+                                        writeEnd();
+                                    writeEnd();
+                                writeEnd();
+                            }
                         writeEnd();
 
                         int nowHour = new DateTime().getHourOfDay();
@@ -1584,7 +1599,8 @@ public class ToolPageContext extends WebPageContext {
             write("var RTE_LEGACY_HTML = ", getCmsTool().isLegacyHtml(), ';');
             write("var RTE_ENABLE_ANNOTATIONS = ", getCmsTool().isEnableAnnotations(), ';');
             write("var DISABLE_TOOL_CHECKS = ", getCmsTool().isDisableToolChecks(), ';');
-            write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes));
+            write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
+            write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ", getCmsTool().isDisableCodeMirrorRichTextEditor(), ';');
         writeEnd();
 
         writeStart("script", "type", "text/javascript", "src", "//www.google.com/jsapi");
@@ -1674,8 +1690,8 @@ public class ToolPageContext extends WebPageContext {
                     writeEnd();
                 writeEnd();
 
-                if (getCmsTool().isEnableCrossDomainInlineEditing() &&
-                        !Query.from(Site.class).hasMoreThan(100)) {
+                if (getCmsTool().isEnableCrossDomainInlineEditing()
+                        && !Query.from(Site.class).hasMoreThan(100)) {
                     Set<String> siteUrls = new HashSet<String>();
 
                     for (Site s : Query.from(Site.class).selectAll()) {
@@ -1698,8 +1714,8 @@ public class ToolPageContext extends WebPageContext {
                             cmsUrl("/inlineEditorCookie"),
                             "userId", userId,
                             "token", token,
-                            "signature", signature).
-                            substring(1);
+                            "signature", signature)
+                            .substring(1);
 
                     for (String siteUrl : siteUrls) {
                         writeStart("img", "src", siteUrl + cookiePath, "style", cssString(
@@ -1776,13 +1792,13 @@ public class ToolPageContext extends WebPageContext {
         for (Iterator<ObjectType> i = typesList.iterator(); i.hasNext();) {
             ObjectType type = i.next();
 
-            if (!type.isConcrete() ||
-                    !hasPermission("type/" + type.getId() + "/write") ||
-                    (!getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses() &&
-                    type.getObjectClass() == null) ||
-                    Draft.class.equals(type.getObjectClass()) ||
-                    (type.isDeprecated() &&
-                    !Query.fromType(type).hasMoreThan(0))) {
+            if (!type.isConcrete()
+                    || !hasPermission("type/" + type.getId() + "/write")
+                    || (!getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses()
+                    && type.getObjectClass() == null)
+                    || Draft.class.equals(type.getObjectClass())
+                    || (type.isDeprecated()
+                    && !Query.fromType(type).hasMoreThan(0))) {
                 i.remove();
             }
         }
@@ -1958,7 +1974,7 @@ public class ToolPageContext extends WebPageContext {
             writeElement("input",
                     "type", "text",
                     "class", "objectId",
-                    "data-additional-query", field.getPredicate(),
+                    "data-dynamic-predicate", field.getPredicate(),
                     "data-generic-argument-index", field.getGenericArgumentIndex(),
                     "data-dynamic-placeholder", ui.getPlaceholderDynamicText(),
                     "data-dynamic-field-name", field.getInternalName(),
@@ -1998,10 +2014,9 @@ public class ToolPageContext extends WebPageContext {
 
         boolean hasWorkflow = false;
 
-        for (Workflow w : (type == null ?
-                Query.from(Workflow.class) :
-                Query.from(Workflow.class).where("contentTypes = ?", type)).
-                selectAll()) {
+        for (Workflow w : (type == null
+                ? Query.from(Workflow.class)
+                : Query.from(Workflow.class).where("contentTypes = ?", type)).selectAll()) {
 
             for (WorkflowState s : w.getStates()) {
                 hasWorkflow = true;
@@ -2209,6 +2224,9 @@ public class ToolPageContext extends WebPageContext {
             return false;
         }
 
+        boolean canRestore = hasPermission("type/" + state.getType().getId() + "/restore");
+        boolean canDelete = hasPermission("type/" + state.getType().getId() + "/delete");
+
         writeStart("div", "class", "message message-warning");
             writeStart("p");
                 writeHtml("Archived ");
@@ -2218,21 +2236,27 @@ public class ToolPageContext extends WebPageContext {
                 writeHtml(".");
             writeEnd();
 
-            writeStart("div", "class", "actions");
-                writeStart("button",
-                        "class", "link icon icon-action-restore",
-                        "name", "action-restore",
-                        "value", "true");
-                    writeHtml("Restore");
-                writeEnd();
+            if (canRestore || canDelete) {
+                writeStart("div", "class", "actions");
+                    if (canRestore) {
+                        writeStart("button",
+                                "class", "link icon icon-action-restore",
+                                "name", "action-restore",
+                                "value", "true");
+                            writeHtml("Restore");
+                        writeEnd();
+                    }
 
-                writeStart("button",
-                        "class", "link icon icon-action-delete",
-                        "name", "action-delete",
-                        "value", "true");
-                    writeHtml("Delete Permanently");
+                    if (canDelete) {
+                        writeStart("button",
+                                "class", "link icon icon-action-delete",
+                                "name", "action-delete",
+                                "value", "true");
+                            writeHtml("Delete Permanently");
+                        writeEnd();
+                    }
                 writeEnd();
-            writeEnd();
+            }
         writeEnd();
 
         return true;
@@ -2380,6 +2404,37 @@ public class ToolPageContext extends WebPageContext {
                         fields.addAll(lasts);
                     }
 
+                    DependencyResolver<ObjectField> resolver = new DependencyResolver<>();
+                    Map<String, ObjectField> fieldByName = fields.stream()
+                            .collect(Collectors.toMap(ObjectField::getInternalName, Function.identity()));
+
+                    fields.forEach(field -> {
+                        ToolUi ui = field.as(ToolUi.class);
+
+                        toFields(fieldByName, ui.getDisplayAfter())
+                                .forEach(afterField -> resolver.addRequired(field, afterField));
+
+                        toFields(fieldByName, ui.getDisplayBefore())
+                                .forEach(beforeField -> resolver.addRequired(beforeField, field));
+                    });
+
+                    List<ObjectField> dependentFields = resolver.resolve();
+
+                    for (int i = 1, size = dependentFields.size(); i < size; ++ i) {
+                        int beforeIndex = fields.indexOf(dependentFields.get(i - 1));
+                        int afterIndex = fields.indexOf(dependentFields.get(i));
+
+                        if (beforeIndex > afterIndex) {
+                            fields.add(afterIndex, fields.remove(beforeIndex));
+                        }
+                    }
+
+                    List<ObjectField> orderedFields = toFields(fieldByName, type.as(ToolUi.class).getFieldDisplayOrder())
+                            .collect(Collectors.toList());
+
+                    fields.removeAll(orderedFields);
+                    fields.addAll(0, orderedFields);
+
                     boolean draftCheck = false;
 
                     try {
@@ -2387,19 +2442,19 @@ public class ToolPageContext extends WebPageContext {
                             draftCheck = true;
 
                             request.setAttribute("firstDraft", state.isNew());
-                            request.setAttribute("finalDraft", !state.isNew() &&
-                                    !state.as(Content.ObjectModification.class).isDraft() &&
-                                    state.as(Workflow.Data.class).getCurrentState() == null &&
-                                    getOverlaidDraft(object) == null);
+                            request.setAttribute("finalDraft", !state.isNew()
+                                    && !state.as(Content.ObjectModification.class).isDraft()
+                                    && state.as(Workflow.Data.class).getCurrentState() == null
+                                    && getOverlaidDraft(object) == null);
                         }
 
                         for (ObjectField field : fields) {
                             String name = field.getInternalName();
 
-                            if ((includeFields == null ||
-                                    includeFields.contains(name)) &&
-                                    (excludeFields == null ||
-                                    !excludeFields.contains(name))) {
+                            if ((includeFields == null
+                                    || includeFields.contains(name))
+                                    && (excludeFields == null
+                                    || !excludeFields.contains(name))) {
 
                                 renderField(object, field);
                             }
@@ -2419,6 +2474,12 @@ public class ToolPageContext extends WebPageContext {
                 request.setAttribute("containerObject", null);
             }
         }
+    }
+
+    private static Stream<ObjectField> toFields(Map<String, ObjectField> fieldByName, Collection<String> fieldNames) {
+        return fieldNames.stream()
+                .map(fieldByName::get)
+                .filter(f -> f != null);
     }
 
     /**
@@ -2469,10 +2530,10 @@ public class ToolPageContext extends WebPageContext {
                         writeHtml("Save");
                     writeEnd();
 
-                    if (!state.isNew() &&
-                            (type == null ||
-                            (!type.getGroups().contains(Singleton.class.getName()) &&
-                            !type.getGroups().contains(Tool.class.getName())))) {
+                    if (!state.isNew()
+                            && (type == null
+                            || (!type.getGroups().contains(Singleton.class.getName())
+                            && !type.getGroups().contains(Tool.class.getName())))) {
                         if (displayTrashAction) {
                             writeStart("button",
                                     "class", "icon icon-action-trash action-pullRight link",
@@ -2634,28 +2695,30 @@ public class ToolPageContext extends WebPageContext {
      * @return {@code true} if the delete is tried.
      */
     public boolean tryDelete(Object object) {
-        if (!isFormPost() ||
-                param(String.class, "action-delete") == null) {
+        if (!isFormPost()
+                || param(String.class, "action-delete") == null) {
             return false;
         }
 
-        try {
-            State state = State.getInstance(object);
+        State state = State.getInstance(object);
 
+        if (!hasPermission("type/" + state.getTypeId() + "/delete")) {
+            throw new IllegalStateException(String.format(
+                    "No permission to delete [%s]!",
+                    state.getType().getLabel()));
+        }
+
+        try {
             if (param(UUID.class, "draftId") != null) {
                 Draft draft = getOverlaidDraft(object);
 
                 if (draft != null) {
                     draft.delete();
 
-                    if (state.as(Content.ObjectModification.class).isDraft()) {
-                        state.delete();
-                    }
-
                     Schedule schedule = draft.getSchedule();
 
-                    if (schedule != null &&
-                            ObjectUtils.isBlank(schedule.getName())) {
+                    if (schedule != null
+                            && ObjectUtils.isBlank(schedule.getName())) {
                         schedule.delete();
                     }
                 }
@@ -2683,10 +2746,10 @@ public class ToolPageContext extends WebPageContext {
 
         if (publishDate != null) {
             DateTimeZone timeZone = getUserDateTimeZone();
-            publishDate = new Date(DateTimeFormat.
-                    forPattern("yyyy-MM-dd HH:mm:ss").
-                    withZone(timeZone).
-                    parseMillis(new DateTime(publishDate).toString("yyyy-MM-dd HH:mm:ss")));
+            publishDate = new Date(DateTimeFormat
+                    .forPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(timeZone)
+                    .parseMillis(new DateTime(publishDate).toString("yyyy-MM-dd HH:mm:ss")));
 
             if (publishDate.before(new Date(new DateTime(timeZone).getMillis()))) {
                 publishDate = null;
@@ -2722,8 +2785,8 @@ public class ToolPageContext extends WebPageContext {
      * @return {@code true} if the save is tried.
      */
     public boolean tryDraft(Object object) {
-        if (!isFormPost() ||
-                param(String.class, "action-draft") == null) {
+        if (!isFormPost()
+                || param(String.class, "action-draft") == null) {
             return false;
         }
 
@@ -2737,15 +2800,15 @@ public class ToolPageContext extends WebPageContext {
             updateUsingParameters(object);
             updateUsingAllWidgets(object);
 
-            if (state.isNew() &&
-                    site != null &&
-                    site.getDefaultVariation() != null) {
+            if (state.isNew()
+                    && site != null
+                    && site.getDefaultVariation() != null) {
                 state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
             }
 
             if (draft == null) {
-                if (state.isNew() ||
-                        state.as(Content.ObjectModification.class).isDraft()) {
+                if (state.isNew()
+                        || state.as(Content.ObjectModification.class).isDraft()) {
                     state.as(Content.ObjectModification.class).setDraft(true);
                     publish(state);
                     redirectOnSave("",
@@ -2783,6 +2846,51 @@ public class ToolPageContext extends WebPageContext {
     }
 
     /**
+     * Tries to create a new draft from the given {@code object} if the user
+     * has asked for it in the current request.
+     *
+     * @param object Can't be {@code null}.
+     * @return {@code true} if the create is tried.
+     */
+    public boolean tryNewDraft(Object object) {
+        if (!isFormPost()
+                || param(String.class, "action-newDraft") == null) {
+            return false;
+        }
+
+        setContentFormScheduleDate(object);
+
+        State state = State.getInstance(object);
+        Site site = getSite();
+
+        try {
+            updateUsingParameters(object);
+            updateUsingAllWidgets(object);
+
+            if (state.isNew()
+                    && site != null
+                    && site.getDefaultVariation() != null) {
+                state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
+            }
+
+            Draft draft = new Draft();
+
+            draft.setOwner(getUser());
+            draft.setObject(object);
+            publish(draft);
+            redirectOnSave("",
+                    "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null,
+                    ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
+                    ToolPageContext.HISTORY_ID_PARAMETER, null);
+            return true;
+
+        } catch (Exception error) {
+            getErrors().add(error);
+            return false;
+        }
+    }
+
+    /**
      * Tries to publish or schedule the given {@code object} if the user has
      * asked for it in the current request.
      *
@@ -2790,8 +2898,8 @@ public class ToolPageContext extends WebPageContext {
      * @return {@code true} if the restore is tried.
      */
     public boolean tryPublish(Object object) {
-        if (!isFormPost() ||
-                param(String.class, "action-publish") == null) {
+        if (!isFormPost()
+                || param(String.class, "action-publish") == null) {
             return false;
         }
 
@@ -2799,10 +2907,10 @@ public class ToolPageContext extends WebPageContext {
         Content.ObjectModification contentData = state.as(Content.ObjectModification.class);
         ToolUser user = getUser();
 
-        if (state.isNew() ||
-                object instanceof Draft ||
-                contentData.isDraft() ||
-                state.as(Workflow.Data.class).getCurrentState() != null) {
+        if (state.isNew()
+                || object instanceof Draft
+                || contentData.isDraft()
+                || state.as(Workflow.Data.class).getCurrentState() != null) {
             if (getContentFormPublishDate() != null) {
                 setContentFormScheduleDate(object);
 
@@ -2820,10 +2928,10 @@ public class ToolPageContext extends WebPageContext {
             state.beginWrites();
             state.as(Workflow.Data.class).changeState(null, user, (WorkflowLog) null);
 
-            if (variationId == null ||
-                    (site != null &&
-                    ((state.isNew() && site.getDefaultVariation() != null) ||
-                    ObjectUtils.equals(site.getDefaultVariation(), state.as(Variation.Data.class).getInitialVariation())))) {
+            if (variationId == null
+                    || (site != null
+                    && ((state.isNew() && site.getDefaultVariation() != null)
+                    || ObjectUtils.equals(site.getDefaultVariation(), state.as(Variation.Data.class).getInitialVariation())))) {
                 if (state.isNew() && site != null && site.getDefaultVariation() != null) {
                     state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
                 }
@@ -2832,17 +2940,17 @@ public class ToolPageContext extends WebPageContext {
                 includeFromCms("/WEB-INF/objectPost.jsp", "object", object, "original", object);
                 updateUsingAllWidgets(object);
 
-                if (variationId != null &&
-                        variationId.equals(state.as(Variation.Data.class).getInitialVariation())) {
+                if (variationId != null
+                        && variationId.equals(state.as(Variation.Data.class).getInitialVariation())) {
                     state.putByPath("variations/" + variationId.toString(), null);
                 }
 
             } else {
-                Object original = Query.
-                        from(Object.class).
-                        where("_id = ?", state.getId()).
-                        noCache().
-                        first();
+                Object original = Query
+                        .from(Object.class)
+                        .where("_id = ?", state.getId())
+                        .noCache()
+                        .first();
                 Map<String, Object> oldStateValues = State.getInstance(original).getSimpleValues();
 
                 getRequest().setAttribute("original", original);
@@ -2876,11 +2984,11 @@ public class ToolPageContext extends WebPageContext {
                 publishDate = getContentFormPublishDate();
 
             } else if (draft == null) {
-                draft = Query.
-                        from(Draft.class).
-                        where("schedule = ?", schedule).
-                        and("objectId = ?", object).
-                        first();
+                draft = Query
+                        .from(Draft.class)
+                        .where("schedule = ?", schedule)
+                        .and("objectId = ?", object)
+                        .first();
             }
 
             if (schedule != null || publishDate != null) {
@@ -2968,9 +3076,17 @@ public class ToolPageContext extends WebPageContext {
      * @return {@code true} if the restore is tried.
      */
     public boolean tryRestore(Object object) {
-        if (!isFormPost() ||
-                param(String.class, "action-restore") == null) {
+        if (!isFormPost()
+                || param(String.class, "action-restore") == null) {
             return false;
+        }
+
+        State objectState = State.getInstance(object);
+
+        if (!hasPermission("type/" + objectState.getTypeId() + "/restore")) {
+            throw new IllegalStateException(String.format(
+                    "No permission to restore [%s]!",
+                    objectState.getType().getLabel()));
         }
 
         try {
@@ -2996,8 +3112,8 @@ public class ToolPageContext extends WebPageContext {
      * @return {@code true} if the trash is tried.
      */
     public boolean trySave(Object object) {
-        if (!isFormPost() ||
-                param(String.class, "action-save") == null) {
+        if (!isFormPost()
+                || param(String.class, "action-save") == null) {
             return false;
         }
 
@@ -3034,10 +3150,10 @@ public class ToolPageContext extends WebPageContext {
      * @return {@code true} if the trash is tried.
      */
     public boolean tryStandardUpdate(Object object) {
-        return tryDelete(object) ||
-                tryRestore(object) ||
-                trySave(object) ||
-                tryTrash(object);
+        return tryDelete(object)
+                || tryRestore(object)
+                || trySave(object)
+                || tryTrash(object);
     }
 
     /**
@@ -3048,9 +3164,17 @@ public class ToolPageContext extends WebPageContext {
      * @return {@code true} if the trash is tried.
      */
     public boolean tryTrash(Object object) {
-        if (!isFormPost() ||
-                param(String.class, "action-trash") == null) {
+        if (!isFormPost()
+                || param(String.class, "action-trash") == null) {
             return false;
+        }
+
+        State state = State.getInstance(object);
+
+        if (!hasPermission("type/" + state.getTypeId() + "/archive")) {
+            throw new IllegalStateException(String.format(
+                    "No permission to archive [%s]!",
+                    state.getType().getLabel()));
         }
 
         try {
@@ -3212,7 +3336,7 @@ public class ToolPageContext extends WebPageContext {
      * is allowed access to the resources identified by the given
      * {@code permissionId}.
      *
-     * @param If {@code null}, returns {@code true}.
+     * @param permissionId If {@code null}, returns {@code true}.
      */
     public boolean hasPermission(String permissionId) {
         ToolPermissionProvider provider = getToolPermissionProvider();
@@ -3221,9 +3345,9 @@ public class ToolPageContext extends WebPageContext {
         }
         ToolUser user = getUser();
 
-        return user != null &&
-                (permissionId == null ||
-                user.hasPermission(permissionId));
+        return user != null
+                && (permissionId == null
+                || user.hasPermission(permissionId));
     }
 
     public boolean requirePermission(String permissionId) throws IOException {
@@ -3235,9 +3359,9 @@ public class ToolPageContext extends WebPageContext {
                 return false;
 
             } else {
-                getResponse().sendError(Settings.isProduction() ?
-                        HttpServletResponse.SC_NOT_FOUND :
-                        HttpServletResponse.SC_FORBIDDEN);
+                getResponse().sendError(Settings.isProduction()
+                        ? HttpServletResponse.SC_NOT_FOUND
+                        : HttpServletResponse.SC_FORBIDDEN);
                 return true;
             }
         }
@@ -3272,8 +3396,8 @@ public class ToolPageContext extends WebPageContext {
     public History publish(Object object) {
         History history = Content.Static.publish(object, getSite(), getUser());
 
-        if (history != null &&
-                param(boolean.class, "editAnyway")) {
+        if (history != null
+                && param(boolean.class, "editAnyway")) {
             history.setLockIgnored(true);
             history.save();
         }
@@ -3404,7 +3528,7 @@ public class ToolPageContext extends WebPageContext {
 
     // --- Deprecated ---
 
-    /** @deprecated Use {@link ToolPageContext(ServletContext, HttpServletRequest, HttpServletResponse} instead. */
+    /** @deprecated Use {@link #ToolPageContext(ServletContext, HttpServletRequest, HttpServletResponse)} instead. */
     @Deprecated
     public ToolPageContext(
             Servlet servlet,
@@ -3442,7 +3566,7 @@ public class ToolPageContext extends WebPageContext {
     /**
      * Returns an HTML-escaped label for the given {@code object}.
      *
-     * @deprecated Use {@link getObjectLabel} and {@link #h} instead.
+     * @deprecated Use {@link #getObjectLabel} and {@link #h} instead.
      */
     @Deprecated
     public String objectLabel(Object object) {
@@ -3471,7 +3595,7 @@ public class ToolPageContext extends WebPageContext {
         return h(getTypeLabel(object));
     }
 
-    /** @deprecated Use {@link writeTypeSelect} instead. */
+    /** @deprecated Use {@link #writeTypeSelect} instead. */
     @Deprecated
     public void typeSelect(
             Iterable<ObjectType> types,
@@ -3482,7 +3606,7 @@ public class ToolPageContext extends WebPageContext {
         writeTypeSelect(types, selectedType, allLabel, attributes);
     }
 
-    /** @deprecated Use {@link writeObjectSelect} instead. */
+    /** @deprecated Use {@link #writeObjectSelect} instead. */
     @Deprecated
     public void objectSelect(ObjectField field, Object value, Object... attributes) throws IOException {
         writeObjectSelect(field, value, attributes);
