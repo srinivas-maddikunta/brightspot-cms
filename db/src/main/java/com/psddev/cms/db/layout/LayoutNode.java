@@ -120,7 +120,10 @@ public abstract class LayoutNode {
             }
 
             if (currentNode instanceof ContainerNode) {
-                ((ContainerNode) currentNode).getChildNodes().stream().forEach(childNode -> nodeQueue.add(childNode));
+                ((ContainerNode) currentNode)
+                        .getChildNodes().
+                        stream().
+                        forEach(nodeQueue::add);
             } else {
                 fieldNodes.add((FieldNode) currentNode);
             }
