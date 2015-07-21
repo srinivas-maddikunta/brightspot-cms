@@ -72,7 +72,7 @@ public class RowDefinition extends Content {
 
         List<LayoutNode> childNodes = new ArrayList<>();
         for (ColumnDefinition columnDefinition : columnDefinitions) {
-            LayoutNode columnNode = columnDefinition.createLayoutNodes(type);
+            LayoutNode columnNode = columnDefinition.createLayoutNode(type);
             if (columnNode != null) {
                 columnNode.setParent(containerNode);
                 childNodes.add(columnNode);

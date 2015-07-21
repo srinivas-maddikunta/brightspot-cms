@@ -31,13 +31,13 @@ public class ColumnDefinition extends Record {
         this.width = width;
     }
 
-    public LayoutNode createLayoutNodes(ObjectType objectType) {
+    public LayoutNode createLayoutNode(ObjectType objectType) {
         Column column = this.getColumn();
 
         if (column == null) {
             return null;
         }
 
-        return column.createLayoutNodes(objectType, width);
+        return column.createLayoutNode(objectType, width);
     }
 }
