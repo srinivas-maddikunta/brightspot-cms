@@ -9,7 +9,7 @@ import com.psddev.dari.db.Record;
 
 public abstract class Column extends Record {
 
-    abstract LayoutNode createLayoutNodes(ObjectType type, int width);
+    protected abstract LayoutNode createLayoutNodes(ObjectType type, int width);
 
     public static class Cell extends Column {
         @Required
@@ -24,7 +24,7 @@ public abstract class Column extends Record {
         }
 
         @Override
-        LayoutNode createLayoutNodes(ObjectType type, int width) {
+        protected LayoutNode createLayoutNodes(ObjectType type, int width) {
             ObjectField field = new ObjectField(type, null);
 
             field.setDisplayName(this.getName());
@@ -58,7 +58,7 @@ public abstract class Column extends Record {
         }
 
         @Override
-        LayoutNode createLayoutNodes(ObjectType type, int width) {
+        protected LayoutNode createLayoutNodes(ObjectType type, int width) {
 
             LayoutNode.ContainerNode containerNode = new LayoutNode.ContainerNode();
             containerNode.setContainerType(LayoutNode.ContainerNode.ContainerType.COLUMN);
