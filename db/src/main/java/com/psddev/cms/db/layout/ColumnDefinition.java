@@ -5,7 +5,7 @@ import com.psddev.dari.db.Record;
 
 /**
  * Allows creation of editorially defined
- * column {@link ObjectField}s for a {@link Row}.
+ * column {@link com.psddev.dari.db.ObjectField}s for a {@link Row}.
  */
 public class ColumnDefinition extends Record {
 
