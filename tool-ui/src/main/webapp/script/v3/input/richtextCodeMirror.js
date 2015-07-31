@@ -88,11 +88,49 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                 raw: true // do not allow other styles inside this style and do not encode the text within this style, to allow for raw html
             },
 
-            // Special style for reprenting newlines
+            // Special style for representing space at the start or end of a text node (including newlines) to be hidden
             newline: {
                 className:'rte2-style-newline',
                 internal:true,
-                raw: true
+                //raw: true,
+                whitespace:true, // convert carriage returns to newlines
+                collapsed:true,
+                replacedWith: '<span>\n</span>' //\u21b5
+            },
+
+            // Special style for representing leading whitespace at the start or end of a text node
+            spacesLeading: {
+                className:'rte2-style-spaces-leading',
+                internal:true,
+                //raw: true,
+                whitespace:true, // convert carriage returns to newlines
+                collapsed:true,
+                inclusiveRight: false,
+                inclusiveLeft: false, // false?
+                replacedWith: '<span></span>' // hide the space
+            },
+            
+            // Special style for representing leading or trailing whitespace at the start or end of a text node
+            spacesTrailing: {
+                className:'rte2-style-spaces-trailing',
+                internal:true,
+                //raw: true,
+                whitespace:true, // convert carriage returns to newlines
+                collapsed:true,
+                inclusiveRight: false, // false?
+                inclusiveLeft: false,
+                replacedWith: '<span></span>' // hide the space
+            },
+            
+            // Special style for representing multiple embedded whitespace as a single space
+            spacesEmbedded: {
+                className:'rte2-style-spaces-embedded',
+                internal:true,
+                //raw: true,
+                whitespace:true, // convert carriage returns to newlines
+                inclusiveRight: false,
+                inclusiveLeft: false,
+                replacedWith: '<span> </span>' // replace with single space
             },
             
             // Special style used to collapse an element.
@@ -555,12 +593,26 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                 range.to.line = range.from.line;
                 range.to.ch = line.length;
             }
-            
+
             markOptions = $.extend({
                 className: className,
                 inclusiveRight: true,
-                addToHistory: true
+                addToHistory: true,
+                collapsed:styleObj.collapsed
             }, options);
+            
+            if (styleObj.replacedWith) {
+                
+                markOptions.replacedWith = $(styleObj.replacedWith)[0];
+
+                if (styleObj.inclusiveRight !== undefined) {
+                    markOptions.inclusiveRight = styleObj.inclusiveRight;
+                }
+                
+                if (styleObj.inclusiveLeft !== undefined) {
+                    markOptions.inclusiveLeft = styleObj.inclusiveLeft;
+                }
+            }
 
             
             // Check for special case if no range is defined, we should still let the user
@@ -1374,7 +1426,7 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
             
             // Get the start and end positions for this mark
             pos = mark.find();
-            if (!pos.from) {
+            if (!pos || !pos.from) {
                 return;
             }
             
@@ -2818,7 +2870,7 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
             // Loop through the content one line at a time
             doc.eachLine(function(line) {
 
-                var annotationStart, annotationEnd, blockOnThisLine, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineElementsToClose, lineNo, outputChar, raw, rawLastChar;
+                var annotationStart, annotationEnd, blockOnThisLine, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineElementsToClose, lineNo, outputChar, raw, rawLastChar, whitespace;
 
                 lineNo = line.lineNo();
                 
@@ -2963,7 +3015,7 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                         styleObj = self.classes[className] || {};
 
                         // Skip any marker where we don't have an element mapping
-                        if (!(styleObj.element || styleObj.raw)) {
+                        if (!(styleObj.element || styleObj.raw || styleObj.whitespace)) {
                             return;
                         }
 
@@ -3029,6 +3081,11 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                                 raw = false;
                             }
                             
+                            // If any of the styles is "whitespace" mode, clear the raw flag
+                            if (styleObj.raw) {
+                                whitespace = false;
+                            }
+                            
                             delete inlineActive[styleObj.className];
                         });
 
@@ -3051,6 +3108,9 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                             if (styleObj.raw) {
                                 raw = true;
                             }
+                            if (styleObj.whitespace) {
+                                whitespace = true;
+                            }
                             
                             if (!inlineActive[styleObj.className]) {
 
@@ -3072,13 +3132,17 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
 
                     // In some cases (at end of line) output char might be empty
                     if (outputChar) {
-                        
-                        if (raw) {
 
-                            // Carriage return character within raw region should be converted to an actual newline
+                        if (whitespace) {
+                            
+                            // Carriage return character within whitespace region should be converted to an actual newline
                             if (outputChar === '\u21b5') {
                                 outputChar = '\n';
                             }
+                        }
+                        
+                        if (raw) {
+
 
                             // Less-than character within raw region temporily changed to a fake entity,
                             // so we can find it and do other stuff later
@@ -3179,7 +3243,7 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
             
             function processNode(n, rawParent) {
                 
-                var elementName, elementClose, from, isContainer, matchStyleObj, next, raw, rawChildren, split, to, text;
+                var elementName, elementClose, from, isContainer, matchStyleObj, next, raw, rawChildren, split, styleObj, to, text;
 
                 next = n.childNodes[0];
 
@@ -3195,12 +3259,11 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                         text = text.replace(/\u200b|\u8203/g, '');
 
                         // Convert newlines to a carriage return character and annotate it
-                        text = text.replace(/[\n\r]/g, function(match, offset, string){
+                        text = text.replace(/^(\s+)|(\s+)$|(\s{2,})|([\n\r]+)/g, function(match, p1, p2, p3, p4, offset, string) {
 
                             var from, split, to;
                             
-                            // Create an annotation to mark the newline as "raw html" so we can distinguish it
-                            // from any other user of the carriage return character
+                            // Create an annotation to mark the whitespace
                             
                             split = val.split("\n");
                             from =  {
@@ -3209,15 +3272,26 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                             };
                             to = {
                                 line: from.line,
-                                ch: from.ch + 1
+                                ch: from.ch + match.length
                             };
+
+                            if (p1) {
+                                styleObj = self.styles.spacesLeading;
+                            } else if (p2) {
+                                styleObj = self.styles.spacesTrailing;
+                            } else {
+                                styleObj = self.styles.spacesEmbedded;
+                            }
+
                             annotations.push({
-                                styleObj: self.styles.newline,
+                                styleObj: styleObj,
                                 from:from,
                                 to:to
                             });
-                             
-                            return '\u21b5';
+
+                            //return '\u21b5';
+                            //return match;
+                            return match.replace(/[\n\r]/g, '\u21b5');
                         });
 
                         val += text;
