@@ -88,45 +88,39 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                 raw: true // do not allow other styles inside this style and do not encode the text within this style, to allow for raw html
             },
 
-            // Special style for representing space at the start or end of a text node (including newlines) to be hidden
+            // Special style for representing a newline added by Shift-Enter
             newline: {
                 className:'rte2-style-newline',
                 internal:true,
-                //raw: true,
-                whitespace:true, // convert carriage returns to newlines
-                collapsed:true,
-                replacedWith: '<span>\n</span>' //\u21b5
+                whitespace:true // convert carriage returns to newlines
             },
 
-            // Special style for representing leading whitespace at the start or end of a text node
+            // Special style for representing leading whitespace at the start of a text node
             spacesLeading: {
                 className:'rte2-style-spaces-leading',
                 internal:true,
-                //raw: true,
                 whitespace:true, // convert carriage returns to newlines
                 collapsed:true,
                 inclusiveRight: false,
-                inclusiveLeft: false, // false?
+                inclusiveLeft: false,
                 replacedWith: '<span></span>' // hide the space
             },
-            
-            // Special style for representing leading or trailing whitespace at the start or end of a text node
+ 
+            // Special style for representing trailing whitespace at the end of a text node
             spacesTrailing: {
                 className:'rte2-style-spaces-trailing',
                 internal:true,
-                //raw: true,
                 whitespace:true, // convert carriage returns to newlines
                 collapsed:true,
-                inclusiveRight: false, // false?
+                inclusiveRight: false,
                 inclusiveLeft: false,
                 replacedWith: '<span></span>' // hide the space
             },
             
-            // Special style for representing multiple embedded whitespace as a single space
+            // Special style for representing multiple embedded whitespace in the middle of a text node
             spacesEmbedded: {
                 className:'rte2-style-spaces-embedded',
                 internal:true,
-                //raw: true,
                 whitespace:true, // convert carriage returns to newlines
                 inclusiveRight: false,
                 inclusiveLeft: false,
@@ -684,7 +678,7 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
          */
         inlineRemoveStyle: function(styleKey, range, options) {
 
-            var className, deleteText, editor, lineNumber, self, from, to;
+            var className, deleteText, editor, except, lineNumber, self, from, to;
 
             self = this;
 
@@ -703,7 +697,16 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
             to = range.to;
 
             lineNumber = from.line;
-            
+
+            except = [];
+            if (options.except) {
+                if ($.type(options.except) === 'string') {
+                    except.push(options.except);
+                } else {
+                    except = options.except;
+                }
+            }
+
             // Before beginning, clean up the CodeMirror marks
             // to make sure they do not span across separate lines.
             self.inlineCleanup();
@@ -735,9 +738,11 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                         matchesClass = Boolean(options.includeTrack || styleObj.internal !== true);
 
                         // Do not remove the "except" class if it was specified
-                        if (mark.marker.className === options.except) {
-                            matchesClass = false;
-                        }
+                        $.each(except, function(i, className) {
+                            if (mark.marker.className === className) {
+                                matchesClass = false;
+                            }
+                        });
                     }
                     
                     if (!matchesClass) {
@@ -1379,10 +1384,19 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
          */
         rawCleanup: function() {
             
-            var editor, self;
+            var editor, except, self;
 
             self = this;
             editor = self.codeMirror;
+
+            // Classnames to leave alone!
+            except = [
+                'rte2-style-html',
+                'rte2-style-spaces-leading',
+                'rte2-style-spaces-trailing',
+                'rte2-style-spaces-embedded',
+                'rte2-style-newline'
+            ];
             
             $.each(editor.getAllMarks(), function(i, mark) {
 
@@ -1402,7 +1416,7 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                     to = pos.to;
 
                     // Clear other styles
-                    self.inlineRemoveStyle('', {from:from, to:to}, {includeTrack:true, except:mark.className});
+                    self.inlineRemoveStyle('', {from:from, to:to}, {includeTrack:true, except:except});
                 }
                 
             });
@@ -3081,8 +3095,8 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                                 raw = false;
                             }
                             
-                            // If any of the styles is "whitespace" mode, clear the raw flag
-                            if (styleObj.raw) {
+                            // If any of the styles is "whitespace" mode, clear the whitespace flag
+                            if (styleObj.whitespace) {
                                 whitespace = false;
                             }
                             
@@ -3108,6 +3122,8 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                             if (styleObj.raw) {
                                 raw = true;
                             }
+                            
+                            // If any of the styles is "whitespace" mode, set a whitespace flag for later
                             if (styleObj.whitespace) {
                                 whitespace = true;
                             }
@@ -3276,10 +3292,13 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                             };
 
                             if (p1) {
+                                // The first paren in the regexp was for leading spaces
                                 styleObj = self.styles.spacesLeading;
                             } else if (p2) {
+                                // The second paren in the regexp was for trailing spaces
                                 styleObj = self.styles.spacesTrailing;
                             } else {
+                                // Any other match was for embedded whitespace
                                 styleObj = self.styles.spacesEmbedded;
                             }
 
@@ -3289,8 +3308,9 @@ define(['jquery', 'codemirror/lib/codemirror'], function($, CodeMirror) {
                                 to:to
                             });
 
-                            //return '\u21b5';
-                            //return match;
+                            // Replace any \n characters with a carriage return symbol
+                            // because \n will be interpreted by CodeMirror as a new line
+                            // and we don't want that in this case
                             return match.replace(/[\n\r]/g, '\u21b5');
                         });
 
