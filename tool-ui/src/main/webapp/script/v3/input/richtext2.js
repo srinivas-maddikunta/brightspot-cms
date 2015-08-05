@@ -343,7 +343,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             { separator:true },
             { style: 'comment', text: 'Add Comment', className: 'rte2-toolbar-comment', tooltip: 'Add Comment' },
             { action: 'collapse', text: 'Collapse All Comments', className: 'rte2-toolbar-comment-collapse', collapseStyle: 'comment', tooltip: 'Collapse All Comments' },
-            { action: 'cleartext', text: 'Remove Comment', className: 'rte2-toolbar-comment-remove', tooltip: 'Remove Comment', cleartextStyle: 'comment' }
+            { action: 'cleartext', text: 'Remove Comment', className: 'rte2-toolbar-comment-remove', tooltip: 'Remove Comment', cleartextStyle: 'comment' },
+            
+            { separator:true },
+            { action:'fullscreen', text: 'Fullscreen', className: 'rte2-toolbar-fullscreen', tooltip: 'Toggle Fullscreen Editing' },
 
             // Example adding buttons to insert special characters or other text:
             // { text: 'Special Characters', submenu: [
@@ -564,11 +567,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Add our styles to the styles that are already built into the rich text editor
             self.rte.styles = $.extend(true, self.rte.styles, self.styles);
 
-            // Create a div under the text area to display the editor
+            // Create a div under the text area to display the toolbar and the editor
             self.$container = $('<div/>', {
                 'class': 'rte2-wrapper'
             }).insertAfter(self.$el);
 
+            self.$editor = $('<div/>').appendTo(self.$container);
+                
             // Hide the textarea
             self.$el.hide();
 
@@ -582,7 +587,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             }
 
             // Initialize the editor
-            self.rte.init(self.$container);
+            self.rte.init(self.$editor);
 
             // Override the rich text editor to tell it how enhancements should be imported from HTML
             self.rte.enhancementFromHTML = function($content, line) {
@@ -592,6 +597,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Set the content into the editor
             self.rte.fromHTML(content);
+
+            // Set up periodic update of the textarea
+            self.previewInit();
         },
 
 
@@ -621,7 +629,46 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             }
         },
 
+        /*==================================================
+         * Full Screen Mode
+         *==================================================*/
 
+        /**
+         * Toggle fullscreen mode.
+         */
+        fullscreenToggle: function() {
+
+            var self;
+
+            self = this;
+
+            // Hide or show some parts of the page
+            $('.toolBroadcast').toggle();
+            $('.toolHeader').toggle();
+
+            // Add classname to change display
+            $('body').toggleClass('rte-fullscreen');
+            self.$container.toggleClass('rte-fullscreen');
+            
+            //$(composer.parent.container).toggleClass('rte-fullscreen');
+            //$(composer.element).toggleClass('rte-fullscreen');
+
+            // After changing fullscreen status, kick the toolbar in case it was moved due to scrolling
+            self.toolbarHoist();
+
+            // Also kick the editor
+            self.rte.refresh();
+        },
+
+        
+        /**
+         * @returns {Boolean}
+         */
+        fullscreenIsActive: function() {
+            return $('body').hasClass('rte-fullscreen');
+        },
+
+        
         /*==================================================
          * Track Changes
          * Code to save and restor the state of "track changes" for an individual rich text editor.
@@ -717,7 +764,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (self.toolbarLocation) {
                 $toolbar.appendTo(self.toolbarLocation);
             } else {
-                $toolbar.insertBefore(self.$el);
+                $toolbar.insertBefore(self.$editor);
             }
             self.$toolbar = $toolbar;
 
@@ -984,6 +1031,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     self.enhancementCreate();
                     break;
 
+                case 'fullscreen':
+                    self.fullscreenToggle();
+                    break;
+                    
                 case 'insert':
                     if (item.value) {
                         // Write value to the DOM and read it back again,
@@ -1095,6 +1146,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                         $link.toggleClass('active', !rte.trackDisplayGet());
                         break;
 
+                    case 'fullscreen':
+                        $link.toggleClass('active', self.fullscreenIsActive());
+                        break;
                     }
 
                 } else {
@@ -1161,7 +1215,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             var self = this;
             var $win = $(window);
             var $header = $('.toolHeader');
-            var headerBottom = $header.offset().top + $header.outerHeight() - ($header.css('position') === 'fixed' ? $win.scrollTop() : 0);
+            var headerBottom = 0;
             var windowTop = $win.scrollTop() + headerBottom;
             var raf = window.requestAnimationFrame;
             var $container = self.$container;
@@ -1173,6 +1227,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 return;
             }
 
+            // Determine if we need to adjust below the toolHeader
+            if ($header.is(':visible')) {
+                headerBottom = $header.offset().top + $header.outerHeight() - ($header.css('position') === 'fixed' ? $win.scrollTop() : 0);
+            }
+            
             $toolbar = self.$toolbar;
             containerTop = $container.offset().top;
             toolbarHeight = $toolbar.outerHeight();
@@ -2454,6 +2513,51 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 // Remove the attribute so the text will not be overlayed
                 self.$container.removeAttr(attrName);
+            }
+        },
+
+        
+        /*==================================================
+         * Preview
+         * To support brightspot cms preview functionality,
+         * we must keep the textarea updated with the most recent data.
+         * Triggering an "input" event will update the preview.
+         *==================================================*/
+
+        
+        /**
+         * Initialize an event listener so whenever the rich text editor changes,
+         * we update the textarea with the latest content, and trigger an
+         * event to update the preview.
+         *
+         * This is throttled agressively to prevent performance problems.
+         */
+        previewInit: function() {
+            
+            var self;
+            self = this;
+
+            self.$container.on('rteChange', $.throttle(2000, function(){
+                self.previewUpdate();
+            }));
+        },
+
+        
+        /**
+         * Update the textarea with the latest content from the rich text editor,
+         * plus trigger an "input" event so the preview will be updated.
+         */
+        previewUpdate: function() {
+            
+            var html, self;
+            
+            self = this;
+
+            html = self.toHTML();
+            
+            if (html !== self.previewUpdateSaved) {
+                self.previewUpdateSaved = html;
+                self.$el.val(html).trigger('input');
             }
         },
 
