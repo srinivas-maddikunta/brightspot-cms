@@ -33,7 +33,8 @@ java.util.Iterator,
 java.util.List,
 java.util.Map,
 java.util.Set,
-java.util.UUID
+java.util.UUID,
+java.util.stream.Collectors
 " %><%
 
 // --- Logic ---
@@ -109,8 +110,8 @@ if ((Boolean) request.getAttribute("isFormPost")) {
                 wp.updateUsingParameters(item);
             }
 
-            itemState.putValue(Content.PUBLISH_DATE_FIELD, publishDates[i] != null ? publishDates[i] : new Date());
-            itemState.putValue(Content.UPDATE_DATE_FIELD, new Date());
+            itemState.remove(Content.PUBLISH_DATE_FIELD);
+            itemState.remove(Content.UPDATE_DATE_FIELD);
             fieldValue.add(item);
 
             if (field.isEmbedded() && !itemState.isNew()) {
@@ -582,7 +583,14 @@ if (!isValueExternal) {
             "class", "inputLarge repeatableForm" + (!bulkUploadTypes.isEmpty() ? " repeatableForm-previewable" : ""),
             "foo", "bar",
             "data-generic-arguments", genericArgumentsString);
-        wp.writeStart("ol");
+
+        wp.writeStart("ol",
+                "data-sortable-input-name", inputName,
+                "data-sortable-valid-item-types", validTypes.stream()
+                        .map(ObjectType::getId)
+                        .map(UUID::toString)
+                        .collect(Collectors.joining(" ")));
+
             for (Object item : fieldValue) {
                 State itemState = State.getInstance(item);
                 ObjectType itemType = itemState.getType();
@@ -597,6 +605,7 @@ if (!isValueExternal) {
                 State previewState = State.getInstance(itemState.get(previewField));
 
                 wp.writeStart("li",
+                        "data-sortable-item-type", itemType.getId(),
                         "data-type", wp.getObjectLabel(itemType),
                         "data-label", wp.getObjectLabel(item),
                         "data-visibility", previewState != null ? previewState.getVisibilityLabel() : null,
@@ -642,6 +651,7 @@ if (!isValueExternal) {
                 wp.writeStart("script", "type", "text/template");
                     wp.writeStart("li",
                             "class", !bulkUploadTypes.isEmpty() ? "collapsed" : null,
+                            "data-sortable-item-type", type.getId(),
                             "data-type", wp.getObjectLabel(type),
                             // Add the name of the preview field so the front end knows
                             // if that field is updated it should update the thumbnail
@@ -712,10 +722,18 @@ if (!isValueExternal) {
             }
         }
 
-        writer.start("ol");
+        writer.start("ol",
+                    "data-sortable-input-name", inputName,
+                    "data-sortable-valid-item-types", validTypes.stream()
+                            .map(ObjectType::getId)
+                            .map(UUID::toString)
+                            .collect(Collectors.joining(" ")));
+
             if (fieldValue != null) {
                 for (Object item : fieldValue) {
-                    writer.start("li");
+                    writer.start("li",
+                            "data-sortable-item-type", State.getInstance(item).getTypeId());
+
                         wp.writeObjectSelect(field, item, "name", inputName);
                     writer.end();
                 }
