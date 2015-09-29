@@ -5,12 +5,14 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.ResourceBundle;
 import java.util.Set;
 
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.ObjectUtils;
+import com.psddev.dari.util.SettingsException;
 import com.psddev.dari.util.sa.Jvm;
 import com.psddev.dari.util.sa.JvmMethodListener;
 import com.psddev.dari.util.sa.JvmObject;
@@ -39,14 +41,13 @@ public class LocalizationVerifier {
             try {
                 jvm.analyze(clazz);
             } catch (Exception e) {
-//                if (e instanceof SettingsException) {
-//                    System.out.println("[WARN] Unable to automatically verify class: " + clazz.getCanonicalName() + " should be manually verified");
-//                } else if (e instanceof NoSuchElementException) {
-//                    System.out.println("[WARN] Failed to analyze [" + clazz.getCanonicalName() + "]. Should be manually verified.");
-//                } else {
-//                    System.out.println("Unable to verify class: " + e.getMessage());
-//                }
-                e.printStackTrace();
+                if (e instanceof SettingsException) {
+                    System.out.println("[WARNING] Requires database to automatically verify localization keys in " + clazz.getCanonicalName() + ", should be manually verified");
+                } else if (e instanceof NoSuchElementException) {
+                    System.out.println("[WARNING] Failed to analyze [" + clazz.getCanonicalName() + "]. Should be manually verified.");
+                } else {
+                    throw new RuntimeException("[ERROR] Failed to verify ToolPageContext#localize usages in " + clazz.getCanonicalName());
+                }
             }
         }
 
@@ -103,27 +104,27 @@ public class LocalizationVerifier {
             }
 
             Locale locale = Locale.US;
-            String baseName = ToolPageContext.Static.getResourceBaseName(context);
+            String baseName = ToolPageContext.getResourceBaseName(context);
 
-            ResourceBundle baseOverride = ToolPageContext.Static.findBundle(baseName + "Override", locale);
-            ResourceBundle baseDefault = ToolPageContext.Static.findBundle(baseName + "Default", locale);
+            ResourceBundle baseOverride = ToolPageContext.findBundle(baseName + "Override", locale);
+            ResourceBundle baseDefault = ToolPageContext.findBundle(baseName + "Default", locale);
 
-            ResourceBundle fallbackOverride = ToolPageContext.Static.findBundle("FallbackOverride", locale);
-            ResourceBundle fallbackDefault = ToolPageContext.Static.findBundle("FallbackDefault", locale);
+            ResourceBundle fallbackOverride = ToolPageContext.findBundle("FallbackOverride", locale);
+            ResourceBundle fallbackDefault = ToolPageContext.findBundle("FallbackDefault", locale);
 
             if (key == null) {
-                System.out.println("[WARN] Resource key from " + className + "#" + methodName + "@" + lineNumber + " is null.");
+                System.out.println("[WARNING] Resource key from " + className + "#" + methodName + "@" + lineNumber + " is null.");
                 return;
             }
 
             String property = ObjectUtils.firstNonNull(
-                    ToolPageContext.Static.findBundleString(fallbackDefault, key),
-                    ToolPageContext.Static.findBundleString(fallbackOverride, key),
-                    ToolPageContext.Static.findBundleString(baseOverride, key),
-                    ToolPageContext.Static.findBundleString(baseDefault, key));
+                    ToolPageContext.findBundleString(fallbackDefault, key),
+                    fallbackDefault != null ? ToolPageContext.findBundleString(fallbackOverride, key) : null,
+                    baseOverride != null ? ToolPageContext.findBundleString(baseOverride, key) : null,
+                    baseDefault != null ? ToolPageContext.findBundleString(baseDefault, key) : null);
 
             if (property == null) {
-                throw new RuntimeException("Unable to find resource");
+                throw new RuntimeException("[ERROR] Unable to find resource key [" + key + "]");
             }
         }
     }
