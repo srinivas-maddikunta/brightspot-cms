@@ -526,7 +526,7 @@ public class ToolPageContext extends WebPageContext {
         }
     }
 
-    private ResourceBundle findBundle(String baseName, Locale locale) {
+    protected static ResourceBundle findBundle(String baseName, Locale locale) {
         try {
             return ResourceBundle.getBundle(
                     baseName,
@@ -550,7 +550,45 @@ public class ToolPageContext extends WebPageContext {
         return map;
     }
 
-    private String findBundleString(ResourceBundle bundle, String key) {
+    protected static String getResourceBaseName(Object context) {
+        String baseName = null;
+        ObjectType type = null;
+
+        if (context != null) {
+            if (context instanceof String) {
+                baseName = (String) context;
+
+            } else if (context instanceof ObjectType) {
+                type = (ObjectType) context;
+                baseName = type.getInternalName();
+
+            } else if (context instanceof Class) {
+                type = ObjectType.getInstance((Class<?>) context);
+
+                if (type != null) {
+                    baseName = type.getInternalName();
+
+                } else {
+                    baseName = ((Class<?>) context).getName();
+                }
+
+            } else if (context instanceof Recordable) {
+                State state = ((Recordable) context).getState();
+                type = state.getType();
+
+                if (type != null) {
+                    baseName = type.getInternalName();
+                }
+
+            } else {
+                baseName = context.getClass().getName();
+            }
+        }
+
+        return baseName;
+    }
+
+    protected static String findBundleString(ResourceBundle bundle, String key) {
         try {
             String pattern = bundle.getString(key);
 
