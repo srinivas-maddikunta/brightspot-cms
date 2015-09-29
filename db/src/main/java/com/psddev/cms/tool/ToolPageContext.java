@@ -266,6 +266,7 @@ public class ToolPageContext extends WebPageContext {
     }
 
     public String localize(Object context, Map<String, Object> contextOverrides, String key) throws IOException {
+        String baseName = null;
         ObjectField field = null;
 
         if (context instanceof ObjectField) {
@@ -273,13 +274,39 @@ public class ToolPageContext extends WebPageContext {
             context = field.getParentType();
         }
 
+        ObjectType type = null;
         State state = null;
 
-        if (context != null && context instanceof Recordable) {
-            state = ((Recordable) context).getState();
-        }
+        if (context != null) {
+            if (context instanceof String) {
+                baseName = (String) context;
 
-        String baseName = Static.getResourceBaseName(context);
+            } else if (context instanceof ObjectType) {
+                type = (ObjectType) context;
+                baseName = type.getInternalName();
+
+            } else if (context instanceof Class) {
+                type = ObjectType.getInstance((Class<?>) context);
+
+                if (type != null) {
+                    baseName = type.getInternalName();
+
+                } else {
+                    baseName = ((Class<?>) context).getName();
+                }
+
+            } else if (context instanceof Recordable) {
+                state = ((Recordable) context).getState();
+                type = state.getType();
+
+                if (type != null) {
+                    baseName = type.getInternalName();
+                }
+
+            } else {
+                baseName = context.getClass().getName();
+            }
+        }
 
         Locale defaultLocale = Locale.getDefault();
         Locale userLocale = MoreObjects.firstNonNull(getUser() != null ? getUser().getLocale() : null, defaultLocale);
@@ -311,7 +338,7 @@ public class ToolPageContext extends WebPageContext {
         }
     }
 
-    protected String createLocalizedString(
+    private String createLocalizedString(
             Locale source,
             Locale target,
             String baseName,
@@ -330,20 +357,20 @@ public class ToolPageContext extends WebPageContext {
         String pattern = null;
 
         if (baseName != null) {
-            ResourceBundle baseOverride = Static.findBundle(baseName + "Override", source);
-            ResourceBundle baseDefault = Static.findBundle(baseName + "Default", source);
+            ResourceBundle baseOverride = findBundle(baseName + "Override", source);
+            ResourceBundle baseDefault = findBundle(baseName + "Default", source);
 
             if (baseOverride != null) {
                 argumentsSources.add(createBundleMap(baseOverride));
 
-                pattern = Static.findBundleString(baseOverride, key);
+                pattern = findBundleString(baseOverride, key);
             }
 
             if (baseDefault != null) {
                 argumentsSources.add(createBundleMap(baseDefault));
 
                 if (pattern == null) {
-                    pattern = Static.findBundleString(baseDefault, key);
+                    pattern = findBundleString(baseDefault, key);
                 }
             }
         }
@@ -353,17 +380,17 @@ public class ToolPageContext extends WebPageContext {
         }
 
         if (pattern == null) {
-            ResourceBundle fallbackOverride = Static.findBundle("FallbackOverride", source);
+            ResourceBundle fallbackOverride = findBundle("FallbackOverride", source);
 
             if (fallbackOverride != null) {
-                pattern = Static.findBundleString(fallbackOverride, key);
+                pattern = findBundleString(fallbackOverride, key);
             }
 
             if (pattern == null) {
-                ResourceBundle fallbackDefault = Static.findBundle("FallbackDefault", source);
+                ResourceBundle fallbackDefault = findBundle("FallbackDefault", source);
 
                 if (fallbackDefault != null) {
-                    pattern = Static.findBundleString(fallbackDefault, key);
+                    pattern = findBundleString(fallbackDefault, key);
                 }
             }
         }
@@ -374,7 +401,7 @@ public class ToolPageContext extends WebPageContext {
         argumentsSources.add(bundle.getMap());
 
         if (pattern == null && Locale.getDefault().equals(source)) {
-            pattern = Static.findBundleString(bundle, key);
+            pattern = findBundleString(bundle, key);
         }
 
         if (pattern == null) {
@@ -499,16 +526,39 @@ public class ToolPageContext extends WebPageContext {
         }
     }
 
+    private ResourceBundle findBundle(String baseName, Locale locale) {
+        try {
+            return ResourceBundle.getBundle(
+                    baseName,
+                    locale,
+                    ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_DEFAULT));
+
+        } catch (MissingResourceException error) {
+            return null;
+        }
+    }
+
     private Map<String, Object> createBundleMap(ResourceBundle bundle) {
         Map<String, Object> map = new CompactMap<>();
 
         for (Enumeration<String> keys = bundle.getKeys(); keys.hasMoreElements();) {
             String key = keys.nextElement();
 
-            map.put(key, Static.findBundleString(bundle, key));
+            map.put(key, findBundleString(bundle, key));
         }
 
         return map;
+    }
+
+    private String findBundleString(ResourceBundle bundle, String key) {
+        try {
+            String pattern = bundle.getString(key);
+
+            return new String(pattern.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+
+        } catch (MissingResourceException error) {
+            return null;
+        }
     }
 
     public String localize(Object context, String key) throws IOException {
@@ -3795,67 +3845,6 @@ public class ToolPageContext extends WebPageContext {
     public static final class Static {
 
         private Static() {
-        }
-
-        protected static ResourceBundle findBundle(String baseName, Locale locale) {
-            try {
-                return ResourceBundle.getBundle(
-                        baseName,
-                        locale,
-                        ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_DEFAULT));
-
-            } catch (MissingResourceException error) {
-                return null;
-            }
-        }
-
-        protected static String getResourceBaseName(Object context) {
-            String baseName = null;
-            ObjectType type = null;
-
-            if (context != null) {
-                if (context instanceof String) {
-                    baseName = (String) context;
-
-                } else if (context instanceof ObjectType) {
-                    type = (ObjectType) context;
-                    baseName = type.getInternalName();
-
-                } else if (context instanceof Class) {
-                    type = ObjectType.getInstance((Class<?>) context);
-
-                    if (type != null) {
-                        baseName = type.getInternalName();
-
-                    } else {
-                        baseName = ((Class<?>) context).getName();
-                    }
-
-                } else if (context instanceof Recordable) {
-                    State state = ((Recordable) context).getState();
-                    type = state.getType();
-
-                    if (type != null) {
-                        baseName = type.getInternalName();
-                    }
-
-                } else {
-                    baseName = context.getClass().getName();
-                }
-            }
-
-            return baseName;
-        }
-
-        protected static String findBundleString(ResourceBundle bundle, String key) {
-            try {
-                String pattern = bundle.getString(key);
-
-                return new String(pattern.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-
-            } catch (MissingResourceException error) {
-                return null;
-            }
         }
 
         private static String notTooShort(String word) {
