@@ -464,10 +464,6 @@ public class StorageItemField extends PageServlet {
                     }
                 }
                 fieldValueMetadata.put("cms.crops", crops);
-                // Removes legacy cropping information
-                if (state.getValue(cropsFieldName) != null) {
-                    state.remove(cropsFieldName);
-                }
 
                 // Set focus point
                 if (focusX != null && focusY != null) {
@@ -475,18 +471,6 @@ public class StorageItemField extends PageServlet {
                     focusPoint.put("y", focusY);
                 }
                 fieldValueMetadata.put("cms.focus", focusPoint);
-
-                // Transfers legacy metadata over to it's new location within the StorageItem object
-                Map<String, Object> legacyMetadata = ObjectUtils.to(new TypeReference<Map<String, Object>>() {
-                }, state.getValue(metadataFieldName));
-                if (legacyMetadata != null && !legacyMetadata.isEmpty()) {
-                    for (Map.Entry<String, Object> entry : legacyMetadata.entrySet()) {
-                        if (!fieldValueMetadata.containsKey(entry.getKey())) {
-                            fieldValueMetadata.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                    state.remove(metadataFieldName);
-                }
 
                 if (newItem != null) {
                     newItem.setMetadata(fieldValueMetadata);
