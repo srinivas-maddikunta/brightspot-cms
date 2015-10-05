@@ -406,10 +406,8 @@ public class StorageItemField extends PageServlet {
                     newItem = StorageItem.Static.createUrl(page.param(urlName));
                 }
 
-                if (newItem != null) {
-                    tryExtractMetadata(newItem, fieldValueMetadata, Optional.ofNullable(newItemData));
-                }
-
+                tryExtractMetadata(newItem, fieldValueMetadata, Optional.ofNullable(newItemData));
+                
                 // Standard sizes.
                 for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
                     Map.Entry<String, ImageCrop> e = i.next();
@@ -679,7 +677,11 @@ public class StorageItemField extends PageServlet {
         return storageSetting;
     }
 
+    //TODO: Async Process
     static void tryExtractMetadata(StorageItem storageItem, Map<String, Object> fieldValueMetadata, Optional<InputStream> optionalStream) {
+        if (storageItem == null) {
+            return;
+        }
 
         ImageMetadataMap metadata = null;
         InputStream inputStream = null;
