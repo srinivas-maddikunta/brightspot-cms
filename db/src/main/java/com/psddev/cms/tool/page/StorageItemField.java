@@ -40,6 +40,7 @@ import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.AggregateException;
 import com.psddev.dari.util.ClassFinder;
+import com.psddev.dari.util.ContentTypeValidator;
 import com.psddev.dari.util.ImageMetadataMap;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.MultipartRequest;
@@ -49,6 +50,8 @@ import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.SparseSet;
 import com.psddev.dari.util.StorageItem;
+import com.psddev.dari.util.StorageItemFilter;
+import com.psddev.dari.util.StorageItemPathGenerator;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeReference;
 
@@ -255,8 +258,6 @@ public class StorageItemField extends PageServlet {
 
                 fieldValueMetadata.put("cms.edits", edits);
 
-                InputStream newItemData = null;
-
                 if ("keep".equals(action)) {
                     if (fieldValue != null) {
                         newItem = fieldValue;
@@ -271,142 +272,52 @@ public class StorageItemField extends PageServlet {
                     String name = null;
                     String fileContentType = null;
                     long fileSize = 0;
-                    file = File.createTempFile("cms.", ".tmp");
-                    MultipartRequest mpRequest;
 
                     if ("dropbox".equals(action)) {
                         Map<String, Object> fileData = (Map<String, Object>) ObjectUtils.fromJson(page.param(String.class, dropboxName));
 
                         if (fileData != null) {
+                            file = File.createTempFile("cms.", ".tmp");
                             name = ObjectUtils.to(String.class, fileData.get("name"));
                             fileContentType = ObjectUtils.getContentType(name);
                             fileSize = ObjectUtils.to(long.class, fileData.get("bytes"));
-                            InputStream fileInput = new URL(ObjectUtils.to(String.class, fileData.get("link"))).openStream();
 
-                            try {
-                                FileOutputStream fileOutput = new FileOutputStream(file);
-
-                                try {
+                            try (InputStream fileInput = new URL(ObjectUtils.to(String.class, fileData.get("link"))).openStream()) {
+                                try (FileOutputStream fileOutput = new FileOutputStream(file)) {
                                     IoUtils.copy(fileInput, fileOutput);
-
-                                } finally {
-                                    fileOutput.close();
                                 }
-
-                            } finally {
-                                fileInput.close();
                             }
                         }
 
-                    } else if ((mpRequest = MultipartRequestFilter.Static.getInstance(request)) != null) {
-                        FileItem fileItem = mpRequest.getFileItem(fileParamName);
+                        new ContentTypeValidator().validate(file, fileContentType);
+                        //TODO: move this somewhere reusable, currently duplicated in StorageItemFilter
+                        if (name != null
+                                && fileContentType != null) {
 
-                        if (fileItem != null) {
-                            name = fileItem.getName();
-                            fileContentType = fileItem.getContentType();
-                            fileSize = fileItem.getSize();
+                            if (fileSize > 0) {
+                                fieldValueMetadata.put("originalFilename", name);
 
-                            try {
-                                fileItem.write(file);
-                            } catch (Exception e) {
-                                state.addError(field, "Unable to write to " + file.getAbsolutePath());
-                                LOGGER.error("Unable to write file", e);
+                                newItem = StorageItem.Static.createIn(getStorageSetting(Optional.of(field)));
+                                newItem.setPath(createStorageItemPath(state.getLabel(), name));
+                                newItem.setContentType(fileContentType);
+
+                                Map<String, List<String>> httpHeaders = new LinkedHashMap<String, List<String>>();
+                                httpHeaders.put("Cache-Control", Collections.singletonList("public, max-age=31536000"));
+                                httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(fileSize)));
+                                httpHeaders.put("Content-Type", Collections.singletonList(fileContentType));
+                                fieldValueMetadata.put("http.headers", httpHeaders);
                             }
                         }
+
+                    } else {
+                        newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
                     }
 
-                    if (name != null
-                            && fileContentType != null) {
-
-                        // Checks to make sure the file's content type is valid
-                        String groupsPattern = Settings.get(String.class, "cms/tool/fileContentTypeGroups");
-                        Set<String> contentTypeGroups = new SparseSet(ObjectUtils.isBlank(groupsPattern) ? "+/" : groupsPattern);
-                        if (!contentTypeGroups.contains(fileContentType)) {
-                            state.addError(field, String.format(
-                                    "Invalid content type [%s]. Must match the pattern [%s].",
-                                    fileContentType, contentTypeGroups));
-                            return;
-                        }
-
-                        // Disallow HTML disguising as other content types per:
-                        // http://www.adambarth.com/papers/2009/barth-caballero-song.pdf
-                        if (!contentTypeGroups.contains("text/html")) {
-                            InputStream input = new FileInputStream(file);
-
-                            try {
-                                byte[] buffer = new byte[1024];
-                                String data = new String(buffer, 0, input.read(buffer)).toLowerCase(Locale.ENGLISH);
-                                String ptr = data.trim();
-
-                                if (ptr.startsWith("<!")
-                                        || ptr.startsWith("<?")
-                                        || data.startsWith("<html")
-                                        || data.startsWith("<script")
-                                        || data.startsWith("<title")
-                                        || data.startsWith("<body")
-                                        || data.startsWith("<head")
-                                        || data.startsWith("<plaintext")
-                                        || data.startsWith("<table")
-                                        || data.startsWith("<img")
-                                        || data.startsWith("<pre")
-                                        || data.startsWith("text/html")
-                                        || data.startsWith("<a")
-                                        || ptr.startsWith("<frameset")
-                                        || ptr.startsWith("<iframe")
-                                        || ptr.startsWith("<link")
-                                        || ptr.startsWith("<base")
-                                        || ptr.startsWith("<style")
-                                        || ptr.startsWith("<div")
-                                        || ptr.startsWith("<p")
-                                        || ptr.startsWith("<font")
-                                        || ptr.startsWith("<applet")
-                                        || ptr.startsWith("<meta")
-                                        || ptr.startsWith("<center")
-                                        || ptr.startsWith("<form")
-                                        || ptr.startsWith("<isindex")
-                                        || ptr.startsWith("<h1")
-                                        || ptr.startsWith("<h2")
-                                        || ptr.startsWith("<h3")
-                                        || ptr.startsWith("<h4")
-                                        || ptr.startsWith("<h5")
-                                        || ptr.startsWith("<h6")
-                                        || ptr.startsWith("<b")
-                                        || ptr.startsWith("<br")) {
-                                    state.addError(field, String.format(
-                                            "Can't upload [%s] file disguising as HTML!",
-                                            fileContentType));
-                                    return;
-                                }
-
-                            } finally {
-                                input.close();
-                            }
-                        }
-
-                        if (fileSize > 0) {
-                            fieldValueMetadata.put("originalFilename", name);
-
-                            newItem = StorageItem.Static.createIn(getStorageSetting(Optional.of(field)));
-                            newItem.setPath(createStorageItemPath(state.getLabel(), name));
-                            newItem.setContentType(fileContentType);
-
-                            Map<String, List<String>> httpHeaders = new LinkedHashMap<String, List<String>>();
-                            httpHeaders.put("Cache-Control", Collections.singletonList("public, max-age=31536000"));
-                            httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(fileSize)));
-                            httpHeaders.put("Content-Type", Collections.singletonList(fileContentType));
-                            fieldValueMetadata.put("http.headers", httpHeaders);
-
-                            newItem.setData(new FileInputStream(file));
-
-                            newItemData = new FileInputStream(file);
-                        }
-                    }
+                    //TODO: merge newItem metadata with fieldValueMetadata
 
                 } else if ("newUrl".equals(action)) {
                     newItem = StorageItem.Static.createUrl(page.param(urlName));
                 }
-
-                tryExtractMetadata(newItem, fieldValueMetadata, Optional.ofNullable(newItemData));
                 
                 // Standard sizes.
                 for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
@@ -610,6 +521,28 @@ public class StorageItemField extends PageServlet {
         }
     }
 
+    static String getStorageSetting(Optional<ObjectField> field) {
+        String storageSetting = null;
+
+        if (field.isPresent()) {
+            String fieldStorageSetting = field.get().as(ToolUi.class).getStorageSetting();
+            if (!StringUtils.isBlank(fieldStorageSetting)) {
+                storageSetting = Settings.get(String.class, fieldStorageSetting);
+            }
+        }
+
+        if (StringUtils.isBlank(storageSetting)) {
+            storageSetting = Settings.get(String.class, StorageItem.DEFAULT_STORAGE_SETTING);
+        }
+
+        return storageSetting;
+    }
+
+    /**
+     * @deprecated Use {@link com.psddev.dari.util.StorageItemPathGenerator#createPath(String)}
+     * default implementation.
+     */
+    @Deprecated
     public static String createStorageItemPath(String label, String fileName) {
 
         String extension = "";
@@ -640,6 +573,11 @@ public class StorageItemField extends PageServlet {
         return path;
     }
 
+    /**
+     * @deprecated No direct replacement. Path generation logic was moved
+     * to {@link StorageItemPathGenerator} default implementations.
+     */
+    @Deprecated
     static String createStoragePathPrefix() {
         String idString = UUID.randomUUID().toString().replace("-", "");
         StringBuilder pathBuilder = new StringBuilder();
@@ -655,29 +593,9 @@ public class StorageItemField extends PageServlet {
     }
 
     /**
-     * Gets storageSetting for current field,
-     * if non exists, get {@code StorageItem.DEFAULT_STORAGE_SETTING}
-     *
-     * @param field to check for storage setting
+     * @deprecated Was moved to a background process after upload.
      */
-    static String getStorageSetting(Optional<ObjectField> field) {
-        String storageSetting = null;
-
-        if (field.isPresent()) {
-            String fieldStorageSetting = field.get().as(ToolUi.class).getStorageSetting();
-            if (!StringUtils.isBlank(fieldStorageSetting)) {
-                storageSetting = Settings.get(String.class, fieldStorageSetting);
-            }
-        }
-
-        if (StringUtils.isBlank(storageSetting)) {
-            storageSetting = Settings.get(String.class, StorageItem.DEFAULT_STORAGE_SETTING);
-        }
-
-        return storageSetting;
-    }
-
-    //TODO: Async Process
+    @Deprecated
     static void tryExtractMetadata(StorageItem storageItem, Map<String, Object> fieldValueMetadata, Optional<InputStream> optionalStream) {
         if (storageItem == null) {
             return;
