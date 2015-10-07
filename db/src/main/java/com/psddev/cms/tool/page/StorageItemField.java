@@ -1,7 +1,6 @@
 package com.psddev.cms.tool.page;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,20 +8,15 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.psddev.cms.db.ImageCrop;
@@ -33,6 +27,7 @@ import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.FileContentType;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.tool.file.ContentTypeValidator;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
@@ -40,15 +35,11 @@ import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.AggregateException;
 import com.psddev.dari.util.ClassFinder;
-import com.psddev.dari.util.ContentTypeValidator;
 import com.psddev.dari.util.ImageMetadataMap;
 import com.psddev.dari.util.IoUtils;
-import com.psddev.dari.util.MultipartRequest;
-import com.psddev.dari.util.MultipartRequestFilter;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
-import com.psddev.dari.util.SparseSet;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StorageItemFilter;
 import com.psddev.dari.util.StorageItemPathGenerator;
@@ -290,7 +281,7 @@ public class StorageItemField extends PageServlet {
                         }
 
                         new ContentTypeValidator().validate(file, fileContentType);
-                        //TODO: move this somewhere reusable, currently duplicated in StorageItemFilter
+                        //TODO: move this somewhere reusable, currently duplicated in MetadataPreprocessor
                         if (name != null
                                 && fileContentType != null) {
 
@@ -313,7 +304,7 @@ public class StorageItemField extends PageServlet {
                         newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
                     }
 
-                    //TODO: merge newItem metadata with fieldValueMetadata
+                    fieldValueMetadata.putAll(newItem.getMetadata());
 
                 } else if ("newUrl".equals(action)) {
                     newItem = StorageItem.Static.createUrl(page.param(urlName));
@@ -386,8 +377,7 @@ public class StorageItemField extends PageServlet {
                 }
 
                 if (newItem != null
-                        && ("newUpload".equals(action)
-                        || "dropbox".equals(action))) {
+                        && "dropbox".equals(action)) {
                     newItem.save();
                 }
 
