@@ -1,6 +1,7 @@
 package com.psddev.cms.tool.page;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,10 +9,12 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
@@ -42,7 +45,6 @@ import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StorageItemFilter;
-import com.psddev.dari.util.StorageItemPathGenerator;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeReference;
 
@@ -249,6 +251,8 @@ public class StorageItemField extends PageServlet {
 
                 fieldValueMetadata.put("cms.edits", edits);
 
+                InputStream newItemData = null;
+
                 if ("keep".equals(action)) {
                     if (fieldValue != null) {
                         newItem = fieldValue;
@@ -258,58 +262,57 @@ public class StorageItemField extends PageServlet {
                         newItem.setContentType(page.param(contentTypeName));
                     }
 
-                } else if ("newUpload".equals(action)
-                        || "dropbox".equals(action)) {
-                    String name = null;
-                    String fileContentType = null;
-                    long fileSize = 0;
-
-                    if ("dropbox".equals(action)) {
-                        Map<String, Object> fileData = (Map<String, Object>) ObjectUtils.fromJson(page.param(String.class, dropboxName));
-
-                        if (fileData != null) {
-                            file = File.createTempFile("cms.", ".tmp");
-                            name = ObjectUtils.to(String.class, fileData.get("name"));
-                            fileContentType = ObjectUtils.getContentType(name);
-                            fileSize = ObjectUtils.to(long.class, fileData.get("bytes"));
-
-                            try (InputStream fileInput = new URL(ObjectUtils.to(String.class, fileData.get("link"))).openStream()) {
-                                try (FileOutputStream fileOutput = new FileOutputStream(file)) {
-                                    IoUtils.copy(fileInput, fileOutput);
-                                }
-                            }
-                        }
-
-                        new ContentTypeValidator().validate(file, fileContentType);
-                        //TODO: move this somewhere reusable, currently duplicated in MetadataPreprocessor
-                        if (name != null
-                                && fileContentType != null) {
-
-                            if (fileSize > 0) {
-                                fieldValueMetadata.put("originalFilename", name);
-
-                                newItem = StorageItem.Static.createIn(getStorageSetting(Optional.of(field)));
-                                newItem.setPath(createStorageItemPath(state.getLabel(), name));
-                                newItem.setContentType(fileContentType);
-
-                                Map<String, List<String>> httpHeaders = new LinkedHashMap<String, List<String>>();
-                                httpHeaders.put("Cache-Control", Collections.singletonList("public, max-age=31536000"));
-                                httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(fileSize)));
-                                httpHeaders.put("Content-Type", Collections.singletonList(fileContentType));
-                                fieldValueMetadata.put("http.headers", httpHeaders);
-                            }
-                        }
-
-                    } else {
-                        newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
-                    }
+                } else if ("newUpload".equals(action)) {
+                    newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
 
                     fieldValueMetadata.putAll(newItem.getMetadata());
+
+                } else if ("dropbox".equals(action)) {
+                    Map<String, Object> fileData = (Map<String, Object>) ObjectUtils.fromJson(page.param(String.class, dropboxName));
+
+                    if (fileData != null) {
+                        file = File.createTempFile("cms.", ".tmp");
+                        String name = ObjectUtils.to(String.class, fileData.get("name"));
+                        String fileContentType  = ObjectUtils.getContentType(name);
+                        long fileSize = ObjectUtils.to(long.class, fileData.get("bytes"));
+
+                        try (
+                                InputStream fileInput = new URL(ObjectUtils.to(String.class, fileData.get("link"))).openStream();
+                                FileOutputStream fileOutput = new FileOutputStream(file)) {
+                                IoUtils.copy(fileInput, fileOutput);
+                        }
+
+                        if (name != null
+                                && fileContentType != null) {
+                            new ContentTypeValidator().validate(file, fileContentType);
+                        }
+
+                        if (fileSize > 0) {
+                            fieldValueMetadata.put("originalFilename", name);
+
+                            newItem = StorageItem.Static.createIn(getStorageSetting(Optional.of(field)));
+                            newItem.setPath(createStorageItemPath(state.getLabel(), name));
+                            newItem.setContentType(fileContentType);
+
+                            Map<String, List<String>> httpHeaders = new LinkedHashMap<String, List<String>>();
+                            httpHeaders.put("Cache-Control", Collections.singletonList("public, max-age=31536000"));
+                            httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(fileSize)));
+                            httpHeaders.put("Content-Type", Collections.singletonList(fileContentType));
+                            fieldValueMetadata.put("http.headers", httpHeaders);
+
+                            newItem.setData(new FileInputStream(file));
+
+                            newItemData = new FileInputStream(file);
+                        }
+                    }
 
                 } else if ("newUrl".equals(action)) {
                     newItem = StorageItem.Static.createUrl(page.param(urlName));
                 }
-                
+
+                //TODO: move to async process
+                //tryExtractMetadata(newItem, fieldValueMetadata, Optional.ofNullable(newItemData));
+
                 // Standard sizes.
                 for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
                     Map.Entry<String, ImageCrop> e = i.next();
@@ -511,6 +514,12 @@ public class StorageItemField extends PageServlet {
         }
     }
 
+    /**
+     * Gets storageSetting for current field,
+     * if none exists, get {@code StorageItem.DEFAULT_STORAGE_SETTING}
+     *
+     * @param field to check for storage setting
+     */
     static String getStorageSetting(Optional<ObjectField> field) {
         String storageSetting = null;
 
@@ -565,7 +574,7 @@ public class StorageItemField extends PageServlet {
 
     /**
      * @deprecated No direct replacement. Path generation logic was moved
-     * to {@link StorageItemPathGenerator} default implementations.
+     * to {@link StorageItemPathGenerator} default implementation.
      */
     @Deprecated
     static String createStoragePathPrefix() {
@@ -582,10 +591,7 @@ public class StorageItemField extends PageServlet {
         return pathBuilder.toString();
     }
 
-    /**
-     * @deprecated Was moved to a background process after upload.
-     */
-    @Deprecated
+    //TODO: Async Process
     static void tryExtractMetadata(StorageItem storageItem, Map<String, Object> fieldValueMetadata, Optional<InputStream> optionalStream) {
         if (storageItem == null) {
             return;
