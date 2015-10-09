@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.util.Locale;
 import java.util.Set;
 
-import org.apache.commons.fileupload.FileItem;
 import com.google.common.base.Preconditions;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.Settings;

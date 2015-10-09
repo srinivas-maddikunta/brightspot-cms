@@ -5,8 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.fileupload.FileItem;
-import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StorageItemPart;
 import com.psddev.dari.util.StorageItemPreprocessor;
 
