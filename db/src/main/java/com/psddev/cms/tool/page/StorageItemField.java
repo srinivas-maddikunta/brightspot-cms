@@ -45,6 +45,7 @@ import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StorageItemFilter;
+import com.psddev.dari.util.StorageItemPart;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeReference;
 
@@ -284,7 +285,10 @@ public class StorageItemField extends PageServlet {
 
                         if (name != null
                                 && fileContentType != null) {
-                            new ContentTypeValidator().validate(file, fileContentType);
+                            StorageItemPart part = new StorageItemPart();
+                            part.setFile(file);
+                            part.setContentType(fileContentType);
+                            new ContentTypeValidator().validate(part);
                         }
 
                         if (fileSize > 0) {
@@ -301,8 +305,6 @@ public class StorageItemField extends PageServlet {
                             fieldValueMetadata.put("http.headers", httpHeaders);
 
                             newItem.setData(new FileInputStream(file));
-
-                            newItemData = new FileInputStream(file);
                         }
                     }
 

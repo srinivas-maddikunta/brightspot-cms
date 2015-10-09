@@ -1,16 +1,17 @@
 package com.psddev.cms.tool.file;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
 import java.util.Set;
 
+import org.apache.commons.fileupload.FileItem;
 import com.google.common.base.Preconditions;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.SparseSet;
+import com.psddev.dari.util.StorageItemPart;
 import com.psddev.dari.util.StorageItemValidator;
 
 /**
@@ -22,9 +23,11 @@ import com.psddev.dari.util.StorageItemValidator;
 public class ContentTypeValidator implements StorageItemValidator {
 
     @Override
-    public void validate(File file, String fileContentType) throws IOException {
-        Preconditions.checkNotNull(file);
+    public void validate(StorageItemPart part) throws IOException {
+        Preconditions.checkNotNull(part);
+        Preconditions.checkNotNull(part.getFile());
 
+        String fileContentType = part.getContentType();
         if (fileContentType == null) {
             return;
         }
@@ -38,7 +41,7 @@ public class ContentTypeValidator implements StorageItemValidator {
         // Disallow HTML disguising as other content types per:
         // http://www.adambarth.com/papers/2009/barth-caballero-song.pdf
         if (!contentTypeGroups.contains("text/html")) {
-            try (InputStream input = new FileInputStream(file)) {
+            try (InputStream input = new FileInputStream(part.getFile())) {
                 byte[] buffer = new byte[1024];
                 String data = new String(buffer, 0, input.read(buffer)).toLowerCase(Locale.ENGLISH);
                 String ptr = data.trim();

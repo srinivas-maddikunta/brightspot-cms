@@ -7,21 +7,22 @@ import java.util.Map;
 
 import org.apache.commons.fileupload.FileItem;
 import com.psddev.dari.util.StorageItem;
+import com.psddev.dari.util.StorageItemPart;
 import com.psddev.dari.util.StorageItemPreprocessor;
 
 public class MetadataPreprocessor implements StorageItemPreprocessor {
 
     @Override
-    public void process(StorageItem storageItem, FileItem fileItem) {
+    public void process(StorageItemPart part) {
         Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put("originalFilename", fileItem.getName());
+        metadata.put("originalFilename", part.getName());
 
         Map<String, List<String>> httpHeaders = new LinkedHashMap<>();
         httpHeaders.put("Cache-Control", Collections.singletonList("public, max-age=31536000"));
-        httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(fileItem.getSize())));
-        httpHeaders.put("Content-Type", Collections.singletonList(fileItem.getContentType()));
+        httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(part.getSize())));
+        httpHeaders.put("Content-Type", Collections.singletonList(part.getContentType()));
         metadata.put("http.headers", httpHeaders);
 
-        storageItem.getMetadata().putAll(metadata);
+        part.getStorageItem().getMetadata().putAll(metadata);
     }
 }
