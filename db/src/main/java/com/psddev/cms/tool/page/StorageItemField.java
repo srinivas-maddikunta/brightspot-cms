@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -187,95 +186,94 @@ public class StorageItemField extends PageServlet {
         boolean projectUsingBrightSpotImage = hotSpotClass != null && !ObjectUtils.isBlank(ClassFinder.Static.findClasses(hotSpotClass));
 
         if (isFormPost) {
-            File file = null;
 
-            try {
+            StorageItem newItem = null;
 
-                StorageItem newItem = null;
+            brightness = page.param(double.class, brightnessName);
+            contrast = page.param(double.class, contrastName);
+            flipH = page.param(boolean.class, flipHName);
+            flipV = page.param(boolean.class, flipVName);
+            grayscale = page.param(boolean.class, grayscaleName);
+            invert = page.param(boolean.class, invertName);
+            rotate = page.param(int.class, rotateName);
+            sepia = page.param(boolean.class, sepiaName);
+            sharpen = page.param(int.class, sharpenName);
 
-                brightness = page.param(double.class, brightnessName);
-                contrast = page.param(double.class, contrastName);
-                flipH = page.param(boolean.class, flipHName);
-                flipV = page.param(boolean.class, flipVName);
-                grayscale = page.param(boolean.class, grayscaleName);
-                invert = page.param(boolean.class, invertName);
-                rotate = page.param(int.class, rotateName);
-                sepia = page.param(boolean.class, sepiaName);
-                sharpen = page.param(int.class, sharpenName);
+            Double focusX = page.paramOrDefault(Double.class, focusXName, null);
+            Double focusY = page.paramOrDefault(Double.class, focusYName, null);
 
-                Double focusX = page.paramOrDefault(Double.class, focusXName, null);
-                Double focusY = page.paramOrDefault(Double.class, focusYName, null);
+            edits = new HashMap<String, Object>();
 
-                edits = new HashMap<String, Object>();
+            if (brightness != 0.0) {
+                edits.put("brightness", brightness);
+            }
+            if (contrast != 0.0) {
+                edits.put("contrast", contrast);
+            }
+            if (flipH) {
+                edits.put("flipH", flipH);
+            }
+            if (flipV) {
+                edits.put("flipV", flipV);
+            }
+            if (invert) {
+                edits.put("invert", invert);
+            }
+            if (rotate != 0) {
+                edits.put("rotate", rotate);
+            }
+            if (grayscale) {
+                edits.put("grayscale", grayscale);
+            }
+            if (sepia) {
+                edits.put("sepia", sepia);
+            }
+            if (sharpen != 0) {
+                edits.put("sharpen", sharpen);
+            }
 
-                if (brightness != 0.0) {
-                    edits.put("brightness", brightness);
-                }
-                if (contrast != 0.0) {
-                    edits.put("contrast", contrast);
-                }
-                if (flipH) {
-                    edits.put("flipH", flipH);
-                }
-                if (flipV) {
-                    edits.put("flipV", flipV);
-                }
-                if (invert) {
-                    edits.put("invert", invert);
-                }
-                if (rotate != 0) {
-                    edits.put("rotate", rotate);
-                }
-                if (grayscale) {
-                    edits.put("grayscale", grayscale);
-                }
-                if (sepia) {
-                    edits.put("sepia", sepia);
-                }
-                if (sharpen != 0) {
-                    edits.put("sharpen", sharpen);
-                }
-
-                if (!ObjectUtils.isBlank(page.params(String.class, blurName))) {
-                    blurs = new ArrayList<String>();
-                    for (String blur : page.params(String.class, blurName)) {
-                        if (!blurs.contains(blur)) {
-                            blurs.add(blur);
-                        }
-                    }
-
-                    if (blurs.size() == 1) {
-                        edits.put("blur", blurs.get(0));
-                    } else {
-                        edits.put("blur", blurs);
+            if (!ObjectUtils.isBlank(page.params(String.class, blurName))) {
+                blurs = new ArrayList<String>();
+                for (String blur : page.params(String.class, blurName)) {
+                    if (!blurs.contains(blur)) {
+                        blurs.add(blur);
                     }
                 }
 
-                fieldValueMetadata.put("cms.edits", edits);
+                if (blurs.size() == 1) {
+                    edits.put("blur", blurs.get(0));
+                } else {
+                    edits.put("blur", blurs);
+                }
+            }
 
-                InputStream newItemData = null;
+            fieldValueMetadata.put("cms.edits", edits);
 
-                if ("keep".equals(action)) {
-                    if (fieldValue != null) {
-                        newItem = fieldValue;
-                    } else {
-                        newItem = StorageItem.Static.createIn(page.param(storageName));
-                        newItem.setPath(page.param(pathName));
-                        newItem.setContentType(page.param(contentTypeName));
-                    }
+            InputStream newItemData = null;
 
-                } else if ("newUpload".equals(action)) {
-                    newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
+            if ("keep".equals(action)) {
+                if (fieldValue != null) {
+                    newItem = fieldValue;
+                } else {
+                    newItem = StorageItem.Static.createIn(page.param(storageName));
+                    newItem.setPath(page.param(pathName));
+                    newItem.setContentType(page.param(contentTypeName));
+                }
 
-                    fieldValueMetadata.putAll(newItem.getMetadata());
+            } else if ("newUpload".equals(action)) {
+                newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
 
-                } else if ("dropbox".equals(action)) {
-                    Map<String, Object> fileData = (Map<String, Object>) ObjectUtils.fromJson(page.param(String.class, dropboxName));
+                fieldValueMetadata.putAll(newItem.getMetadata());
 
-                    if (fileData != null) {
+            } else if ("dropbox".equals(action)) {
+                Map<String, Object> fileData = (Map<String, Object>) ObjectUtils.fromJson(page.param(String.class, dropboxName));
+
+                if (fileData != null) {
+                    File file = null;
+                    try {
                         file = File.createTempFile("cms.", ".tmp");
                         String name = ObjectUtils.to(String.class, fileData.get("name"));
-                        String fileContentType  = ObjectUtils.getContentType(name);
+                        String fileContentType = ObjectUtils.getContentType(name);
                         long fileSize = ObjectUtils.to(long.class, fileData.get("bytes"));
 
                         try (InputStream fileInput = new URL(ObjectUtils.to(String.class, fileData.get("link"))).openStream();
@@ -308,95 +306,94 @@ public class StorageItemField extends PageServlet {
                         }
 
                         fieldValueMetadata.putAll(newItem.getMetadata());
+                    } finally {
+                        if (file != null && file.exists()) {
+                            file.delete();
+                        }
                     }
-
-                } else if ("newUrl".equals(action)) {
-                    newItem = StorageItem.Static.createUrl(page.param(urlName));
                 }
 
-                // Standard sizes.
-                for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
-                    Map.Entry<String, ImageCrop> e = i.next();
-                    String cropId = e.getKey();
-                    double x = page.doubleParam(cropsName + cropId + ".x");
-                    double y = page.doubleParam(cropsName + cropId + ".y");
-                    double width = page.doubleParam(cropsName + cropId + ".width");
-                    double height = page.doubleParam(cropsName + cropId + ".height");
-                    String texts = page.param(cropsName + cropId + ".texts");
-                    String textSizes = page.param(cropsName + cropId + ".textSizes");
-                    String textXs = page.param(cropsName + cropId + ".textXs");
-                    String textYs = page.param(cropsName + cropId + ".textYs");
-                    String textWidths = page.param(cropsName + cropId + ".textWidths");
-                    if (x != 0.0 || y != 0.0 || width != 0.0 || height != 0.0 || !ObjectUtils.isBlank(texts)) {
-                        ImageCrop crop = e.getValue();
-                        crop.setX(x);
-                        crop.setY(y);
-                        crop.setWidth(width);
-                        crop.setHeight(height);
-                        crop.setTexts(texts);
-                        crop.setTextSizes(textSizes);
-                        crop.setTextXs(textXs);
-                        crop.setTextYs(textYs);
-                        crop.setTextWidths(textWidths);
+            } else if ("newUrl".equals(action)) {
+                newItem = StorageItem.Static.createUrl(page.param(urlName));
+            }
 
-                        for (Iterator<ImageTextOverlay> j = crop.getTextOverlays().iterator(); j.hasNext();) {
-                            ImageTextOverlay textOverlay = j.next();
-                            String text = textOverlay.getText();
+            // Standard sizes.
+            for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
+                Map.Entry<String, ImageCrop> e = i.next();
+                String cropId = e.getKey();
+                double x = page.doubleParam(cropsName + cropId + ".x");
+                double y = page.doubleParam(cropsName + cropId + ".y");
+                double width = page.doubleParam(cropsName + cropId + ".width");
+                double height = page.doubleParam(cropsName + cropId + ".height");
+                String texts = page.param(cropsName + cropId + ".texts");
+                String textSizes = page.param(cropsName + cropId + ".textSizes");
+                String textXs = page.param(cropsName + cropId + ".textXs");
+                String textYs = page.param(cropsName + cropId + ".textYs");
+                String textWidths = page.param(cropsName + cropId + ".textWidths");
+                if (x != 0.0 || y != 0.0 || width != 0.0 || height != 0.0 || !ObjectUtils.isBlank(texts)) {
+                    ImageCrop crop = e.getValue();
+                    crop.setX(x);
+                    crop.setY(y);
+                    crop.setWidth(width);
+                    crop.setHeight(height);
+                    crop.setTexts(texts);
+                    crop.setTextSizes(textSizes);
+                    crop.setTextXs(textXs);
+                    crop.setTextYs(textYs);
+                    crop.setTextWidths(textWidths);
 
-                            if (text != null) {
-                                StringBuilder cleaned = new StringBuilder();
+                    for (Iterator<ImageTextOverlay> j = crop.getTextOverlays().iterator(); j.hasNext();) {
+                        ImageTextOverlay textOverlay = j.next();
+                        String text = textOverlay.getText();
 
-                                for (Object item : new ReferentialText(text, true)) {
-                                    if (item instanceof String) {
-                                        cleaned.append((String) item);
-                                    }
-                                }
+                        if (text != null) {
+                            StringBuilder cleaned = new StringBuilder();
 
-                                text = cleaned.toString();
-
-                                if (ObjectUtils.isBlank(text.replaceAll("<[^>]*>", ""))) {
-                                    j.remove();
-
-                                } else {
-                                    textOverlay.setText(text);
+                            for (Object item : new ReferentialText(text, true)) {
+                                if (item instanceof String) {
+                                    cleaned.append((String) item);
                                 }
                             }
+
+                            text = cleaned.toString();
+
+                            if (ObjectUtils.isBlank(text.replaceAll("<[^>]*>", ""))) {
+                                j.remove();
+
+                            } else {
+                                textOverlay.setText(text);
+                            }
                         }
-
-                    } else {
-                        i.remove();
                     }
-                }
-                fieldValueMetadata.put("cms.crops", crops);
 
-                // Set focus point
-                if (focusX != null && focusY != null) {
-                    focusPoint.put("x", focusX);
-                    focusPoint.put("y", focusY);
-                }
-                fieldValueMetadata.put("cms.focus", focusPoint);
-
-                if (newItem != null) {
-                    newItem.setMetadata(fieldValueMetadata);
-                }
-
-                if (newItem != null
-                        && "dropbox".equals(action)) {
-                    newItem.save();
-                }
-
-                state.putValue(fieldName, newItem);
-
-                if (projectUsingBrightSpotImage) {
-                    page.include("set/hotSpot.jsp");
-                }
-                return;
-
-            } finally {
-                if (file != null && file.exists()) {
-                    file.delete();
+                } else {
+                    i.remove();
                 }
             }
+            fieldValueMetadata.put("cms.crops", crops);
+
+            // Set focus point
+            if (focusX != null && focusY != null) {
+                focusPoint.put("x", focusX);
+                focusPoint.put("y", focusY);
+            }
+            fieldValueMetadata.put("cms.focus", focusPoint);
+
+            if (newItem != null) {
+                newItem.setMetadata(fieldValueMetadata);
+            }
+
+            if (newItem != null
+                    && "dropbox".equals(action)) {
+                newItem.save();
+            }
+
+            state.putValue(fieldName, newItem);
+
+            if (projectUsingBrightSpotImage) {
+                page.include("set/hotSpot.jsp");
+            }
+            return;
         }
 
         Optional<ObjectField> fieldOptional = Optional.of(field);
