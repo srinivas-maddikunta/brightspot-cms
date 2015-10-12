@@ -31,6 +31,7 @@ import com.psddev.cms.tool.FileContentType;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.tool.file.ContentTypeValidator;
+import com.psddev.cms.tool.file.MetadataPreprocessor;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
@@ -277,43 +278,41 @@ public class StorageItemField extends PageServlet {
                         String fileContentType  = ObjectUtils.getContentType(name);
                         long fileSize = ObjectUtils.to(long.class, fileData.get("bytes"));
 
-                        try (
-                                InputStream fileInput = new URL(ObjectUtils.to(String.class, fileData.get("link"))).openStream();
-                                FileOutputStream fileOutput = new FileOutputStream(file)) {
-                                IoUtils.copy(fileInput, fileOutput);
+                        try (InputStream fileInput = new URL(ObjectUtils.to(String.class, fileData.get("link"))).openStream();
+                             FileOutputStream fileOutput = new FileOutputStream(file)) {
+
+                            IoUtils.copy(fileInput, fileOutput);
                         }
+
+                        StorageItemPart part = new StorageItemPart();
+                        part.setName(name);
+                        part.setFile(file);
+                        part.setContentType(fileContentType);
+                        part.setSize(fileSize);
 
                         if (name != null
                                 && fileContentType != null) {
-                            StorageItemPart part = new StorageItemPart();
-                            part.setFile(file);
-                            part.setContentType(fileContentType);
                             new ContentTypeValidator().validate(part);
                         }
 
                         if (fileSize > 0) {
-                            fieldValueMetadata.put("originalFilename", name);
 
                             newItem = StorageItem.Static.createIn(getStorageSetting(Optional.of(field)));
                             newItem.setPath(createStorageItemPath(state.getLabel(), name));
                             newItem.setContentType(fileContentType);
 
-                            Map<String, List<String>> httpHeaders = new LinkedHashMap<String, List<String>>();
-                            httpHeaders.put("Cache-Control", Collections.singletonList("public, max-age=31536000"));
-                            httpHeaders.put("Content-Length", Collections.singletonList(String.valueOf(fileSize)));
-                            httpHeaders.put("Content-Type", Collections.singletonList(fileContentType));
-                            fieldValueMetadata.put("http.headers", httpHeaders);
+                            part.setStorageItem(newItem);
+                            new MetadataPreprocessor().process(part);
 
                             newItem.setData(new FileInputStream(file));
                         }
+
+                        fieldValueMetadata.putAll(newItem.getMetadata());
                     }
 
                 } else if ("newUrl".equals(action)) {
                     newItem = StorageItem.Static.createUrl(page.param(urlName));
                 }
-
-                //TODO: move to async process
-                //tryExtractMetadata(newItem, fieldValueMetadata, Optional.ofNullable(newItemData));
 
                 // Standard sizes.
                 for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
@@ -593,7 +592,7 @@ public class StorageItemField extends PageServlet {
         return pathBuilder.toString();
     }
 
-    //TODO: Async Process
+    @Deprecated
     static void tryExtractMetadata(StorageItem storageItem, Map<String, Object> fieldValueMetadata, Optional<InputStream> optionalStream) {
         if (storageItem == null) {
             return;
