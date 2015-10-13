@@ -11,6 +11,7 @@ import com.psddev.dari.util.AggregateException;
 import com.psddev.dari.util.ImageMetadataMap;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.StorageItem;
+import com.psddev.dari.util.StorageItemPart;
 import com.psddev.dari.util.StorageItemPostprocessor;
 
 public class MetadataPostprocessor implements StorageItemPostprocessor {
@@ -18,7 +19,13 @@ public class MetadataPostprocessor implements StorageItemPostprocessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataPostprocessor.class);
 
     @Override
-    public void process(StorageItem storageItem) {
+    public void process(StorageItemPart part) {
+        if (part == null) {
+            return;
+        }
+
+        StorageItem storageItem = part.getStorageItem();
+
         if (storageItem == null) {
             return;
         }
