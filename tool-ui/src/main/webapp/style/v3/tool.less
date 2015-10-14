@@ -29,14 +29,6 @@
   .toolHeader {
     top: @toolBroadcast-height;
   }
-
-  .contentPreview {
-    margin-top: -35px;
-  }
-
-  .contentPreviewClose {
-    top: 107px;
-  }
 }
 
 .toolHeader {
@@ -130,6 +122,10 @@
     margin-left: @-padding;
   }
 
+  .toolUserAvatar {
+    margin-left: (@-padding * 2);
+  }
+
   .toolUserSite,
   .toolUser {
     margin-top: floor((@-avatar-size / 2) - @lineHeight-default);
@@ -143,7 +139,6 @@
   .toolUserSiteDisplay,
   .toolUserWelcome {
     font-weight: 700;
-    text-align: right;
   }
 
   .toolUserSiteControls,
@@ -382,6 +377,21 @@
 
   img {
     vertical-align: middle;
+  }
+}
+
+.toolMessage {
+  left: 50%;
+  margin-left: -150px;
+  position: fixed;
+  top: 0;
+  width: 300px;
+  z-index: 1000;
+
+  > .message {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    box-shadow: 0 0 20px fade(black, 50%);
   }
 }
 

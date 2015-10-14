@@ -26,7 +26,6 @@ import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.CmsTool;
-import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.SearchResultField;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Metric;
@@ -61,11 +60,6 @@ public class ListSearchResultView extends AbstractSearchResultView {
     @Override
     public String getDisplayName() {
         return "List";
-    }
-
-    @Override
-    public boolean isSupported(Search search) {
-        return search.getSelectedType() != null;
     }
 
     @Override
@@ -123,18 +117,17 @@ public class ListSearchResultView extends AbstractSearchResultView {
     protected void writeImagesHtml(Iterable<?> items) throws IOException {
         page.writeStart("div", "class", "searchResult-images");
             for (Object item : items) {
-                itemWriter.writeBeforeHtml(page, search, item);
-
                 page.writeStart("figure");
+                    itemWriter.writeCheckboxHtml(page, search, item);
+
                     page.writeElement("img",
                             "src", page.getPreviewThumbnailUrl(item),
                             "alt", (showSiteLabel ? page.getObjectLabel(State.getInstance(item).as(Site.ObjectModification.class).getOwner()) + ": " : "")
                                     + (showTypeLabel ? page.getTypeLabel(item) + ": " : "")
                                     + page.getObjectLabel(item));
 
+                    itemWriter.writeBeforeHtml(page, search, item);
                     page.writeStart("figcaption");
-                        itemWriter.writeCheckboxHtml(page, search, item);
-
                         if (showSiteLabel) {
                             page.writeObjectLabel(State.getInstance(item).as(Site.ObjectModification.class).getOwner());
                             page.writeHtml(": ");
@@ -147,9 +140,8 @@ public class ListSearchResultView extends AbstractSearchResultView {
 
                         page.writeObjectLabel(item);
                     page.writeEnd();
+                    itemWriter.writeAfterHtml(page, search, item);
                 page.writeEnd();
-
-                itemWriter.writeAfterHtml(page, search, item);
             }
         page.writeEnd();
     }
@@ -206,18 +198,18 @@ public class ListSearchResultView extends AbstractSearchResultView {
 
                     if (showSiteLabel) {
                         page.writeStart("th");
-                            page.writeHtml("Site");
+                            page.writeHtml(page.localize(ListSearchResultView.class, "label.site"));
                         page.writeEnd();
                     }
 
                     if (showTypeLabel) {
                         page.writeStart("th");
-                            page.writeHtml("Type");
+                            page.writeHtml(page.localize(ListSearchResultView.class, "label.type"));
                         page.writeEnd();
                     }
 
                     page.writeStart("th");
-                        page.writeHtml("Label");
+                        page.writeHtml(page.localize(ListSearchResultView.class, "label.label"));
                     page.writeEnd();
 
                     if (sortField != null
@@ -513,6 +505,18 @@ public class ListSearchResultView extends AbstractSearchResultView {
                     page.writeEnd();
                 }
             page.writeEnd();
+        page.writeEnd();
+
+        page.writeStart("div", "id", page.createId());
+        page.writeEnd();
+
+        page.writeStart("script", "type", "text/javascript");
+        page.writeRaw("$('#" + page.getId() + "').siblings('.searchResultTable').find('tr').each(function() {");
+        page.writeRaw("    if ($(this).find('td > a').size() > 1) {");
+        page.writeRaw("        $(this).closest('.searchResultTable').addClass('multipleLinkedColumns');");
+        page.writeRaw("        return false;");
+        page.writeRaw("    }");
+        page.writeRaw(" });");
         page.writeEnd();
     }
 }

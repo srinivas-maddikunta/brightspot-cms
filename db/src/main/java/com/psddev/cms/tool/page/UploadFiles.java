@@ -26,7 +26,10 @@ import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.Variation;
 import com.psddev.cms.tool.PageServlet;
+import com.psddev.cms.tool.Search;
+import com.psddev.cms.tool.SearchResultSelection;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.tool.search.MixedSearchResultView;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.ObjectField;
@@ -57,6 +60,11 @@ public class UploadFiles extends PageServlet {
 
     @Override
     protected void doService(ToolPageContext page) throws IOException, ServletException {
+
+        if (page.requireUser()) {
+            return;
+        }
+
         if (page.paramOrDefault(Boolean.class, "writeInputsOnly", false)) {
             writeFileInput(page);
         } else {
@@ -188,7 +196,7 @@ public class UploadFiles extends PageServlet {
                             }
 
                             String fileName = file.getName();
-                            String path = StorageItemField.createStorageItemPath(fileName, null);
+                            String path = StorageItemField.createStorageItemPath(null, fileName);
 
                             Map<String, List<String>> httpHeaders = new LinkedHashMap<String, List<String>>();
 
@@ -211,6 +219,7 @@ public class UploadFiles extends PageServlet {
                     }
                 }
 
+                List<UUID> newObjectIds = new ArrayList<>();
                 if (!ObjectUtils.isBlank(newStorageItems)) {
                     for (StorageItem item : newStorageItems) {
                         if (item == null) {
@@ -219,10 +228,7 @@ public class UploadFiles extends PageServlet {
 
                         item.save();
 
-                        Map<String, Object> metadata = StorageItemField.extractMetadata(item, Optional.empty());
-                        if (metadata != null) {
-                            item.getMetadata().putAll(metadata);
-                        }
+                        StorageItemField.tryExtractMetadata(item, item.getMetadata(), Optional.empty());
 
                         Object object = selectedType.createObject(null);
                         State state = State.getInstance(object);
@@ -239,6 +245,7 @@ public class UploadFiles extends PageServlet {
                         state.put(previewField.getInternalName(), item);
                         state.as(BulkUploadDraft.class).setContainerId(containerId);
                         page.publish(state);
+                        newObjectIds.add(state.getId());
 
                         js.append("$addButton.repeatable('add', function() {");
                         js.append("var $added = $(this);");
@@ -254,22 +261,43 @@ public class UploadFiles extends PageServlet {
                 }
 
                 if (page.getErrors().isEmpty()) {
-                    page.writeStart("div", "id", page.createId()).writeEnd();
 
-                    page.writeStart("script", "type", "text/javascript");
-                        page.write("if (typeof jQuery !== 'undefined') (function($, win, undef) {");
-                            page.write("var $page = $('#" + page.getId() + "'),");
-                            page.write("$init = $page.popup('source').repeatable('closestInit'),");
-                            page.write("$addButton = $init.find('.addButton').eq(0),");
-                            page.write("$input;");
-                            page.write("if ($addButton.length > 0) {");
-                                page.write(js.toString());
-                                page.write("$page.popup('close');");
-                            page.write("} else {");
-                                page.write("win.location.reload();");
-                            page.write("}");
-                        page.write("})(jQuery, window);");
-                    page.writeEnd();
+                    if (Context.FIELD.equals(page.param(Context.class, "context"))) {
+                        page.writeStart("div", "id", page.createId()).writeEnd();
+
+                        page.writeStart("script", "type", "text/javascript");
+                            page.write("if (typeof jQuery !== 'undefined') (function($, win, undef) {");
+                                page.write("var $page = $('#" + page.getId() + "'),");
+                                page.write("$init = $page.popup('source').repeatable('closestInit'),");
+                                    page.write("$addButton = $init.find('.addButton').eq(0),");
+                                    page.write("$input;");
+                                page.write("if ($addButton.length > 0) {");
+                                    page.write(js.toString());
+                                    page.write("$page.popup('close');");
+                                page.write("}");
+                            page.write("})(jQuery, window);");
+                        page.writeEnd();
+                    } else {
+
+                        SearchResultSelection selection = page.getUser().resetCurrentSelection();
+                        newObjectIds.forEach(selection::addItem);
+                        database.commitWrites();
+
+                        Search search = new Search();
+                        search.setAdditionalPredicate(selection.createItemsQuery().getPredicate().toString());
+                        search.setLimit(10);
+
+                        page.writeStart("script", "type", "text/javascript");
+                            page.write("if (typeof jQuery !== 'undefined') (function($, win, undef) {");
+                                page.write("window.location = '");
+                                page.write(page.cmsUrl("/searchAdvancedFull",
+                                        "search", ObjectUtils.toJson(search.getState().getSimpleValues()),
+                                        "view", MixedSearchResultView.class.getCanonicalName()));
+                                page.write("';");
+                            page.write("})(jQuery, window);");
+                        page.writeEnd();
+
+                    }
 
                     return;
                 }
@@ -303,7 +331,9 @@ public class UploadFiles extends PageServlet {
         Collections.sort(types, new ObjectFieldComparator("name", false));
         Uploader uploader = Uploader.getUploader(Optional.empty());
 
-        page.writeStart("h1").writeHtml("Upload Files").writeEnd();
+        page.writeStart("h1");
+            page.writeHtml(page.localize(UploadFiles.class, "title"));
+        page.writeEnd();
 
         page.writeStart("form",
                 "method", "post",
@@ -334,7 +364,9 @@ public class UploadFiles extends PageServlet {
 
             page.writeStart("div", "class", "inputContainer bulk-upload-files");
                 page.writeStart("div", "class", "inputLabel");
-                    page.writeStart("label", "for", page.createId()).writeHtml("Files").writeEnd();
+                    page.writeStart("label", "for", page.createId());
+                        page.writeHtml(page.localize(UploadFiles.class, "label.files"));
+                    page.writeEnd();
                 page.writeEnd();
                 page.writeStart("div", "class", "inputSmall");
                     if (uploader != null) {
@@ -351,7 +383,9 @@ public class UploadFiles extends PageServlet {
 
             page.writeStart("div", "class", "inputContainer");
                 page.writeStart("div", "class", "inputLabel");
-                    page.writeStart("label", "for", page.createId()).writeHtml("Type").writeEnd();
+                    page.writeStart("label", "for", page.createId());
+                        page.writeHtml(page.localize(UploadFiles.class, "label.type"));
+                    page.writeEnd();
                 page.writeEnd();
                 page.writeStart("div", "class", "inputSmall");
                     page.writeStart("select",
@@ -393,8 +427,12 @@ public class UploadFiles extends PageServlet {
                 page.writeEnd();
             }
 
+            page.writeStart("input", "type", "hidden", "name", "context", "value", page.param(Context.class, "context"));
+
             page.writeStart("div", "class", "buttons");
-                page.writeStart("button", "name", "action-upload").writeHtml("Upload").writeEnd();
+                page.writeStart("button", "name", "action-upload");
+                    page.writeHtml(page.localize(UploadFiles.class, "action.upload"));
+                page.writeEnd();
             page.writeEnd();
 
         page.writeEnd();
@@ -436,5 +474,10 @@ public class UploadFiles extends PageServlet {
         }
 
         return previewField;
+    }
+
+    public enum Context {
+        FIELD,
+        GLOBAL
     }
 }

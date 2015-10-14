@@ -11,6 +11,7 @@ import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DefaultDashboardWidget;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.tool.page.UploadFiles;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 
@@ -53,20 +54,24 @@ public class BulkUploadWidget extends DefaultDashboardWidget {
         ObjectType defaultType = settings != null ? settings.getDefaultType() : null;
 
         page.writeStart("div", "class", "widget uploadable");
-            page.writeStart("h1", "class", "icon icon-action-upload").writeHtml("Bulk Upload").writeEnd();
+            page.writeStart("h1", "class", "icon icon-action-upload");
+                page.writeHtml(page.localize(BulkUploadWidget.class, "title"));
+            page.writeEnd();
             page.writeStart("div", "class", "message message-info");
 
                 if (!hasUploadable) {
-                    page.writeHtml("There aren't any content types that can be uploaded in bulk.");
+                    page.writeHtml(page.localize(BulkUploadWidget.class, "message.noTypes"));
 
                 } else {
+                    //TODO: LOCALIZE
                     page.writeHtml("Drag and drop or ");
                     page.writeStart("a",
                             "class", "uploadableLink",
                             "target", "uploadFiles",
                             "href", page.url("/content/uploadFiles",
                                     "typeId", ObjectType.getInstance(Content.class).getId(),
-                                    "type", defaultType != null ? defaultType.getId() : null));
+                                    "type", defaultType != null ? defaultType.getId() : null),
+                                    "context", UploadFiles.Context.GLOBAL);
                         page.writeHtml("select");
                     page.writeEnd();
                     page.writeHtml(" files.");

@@ -2,6 +2,7 @@
 
 com.psddev.cms.db.ToolAuthenticationPolicy,
 com.psddev.cms.db.ToolUser,
+com.psddev.cms.tool.CmsTool,
 com.psddev.cms.tool.AuthenticationFilter,
 com.psddev.cms.tool.ToolPageContext,
 
@@ -15,10 +16,55 @@ com.psddev.dari.util.Settings,
 com.psddev.dari.util.StringUtils,
 com.psddev.dari.util.UrlBuilder,
 
+org.slf4j.Logger,
+org.slf4j.LoggerFactory,
+
 java.net.MalformedURLException,
 java.net.URL,
 java.util.UUID
-" %><%
+" %><%!
+private Logger LOGGER = LoggerFactory.getLogger("logIn.jsp");
+
+private void logAuthRequest(String context, String userId, String domain, String ipAddress, boolean status, boolean enabled) {
+    if (enabled) {
+        if (status) {
+            LOGGER.info(context + " [userId:" + userId + ", status:success, domain:" + domain + ", ipAddress:"
+                    + ipAddress + "]");
+        } else {
+            LOGGER.info(context + " [userId:" + userId + ", status:fail, domain:" + domain + ", ipAddress:"
+                    + ipAddress + "]");
+        }
+    }
+}
+
+private static String getDomain(String siteUrl) {
+    String domain = siteUrl;
+    if (!ObjectUtils.isBlank(siteUrl)) {
+        domain = siteUrl.replaceFirst("^(?i)(?:https?://)?(?:www\\.)?", "");
+        int slashAt = domain.indexOf('/');
+
+        if (slashAt > -1) {
+            domain = domain.substring(0, slashAt);
+        }
+
+        int colonAt = domain.indexOf(':');
+
+        if (colonAt > -1) {
+            domain = domain.substring(0, colonAt);
+        }
+    }
+    return domain;
+}
+
+private static String getIpAddress(String xForReqParam, String remoteAddrReqParam) {
+    String ipAddress = xForReqParam;
+    if (ipAddress == null) {
+        ipAddress = remoteAddrReqParam;
+    }
+    return ipAddress;
+}
+%>
+<%
 
 // --- Logic ---
 
@@ -39,6 +85,12 @@ String returnPath = wp.param(AuthenticationFilter.RETURN_PATH_PARAMETER);
 ToolUser user = ToolUser.Static.getByTotpToken(wp.param(String.class, "totpToken"));
 
 if (wp.isFormPost()) {
+    
+    String siteUrl = Query.from(CmsTool.class).first().getDefaultSiteUrl();
+    String domain = getDomain(siteUrl);
+    String ipAddress = getIpAddress(request.getHeader("X-FORWARDED-FOR"), request.getRemoteAddr());
+    boolean isAuthLogged = Settings.get(boolean.class, "cms/tool/isAuthenticationLogged");
+
     try {
 
         if (user != null) {
@@ -54,6 +106,8 @@ if (wp.isFormPost()) {
             }
 
             user = (ToolUser) authPolicy.authenticate(username, wp.param(String.class, "password"));
+
+            logAuthRequest("ToolAuthentication", username, domain, ipAddress, true, isAuthLogged);
 
             if (user.isTfaEnabled()) {
                 String totpToken = UUID.randomUUID().toString();
@@ -93,6 +147,7 @@ if (wp.isFormPost()) {
         return;
 
     } catch (AuthenticationException error) {
+        logAuthRequest("ToolAuthentication", username, domain, ipAddress, false, isAuthLogged);
         authError = error;
     }
 }
@@ -144,12 +199,14 @@ body.hasToolBroadcast {
 </style>
 
 <div class="widget widget-logIn">
-    <h1>Log In</h1>
+    <h1>
+        <%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "title")) %>
+    </h1>
 
     <%
     if (wp.param(boolean.class, "forced")) {
         wp.writeStart("div", "class", "message message-warning");
-            wp.writeHtml("You've been inactive for too long or logged out from a different page. Please log in again.");
+            wp.writeHtml(wp.localize("com.psddev.cms.tool.page.LogIn", "message.inactive"));
         wp.writeEnd();
     }
 
@@ -160,8 +217,7 @@ body.hasToolBroadcast {
 
     <% if (!Query.from(ToolUser.class).hasMoreThan(0)) { %>
         <div class="message message-info">
-            <p>Welcome! You're our first user. Give us your email or
-            username and password and we'll make you an administrator.</p>
+            <p><%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "message.welcome")) %></p>
         </div>
     <% } %>
 
@@ -169,37 +225,43 @@ body.hasToolBroadcast {
         <% if (user == null) { %>
             <div class="inputContainer">
                 <div class="inputLabel">
-                    <label for="<%= wp.createId() %>">Username</label>
+                    <label for="<%= wp.createId() %>"><%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "label.username")) %></label>
                 </div>
                 <div class="inputSmall">
-                    <input class="autoFocus" id="<%= wp.getId() %>" name="username" type="text" value="<%= wp.h(username) %>" placeholder="Email or Username">
+                    <input class="autoFocus" id="<%= wp.getId() %>" name="username" type="text" value="<%= wp.h(username) %>" placeholder="<%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "placeholder.username")) %>">
                 </div>
             </div>
 
             <div class="inputContainer">
                 <div class="inputLabel">
-                    <label for="<%= wp.createId() %>">Password</label>
+                    <label for="<%= wp.createId() %>">
+                        <%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "label.password")) %>
+                    </label>
                 </div>
                 <div class="inputSmall">
-                    <input id="<%= wp.getId() %>" name="password" type="password" placeholder="Password">
+                    <input id="<%= wp.getId() %>" name="password" type="password" placeholder="<%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "placeholder.password")) %>">
                 </div>
             </div>
 
         <% } else { %>
             <div class="inputContainer">
                 <div class="inputLabel">
-                    <label for="<%= wp.createId() %>">Code</label>
+                    <label for="<%= wp.createId() %>">
+                        <%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "label.code")) %>
+                    </label>
                 </div>
                 <div class="inputSmall">
-                    <input class="autoFocus" id="<%= wp.getId() %>" name="totpCode" type="text" placeholder="Two Factor Authentication Code">
+                    <input class="autoFocus" id="<%= wp.getId() %>" name="totpCode" type="text" placeholder="<%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "placeholder.code")) %>">
                 </div>
             </div>
         <% } %>
 
         <div class="buttons">
-            <button class="action action-logIn">Log In</button>
+            <button class="action action-logIn"><%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "action.login")) %></button>
             <% if (!StringUtils.isBlank(Settings.get(String.class, "cms/tool/forgotPasswordEmailSender")) && user == null) {%>
-            <a href="<%= wp.url("forgot-password.jsp", AuthenticationFilter.RETURN_PATH_PARAMETER, returnPath) %>">Forgot Password?</a>
+            <a href="<%= wp.url("forgot-password.jsp", AuthenticationFilter.RETURN_PATH_PARAMETER, returnPath) %>">
+                <%= wp.h(wp.localize("com.psddev.cms.tool.page.LogIn", "action.forgotPassword")) %>
+            </a>
             <% } %>
         </div>
     </form>

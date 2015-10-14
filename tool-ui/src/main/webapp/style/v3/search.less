@@ -7,6 +7,7 @@
 }
 
 .searchResult-view {
+  overflow: hidden;
   position: relative;
 }
 
@@ -98,7 +99,15 @@
     height: 150px;
     margin: 0 10px 10px 0;
     padding: 4px;
+    position: relative;
     width: 200px;
+
+    input[type='checkbox'] {
+      left: 10px;
+      position: absolute;
+      top: 10px;
+      z-index: 1;
+    }
 
     img {
       max-height: 100%;
@@ -171,13 +180,9 @@
   }
 }
 
-.searchFiltersRest-single {
-  margin-top: -30px;
-}
-
 .searchMissing {
   .icon;
-  .icon-share-alt;
+  .icon-level-down;
 
   color: @color-placeholder;
   font-size: 80%;
@@ -192,7 +197,6 @@
     position: absolute;
     right: 0;
     top: 6px;
-    transform: rotate(90deg);
   }
 }
 
@@ -211,7 +215,7 @@
 
     position: absolute;
     right: 25px;
-    top: 3px;
+    top: 5px;
   }
 
   &.searchFilter-date {

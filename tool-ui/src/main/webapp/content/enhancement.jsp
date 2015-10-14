@@ -142,7 +142,9 @@ if (object == null) {
 
         <%-- Object Preview --%>
         <p id="<%= editObjectFormId %>">
-            <a target="_top" class="action action-edit" href="javascript:;">Edit Enhancement</a>
+            <a target="_top" class="action action-edit" href="javascript:;">
+                <% wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Enhancement", "action.edit")); %>
+            </a>
         </p>
         <div id="<%= objectPreviewId %>">
             <div class="rte-enhancement-label">
@@ -161,14 +163,18 @@ if (object == null) {
 
         <%-- Object Edit Form --%>
         <p id="<%= viewObjectPreviewId %>" style="display:none;">
-            <a target="_top" class="action action-cancel" href="javascript:;">Cancel Editing</a>
+            <a target="_top" class="action action-cancel" href="javascript:;">
+                <% wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Enhancement", "action.cancel")); %>
+            </a>
         </p>
         <div id="<%= objectFormId %>" style="display:none;">
             <% wp.writeFormFields(object); %>
         </div>
 
         <div class="buttons">
-            <button class="action action-save">Save</button>
+            <button class="action action-save">
+                <% wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Enhancement", "action.save")); %>
+            </button>
         </div>
     </form>
 
@@ -215,27 +221,54 @@ if (object == null) {
             <% } %>
         })(jQuery);
 
+        // Update the rich text editor so it points to this enhancement
         if (typeof jQuery !== 'undefined') (function($) {
-            var $source = $('#<%= pageId %>').popup('source'),
-                    $group = $source.closest('.rte-group'),
-                    $select = $group.find('.rte-button-enhancementSelect a'),
-                    $edit = $group.find('.rte-button-enhancementEdit a');
+        
+            var $source = $('#<%= pageId %>').popup('source');
+            var id = '<%= state.getId() %>';
+            var label = '<%= wp.js(state.getLabel()) %>';
+            var preview = '<%= wp.js(state.getPreview() != null ? state.getPreview().getPublicUrl() : null) %>';
+            var referenceJson = '<%= wp.js(ObjectUtils.toJson(ref.getState().getSimpleValues())) %>';
+            var reference = JSON.parse(referenceJson) || {};
 
-            $group.addClass('rte-group-enhancementSet');
-            $select.text('Change');
-            $select.rte('enhancement', {
-                'id': '<%= state.getId() %>',
-                'label': '<%= wp.js(state.getLabel()) %>',
-                'preview': '<%= wp.js(state.getPreview() != null ? state.getPreview().getPublicUrl() : null) %>',
-                'reference': '<%= wp.js(ObjectUtils.toJson(ref.getState().getSimpleValues())) %>'
-            });
+            // Check which RTE we are using
+            if (window.DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR) {
 
-            if ($edit.length > 0) {
-                $edit.attr('href', $.addQueryParameters(
-                        $edit.attr('href'),
-                        'id', '<%= state.getId() %>',
-                        'reference', '<%= wp.js(ObjectUtils.toJson(ref.getState().getSimpleValues())) %>'));
+                // Using old RTE
+                var $group = $source.closest('.rte-group');
+                var $select = $group.find('.rte-button-enhancementSelect a');
+                var $edit = $group.find('.rte-button-enhancementEdit a');
+
+                $group.addClass('rte-group-enhancementSet');
+                $select.text('Change');
+                $select.rte('enhancement', {
+                    'id': id,
+                    'label': label,
+                    'preview': preview,
+                    'reference': referenceJson
+                });
+
+                if ($edit.length > 0) {
+                    $edit.attr('href', $.addQueryParameters($edit.attr('href'), 'id', id, 'reference', referenceJson));
+                }
+                
+            } else {
+
+                // Using new RTE
+
+                // Get the rte2 object - this would normally be found on the textarea,
+                // but since $source is a link within the editor we'll use it to find the wrapper element
+                // and get the rte2 object from there
+                var rte2 = $source.closest('.rte2-wrapper').data('rte2');
+                if (rte2) {
+                    // Update the label in the reference data since it might have changed and we display it on the page
+                    reference.label = label;
+                    // Save the enhancement data on the enhancement
+                    rte2.enhancementSetReference($source, reference);
+                    // Enhancement will be updated automaticaly when the popup closes
+                }
             }
+                
         })(jQuery);
     </script>
 <% } %>

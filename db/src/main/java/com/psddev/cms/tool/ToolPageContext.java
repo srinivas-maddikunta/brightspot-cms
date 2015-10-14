@@ -7,12 +7,14 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -21,10 +23,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,6 +41,17 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
+import com.google.common.base.MoreObjects;
+import com.ibm.icu.text.MessageFormat;
+import com.psddev.dari.db.Recordable;
+import com.psddev.dari.util.CascadingMap;
+import com.psddev.dari.util.CollectionUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -129,6 +146,10 @@ public class ToolPageContext extends WebPageContext {
     private static final String EXTRA_PREFIX = "cms.tool.";
     private static final String OVERLAID_DRAFT_EXTRA = EXTRA_PREFIX + "overlaidDraft";
     private static final String OVERLAID_HISTORY_EXTRA = EXTRA_PREFIX + "overlaidHistory";
+
+    public static final String DEFAULT_OBJECT_LABEL = "Untitled";
+
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
     /** Creates an instance based on the given {@code pageContext}. */
     public ToolPageContext(PageContext pageContext) {
@@ -244,6 +265,311 @@ public class ToolPageContext extends WebPageContext {
     /** Returns a label for the type of the given {@code object}. */
     public String getTypeLabel(Object object) {
         return Static.getTypeLabel(object);
+    }
+
+    public String localize(Object context, Map<String, Object> contextOverrides, String key) throws IOException {
+        String baseName = null;
+
+        if (context instanceof ObjectField) {
+            context = ((ObjectField) context).getParentType();
+        }
+
+        State state = null;
+
+        if (context != null) {
+            if (context instanceof String) {
+                baseName = (String) context;
+
+            } else if (context instanceof ObjectType) {
+                baseName = ((ObjectType) context).getInternalName();
+
+            } else if (context instanceof Class) {
+                ObjectType type = ObjectType.getInstance((Class<?>) context);
+
+                if (type != null) {
+                    baseName = type.getInternalName();
+
+                } else {
+                    baseName = ((Class<?>) context).getName();
+                }
+
+            } else if (context instanceof Recordable) {
+                state = ((Recordable) context).getState();
+                ObjectType type = state.getType();
+
+                if (type != null) {
+                    baseName = type.getInternalName();
+                }
+
+            } else {
+                baseName = context.getClass().getName();
+            }
+        }
+
+        Locale defaultLocale = Locale.getDefault();
+        Locale userLocale = MoreObjects.firstNonNull(getUser() != null ? getUser().getLocale() : null, defaultLocale);
+        boolean firstTry = true;
+
+        while (true) {
+            String localized = createLocalizedString(userLocale, userLocale, baseName, key, state, contextOverrides);
+
+            if (localized == null && !defaultLocale.equals(userLocale)) {
+                localized = createLocalizedString(defaultLocale, userLocale, baseName, key, state, contextOverrides);
+            }
+
+            if (localized == null) {
+                Locale usLocale = Locale.US;
+                String usLanguage = usLocale.getLanguage();
+
+                if (!usLanguage.equals(defaultLocale.getLanguage())
+                        && !usLanguage.equals(userLocale.getLanguage())) {
+
+                    localized = createLocalizedString(usLocale, userLocale, baseName, key, state, contextOverrides);
+                }
+            }
+
+            if (localized == null) {
+                if (firstTry) {
+                    firstTry = false;
+
+                    System.out.println("invalidate and retry");
+                    ObjectTypeResourceBundle.invalidateInstances();
+
+                } else {
+                    return "{" + baseName + "/" + key + "}";
+                }
+
+            } else {
+                return localized;
+            }
+        }
+    }
+
+    private String createLocalizedString(
+            Locale source,
+            Locale target,
+            String baseName,
+            String key,
+            State state,
+            Map<String, Object> contextOverrides)
+            throws IOException {
+
+        CascadingMap<String, Object> arguments = new CascadingMap<>();
+        List<Map<String, Object>> argumentsSources = arguments.getSources();
+
+        if (contextOverrides != null) {
+            argumentsSources.add(contextOverrides);
+        }
+
+        String pattern = null;
+
+        if (baseName != null) {
+            ResourceBundle baseOverride = findBundle(baseName + "Override", source);
+            ResourceBundle baseDefault = findBundle(baseName + "Default", source);
+
+            if (baseOverride != null) {
+                argumentsSources.add(createBundleMap(baseOverride));
+
+                pattern = findBundleString(baseOverride, key);
+            }
+
+            if (baseDefault != null) {
+                argumentsSources.add(createBundleMap(baseDefault));
+
+                if (pattern == null) {
+                    pattern = findBundleString(baseDefault, key);
+                }
+            }
+        }
+
+        if (state != null) {
+            argumentsSources.add(state);
+        }
+
+        if (pattern == null) {
+            ResourceBundle fallbackOverride = findBundle("FallbackOverride", source);
+
+            if (fallbackOverride != null) {
+                pattern = findBundleString(fallbackOverride, key);
+            }
+
+            if (pattern == null) {
+                ResourceBundle fallbackDefault = findBundle("FallbackDefault", source);
+
+                if (fallbackDefault != null) {
+                    pattern = findBundleString(fallbackDefault, key);
+                }
+            }
+        }
+
+        ObjectType type = ObjectType.getInstance(baseName);
+        ObjectTypeResourceBundle bundle = ObjectTypeResourceBundle.getInstance(type);
+
+        argumentsSources.add(bundle.getMap());
+
+        if (pattern == null && Locale.getDefault().equals(source)) {
+            pattern = findBundleString(bundle, key);
+        }
+
+        if (pattern == null) {
+            return null;
+
+        } else if (source.equals(target)) {
+            return new MessageFormat(pattern, target).format(arguments);
+
+        } else {
+            String googleServerApiKey = getCmsTool().getGoogleServerApiKey();
+
+            if (ObjectUtils.isBlank(googleServerApiKey)) {
+                return new MessageFormat(pattern, source).format(arguments);
+            }
+
+            // Already translated?
+            UUID translationsId = MachineTranslations.createId(baseName, target);
+            State translations = State.getInstance(Query
+                    .from(MachineTranslations.class)
+                    .where("_id = ?", translationsId)
+                    .first());
+
+            if (translations != null) {
+                String translation = (String) translations.get(key);
+
+                if (translation != null) {
+                    return new MessageFormat(translation, target).format(arguments);
+                }
+            }
+
+            // Convert named arguments to be numbered to prevent the names
+            // from being translated.
+            MessageFormat numberedFormat = new MessageFormat(pattern, target);
+            Map<String, String> numberedToNamed = null;
+
+            if (numberedFormat.usesNamedArguments()) {
+
+                // e.g. Hi, {name} -> Hi, {0}
+                Map<String, Object> numberedArgumentByName = new CompactMap<>();
+                int index = 0;
+
+                for (String name : numberedFormat.getArgumentNames()) {
+                    numberedArgumentByName.put(name, "{" + index + "}");
+                    numberedFormat.setFormatByArgumentName(name, null);
+
+                    ++ index;
+                }
+
+                // Use the numbered pattern to create a regex that can find
+                // the named arguments from the original pattern.
+                String numberedPattern = numberedFormat.format(numberedArgumentByName);
+                Matcher numberedArgumentMatcher = Pattern.compile("\\{\\d+\\}").matcher(numberedPattern);
+                StringBuilder namedArgumentPattern = new StringBuilder();
+                List<String> numberedArguments = new ArrayList<>();
+                int lastEnd = 0;
+
+                while (numberedArgumentMatcher.find()) {
+                    namedArgumentPattern.append(Pattern.quote(numberedPattern.substring(lastEnd, numberedArgumentMatcher.start())));
+                    namedArgumentPattern.append("(\\{.+?\\})");
+                    numberedArguments.add(numberedArgumentMatcher.group(0));
+
+                    lastEnd = numberedArgumentMatcher.end();
+                }
+
+                namedArgumentPattern.append(Pattern.quote(numberedPattern.substring(lastEnd)));
+
+                // Map all numbered argument to the named ones.
+                // e.g. {0} = {name}
+                Matcher namedArgumentMatcher = Pattern.compile(namedArgumentPattern.toString()).matcher(pattern);
+                pattern = numberedPattern;
+
+                if (namedArgumentMatcher.matches()) {
+                    numberedToNamed = new CompactMap<>();
+
+                    for (int i = 1; i <= namedArgumentMatcher.groupCount(); ++ i) {
+                        numberedToNamed.put(numberedArguments.get(i - 1), namedArgumentMatcher.group(1));
+                    }
+
+                } else {
+                    throw new IllegalArgumentException();
+                }
+            }
+
+            try (CloseableHttpClient client = HttpClients.createDefault()) {
+                HttpUriRequest request = RequestBuilder.get()
+                        .setUri("https://www.googleapis.com/language/translate/v2")
+                        .addParameter("key", googleServerApiKey)
+                        .addParameter("q", pattern)
+                        .addParameter("source", source.getLanguage())
+                        .addParameter("target", target.getLanguage())
+                        .build();
+
+                try (CloseableHttpResponse response = client.execute(request)) {
+                    String responseText = EntityUtils.toString(response.getEntity());
+                    String translation = (String) CollectionUtils.getByPath(ObjectUtils.fromJson(responseText), "data/translations/0/translatedText");
+
+                    // Restore named arguments.
+                    if (numberedToNamed != null) {
+                        for (Map.Entry<String, String> entry : numberedToNamed.entrySet()) {
+                            translation = translation.replace(entry.getKey(), entry.getValue());
+                        }
+                    }
+
+                    final String finalTranslation = translation;
+                    Thread saveTranslations = new Thread() {
+
+                        @Override
+                        public void run() {
+                            com.psddev.dari.db.State translations = new MachineTranslations().getState();
+
+                            translations.setId(translationsId);
+                            translations.putAtomically(key, finalTranslation);
+                            translations.save();
+                        }
+                    };
+
+                    saveTranslations.start();
+
+                    return new MessageFormat(translation, target).format(arguments);
+                }
+            }
+        }
+    }
+
+    private ResourceBundle findBundle(String baseName, Locale locale) {
+        try {
+            return ResourceBundle.getBundle(
+                    baseName,
+                    locale,
+                    ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_DEFAULT));
+
+        } catch (MissingResourceException error) {
+            return null;
+        }
+    }
+
+    private Map<String, Object> createBundleMap(ResourceBundle bundle) {
+        Map<String, Object> map = new CompactMap<>();
+
+        for (Enumeration<String> keys = bundle.getKeys(); keys.hasMoreElements();) {
+            String key = keys.nextElement();
+
+            map.put(key, findBundleString(bundle, key));
+        }
+
+        return map;
+    }
+
+    private String findBundleString(ResourceBundle bundle, String key) {
+        try {
+            String pattern = bundle.getString(key);
+
+            return new String(pattern.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+
+        } catch (MissingResourceException error) {
+            return null;
+        }
+    }
+
+    public String localize(Object context, String key) throws IOException {
+        return localize(context, null, key);
     }
 
     /**
@@ -694,30 +1020,7 @@ public class ToolPageContext extends WebPageContext {
             object = Query.fromAll().where("_id = ?", objectId).resolveInvisible().first();
         }
 
-        if (object != null) {
-            if (workStream == null) {
-                ObjectType objectType = State.getInstance(object).getType();
-
-                if (!ObjectUtils.isBlank(validTypes)
-                        && !validTypes.contains(objectType)) {
-                    StringBuilder tb = new StringBuilder();
-
-                    for (ObjectType type : validTypes) {
-                        tb.append(type.getLabel());
-                        tb.append(", ");
-                    }
-
-                    tb.setLength(tb.length() - 2);
-
-                    throw new IllegalArgumentException(String.format(
-                            "Expected one of [%s] types for [%s] object but it is of [%s] type",
-                            tb,
-                            objectId,
-                            objectType != null ? objectType.getLabel() : "unknown"));
-                }
-            }
-
-        } else if (!ObjectUtils.isBlank(validTypes)) {
+        if (object == null && !ObjectUtils.isBlank(validTypes)) {
             ObjectType selectedType = ObjectType.getInstance(param(UUID.class, TYPE_ID_PARAMETER));
 
             if (selectedType == null) {
@@ -750,7 +1053,7 @@ public class ToolPageContext extends WebPageContext {
 
             if (draftObject instanceof Draft) {
                 Draft draft = (Draft) draftObject;
-                object = draft.getObject();
+                object = draft.recreate();
 
                 State.getInstance(object).getExtras().put(OVERLAID_DRAFT_EXTRA, draft);
             }
@@ -766,6 +1069,7 @@ public class ToolPageContext extends WebPageContext {
 
             if (history != null) {
                 state.getExtras().put(OVERLAID_HISTORY_EXTRA, history);
+                state.getExtras().put("cms.draft.oldValues", state.getSimpleValues());
                 state.setValues(history.getObjectOriginals());
                 state.setStatus(StateStatus.SAVED);
 
@@ -780,7 +1084,7 @@ public class ToolPageContext extends WebPageContext {
                     Draft draft = (Draft) draftObject;
 
                     state.getExtras().put(OVERLAID_DRAFT_EXTRA, draft);
-                    state.getValues().putAll(draft.getObjectChanges());
+                    draft.merge(object);
                 }
             }
 
@@ -989,8 +1293,9 @@ public class ToolPageContext extends WebPageContext {
 
         } else {
             State state = State.getInstance(object);
-            String visibilityLabel = object instanceof Draft ? "Update" : state.getVisibilityLabel();
-            String label = state.getLabel();
+            String visibilityLabel = object instanceof Draft
+                    ? ObjectType.getInstance(Draft.class).getDisplayName()
+                    : state.getVisibilityLabel();
 
             if (!ObjectUtils.isBlank(visibilityLabel)) {
                 writeStart("span", "class", "visibilityLabel");
@@ -1000,7 +1305,20 @@ public class ToolPageContext extends WebPageContext {
                 writeHtml(" ");
             }
 
-            writeHtml(getObjectLabelOrDefault(state, "Untitled"));
+            String label = getObjectLabelOrDefault(state, DEFAULT_OBJECT_LABEL);
+
+            if (WHITESPACE_PATTERN.splitAsStream(label)
+                    .filter(word -> word.length() > 41)
+                    .findFirst()
+                    .isPresent()) {
+
+                writeStart("span", "class", "breakable");
+                writeHtml(label);
+                writeEnd();
+
+            } else {
+                writeHtml(label);
+            }
         }
     }
 
@@ -1070,7 +1388,7 @@ public class ToolPageContext extends WebPageContext {
 
             if (!typeLabel.equals(label)) {
                 writeHtml(": ");
-                writeHtml(label);
+                writeHtml(getObjectLabelOrDefault(state, DEFAULT_OBJECT_LABEL));
             }
         }
     }
@@ -1201,7 +1519,9 @@ public class ToolPageContext extends WebPageContext {
         HtmlGrid.Static.setRestrictGridPaths(cms.getGridCssPaths(), this.getServletContext());
 
         writeTag("!doctype html");
-        writeTag("html", "class", site != null ? site.getCmsCssClass() : null);
+        writeTag("html",
+                "class", site != null ? site.getCmsCssClass() : null,
+                "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag());
             writeStart("head");
                 writeStart("title");
                     if (!ObjectUtils.isBlank(title)) {
@@ -1291,9 +1611,6 @@ public class ToolPageContext extends WebPageContext {
 
                     if (user != null) {
                         StorageItem avatar = user.getAvatar();
-                        String name = user.getName().trim();
-                        String[] nameParts = name.split("\\s+");
-                        String firstName = nameParts[0];
 
                         writeStart("div", "class", "toolUserDisplay");
                             writeStart("span", "class", "toolUserAvatar");
@@ -1309,15 +1626,7 @@ public class ToolPageContext extends WebPageContext {
 
                             writeStart("div", "class", "toolUser");
                                 writeStart("div", "class", "toolUserWelcome");
-                                    writeHtml("Welcome, ");
-
-                                    if (firstName.equals(firstName.toLowerCase(Locale.ENGLISH))) {
-                                        writeHtml(firstName.substring(0, 1).toUpperCase(Locale.ENGLISH));
-                                        writeHtml(firstName.substring(1));
-
-                                    } else {
-                                        writeHtml(firstName);
-                                    }
+                                    writeHtml(localize(user, "message.welcome"));
                                 writeEnd();
 
                                 writeStart("div", "class", "toolUserControls");
@@ -1333,7 +1642,7 @@ public class ToolPageContext extends WebPageContext {
                                         writeStart("li");
                                             writeStart("a",
                                                     "href", cmsUrl("/misc/logOut.jsp"));
-                                                writeHtml("Log Out");
+                                                writeHtml(localize(ToolUser.class, "action.logOut"));
                                             writeEnd();
                                         writeEnd();
                                     writeEnd();
@@ -1343,8 +1652,9 @@ public class ToolPageContext extends WebPageContext {
                             if (Site.Static.findAll().size() > 0) {
                                 writeStart("div", "class", "toolUserSite");
                                     writeStart("div", "class", "toolUserSiteDisplay");
-                                        writeHtml("Site: ");
-                                        writeHtml(site != null ? site.getLabel() : "Global");
+                                        writeHtml(localize(Site.class, "displayName"));
+                                        writeHtml(": ");
+                                        writeHtml(site != null ? site.getLabel() : localize(Site.class, "global"));
                                     writeEnd();
 
                                     writeStart("div", "class", "toolUserSiteControls");
@@ -1354,7 +1664,7 @@ public class ToolPageContext extends WebPageContext {
                                                 writeStart("a",
                                                     "href", cmsUrl("/siteSwitch"),
                                                     "target", "siteSwitch");
-                                                    writeHtml("Switch");
+                                                    writeHtml(localize(Site.class, "action.switch"));
                                                 writeEnd();
                                             writeEnd();
                                         }
@@ -1424,7 +1734,7 @@ public class ToolPageContext extends WebPageContext {
                             writeElement("input", "type", "hidden", "name", Search.NAME_PARAMETER, "value", "global");
 
                             writeStart("span", "class", "searchInput");
-                                writeStart("label", "for", createId()).writeHtml("Search").writeEnd();
+                                writeStart("label", "for", createId()).writeHtml(localize(null, "search.label")).writeEnd();
                                 writeElement("input", "type", "text", "id", getId(), "name", "q");
                                 writeStart("button").writeHtml("Go").writeEnd();
                             writeEnd();
@@ -1697,7 +2007,21 @@ public class ToolPageContext extends WebPageContext {
                     for (Site s : Query.from(Site.class).selectAll()) {
                         for (String url : s.getUrls()) {
                             try {
-                                siteUrls.add(new URL(url).toURI().resolve("/").toString());
+                                String siteUrl = new URL(url).toURI().resolve("/").toString();
+
+                                if (siteUrl.startsWith("http://")) {
+                                    siteUrls.remove("https://" + siteUrl.substring(7));
+
+                                } else if (siteUrl.startsWith("https://")) {
+                                    String insecureSiteUrl = "http://" + siteUrl.substring(8);
+
+                                    if (siteUrls.contains(insecureSiteUrl)) {
+                                        continue;
+                                    }
+                                }
+
+                                siteUrls.add(siteUrl);
+
                             } catch (MalformedURLException error) {
                                 // Ignore invalid site URL.
                             } catch (URISyntaxException error) {
@@ -1776,6 +2100,24 @@ public class ToolPageContext extends WebPageContext {
                 attributes);
     }
 
+    /**
+     * Generates a {@code Predicate<ObjectType>} to filter {@link ObjectType}s against CMS display criteria
+     * and optionally check the specified type-level permission against the current
+     * {@link ToolUser}'s permissions.
+     * @param permissions A List of the type-level permissions to be checked.  If {@code null},
+     *                   type permission will not be checked.
+     * @return a new {@code Predicate<ObjectType>}
+     */
+    public java.util.function.Predicate<ObjectType> createTypeDisplayPredicate(Collection<String> permissions) {
+
+        return (ObjectType type) ->
+            type.isConcrete()
+                && (ObjectUtils.isBlank(permissions) || permissions.stream().allMatch((String permission) -> hasPermission("type/" + type.getId() + "/" + permission)))
+                && (getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses() || type.getObjectClass() != null)
+                && !(Draft.class.equals(type.getObjectClass()))
+                && (!type.isDeprecated() || Query.fromType(type).hasMoreThan(0));
+    }
+
     private void writeTypeSelectReally(
             boolean multiple,
             Iterable<ObjectType> types,
@@ -1788,20 +2130,6 @@ public class ToolPageContext extends WebPageContext {
         }
 
         List<ObjectType> typesList = ObjectUtils.to(new TypeReference<List<ObjectType>>() { }, types);
-
-        for (Iterator<ObjectType> i = typesList.iterator(); i.hasNext();) {
-            ObjectType type = i.next();
-
-            if (!type.isConcrete()
-                    || !hasPermission("type/" + type.getId() + "/write")
-                    || (!getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses()
-                    && type.getObjectClass() == null)
-                    || Draft.class.equals(type.getObjectClass())
-                    || (type.isDeprecated()
-                    && !Query.fromType(type).hasMoreThan(0))) {
-                i.remove();
-            }
-        }
 
         for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypes()) {
             if (Boolean.FALSE.equals(type.as(ToolUi.class).getHidden()) && !type.isConcrete()) {
@@ -2324,25 +2652,12 @@ public class ToolPageContext extends WebPageContext {
             }
 
             writeStart("div",
-                    "class", "objectInputs",
+                    "class", "objectInputs" + (type.as(ToolUi.class).isReadOnly() ? " objectInputs-readOnly" : ""),
                     "lang", type != null ? type.as(ToolUi.class).getLanguageTag() : null,
                     "data-type", type != null ? type.getInternalName() : null,
                     "data-id", state.getId(),
                     "data-object-id", state.getId(),
                     "data-layout-placeholders", layoutPlaceholdersJson);
-
-                Object original = Query.fromAll().where("_id = ?", state.getId()).master().noCache().first();
-
-                if (original != null) {
-                    Date updateDate = State.getInstance(original).as(Content.ObjectModification.class).getUpdateDate();
-
-                    if (updateDate != null) {
-                        writeElement("input",
-                                "type", "hidden",
-                                "name", state.getId() + "/_updateDate",
-                                "value", updateDate.getTime());
-                    }
-                }
 
                 if (type != null) {
                     String noteHtml = type.as(ToolUi.class).getEffectiveNoteHtml(object);
@@ -2777,6 +3092,11 @@ public class ToolPageContext extends WebPageContext {
         contentData.setScheduleDate(publishDate);
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> findOldValuesInForm(State state) {
+        return (Map<String, Object>) ObjectUtils.fromJson(param(String.class, state.getId() + "/oldValues"));
+    }
+
     /**
      * Tries to save the given {@code object} as a draft if the user has
      * asked for it in the current request.
@@ -2826,17 +3146,15 @@ public class ToolPageContext extends WebPageContext {
 
                 draft = new Draft();
                 draft.setOwner(getUser());
-                draft.setObject(object);
-
-            } else {
-                draft.setObject(object);
             }
 
+            draft.update(findOldValuesInForm(state), object);
             publish(draft);
-            redirectOnSave("",
+            getResponse().sendRedirect(url("",
+                    "editAnyway", null,
                     "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null,
                     ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
-                    ToolPageContext.HISTORY_ID_PARAMETER, null);
+                    ToolPageContext.HISTORY_ID_PARAMETER, null));
             return true;
 
         } catch (Exception error) {
@@ -2873,15 +3191,28 @@ public class ToolPageContext extends WebPageContext {
                 state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
             }
 
-            Draft draft = new Draft();
+            if (state.isNew()) {
+                state.as(Content.ObjectModification.class).setDraft(true);
+                publish(state);
+                redirectOnSave("",
+                        "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null,
+                        "id", state.getId(),
+                        "copyId", null);
 
-            draft.setOwner(getUser());
-            draft.setObject(object);
-            publish(draft);
-            redirectOnSave("",
-                    "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null,
-                    ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
-                    ToolPageContext.HISTORY_ID_PARAMETER, null);
+            } else {
+                Draft draft = new Draft();
+
+                draft.setOwner(getUser());
+                draft.update(findOldValuesInForm(state), object);
+                publish(draft);
+
+                getResponse().sendRedirect(url("",
+                        "editAnyway", null,
+                        "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null,
+                        ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
+                        ToolPageContext.HISTORY_ID_PARAMETER, null));
+            }
+
             return true;
 
         } catch (Exception error) {
@@ -3001,12 +3332,12 @@ public class ToolPageContext extends WebPageContext {
                     draft.setOwner(user);
                 }
 
-                draft.setObject(object);
+                draft.update(findOldValuesInForm(state), object);
 
                 if (state.isNew() || contentData.isDraft()) {
                     contentData.setDraft(true);
                     publish(state);
-                    draft.setObjectChanges(null);
+                    draft.setDifferences(null);
                 }
 
                 if (schedule == null) {
@@ -3045,7 +3376,24 @@ public class ToolPageContext extends WebPageContext {
                     contentData.setPublishUser(null);
                 }
 
-                publish(object);
+                Map<String, Map<String, Object>> differences;
+
+                if (draft != null) {
+                    differences = draft.getDifferences();
+                    Map<String, Object> newValues = differences.get(state.getId().toString());
+
+                    if (newValues != null) {
+                        newValues.remove("cms.workflow.currentState");
+                    }
+
+                } else {
+                    differences = Draft.findDifferences(
+                            state.getDatabase().getEnvironment(),
+                            findOldValuesInForm(state),
+                            state.getSimpleValues());
+                }
+
+                publishDifferences(object, differences);
                 state.commitWrites();
                 redirectOnSave("",
                         "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null,
@@ -3190,6 +3538,58 @@ public class ToolPageContext extends WebPageContext {
         }
     }
 
+    public boolean tryMerge(Object object) {
+        if (!isFormPost()) {
+            return false;
+        }
+
+        String action = param(String.class, "action-merge");
+
+        if (ObjectUtils.isBlank(action)) {
+            return false;
+        }
+
+        setContentFormScheduleDate(object);
+
+        State state = State.getInstance(object);
+        Draft draft = getOverlaidDraft(object);
+
+        if (draft == null) {
+            return false;
+        }
+
+        try {
+            state.beginWrites();
+
+            updateUsingParameters(object);
+            updateUsingAllWidgets(object);
+
+            State oldState = State.getInstance(Query
+                    .fromAll()
+                    .where("_id = ?", state.getId())
+                    .noCache()
+                    .first());
+
+            if (oldState != null) {
+                state.as(Workflow.Data.class).getState().put("cms.workflow.currentState", oldState.as(Workflow.Data.class).getCurrentState());
+            }
+
+            publish(object);
+            draft.delete();
+            state.commitWrites();
+
+            redirectOnSave("", "id", state.getId());
+            return true;
+
+        } catch (Exception error) {
+            getErrors().add(error);
+            return false;
+
+        } finally {
+            state.endWrites();
+        }
+    }
+
     /**
      * Tries to apply a workflow action to the given {@code object} if the
      * user has asked for it in the current request.
@@ -3214,6 +3614,8 @@ public class ToolPageContext extends WebPageContext {
         Draft draft = getOverlaidDraft(object);
         Workflow.Data workflowData = state.as(Workflow.Data.class);
         String oldWorkflowState = workflowData.getCurrentState();
+        Content.ObjectModification contentData = state.as(Content.ObjectModification.class);
+        boolean oldContentDraft = contentData.isDraft();
 
         try {
             state.beginWrites();
@@ -3233,7 +3635,7 @@ public class ToolPageContext extends WebPageContext {
 
                     updateUsingParameters(object);
                     updateUsingAllWidgets(object);
-                    state.as(Content.ObjectModification.class).setDraft(false);
+                    contentData.setDraft(false);
                     log.getState().setId(param(UUID.class, "workflowLogId"));
                     updateUsingParameters(log);
                     workflowData.changeState(transition, getUser(), log);
@@ -3243,7 +3645,7 @@ public class ToolPageContext extends WebPageContext {
 
                     } else {
                         draft.as(Workflow.Data.class).changeState(transition, getUser(), log);
-                        draft.setObject(object);
+                        draft.update(findOldValuesInForm(state), object);
                         publish(draft);
                     }
 
@@ -3260,6 +3662,7 @@ public class ToolPageContext extends WebPageContext {
             }
 
             workflowData.revertState(oldWorkflowState);
+            contentData.setDraft(oldContentDraft);
             getErrors().add(error);
             return false;
 
@@ -3392,10 +3795,7 @@ public class ToolPageContext extends WebPageContext {
         return Content.Static.deleteSoftly(object, getSite(), getUser());
     }
 
-    /** @see Content.Static#publish */
-    public History publish(Object object) {
-        History history = Content.Static.publish(object, getSite(), getUser());
-
+    private History updateLockIgnored(History history) {
         if (history != null
                 && param(boolean.class, "editAnyway")) {
             history.setLockIgnored(true);
@@ -3403,6 +3803,20 @@ public class ToolPageContext extends WebPageContext {
         }
 
         return history;
+    }
+
+    /**
+     * @see Content.Static#publish(Object, Site, ToolUser)
+     */
+    public History publish(Object object) {
+        return updateLockIgnored(Content.Static.publish(object, getSite(), getUser()));
+    }
+
+    /**
+     * @see Content.Static#publishDifferences(Object, Map, Site, ToolUser)
+     */
+    public History publishDifferences(Object object, Map<String, Map<String, Object>> differences) {
+        return updateLockIgnored(Content.Static.publishDifferences(object, differences, getSite(), getUser()));
     }
 
     /**

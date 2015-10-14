@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.dari.db.Database;
+import com.psddev.dari.db.DistributedLock;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
@@ -83,6 +84,7 @@ public abstract class Content extends Record {
         private ObjectModification() {
         }
 
+        @DisplayName("Initial Draft")
         @Indexed(visibility = true)
         @InternalName("cms.content.draft")
         private Boolean draft;
@@ -213,7 +215,7 @@ public abstract class Content extends Record {
         @Override
         public String createVisibilityLabel(ObjectField field) {
             if (field.getInternalName().equals("cms.content.draft")) {
-                return isDraft() ? "Draft" : null;
+                return isDraft() ? "Initial Draft" : null;
             } else {
                 return isTrash() ? "Archived" : null;
             }
@@ -330,6 +332,37 @@ public abstract class Content extends Record {
                 } finally {
                     state.endWrites();
                 }
+            }
+        }
+
+        public static History publishDifferences(
+                Object object,
+                Map<String, Map<String, Object>> differences,
+                Site site,
+                ToolUser user) {
+
+            State state = State.getInstance(object);
+            UUID id = state.getId();
+            DistributedLock lock = DistributedLock.Static.getInstance(
+                    Database.Static.getDefault(),
+                    Content.class.getName() + "/publish/" + id);
+
+            lock.lock();
+
+            try {
+                Object oldObject = Query.fromAll().where("_id = ?", id).noCache().first();
+
+                if (oldObject != null) {
+                    state.setValues(Draft.mergeDifferences(
+                            state.getDatabase().getEnvironment(),
+                            State.getInstance(oldObject).getSimpleValues(),
+                            differences));
+                }
+
+                return publish(object, site, user);
+
+            } finally {
+                lock.unlock();
             }
         }
 

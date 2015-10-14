@@ -3,15 +3,20 @@
   > ul {
     counter-reset: item;
     list-style-type: none;
-    margin-bottom: 6px;
+    margin-bottom: 0;
     margin-left: 0;
 
     > li {
+      background: white;
       border: 1px solid @color-heading;
       border-radius: 2px;
       margin-bottom: 10px;
       padding: 10px;
       position: relative;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
 
       > .repeatableLabel {
         &:extend(.inputLabelLike all);
@@ -38,6 +43,9 @@
           counter-increment: item;
           left: 20px;
           position: absolute;
+          text-align: right;
+          top: 6px;
+          width: 20px;
         }
 
         &:hover:before {
@@ -74,7 +82,7 @@
         }
       }
 
-      &.collapsed {
+      &.collapsed:not(.expanded) {
         padding-bottom: 0;
 
         > .repeatableLabel {
@@ -123,6 +131,7 @@
   }
 
   > .addButtonContainer {
+    margin-top: 10px;
     overflow: hidden;
 
     > .addButton {
@@ -385,25 +394,31 @@
 .repeatableForm > ul > li.collapsed > .frame {
   min-height: 0;
 }
-.repeatableForm > ol > li.collapsed .objectInputs,
-.repeatableForm > ul > li.collapsed .objectInputs,
-.repeatableForm > ol > li.collapsed .message,
-.repeatableForm > ul > li.collapsed .message,
-.repeatableForm > ol > li.collapsed .inputContainer,
-.repeatableForm > ul > li.collapsed .inputContainer,
-.repeatableForm > ol > li.toBeRemoved .objectInputs,
-.repeatableForm > ul > li.toBeRemoved .objectInputs,
-.repeatableForm > ol > li.toBeRemoved .message,
-.repeatableForm > ul > li.toBeRemoved .message,
-.repeatableForm > ol > li.toBeRemoved .inputContainer,
-.repeatableForm > ul > li.toBeRemoved .inputContainer {
-  display: none;
-}
 
 .repeatableForm {
   > ol,
   > ul {
     > li {
+      &.expanded {
+        &.collapsed,
+        &.toBeRemoved {
+          > .objectInputs {
+            > *:not(.inputContainer-expanded) {
+              display: none;
+            }
+          }
+        }
+      }
+
+      &:not(.expanded) {
+        &.collapsed,
+        &.toBeRemoved {
+          > .objectInputs {
+            display: none;
+          }
+        }
+      }
+
       > .objectInputs > .tabs {
         margin-left: -7px;
         margin-right: -7px;
@@ -485,6 +500,7 @@
     > li {
       background-color: rgba(255, 255, 255, 0.5);
       border: 1px solid @color-heading;
+      border-radius: 2px;
       margin-bottom: 6px;
       padding: 0 6px;
       position: relative;
@@ -496,7 +512,7 @@
         left: 0;
         margin: 0 -6px 6px -6px;
         min-height: 22px;
-        padding: 3px 5px;
+        padding: 5px 12px;
       }
 
       > .layouts {
@@ -512,14 +528,14 @@
         color: @color-remove;
         position: absolute;
         right: 5px;
-        top: 4px;
+        top: 10px;
       }
 
       &.state-focus {
-        border-color: @color-link-light;
+        border-color: @color-focus;
 
         > .repeatableLabel {
-          background-color: @color-link-light;
+          background-color: @color-focus;
         }
       }
 
@@ -570,6 +586,39 @@
     .removeButton,
     .addButtonContainer {
       display: none;
+    }
+  }
+
+  .inputContainer-listLayoutItemContainer:not(.inputContainer-listLayoutItemContainer-embedded-expanded) {
+    .inputContainer {
+      &:before {
+        display: none;
+      }
+
+      &.state-changed,
+      &.state-focused {
+        > .inputLabel {
+          .background-flat(@color-heading);
+        }
+      }
+    }
+
+    .inputLabel {
+      display: block;
+      float: none;
+      margin: 0 0 5px 0;
+      padding: 5px;
+      width: auto;
+    }
+
+    .inputSmall {
+      margin-bottom: 5px;
+      margin-left: 0;
+      padding-left: 0;
+    }
+
+    .inputNote {
+      margin-left: 0;
     }
   }
 }
@@ -855,4 +904,43 @@
           display: none;
         }
     }
+}
+
+.repeatableForm {
+  > ol,
+  > ul {
+    > li.sortable-dragging {
+      box-shadow: 0 0 20px fade(black, 50%);
+    }
+  }
+}
+
+.repeatableObjectId {
+  > ol,
+  > ul {
+    > li.sortable-dragging {
+      > .objectId-select {
+        box-shadow: 0 0 20px fade(black, 50%);
+      }
+    }
+  }
+}
+
+.sortable-parent {
+  z-index: 1000000 !important;
+}
+
+.sortable-droppable {
+  position: relative;
+
+  &:before {
+    border: 5px dotted fade(@color-focus, 50%);
+    border-radius: 5px;
+    bottom: -15px;
+    content: '';
+    left: -15px;
+    position: absolute;
+    right: -15px;
+    top: -15px;
+  }
 }

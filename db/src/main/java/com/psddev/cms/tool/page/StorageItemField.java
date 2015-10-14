@@ -406,19 +406,8 @@ public class StorageItemField extends PageServlet {
                     newItem = StorageItem.Static.createUrl(page.param(urlName));
                 }
 
-                // Automatic image metadata extraction.
-                if (newItem != null
-                        && !fieldValueMetadata.containsKey("width")
-                        && !fieldValueMetadata.containsKey("height")) {
-                    Map<String, Object> metadata = extractMetadata(newItem, Optional.ofNullable(newItemData));
-                    if (metadata != null) {
-                        fieldValueMetadata.putAll(metadata);
-                    }
-                }
-
-                // Makes sure opened stream gets closed
-                if (newItemData != null) {
-                    IoUtils.closeQuietly(newItemData);
+                if (newItem != null) {
+                    tryExtractMetadata(newItem, fieldValueMetadata, Optional.ofNullable(newItemData));
                 }
 
                 // Standard sizes.
@@ -545,14 +534,14 @@ public class StorageItemField extends PageServlet {
                                 "data-hide", ".fileSelectorItem",
                                 "data-show", ".fileSelectorExisting",
                                 "value", "keep");
-                            page.write("Keep Existing");
+                            page.writeHtml(page.localize(StorageItemField.class, "option.keep"));
                         page.writeEnd();
                     }
 
                     page.writeStart("option",
                             "data-hide", ".fileSelectorItem",
                             "value", "none");
-                        page.write("None");
+                        page.writeHtml(page.localize(StorageItemField.class, "option.none"));
                     page.writeEnd();
 
                     page.writeStart("option",
@@ -560,14 +549,14 @@ public class StorageItemField extends PageServlet {
                             "data-show", ".fileSelectorNewUpload",
                             "value", "newUpload",
                             fieldValue == null && field.isRequired() ? " selected" : "");
-                        page.write("New Upload");
+                        page.writeHtml(page.localize(StorageItemField.class, "option.newUpload"));
                     page.writeEnd();
 
                     page.writeStart("option",
                             "data-hide", ".fileSelectorItem",
                             "data-show", ".fileSelectorNewUrl",
                             "value", "newUrl");
-                        page.write("New URL");
+                        page.writeHtml(page.localize(StorageItemField.class, "option.newUrl"));
                     page.writeEnd();
 
                     if (!ObjectUtils.isBlank(page.getCmsTool().getDropboxApplicationKey())) {
@@ -706,13 +695,18 @@ public class StorageItemField extends PageServlet {
         return storageSetting;
     }
 
-    static Map<String, Object> extractMetadata(StorageItem storageItem, Optional<InputStream> optionalStream) {
-        String contentType = storageItem.getContentType();
-        ImageMetadataMap metadata = null;
+    static void tryExtractMetadata(StorageItem storageItem, Map<String, Object> fieldValueMetadata, Optional<InputStream> optionalStream) {
 
-        if (contentType != null && contentType.startsWith("image/")) {
-            InputStream inputStream = null;
-            try {
+        ImageMetadataMap metadata = null;
+        InputStream inputStream = null;
+        String contentType = storageItem.getContentType();
+
+        try {
+            if (!fieldValueMetadata.containsKey("width")
+                    && !fieldValueMetadata.containsKey("height")
+                    && contentType != null
+                    && contentType.startsWith("image/")) {
+
                 inputStream = optionalStream.isPresent() ? optionalStream.get() : storageItem.getData();
                 metadata = new ImageMetadataMap(inputStream);
                 List<Throwable> errors = metadata.getErrors();
@@ -720,15 +714,17 @@ public class StorageItemField extends PageServlet {
                 if (!errors.isEmpty()) {
                     LOGGER.debug("Can't read image metadata", new AggregateException(errors));
                 }
-
-            } catch (IOException e) {
-                LOGGER.debug("Can't read image metadata", e);
-            } finally {
-                IoUtils.closeQuietly(inputStream);
             }
+
+        } catch (IOException e) {
+            LOGGER.debug("Can't read image metadata", e);
+        } finally {
+            IoUtils.closeQuietly(inputStream);
         }
 
-        return metadata;
+        if (metadata != null) {
+            fieldValueMetadata.putAll(metadata);
+        }
     }
 
     @Override

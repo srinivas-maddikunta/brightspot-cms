@@ -46,7 +46,7 @@ public class DashboardPage extends PageServlet {
         }
 
         if (dashboard == null) {
-            dashboard = Dashboard.getDefaultDashboard();
+            dashboard = Dashboard.createDefaultDashboard();
             dashboardId = "default";
         }
 
@@ -72,13 +72,14 @@ public class DashboardPage extends PageServlet {
 
                         for (int w = 0, wSize = widgets.size(); w < wSize; ++ w) {
                             DashboardWidget widget = widgets.get(w);
+                            String widgetUrl = page.toolUrl(CmsTool.class,
+                                    "/dashboardWidget/"
+                                            + dashboardId + "/"
+                                            + widget.getClass().getName() + "/"
+                                            + widget.getId());
 
-                            page.writeStart("div", "class", "frame dashboard-widget");
-                                page.writeStart("a", "href", page.toolUrl(CmsTool.class,
-                                        "/dashboardWidget/"
-                                                + dashboardId + "/"
-                                                + widget.getClass().getName() + "/"
-                                                + widget.getId()));
+                            page.writeStart("div", "class", "frame dashboard-widget", "data-dashboard-widget-url", widgetUrl);
+                                page.writeStart("a", "href", widgetUrl);
                                 page.writeEnd();
                             page.writeEnd();
                         }

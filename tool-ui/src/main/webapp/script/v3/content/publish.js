@@ -46,6 +46,93 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
             event.stopPropagation();
           }
         });
+
+        if ($draftButton.closest('.message').length > 0) {
+          var saving = false;
+          var toolMessageTimeout;
+
+          $draftButton.click(function (event) {
+            if (saving) {
+              event.preventDefault();
+              event.stopPropagation();
+              return;
+            }
+
+            saving = true;
+
+            var frameName = 'saveDraft';
+            var $form = $draftButton.closest('form');
+            var $frame = $('<iframe/>', {
+              'name': frameName,
+              'css': {
+                'display': 'none'
+              }
+            });
+
+            var $toolMessage = $('.toolMessage');
+
+            if ($toolMessage.length === 0) {
+              $toolMessage = $('<div/>', {
+                'class': 'toolMessage'
+              });
+
+              $(document.body).append($toolMessage);
+            }
+
+            $toolMessage.html($('<div/>', {
+              'class': 'message message-info',
+              'text': 'Saving...'
+            }));
+
+            if (toolMessageTimeout) {
+              clearTimeout(toolMessageTimeout);
+            }
+
+            $toolMessage.fadeIn('fast');
+
+            $(document.body).append($frame);
+            $form.attr('target', frameName);
+            $frame.load(function () {
+              var $message = $('.contentForm-main > .widget-content > .message', this.contentDocument);
+
+              if ($message.length > 0) {
+                $toolMessage.html($message.clone());
+
+              } else {
+                $toolMessage.html($('<div/>', {
+                  'class': 'message message-error',
+                  'text': 'Save failed with an unknown error!'
+                }));
+              }
+
+              toolMessageTimeout = setTimeout(function () {
+                toolMessageTimeout = null;
+
+                $toolMessage.fadeOut('fast');
+              }, 5000);
+
+              saving = false;
+
+              $form.find('input, textarea').each(function() {
+                var $input = $(this);
+
+                $input.prop('defaultValue', $input.val());
+              });
+
+              $form.find('option').each(function() {
+                var $option = $(this);
+
+                $option.prop('defaultSelected', $option.prop('selected'));
+              });
+
+              $form.find('.state-changed').removeClass('state-changed');
+
+              $form.removeAttr('target');
+              $frame.remove();
+              $.removeData($form[0], 'bsp-publish-submitting');
+            });
+          });
+        }
       }
     }
   });
@@ -100,13 +187,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
       $tabs.append($tabWorkflow);
       $tabs.append($tabPublish);
       $workflow.before($tabs);
-
-      if ($('.widget-publishingWorkflowState').length > 0) {
-        $tabWorkflow.find('a').click();
-
-      } else {
-        $tabPublish.find('a').click();
-      }
+      $tabWorkflow.find('a').click();
     }
   });
 
@@ -124,6 +205,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
   // Keep the publishing widget in view at all times.
   (function() {
+    var FIXED_DATA_KEY = 'cp-fixed';
     var OFFSET_DATA_KEY = 'cp-offset';
     var HEIGHT_DATA_KEY = 'cp-height';
     var WIDTH_DATA_KEY = 'cp-width';
@@ -137,6 +219,15 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
       $('.contentForm-aside').each(function() {
         var aside = this;
         var $aside = $(aside);
+
+        if ($aside.closest('.popup[data-popup-source-class="objectId-select"]').length > 0) {
+          return;
+        }
+
+        var $publishing = $aside.find('> .widget-publishing');
+
+        $.data($publishing[0], FIXED_DATA_KEY, $publishing.outerHeight() < $window.height() * 0.4);
+
         var asideTop = $aside.css('top');
 
         $aside.css('top', '');
@@ -162,12 +253,19 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
       $('.contentForm-aside').each(function() {
         var aside = this;
         var $aside = $(aside);
+
+        if ($aside.closest('.popup[data-popup-source-class="objectId-select"]').length > 0) {
+          return;
+        }
+
         var asideOffset = $.data(aside, OFFSET_DATA_KEY);
         var $widgets = $aside.find('> .contentWidgets');
         var $publishing = $aside.find('> .widget-publishing');
         var publishing = $publishing[0];
 
-        if (asideOffset.top - windowScrollTop <= toolHeaderHeight) {
+        if ($.data(publishing, FIXED_DATA_KEY)
+            && asideOffset.top - windowScrollTop <= toolHeaderHeight) {
+
           $widgets.css({
             'padding-top': $.data(publishing, HEIGHT_DATA_KEY)
           });

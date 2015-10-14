@@ -35,7 +35,7 @@ require([
   'velocity',
 
   'v3/input/carousel',
-  'input/change',
+  'v3/input/change',
   'input/code',
   'input/color',
   'input/focus',
@@ -44,6 +44,7 @@ require([
   'input/location',
   'v3/input/object',
   'input/query',
+  'v3/input/read-only',
   'input/region',
   'v3/input/richtext',
   'v3/input/richtext2',
@@ -70,13 +71,15 @@ require([
   'v3/upload',
   'nv.d3',
 
-  'dashboard',
+  'v3/dashboard',
   'v3/constrainedscroll',
-  'content/diff',
+  'v3/content/diff',
+  'v3/content/edit',
   'content/lock',
   'v3/content/publish',
   'content/layout-element',
   'v3/content/state',
+  'v3/csrf',
   'v3/search-result-check-all',
   'v3/tabs' ],
 
@@ -89,28 +92,10 @@ function() {
   var undef;
   var $win = $(win),
       doc = win.document,
-      $doc = $(doc),
-      toolChecks = [ ],
-      toolCheckActionCallbacks = [ ];
+      $doc = $(doc);
 
-  $.addToolCheck = function(check) {
-    toolCheckActionCallbacks.push(check.actions);
-    delete check.actions;
-    toolChecks.push(check);
+  $.addToolCheck = function() {
   };
-
-  $.addToolCheck({
-    'check': 'kick',
-    'actions': {
-      'kickIn': function(parameters) {
-        win.location = win.location.protocol + '//' + win.location.host + parameters.returnPath;
-      },
-
-      'kickOut': function() {
-        win.location = CONTEXT_PATH + '/logIn.jsp?forced=true&returnPath=' + encodeURIComponent(win.location.pathname + win.location.search);
-      }
-    }
-  });
 
   // Standard behaviors.
   $doc.repeatable('live', '.repeatableForm, .repeatableInputs, .repeatableLayout, .repeatableObjectId');
@@ -153,7 +138,7 @@ function() {
   $doc.pageThumbnails('live', '.pageThumbnails');
   $doc.regionMap('live', '.regionMap');
 
-  if (DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR) {
+  if (window.DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR) {
     $doc.rte('live', '.richtext');
 
   } else {
@@ -291,7 +276,18 @@ function() {
       cc = value.length;
       wc = value ? value.split(WHITESPACE_RE).length : 0;
 
-      $container.attr('data-wc-message',
+      var $wordCount = $container.find('> .inputWordCount');
+
+      if ($wordCount.length === 0) {
+        $wordCount = $('<div/>', {
+          'class': 'inputWordCount'
+        });
+
+        $container.append($wordCount);
+      }
+
+      $wordCount.toggleClass('inputWordCount-warning', cc < minimum || cc > maximum);
+      $wordCount.text(
           cc < minimum ? 'Too Short' :
           cc > maximum ? 'Too Long' :
           wc + 'w ' + cc + 'c');
@@ -304,12 +300,16 @@ function() {
 
       var $input = $(this);
 
+      // Skip textarea created inside CodeMirror editor
+      if ($input.closest('.CodeMirror').length) { return; }
+            
       updateWordCount(
           $input.closest('.inputContainer'),
           $input,
           $input.val());
     }));
 
+    // For original rich text editor, special handling for the word count
     $doc.onCreate('.wysihtml5-sandbox', function() {
       var iframe = this,
           $iframe = $(iframe),
@@ -329,6 +329,26 @@ function() {
         }
       }));
     });
+
+    // For new rich text editor, special handling for the word count.
+    // Note this counts only the text content not the final output which includes extra HTML elements.
+    $doc.on('rteChange', $.throttle(1000, function(event, rte) {
+          
+        var $input, $container, html, $html, text;
+
+        $input = rte.$el;
+        $container = $input.closest('.inputContainer');
+        
+        html = rte.toHTML();
+        $html = $(new DOMParser().parseFromString(html, "text/html").body);
+        $html.find('del,.rte-comment').remove();
+        $html.find('br,p,div,ul,ol,li').after('\n');
+        text = $html.text();
+
+        updateWordCount($container, $input, text);
+
+    }));
+
   })();
 
   // Handle file uploads from drag-and-drop.
@@ -486,14 +506,6 @@ function() {
     return confirm('Are you sure you want to archive this item?');
   });
 
-  $doc.on('input-disable', ':input', function(event, disable) {
-    $(this).prop('disabled', disable);
-  });
-
-  $doc.onCreate('.inputContainer-readOnly', function() {
-    $(this).find(":input, div").trigger('input-disable', [ true ]);
-  });
-
   (function() {
     function sync() {
       var $input = $(this),
@@ -610,6 +622,13 @@ function() {
     var $frame = $(event.target);
     var $parent = $frame.popup('source').closest('.popup, .toolContent');
 
+    // Since the edit popup might contain other popups within it,
+    // only run this code when the edit popup is opened
+    // (not when the internal popups are opened)
+    if (!$frame.is('.popup[data-popup-source-class~="objectId-edit"]')) {
+      return;
+    }
+    
     $frame.popup('container').removeClass('popup-objectId-edit-hide');
     $parent.addClass('popup-objectId-edit popup-objectId-edit-loading');
     $win.resize();
@@ -700,11 +719,20 @@ function() {
   });
 
   $doc.on('close', '.popup[data-popup-source-class~="objectId-edit"]', function(event) {
-    scrollTops.pop();
-
+    
     var $frame = $(event.target);
+
+    // Since the edit popup might contain other popups within it,
+    // only run this code when the edit popup is opened
+    // (not when the internal popups are opened)
+    if (!$frame.is('.popup[data-popup-source-class~="objectId-edit"]')) {
+      return;
+    }
+
     var $source = $frame.popup('source');
     var $popup = $frame.popup('container');
+
+    scrollTops.pop();
 
     if ($.data($popup[0], 'popup-close-cancelled')) {
       return;
@@ -877,42 +905,5 @@ function() {
         return false;
       });
     }());
-
-    // Starts all server-side tool checks.
-    if (!DISABLE_TOOL_CHECKS) {
-      (function() {
-        var toolCheckPoll = function() {
-          $.ajax({
-            'method': 'post',
-            'url': CONTEXT_PATH + '/toolCheckStream',
-            'cache': false,
-            'dataType': 'json',
-            'data': {
-              'url': win.location.href,
-              'r': JSON.stringify(toolChecks)
-            }
-
-          }).done(function(responses) {
-            if (!responses) {
-              return;
-            }
-
-            $.each(responses, function(i, response) {
-              if (response) {
-                toolCheckActionCallbacks[i][response.action].call(toolChecks[i], response);
-              }
-            });
-
-          }).done(function() {
-            setTimeout(toolCheckPoll, 100);
-
-          }).fail(function() {
-            setTimeout(toolCheckPoll, 10000);
-          });
-        };
-
-        toolCheckPoll();
-      })();
-    }
   });
 });

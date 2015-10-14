@@ -97,6 +97,9 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("Integrations")
     private String dropboxApplicationKey;
 
+    @ToolUi.Tab("Integrations")
+    private String googleServerApiKey;
+
     @ToolUi.Tab("Dashboard")
     private CommonContentSettings commonContentSettings;
 
@@ -544,6 +547,14 @@ public class CmsTool extends Tool {
         this.dropboxApplicationKey = dropboxApplicationKey;
     }
 
+    public String getGoogleServerApiKey() {
+        return googleServerApiKey;
+    }
+
+    public void setGoogleServerApiKey(String googleServerApiKey) {
+        this.googleServerApiKey = googleServerApiKey;
+    }
+
     public CommonContentSettings getCommonContentSettings() {
         if (commonContentSettings == null) {
             commonContentSettings = new CommonContentSettings();
@@ -815,6 +826,7 @@ public class CmsTool extends Tool {
         // Areas.
         plugins.add(createArea2("Content", "dashboard", "dashboard", null));
         plugins.add(createArea2("Dashboard", "cms.dashboard", "dashboard/dashboard", "/"));
+        plugins.add(createArea2("Production Guides", "viewGuides", "dashboard/viewGuides", "/viewGuides.jsp"));
         plugins.add(createArea2("Admin", "admin", "admin", null));
         plugins.add(createArea2("Content Types", "cms.adminContentTypes", "admin/contentTypes", "/adminContentTypes"));
         plugins.add(createArea2("Production Guides", "adminGuides", "admin/adminGuides", "/admin/guides.jsp"));

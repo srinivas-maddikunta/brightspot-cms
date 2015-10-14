@@ -39,6 +39,8 @@ public class ToolUi extends Modification<Object> {
     private Set<String> displayAfter;
     private Set<String> displayBefore;
     private boolean displayFirst;
+    private boolean displayGlobalFilters;
+    private Boolean displayGrid;
     private boolean displayLast;
     private boolean dropDown;
     private boolean dropDownSortDescending;
@@ -138,6 +140,68 @@ public class ToolUi extends Modification<Object> {
 
     public void setDisplayFirst(boolean displayFirst) {
         this.displayFirst = displayFirst;
+    }
+
+    public boolean isDisplayGlobalFilters() {
+        return displayGlobalFilters;
+    }
+
+    public void setDisplayGlobalFilters(boolean displayGlobalFilters) {
+        this.displayGlobalFilters = displayGlobalFilters;
+    }
+
+    public Boolean getDisplayGrid() {
+        return displayGrid;
+    }
+
+    public void setDisplayGrid(boolean displayGrid) {
+        this.displayGrid = displayGrid;
+    }
+
+    public boolean isDisplayGrid() {
+        Boolean displayGrid = getDisplayGrid();
+
+        if (displayGrid != null) {
+            return displayGrid;
+        }
+
+        Object object = getOriginalObject();
+
+        if (!(object instanceof ObjectField)) {
+            return false;
+        }
+
+        ObjectField field = (ObjectField) object;
+
+        final List<ObjectType> validTypes = field.as(ToolUi.class).findDisplayTypes();
+
+        if (isValueExternal(field)) {
+
+            // all display types must be previewable
+            for (ObjectType displayType : field.as(ToolUi.class).findDisplayTypes()) {
+                if (ObjectUtils.isBlank(displayType.getPreviewField())) {
+                    return false;
+                }
+            }
+
+            return true;
+        } else {
+
+            // always show grid view by default for types with bulkUpload capability
+            Set<ObjectType> bulkUploadTypes = new HashSet<ObjectType>();
+
+            for (ObjectType t : validTypes) {
+                for (ObjectField f : t.getFields()) {
+                    if (f.as(ToolUi.class).isBulkUpload()) {
+                        for (ObjectType ft : f.getTypes()) {
+                            bulkUploadTypes.add(ft);
+                        }
+                    }
+                }
+            }
+
+            return !bulkUploadTypes.isEmpty();
+        }
     }
 
     public boolean isDisplayLast() {
@@ -594,6 +658,24 @@ public class ToolUi extends Modification<Object> {
         return displayTypes;
     }
 
+    public static boolean isValueExternal(ObjectField field) {
+
+        final List<ObjectType> validTypes = field.as(ToolUi.class).findDisplayTypes();
+        boolean isValueExternal = !field.isEmbedded();
+        if (isValueExternal && validTypes != null && validTypes.size() > 0) {
+            for (ObjectType type : validTypes) {
+                if (!type.isEmbedded()) {
+                    // value is external if any of the valid types must be externally referenced.
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return isValueExternal;
+    }
+
     /**
      * Specifies whether the target field should enable and accept files
      * from the bulk upload feature.
@@ -722,6 +804,46 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, ObjectField field, DisplayFirst annotation) {
             field.as(ToolUi.class).setDisplayFirst(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies that the target type displays global search filters.
+     */
+    @Documented
+    @Inherited
+    @ObjectType.AnnotationProcessorClass(DisplayGlobalFiltersProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface DisplayGlobalFilters {
+
+        boolean value() default true;
+    }
+
+    private static class DisplayGlobalFiltersProcessor implements ObjectType.AnnotationProcessor<DisplayGlobalFilters> {
+
+        @Override
+        public void process(ObjectType type, DisplayGlobalFilters annotation) {
+            type.as(ToolUi.class).setDisplayGlobalFilters(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies that the target field should be displayed in a grid layout.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(DisplayGridProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ ElementType.FIELD, ElementType.METHOD })
+    public @interface DisplayGrid {
+        boolean value() default true;
+    }
+
+    private static class DisplayGridProcessor implements ObjectField.AnnotationProcessor<DisplayGrid> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, DisplayGrid annotation) {
+            field.as(ToolUi.class).setDisplayGrid(annotation.value());
         }
     }
 
@@ -1226,7 +1348,7 @@ public class ToolUi extends Modification<Object> {
     @ObjectField.AnnotationProcessorClass(ReadOnlyProcessor.class)
     @ObjectType.AnnotationProcessorClass(ReadOnlyProcessor.class)
     @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.FIELD)
+    @Target({ ElementType.FIELD, ElementType.TYPE })
     public @interface ReadOnly {
         boolean value() default true;
     }

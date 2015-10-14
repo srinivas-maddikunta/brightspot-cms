@@ -32,7 +32,7 @@ java.util.List,
 java.util.Map,
 java.util.Set,
 java.util.UUID
-" %><%
+, java.util.Arrays, java.util.stream.Collectors, com.google.common.collect.ImmutableSet" %><%
 
 ToolPageContext wp = new ToolPageContext(pageContext);
 PageWriter writer = wp.getWriter();
@@ -212,7 +212,9 @@ writer.start("div", "class", "searchForm");
             if ((!singleType && !validTypes.isEmpty()) ||
                     !globalFilters.isEmpty() ||
                     !fieldFilters.isEmpty()) {
-                writer.start("h2").html("Filters").end();
+                writer.writeStart("h2");
+                writer.writeHtml(wp.localize(null, "search.filters"));
+                writer.writeEnd();
             }
 
             writer.start("form",
@@ -241,7 +243,9 @@ writer.start("div", "class", "searchForm");
 
                 if (!singleType && !validTypes.isEmpty()) {
                     wp.writeTypeSelect(
-                            validTypes,
+                            validTypes.stream()
+                                .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("read")))
+                                .collect(Collectors.<ObjectType>toSet()),
                             selectedType,
                             "Any Types",
                             "name", Search.SELECTED_TYPE_PARAMETER,
@@ -286,7 +290,7 @@ writer.start("div", "class", "searchForm");
                     writer.start("button").html("Go").end();
                 writer.end();
 
-                if (selectedType == null) {
+                if (selectedType == null || selectedType.as(ToolUi.class).isDisplayGlobalFilters()) {
                     writer.start("div", "class", "searchFiltersGlobal");
                         for (ObjectType filter : globalFilters) {
                             String filterId = filter.getId().toString();
@@ -545,7 +549,9 @@ writer.start("div", "class", "searchForm");
                         }
 
                         wp.writeTypeSelect(
-                                creatableTypes,
+                                creatableTypes.stream()
+                                    .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("write", "read")))
+                                    .collect(Collectors.<ObjectType>toSet()),
                                 selectedType,
                                 null,
                                 "name", "typeId",

@@ -2,13 +2,15 @@
 Repeatable Inputs
 -----------------
 
-There are three types of repeatables:
+For the purposes of this code, there are three types of repeatables:
 
-* repeatableForm = multiple inputs can be repeated
+* object = an input that can be repeated (but not collapsed/uncollapsed)
 
-* repeatableForm-previewable = a slideshow, which will have grid view and gallery view
+* form = multiple inputs can be repeated (and collapsed/uncollapsed)
 
-* single input = A single input is used instead of an add more button.
+* preview = a slideshow, which will have grid view and gallery view
+
+* single = A single input is used instead of an add more button.
   This is used only when the addButtonText option is set to an empty string
   and there is a single template and a single input
   If user presses enter on the input, then a new input is created so the user can add more keywords.
@@ -294,6 +296,11 @@ The HTML within the repeatable element must conform to these standards:
                 
                 self.mode = 'form';
 
+                // Set to object mode if we are in a repeatableObjectId
+                if (self.$element.hasClass('repeatableObjectId')) {
+                    self.mode = 'object';
+                }
+                
                 // Set to single input mode if there is no add button text,
                 // and if there is a single template with a single input
                 $templateInputs = self.dom.$templates.find(':input').not(':input[name$=".toggle"]');
@@ -409,8 +416,11 @@ The HTML within the repeatable element must conform to these standards:
                 self.initItemLabel($item);
 
                 // Collapse the item unless it has an error message within it
+                // Do not collapse "preview" or "object" mode
                 if ($item.find('.message-error').length === 0
-                    && !self.modeIsPreview()) {
+                    && $item.find('> .layouts').length === 0
+                    && !self.modeIsPreview()
+                    && !self.modeIsObject()) {
                     self.itemCollapse($item);
                 }
 
@@ -580,6 +590,16 @@ The HTML within the repeatable element must conform to these standards:
                     self.dom.$list.append($addedItem);
                     
                     // Initialize stuff on the new item
+                    // If there was a custom callback provided, call it now.
+                    // This is used for example, in Image Upload.
+                    // After the image is uploaded a new repeatable item is added,
+                    // then the callback inserts values into the template.
+                    if (customCallback) {
+                        
+                        // Call the customcallback funtion, setting "this" to be the element for the new item
+                        customCallback.call( $addedItem[0] );
+                    }
+
                     // Note this will collapse the item as well so we will uncollapse it below
                     self.initItem($addedItem);
                     
@@ -612,16 +632,6 @@ The HTML within the repeatable element must conform to these standards:
                         return newAttr;
                     });
 
-                    // If there was a custom callback provided, call it now.
-                    // This is used for example, in Image Upload.
-                    // After the image is uploaded a new repeatable item is added,
-                    // then the callback inserts values into the template.
-                    if (customCallback) {
-                        
-                        // Call the customcallback funtion, setting "this" to be the element for the new item
-                        customCallback.call( $addedItem[0] );
-                    }
-
                     // Trigger a custom "create" event for the item
                     // So other code can act on this if necessary
                     $addedItem.trigger('create');
@@ -645,6 +655,16 @@ The HTML within the repeatable element must conform to these standards:
             },
 
 
+            /**
+             * Shortcut function to tell if the mode is 'form'
+             * @returns {Boolean}
+             */
+            modeIsObject: function() {
+                var self = this;
+                return self.mode === 'object';
+            },
+
+            
             /**
              * Shortcut function to tell if the mode is 'form'
              * @returns {Boolean}

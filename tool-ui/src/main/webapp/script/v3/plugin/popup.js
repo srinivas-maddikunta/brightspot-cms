@@ -6,10 +6,15 @@
 
   $.plugin2('popup', {
     '_defaultOptions': {
+
+      // Selector, element, or jquery object for the parent element that will
+      // contain the popup container
+      parent: doc.body,
+      
       'padding': {
-        'left': 35,
-        'right': 35,
-        'top': 20
+        'left': 10,
+        'right': 10,
+        'top': 10
       }
     },
 
@@ -51,6 +56,7 @@
       });
 
       $container.bind('close.popup', function() {
+
         if ($container.is(':visible') &&
             $container.find('.enhancementForm, .contentForm').find('.inputContainer.state-changed').length > 0 &&
             !confirm('Are you sure you want to close this popup and discard the unsaved changes?')) {
@@ -59,22 +65,31 @@
         }
 
         $.removeData($container[0], 'popup-close-cancelled');
+          
         var $original = $(this);
-        $original.removeClass('popup-show');
-        $('.popup').each(function() {
-          var $popup = $(this);
-          var $source = $popup.popup('source');
-          if ($source && $.contains($original[0], $source[0])) {
-            $popup.popup('close');
-          }
-        });
+
+        // Prevent infinite looping for nested popups
+        if ($original.hasClass('popup-show')) {
+
+          $original.removeClass('popup-show');
+          $('.popup').each(function() {
+            var $popup = $(this);
+            var $source = $popup.popup('source');
+
+            // If the popup we are closing ($original) contains the link that opened a different popup,
+            // then also close that different popup
+            if ($source && $.contains($original[0], $source[0])) {
+              $popup.popup('close');
+            }
+          });
+        }
       });
 
       $closeButton.bind('click.popup', function() {
         $(this).popup('close');
       });
 
-      var $body = $(doc.body);
+      var $body = $(options.parent || doc.body);
       $content.append($inner);
       $content.append($closeButton);
       $container.append($content);
@@ -155,7 +170,7 @@
           $marker = $('<div/>', { 'class': 'marker' });
           $content.append($marker);
         }
-        var markerLeft = (popupWidth  - $marker.outerWidth()) / 2 + markerDelta;
+        var markerLeft = (popupWidth  - 20) / 2 + markerDelta;
         $marker.css('left', markerLeft < 5 ? 5 : markerLeft);
 
         // Make sure top is within bounds.
