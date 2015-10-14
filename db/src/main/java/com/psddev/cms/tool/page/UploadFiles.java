@@ -72,6 +72,8 @@ public class UploadFiles extends PageServlet {
         ObjectType selectedType = environment.getTypeById(page.param(UUID.class, "type"));
         String containerId = page.param(String.class, "containerId");
         String fileParamName = "file";
+
+        // TODO: fileJson param will be used by front end uploader
         String jsonParamName = "fileJson";
 
         if (page.isFormPost()) {
@@ -88,7 +90,7 @@ public class UploadFiles extends PageServlet {
                 page.updateUsingParameters(common);
 
                 //TODO: handle storageName argument
-                List<StorageItem> newStorageItems = StorageItemFilter.getMultiple(page.getRequest(), jsonParamName, null);
+                List<StorageItem> newStorageItems = StorageItemFilter.getMultiple(page.getRequest(), jsonParamName, previewField.as(ToolUi.class).getStorageSetting());
 
                 if (ObjectUtils.isBlank(newStorageItems)) {
                     newStorageItems = StorageItemFilter.getMultiple(page.getRequest(), fileParamName, null);
