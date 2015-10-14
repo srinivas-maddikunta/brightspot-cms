@@ -34,11 +34,7 @@ public interface FileContentType {
 
         FileContentType fileContentType = null;
 
-        for (Class<? extends FileContentType> fileContentTypeClass : ClassFinder.Static.findClasses(FileContentType.class)) {
-
-            if (fileContentTypeClass.isInterface() || Modifier.isAbstract(fileContentTypeClass.getModifiers())) {
-                continue;
-            }
+        for (Class<? extends FileContentType> fileContentTypeClass : ClassFinder.findConcreteClasses(FileContentType.class)) {
 
             FileContentType candidateFileContentType = TypeDefinition.getInstance(fileContentTypeClass).newInstance();
 
