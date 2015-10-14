@@ -107,9 +107,6 @@ public class StorageItemField extends PageServlet {
             fieldValue = newItem;
         }
 
-        String metadataFieldName = fieldName + ".metadata";
-        String cropsFieldName = fieldName + ".crops";
-
         String action = page.param(actionName);
 
         Map<String, Object> fieldValueMetadata = null;
@@ -244,8 +241,6 @@ public class StorageItemField extends PageServlet {
             }
 
             fieldValueMetadata.put("cms.edits", edits);
-
-            InputStream newItemData = null;
 
             if ("keep".equals(action)) {
                 newItem = StorageItemFilter.getParameter(request, keepFileParamName, getStorageSetting(Optional.of(field)));
