@@ -68,6 +68,7 @@ public class StorageItemField extends PageServlet {
         String pathName = inputName + ".path";
         String contentTypeName = inputName + ".contentType";
         String fileParamName = inputName + ".file";
+        String keepFileParamName = fileParamName + ".keep";
         String urlName = inputName + ".url";
         String dropboxName = inputName + ".dropbox";
         String cropsName = inputName + ".crops.";
@@ -252,13 +253,9 @@ public class StorageItemField extends PageServlet {
             InputStream newItemData = null;
 
             if ("keep".equals(action)) {
-                if (fieldValue != null) {
-                    newItem = fieldValue;
-                } else {
-                    newItem = StorageItem.Static.createIn(page.param(storageName));
-                    newItem.setPath(page.param(pathName));
-                    newItem.setContentType(page.param(contentTypeName));
-                }
+                newItem = StorageItemFilter.getParameter(request, keepFileParamName, getStorageSetting(Optional.of(field)));
+
+                fieldValueMetadata.putAll(newItem.getMetadata());
 
             } else if ("newUpload".equals(action)) {
                 newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
@@ -463,6 +460,13 @@ public class StorageItemField extends PageServlet {
                         "class", "fileSelectorItem fileSelectorNewUrl",
                         "type", "text",
                         "name", page.h(urlName));
+
+                if (fieldValue != null) {
+                    page.writeTag("input",
+                            "type", "hidden",
+                            "name", keepFileParamName,
+                            "value", ObjectUtils.toJson(fieldValue));
+                }
 
                 if (!ObjectUtils.isBlank(page.getCmsTool().getDropboxApplicationKey())) {
                     page.writeStart("span", "class", "fileSelectorItem fileSelectorDropbox", "style", page.cssString("display", "inline-block", "vertical-align", "bottom"));
