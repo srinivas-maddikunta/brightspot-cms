@@ -18,3 +18,4 @@
 /tool-ui/node/
 /tool-ui/node_modules/
 /tool-ui/target/
+/tool-ui/jspm_packages/
