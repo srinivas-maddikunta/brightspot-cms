@@ -1936,9 +1936,6 @@ public class ToolPageContext extends WebPageContext {
             writeRaw(";");
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "require.js"));
-        writeEnd();
-
         writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + theme + ".js"));
         writeEnd();
 
