@@ -12,6 +12,11 @@ System.config({
     "github:*": "jspm_packages/github/*",
     "npm:*": "jspm_packages/npm/*"
   },
+  bundles: {
+    "target/cms-tool-ui-3.2-SNAPSHOT/script.min/v3.js": [
+      "src/main/webapp/script/v3.js"
+    ]
+  },
 
   map: {
     "L.GeoSearch": "github:smeijer/L.GeoSearch@master",

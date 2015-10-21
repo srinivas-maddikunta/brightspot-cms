@@ -5,29 +5,19 @@ var root = path.join(__dirname, '../');
 var webappRoot = root + 'src/main/webapp/';
 
 var theme = 'v3';
-
 var target = 'target/' + argv['bsp-maven-build-finalName'] + '/';
-var nodeModulesRoot = root + 'node_modules/';
-
-var scriptSrc = webappRoot + 'script/';
-var scriptDest = target + 'script/';
-var scriptMinDest = target + 'script.min/';
-
-var styleSrc = webappRoot + 'style/';
-var styleDest = target + 'style/';
 
 module.exports = {
 
   theme: theme,
 
-  lessSrc: styleSrc,
-  cssDest: styleDest,
+  lessSrc: webappRoot + 'style/',
+  cssDest: target + 'style/',
 
-  jsSrc: scriptSrc,
-  jsDest: scriptMinDest,
+  nodeModulesRoot: root + 'node_modules/',
+  jspmModulesRoot: root + 'jspm_packages/',
 
-  lessJsSrc: nodeModulesRoot + 'gulp-less/node_modules/less/dist/less.min.js',
-  lessJsDest: scriptDest,
-
-  jspmScript: 'jspm bundle src/main/webapp/script/' + theme + '.js ' + scriptMinDest + theme + '.js'
+  jsSrc: webappRoot + 'script/',
+  jsDest: target + 'script/',
+  minJsDest: target + 'script.min/'
 };

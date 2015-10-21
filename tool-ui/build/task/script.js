@@ -4,12 +4,13 @@ var settings = require('../settings');
 var Builder = require('systemjs-builder');
 var exec = require('child_process').exec;
 
-//TODO: minify and add system js to bundle
+//TODO: minify/non-minify bundles
 
 gulp.task('script', function() {
 
-  exec(settings.jspmScript, function (err, stdout, stderr) {
-    console.log(stdout);
-    console.log(stderr);
-  });
+  exec('jspm bundle-sfx src/main/webapp/script/' + settings.theme + '.js ' + settings.minJsDest + settings.theme + '.js --inject',
+    function (err, stdout, stderr) {
+      console.log(stdout);
+      console.log(stderr);
+    });
 });
