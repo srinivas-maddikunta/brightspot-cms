@@ -2,22 +2,14 @@ var gulp = require('gulp');
 var path = require("path");
 var settings = require('../settings');
 var Builder = require('systemjs-builder');
+var exec = require('child_process').exec;
+
+//TODO: minify and add system js to bundle
 
 gulp.task('script', function() {
-  var builder = new Builder();
 
-  builder.loadConfig(path.join(__dirname, '../../config.js'))
-    .then(function() {
-      return builder.buildStatic(
-        path.join(settings.jsSrc, settings.theme + '.js'),
-        path.join(settings.jsDest, settings.theme + '.js'),
-        {
-          minify: false,
-          sourceMaps: true
-        }
-      )
-    })
-    .catch(function(e) {
-      console.log(e);
-    })
+  exec(settings.jspmScript, function (err, stdout, stderr) {
+    console.log(stdout);
+    console.log(stderr);
+  });
 });
