@@ -13,7 +13,7 @@ gulp.task('style', function () {
   return gulp.src(settings.lessSrc + '*.less')
     //.pipe(sourcemaps.init())
     .pipe(less())
-    .pipe(rename('v3.min.css'))
+    .pipe(rename(settings.theme + '.min.css'))
     //.pipe(sourcemaps.write())
     .pipe(gulp.dest(settings.cssDest));
 });
