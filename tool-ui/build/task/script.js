@@ -8,7 +8,11 @@ var exec = require('child_process').exec;
 
 gulp.task('script', function() {
 
-  exec('jspm bundle-sfx src/main/webapp/script/' + settings.theme + '.js ' + settings.minJsDest + settings.theme + '.js --inject',
+  var jspmBundleScript = 'jspm bundle ' + settings.jsSrc + settings.theme + '.js ' + settings.minJsDest + settings.theme + '.js';
+
+  console.log('JSPM BUNDLE SCRIPT: ' + jspmBundleScript);
+
+  exec(jspmBundleScript,
     function (err, stdout, stderr) {
       console.log(stdout);
       console.log(stderr);
