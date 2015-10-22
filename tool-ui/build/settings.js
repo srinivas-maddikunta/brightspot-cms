@@ -10,6 +10,7 @@ var target = 'target/' + argv['bsp-maven-build-finalName'] + '/';
 module.exports = {
 
   theme: theme,
+  root: root,
 
   lessSrc: webappRoot + 'style/',
   cssDest: target + 'style/',

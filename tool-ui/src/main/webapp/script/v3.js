@@ -6,26 +6,26 @@ define('jquery.extra', [ ], function() { });
 define('jquery.handsontable.full', [ ], function() { });
 define('d3', [ ], function() { return d3; });
 
-requirejs.config({
-  shim: {
-    'leaflet.common': [ 'leaflet' ],
-    'leaflet.draw': [ 'leaflet' ],
-    'l.control.geosearch': [ 'leaflet' ],
-    'l.geosearch.provider.openstreetmap': [ 'l.control.geosearch' ],
-    'L.Control.Locate': [ 'leaflet' ],
-    'nv.d3': [ 'd3' ],
-    'pixastic/actions/blurfast': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/brightness': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/crop': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/desaturate': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/fliph': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/flipv': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/invert': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/rotate': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/sepia': [ 'pixastic/pixastic.core' ],
-    'pixastic/actions/sharpen': [ 'pixastic/pixastic.core' ]
-  }
-});
+//requirejs.config({
+//  shim: {
+//    'leaflet.common': [ 'leaflet' ],
+//    'leaflet.draw': [ 'leaflet' ],
+//    'l.control.geosearch': [ 'leaflet' ],
+//    'l.geosearch.provider.openstreetmap': [ 'l.control.geosearch' ],
+//    'L.Control.Locate': [ 'leaflet' ],
+//    'nv.d3': [ 'd3' ],
+//    'pixastic/actions/blurfast': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/brightness': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/crop': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/desaturate': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/fliph': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/flipv': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/invert': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/rotate': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/sepia': [ 'pixastic/pixastic.core' ],
+//    'pixastic/actions/sharpen': [ 'pixastic/pixastic.core' ]
+//  }
+//});
 
 require([
   'jquery',

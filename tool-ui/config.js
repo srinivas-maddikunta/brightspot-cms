@@ -1,21 +1,15 @@
 System.config({
-  baseURL: "/",
+  baseURL: "src/main/webapp/script/",
   defaultJSExtensions: true,
   transpiler: "babel",
   babelOptions: {
     "optional": [
-      "runtime",
-      "optimisation.modules.system"
+      "runtime"
     ]
   },
   paths: {
     "github:*": "jspm_packages/github/*",
     "npm:*": "jspm_packages/npm/*"
-  },
-  bundles: {
-    "target/cms-tool-ui-3.2-SNAPSHOT/script.min/v3.js": [
-      "src/main/webapp/script/v3.js"
-    ]
   },
 
   map: {
@@ -34,11 +28,15 @@ System.config({
     "handsontable": "github:handsontable/handsontable@0.8.23",
     "husl": "npm:husl@4.0.0",
     "jquery": "github:components/jquery@1.8.3",
-    "js-cookie": "npm:js-cookie@2.0.3",
+    "jquery.handsontable.full": "github:handsontable/handsontable@0.8.23",
+    "js.cookie": "npm:js-cookie@2.0.3",
     "jsdiff": "npm:diff@2.0.2",
+    "l.control.geosearch": "github:smeijer/L.GeoSearch@master",
+    "l.geosearch.provider.openstreetmap": "github:smeijer/L.GeoSearch@master",
     "leaflet": "github:Leaflet/Leaflet@0.7.3",
     "leaflet.draw": "github:Leaflet/Leaflet.draw@0.2.3",
     "leaflet.locatecontrol": "npm:leaflet.locatecontrol@0.34.0",
+    "nv.d3": "nv.d3.js",
     "spectrum": "github:bgrins/spectrum@1.3.4",
     "string": "npm:string@3.3.0",
     "velocity": "github:julianshapiro/velocity@1.1.0",
