@@ -104,13 +104,6 @@
                             </execution>
 
                             <execution>
-                                <id>jspm install</id>
-                                <goals>
-                                    <goal>jspm</goal>
-                                </goals>
-                            </execution>
-
-                            <execution>
                                 <id>gulp build</id>
                                 <goals>
                                     <goal>gulp</goal>

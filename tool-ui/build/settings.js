@@ -16,7 +16,6 @@ module.exports = {
   cssDest: target + 'style/',
 
   nodeModulesRoot: root + 'node_modules/',
-  jspmModulesRoot: root + 'jspm_packages/',
 
   jsSrc: webappRoot + 'script/',
   jsDest: target + 'script/',

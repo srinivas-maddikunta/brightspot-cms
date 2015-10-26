@@ -19,7 +19,7 @@ gulp.task('less-js', function() {
 });
 
 gulp.task('system-js', function() {
-  return gulp.src(settings.jspmModulesRoot + 'system.js')
+  return gulp.src(settings.nodeModulesRoot + 'systemjs/dist/system.js')
     .pipe(gulp.dest(settings.jsDest));
 });
 
