@@ -169,8 +169,41 @@
 
 .rte2-enhancement.toBeRemoved {
   .rte2-enhancement-toolbar-remove { display:none; }
-  .rte2-enhancement-toolbar-restore { display:inline-block; }
+  .rte2-enhancement-toolbar-restore { display:inline; }
   .rte2-enhancement-toolbar-remove-completely { display:inline-block; }
+}
+.rte2-wrapper .rte2-enhancement.rte2-enhancement-inline {
+  
+  display:inline;
+  padding:0 4px;
+  
+  .rte2-enhancement-toolbar {
+    display:inline-block;
+    > li.rte2-toolbar-separator {
+      display:none;
+    }
+    > li {
+      height:auto;
+      a {
+        display:none;
+        white-space:nowrap;
+        // Only display the change and edit butons
+        // Also hide the text since space is at a premium
+        &.rte2-enhancement-toolbar-change { display:inline-block; width:20px; padding:0; margin:0;  }
+        &.rte2-enhancement-toolbar-edit { display:inline-block; width:20px; padding:0; margin:0; }
+      }
+    }
+  }
+
+  //.icon;
+  //.icon-pencil;
+  //padding-left:1em;
+  //padding-right:0.5em;
+  //width:auto;
+
+  div {
+    display:inline;
+  }
 }
 
 .rte2-style-html {

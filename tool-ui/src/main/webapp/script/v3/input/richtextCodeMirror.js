@@ -145,6 +145,11 @@ define([
                 internal:true
             },
 
+            enhancementInline: {
+                className:'rte2-enhancement-inline-mark',
+                internal:true // don't all users to clear this mark
+            },
+            
             linebreak: {
                 line:true
             }
@@ -1467,7 +1472,7 @@ define([
             editor = self.codeMirror;
 
             mark = mark.marker ? mark.marker : mark;
-            
+
             // Get the start and end positions for this mark
             pos = mark.find();
             if (!pos || !pos.from) {
@@ -1487,7 +1492,6 @@ define([
                     
                     fromCh = (lineNumber === from.line) ? from.ch : 0;
                     toCh = (lineNumber === to.line) ? to.ch : editor.getLine(lineNumber).length;
-
                     
                     // Create a new mark on this line only
                     newMark = editor.markText(
@@ -1527,6 +1531,8 @@ define([
             marks = $.map(marks, function(mark, i) {
                 
                 if (mark.type === 'bookmark') {
+                    return undefined;
+                } else if (mark.className === 'rte2-enhancement-inline-mark') {
                     return undefined;
                 } else {
                     return mark;
@@ -1878,7 +1884,7 @@ define([
             
             var self = this;
             
-            // Unique ID to use for enchancments.
+            // Unique ID to use for enhancements.
             self.enhancementId = 0;
             
             // Internal storage for enhancements that have been added.
@@ -1891,15 +1897,27 @@ define([
         /**
          * Add an enhancement into the editor.
          * Note if you change the size of the enhancement content then you must call the refresh() method
-         * to update the editor display, or the cursor positions will not be accurate.
+         * to uppdate the editor display, or the cursor positions will not be accurate.
          *
          * @param Element|jQuery content
          *
-         * @param Number [lineNumber=starting line of the current range]
-         * The line number to add the enhancement. The enhancement is always placed at the start of the line.
-         *
          * @param Object [options]
-         * @param Object [options.block=false]
+         *
+         * @param String [options.mode="block"]
+         * The type of enhancement to create: "block", "blockfloat", "inline"
+         * A "block" enhancement is always added at the beginning of the line, and it
+         * sits above the line.
+         * A "blockfloat" enhancement is added at the beginning of the line and the content
+         * must be floated to the left or right of the line.
+         * An "inline" enhancement is added anywhere within the line.
+         *
+         * @param Number [options.line=starting line of the current range]
+         * The line number to place the enhancement.
+         *
+         * @param Number [options.ch=starting character of the current range]
+         * The character number to place the enhancement. This is used only for type="inline",
+         * since block enhancements always appear at the start of the line (ch=0).
+         *
          * @param Function [options.toHTML]
          * Function to return HTML content to be placed at the point of the enhancement.
          * If not provided then the enhancement will not appear in the output.
@@ -1911,9 +1929,9 @@ define([
          * $content = $('<div>My Enhancement Content</div>');
          * rte.enhancementAdd($content);
          */
-        enhancementAdd: function(content, lineNumber, options) {
+        enhancementAdd: function(content, options) {
 
-            var editor, mark, range, self, widgetOptions;
+            var ch, editor, line, mark, mode, range, self, widgetOptions;
 
             self = this;
             editor = self.codeMirror;
@@ -1923,20 +1941,34 @@ define([
             // In case someone passes a jQuery object, convert it to a DOM element
             content = $(content)[0];
 
-            if (lineNumber === null || typeof lineNumber === 'undefined') {
-                range = self.getRange();
-                lineNumber = range.from.line;
+            mode = options.mode || 'block';
+            
+            range = self.getRange();
+            
+            line = options.line;
+            if (line === null || typeof line === 'undefined') {
+                line = range.from.line;
             }
 
+            ch = options.ch;
+            if (ch === null || typeof ch === 'undefined') {
+                ch = (mode === 'inline') ? range.from.ch : 0;
+            }
+            
             // Replace the mark with the collapse widget
             widgetOptions = {
                 widget: content
             };
 
-            if (options.block) {
+            if (mode === 'block') {
                 
-                mark = editor.addLineWidget(lineNumber, content, {above: true});
+                // For "block" use a CodeMirror "lineWidget" because that displays
+                // the widget as a block above the line
+                mark = editor.addLineWidget(line, content, {above: true});
 
+                // If the line on which the enhancement sits is deleted,
+                // we don't want to lose the enhancement. So set up a listener
+                // to recreate the enhancement.
                 mark.deleteLineFunction = function(){
 
                     var content, $content;
@@ -1946,16 +1978,35 @@ define([
                     self.enhancementRemove(mark);
                     
                     setTimeout(function(){
-                        self.enhancementAdd($content[0], null, options);
+                        self.enhancementAdd($content[0], options);
                     }, 100);
-                    
+
                 };
                 
                 // If the line is deleted we don't want to delete the enhancement!
                 mark.line.on('delete', mark.deleteLineFunction);
 
+            } else if (mode === 'blockfloat') {
+                
+                // For "blockfloat" use a CodeMirror "bookmark" because that displays
+                // the widget inline
+                mark = editor.setBookmark({line:line, ch:ch}, widgetOptions);
+                
             } else {
-                mark = editor.setBookmark({line:lineNumber, ch:0}, widgetOptions);
+
+                // For mode "inline" use a CodeMirror "mark" because that displays
+                // the widget inline and allows the cursor to move around it
+                // and insert text on the left or right
+
+                // First insert a blank space that we can replace with the enhancement
+                // because you can't have a mark without a character.
+                // The space will be replaced with the enhancement div.
+                editor.replaceRange('_', {line:line, ch:ch});
+                
+                mark = editor.markText({line:line, ch:ch}, {line:line, ch:ch + 1}, {
+                    replacedWith: content,
+                    className: 'rte2-enhancement-inline-mark'
+                });
             }
 
             // Save the options we used along with the mark so it can be used later to move the mark
@@ -2033,8 +2084,9 @@ define([
             $content = $(content).detach();
 
             self.enhancementRemove(mark);
-            
-            mark = self.enhancementAdd($content[0], lineNumber, options);
+
+            options.line = lineNumber;
+            mark = self.enhancementAdd($content[0], options);
             
             return mark;
         },
@@ -2053,6 +2105,14 @@ define([
             if (mark.deleteLineFunction) {
                 mark.line.off('delete', mark.deleteLineFunction);
             }
+
+            if (mark.find) {
+                pos = mark.find();
+                if (pos && pos.from && pos.to) {
+                    self.codeMirror.replaceRange('', pos.from, pos.to);
+                }
+            }
+            
             mark.clear();
             self.codeMirror.removeLineWidget(mark);
             
@@ -2085,13 +2145,14 @@ define([
             
             var lineNumber, position;
 
-            lineNumber = undefined;
             if (mark.line) {
                 lineNumber = mark.line.lineNo();
             } else if (mark.find) {
                 position = mark.find();
                 if (position) {
-                    lineNumber = position.line;
+                    if (position.from) {
+                        lineNumber = position.from.line;
+                    }
                 }
             }
             
@@ -2100,13 +2161,35 @@ define([
 
         
         /**
-         * Turn the enhancement into an inline element that is at the beginning of a line.
+         * @returns Number
+         * The character number of the mark, or 0 if the mark is not in the document.
+         */
+        enhancementGetChNumber: function(mark) {
+            
+            var ch, position;
+
+            ch = 0;
+            if (mark.find) {
+                position = mark.find();
+                if (position) {
+                    if (position.from) {
+                        ch = position.from.ch || 0;
+                    }
+                }
+            }
+            
+            return ch;
+        },
+
+        
+        /**
+         * Turn the enhancement into an block element that is at the beginning of a line.
          * You must do this if you plan to float the enhancment left or right.
          * 
          * @param Object mark
          * The mark that was returned when you called enhancementAdd().
          */
-        enhancementSetInline: function(mark, options) {
+        enhancementSetBlockFloat: function(mark, options) {
             
             var content, $content, lineNumber, self;
 
@@ -2121,7 +2204,7 @@ define([
 
             self.enhancementRemove(mark);
             
-            return self.enhancementAdd($content[0], lineNumber, $.extend({}, mark.options || {}, options, {block:false}));
+            return self.enhancementAdd($content[0], $.extend({}, mark.options || {}, options, {mode:'blockfloat', line:lineNumber}));
         },
 
         
@@ -2149,10 +2232,44 @@ define([
 
             self.enhancementRemove(mark);
             
-            return self.enhancementAdd($content[0], lineNumber, $.extend({}, mark.options || {}, options, {block:true}));
+            return self.enhancementAdd($content[0], $.extend({}, mark.options || {}, options, {mode:'block', line:lineNumber}));
         },
 
 
+        /**
+         * Turn the enhancement into an inline element that is at the beginning of a line.
+         * You must do this if you plan to float the enhancment left or right.
+         * 
+         * @param Object mark
+         * The mark that was returned when you called enhancementAdd().
+         *
+         * @param Object options
+         * Options to override any that are already on the mark.
+         *
+         * @param Object [options.ch=0]
+         * The character number where the inline enhancement should be set.
+         */
+        enhancementSetInline: function(mark, options) {
+            
+            var chNumber, content, $content, lineNumber, self;
+
+            self = this;
+
+            options = options || {};
+            
+            lineNumber = self.enhancementGetLineNumber(mark) || 0;
+            
+            chNumber = self.enhancementGetChNumber(mark); // options.ch || 0;
+            
+            content = self.enhancementGetContent(mark);
+            $content = $(content).detach();
+
+            self.enhancementRemove(mark);
+            
+            return self.enhancementAdd($content[0], $.extend({}, mark.options || {}, options, {mode:'inline', line:lineNumber, ch:chNumber}));
+        },
+
+        
         /**
          * When an enhancement is imported by the toHTML() function, this function
          * is called. You can override this function to provide additional functionality
@@ -2166,16 +2283,39 @@ define([
          *
          * @param Number line
          * The line number where the enhancement was found.
+         *
+         * @param Number ch
+         * The character number where the enhancement was found.
+         * For block enhancements this should be 0 (zero).
+         * For inline enhancements this should be the actual character where the enhancement is found on the line.
          */
-        enhancementFromHTML: function($content, line) {
+        enhancementFromHTML: function($content, line, ch) {
             var self;
             self = this;
-            self.enhancementAdd($content, line, {toHTML: function(){
-                return $content.html();
-            }});
+            self.enhancementAdd($content, {
+                line:line,
+                toHTML: function(){
+                    return $content.html();
+                }
+            });
         },
 
 
+        /**
+         * @param {Object} mark
+         * The mark for the enhancement.
+         */
+        enhancementToHTML: function(mark) {
+            var html, self;
+            self = this;
+            html = '';
+            if (mark.options.toHTML) {
+                html = mark.options.toHTML();
+            }
+            return html;
+        },
+
+        
         /**
          * Given the content element within the enhancement, this function returns the
          * mark for the enhancement.
@@ -2734,12 +2874,13 @@ define([
             // Check if we were able to get a value from the clipboard API
             if (value) {
                 
+                e.stopPropagation();
+                e.preventDefault();
+                
                 self.fromHTML(value, self.getRange(), allowRaw);
                 if (isWorkaround) {
                     self.focus();
                 }
-                e.stopPropagation();
-                e.preventDefault();
                 
             } else if (isWorkaround) {
 
@@ -3163,19 +3304,22 @@ define([
          */
         moveToNonBlank: function() {
             
-            var editor, line, max, self;
+            var editor, line, lineOriginal, max, self;
 
             self = this;
             editor = self.codeMirror;
 
             line = editor.getCursor().line;
+            lineOriginal = line;
             max = editor.lineCount();
 
             while (line < max && self.isLineBlank(line)) {
                 line++;
             }
 
-            editor.setCursor(line, 0);
+            if (line !== lineOriginal) {
+                editor.setCursor(line, 0);
+            }
             
             return line;
         },
@@ -3499,10 +3643,10 @@ define([
             enhancementsByLine = {};
             $.each(self.enhancementCache, function(i, mark) {
 
-                var lineNo;
+                var lineNo, pos;
 
                 lineNo = self.enhancementGetLineNumber(mark);
-                
+
                 if (lineNo !== undefined) {
                     
                     // Create an array to hold the enhancements for this line, then add the current enhancement
@@ -3518,7 +3662,7 @@ define([
             // Loop through the content one line at a time
             doc.eachLine(function(line) {
 
-                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineElementsToClose, lineNo, lineInRange, outputChar, raw, rawLastChar;
+                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, enhancementsByChar, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineElementsToClose, lineNo, lineInRange, outputChar, raw, rawLastChar;
 
                 lineNo = line.lineNo();
                 
@@ -3624,14 +3768,13 @@ define([
                             return;
                         }
 
-                        enhancementHTML = '';
-                        if (mark.options.toHTML) {
-                            enhancementHTML = mark.options.toHTML();
+                        // Skip (for now) if this is an inline enhancment.
+                        // We'll include those later in the middle of the line.
+                        if (mark.className === 'rte2-enhancement-inline-mark') {
+                            return;
                         }
 
-                        if (enhancementHTML) {
-                            html += enhancementHTML;
-                        }
+                        html += self.enhancementToHTML(mark);
                     });
                 }
 
@@ -3645,6 +3788,7 @@ define([
                 
                 annotationStart = {};
                 annotationEnd = {};
+                enhancementsByChar = {};
                 
                 if (line.markedSpans) {
                     
@@ -3652,9 +3796,13 @@ define([
                         
                         var className, endArray, endCh, mark, startArray, startCh, styleObj;
 
+                        // Get the mark object because it might contain additional data we need.
+                        // We will pass the mark to the 'toHTML" function for the style if that exists
+                        mark = markedSpan.marker || {};
+                        
                         startCh = markedSpan.from;
                         endCh = markedSpan.to;
-                        className = markedSpan.marker.className;
+                        className = mark.className;
 
                         // Skip markers that do not have a className.
                         // For example an inline enhancement might cause this.
@@ -3669,6 +3817,12 @@ define([
                             return;
                         }
 
+                        if (className === 'rte2-enhancement-inline-mark') {
+                            // Got an inline enhancement
+                            enhancementsByChar[startCh] = mark;
+                            return;
+                        }
+
                         styleObj = self.classes[className] || {};
 
                         // Skip any marker where we don't have an element mapping
@@ -3676,10 +3830,6 @@ define([
                             return;
                         }
 
-                        // Get the mark object because it might contain additional data we need.
-                        // We will pass the mark to the 'toHTML" function for the style if that exists
-                        mark = markedSpan.marker || {};
-                        
                         // Create an array of styles that start on this character
                         if (!annotationStart[startCh]) {
                             annotationStart[startCh] = [];
@@ -3819,6 +3969,15 @@ define([
 
                     outputChar = line.text.charAt(charNum);
 
+                    // Check if this is an inline annotation
+                    if (enhancementsByChar[charNum]) {
+
+                        html += self.enhancementToHTML(enhancementsByChar[charNum]);
+                        
+                        // Remove the placeholder character that is used by inline enhancements
+                        outputChar = '';
+                    }
+                    
                     // In some cases (at end of line) output char might be empty
                     if (outputChar) {
 
@@ -4133,6 +4292,7 @@ define([
 
                             enhancements.push({
                                 line: from.line,
+                                ch: from.ch,
                                 $content: $(next)
                             });
 
@@ -4382,7 +4542,7 @@ define([
             $.each(enhancements, function(i, enhancementObj) {
                 
                 // Pass off control to a user-defined function for adding enhancements
-                self.enhancementFromHTML(enhancementObj.$content, enhancementObj.line);
+                self.enhancementFromHTML(enhancementObj.$content, enhancementObj.line, enhancementObj.ch);
                 
             });
 

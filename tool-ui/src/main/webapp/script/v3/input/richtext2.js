@@ -664,9 +664,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.rte.init(self.$editor);
 
             // Override the rich text editor to tell it how enhancements should be imported from HTML
-            self.rte.enhancementFromHTML = function($content, line) {
+            self.rte.enhancementFromHTML = function($content, line, ch) {
 
-                self.enhancementFromHTML($content, line);
+                self.enhancementFromHTML($content, line, ch);
             };
 
             // Set the content into the editor
@@ -1690,6 +1690,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 // Update the enhancement to show a preview of the content.
                 // This will also remove the enhancement if it is empty.
+                // Or switch between a block enhancement 
                 self.enhancementUpdate($enhancement);
                 
             });
@@ -1697,15 +1698,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
 
         /**
-         * Create a new enhancement or marker.
+         * Create the content wrapper for a new enhancement or marker.
          *
          * @param {Object} [config]
          * Optional data for the enhancement.
          *
          * @param {Object} [config.reference]
          *
+         * @param {String} [config.mode]
+         * The mode of the enhancement: 'block', 'blockfloat', or 'inline'
+         *
          * @param {String} [config.alignment]
          * The alignment for the enhancement: blank, "left", or "right"
+         * Only used for mode='blockfloat'
          *
          * @param {Boolean} [config.marker]
          * Set to true if this is a marker, or omit if this is an enhancement.
@@ -1713,14 +1718,29 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          * @param {Number} [line=current line]
          * Optional line number to insert the enhancement.
          * Omit to insert the enhancement at the current cursor position.
+         *
+         * @param {Number} [ch=current character number in the line]
+         * Optional line number to insert the enhancement.
+         * Omit to insert the enhancement at the current cursor position.
          */
-        enhancementCreate: function(config, line) {
+        enhancementCreate: function(config, line, ch) {
 
-            var $enhancement, mark, self;
+            var $enhancement, mark, mode, self;
 
             self = this;
 
             config = config || {};
+
+            if (config.reference && config.reference.inline) {
+                mode = 'inline';
+            } else if (config.alignment) {
+                mode = 'blockfloat';
+            } else {
+                mode = 'block';
+            }
+
+            // TEMP FOR TESTING!
+            // mode = 'inline';
 
             // Create wrapper element for the enhancement and add the toolbar
             $enhancement = $('<div/>', {
@@ -1733,17 +1753,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Clicking on the enhancement should focus back on the editor
             // and place the cursor at the start of the line that contains the enhancement
-            $enhancement.on('click', function(){
-                self.enhancementSetCursor(this);
-                self.focus();
+            $enhancement.on('click', function(event){
+                self.enhancementHandleClick(this);
             });
             
             // Add the label (preview image and label text)
             $('<div/>', {'class': 'rte2-enhancement-label' }).appendTo($enhancement);
 
-            // Add the enhancement to the editor
-            mark = self.rte.enhancementAdd($enhancement[0], line, {
-                block:true,
+            // Create an enhancement to hold the wrapper within the editor
+            mark = self.rte.enhancementAdd($enhancement[0], {
+                
+                mode: mode,
+                
+                line:line,
+
+                ch:ch,
+                
                 // Set up a custom "toHTML" function so the editor can output the enhancement
                 toHTML:function(){
                     return self.enhancementToHTML($enhancement);
@@ -1753,9 +1778,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // If the data for this enhancement was provided, save it as part of the enhancement
             if (config.reference) {
 
+                // Save the reference onto the enhancement wrapper so we can access it later
                 self.enhancementSetReference($enhancement, config.reference);
 
-                if (config.alignment) {
+                if (mode === 'blockfloat') {
                     self.enhancementSetPosition($enhancement, config.alignment);
                 }
 
@@ -1777,39 +1803,55 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         enhancementUpdate: function(el) {
 
-            var $content, $edit, editUrl, $enhancement, emptyText, reference, $select, self;
+            var $content, $edit, editUrl, $enhancement, emptyText, mark, mode, reference, $select, self, $toolbar;
 
             self = this;
             $enhancement = self.enhancementGetWrapper(el);
+            mark = self.enhancementGetMark(el);
+            $toolbar = $enhancement.find('.rte2-enhancement-toolbar');
             $content = $enhancement.find('.rte2-enhancement-label');
             reference = self.enhancementGetReference($enhancement);
             emptyText = self.enhancementIsMarker($enhancement) ? 'Empty Marker' : 'Empty Enhancement';
-
+            
             if (!reference.record) {
                 self.enhancementRemoveCompletely($enhancement);
                 return;
             }
             
-            $content.empty();
+            mode = self.enhancementGetMode(el);
+
+            // mode = 'inline'; // TEMP for testing
+            // reference.inline = true; // TEMP for testing
             
-            if (reference.preview) {
+            $content.empty();
 
-                $('<figure/>', {
-                    html: [
-                        $('<img/>', {
-                            src: reference.preview,
-                            title: reference.label || ''
-                        }),
-                        $('<figcaption/>', {
-                            text: reference.label || ''
-                        })
-                    ]
-                }).appendTo($content);
+            if (mode === 'inline') {
 
+                $enhancement.addClass('rte2-enhancement-inline');
+                $content.text(reference.label || emptyText);
+                
             } else {
 
-                $content.text(reference.label || emptyText);
+                $enhancement.removeClass('rte2-enhancement-inline');
+                if (reference.preview) {
 
+                    $('<figure/>', {
+                        html: [
+                            $('<img/>', {
+                                src: reference.preview,
+                                title: reference.label || ''
+                            }),
+                            $('<figcaption/>', {
+                                text: reference.label || ''
+                            })
+                        ]
+                    }).appendTo($content);
+
+                } else {
+
+                    $content.text(reference.label || emptyText);
+
+                }
             }
 
             self.enhancementDisplaySize(el);
@@ -1827,6 +1869,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                                                'id', reference.record._ref,
                                                'reference', JSON.stringify(reference));
                 $edit.attr('href', editUrl);
+            }
+
+            // Change the mark for the enhancement based on the mode
+            switch (mode) {
+            case 'inline':
+                self.rte.enhancementSetInline(mark);
+                break;
+            case 'blockfloat':
+                self.rte.enhancementSetBlockFloat(mark);
+                break;
+            case 'block':
+                self.rte.enhancementSetBlock(mark);
+                break;
             }
         },
 
@@ -2084,6 +2139,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         },
 
 
+        enhancementHandleClick: function(el) {
+            var $enhancement, mode, self;
+            self = this;
+            $enhancement = self.enhancementGetWrapper(el);
+
+            mode = self.enhancementGetMode(el);
+
+            if (mode === 'inline') {
+                //alert('pop up inline enhancement controls');
+            } else {
+                self.enhancementSetCursor(el);
+                self.focus();
+            }
+        },
+        
+
         /**
          * Pop up the enhancement selector form.
          */
@@ -2210,12 +2281,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             switch (type) {
 
             case 'left':
-                mark = rte.enhancementSetInline(mark);
+                mark = rte.enhancementSetBlockFloat(mark);
                 $el.addClass('rte2-style-enhancement-left');
                 break;
 
             case 'right':
-                mark = rte.enhancementSetInline(mark);
+                mark = rte.enhancementSetBlockFloat(mark);
                 $el.addClass('rte2-style-enhancement-right');
                 break;
 
@@ -2255,6 +2326,34 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         },
 
 
+        /**
+         * Returns the "mode" for the enhancement.
+         *
+         * @param Element el
+         * The enhancement element, or an element within the enhancement.
+         *
+         * @returns String
+         * The mode of the enhancement: "block", "blockfloat", or "inline".
+         */
+        enhancementGetMode: function(el) {
+            
+            var pos, ref, self;
+
+            self = this;
+
+            ref = self.enhancementGetReference(el);
+            
+            if (ref.inline) {
+                mode = 'inline';
+            } else {
+                pos = self.enhancementGetPosition(el);
+                mode = pos ? 'blockfloat' : 'block';
+            }
+
+            return mode || 'block';
+        },
+
+        
         /**
          * Given the element for the enhancement (or an element within that)
          * returns the wrapper element for the enhancement.
@@ -2557,8 +2656,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          *
          * @param {Number} line
          * The line number for the enhancement.
+         * @param {Number} line
+         * The character number for the enhancement.
          */
-        enhancementFromHTML: function($content, line) {
+        enhancementFromHTML: function($content, line, ch) {
 
             var self = this;
             var config = {};
@@ -2579,7 +2680,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             config.preview = $content.attr('data-preview');
             config.text = $content.text();
 
-            self.enhancementCreate(config, line);
+            self.enhancementCreate(config, line, ch);
         },
 
 
