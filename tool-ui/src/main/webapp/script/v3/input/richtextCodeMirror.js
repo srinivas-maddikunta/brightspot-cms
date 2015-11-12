@@ -1560,6 +1560,17 @@ define([
 
                 className = mark.className;
 
+                // Skip any classname that is not in our styles list
+                if (!self.styles[className]) {
+                    return;
+                }
+     
+                // Skip any classname that has an onClick since we dont' want to mess with those.
+                // For example, links.
+                if (self.styles[className].onClick) {
+                    return;
+                }
+                
                 if (!marksByClassName[className]) {
                     marksByClassName[className] = [];
                 }
