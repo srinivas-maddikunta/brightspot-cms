@@ -2790,7 +2790,6 @@ define([
                     // Since we changed focus to the hidden div before the paste operation,
                     // put focus back on the editor
                     self.focus();
-
                     
                 }, 1);
             }
@@ -3752,7 +3751,7 @@ define([
                 
                 // List of inline styles that are currently open.
                 // We need this because if we close one element we will need to re-open all the elements.
-                inlineActive = {};
+                inlineActive = [];
 
                 // List of inline elements that are currently open
                 // (in the order they were opened so they can be closed in reverse order)
@@ -3960,10 +3959,10 @@ define([
                     // of italicized text, then we must start by displaying <I> element.
                     if (lineNo === range.from.line && charNum === range.from.ch) {
 
-                            $.each(inlineActive, function(className, styleObj) {
+                            $.each(inlineActive, function(i, styleObj) {
                                 var element;
                                 if (!self.voidElements[ styleObj.element ]) {
-                                    inlineElementsToClose.push(styleObj.element);
+                                    inlineElementsToClose.push(styleObj);
                                     html += openElement(styleObj);
                                 }
                             });
@@ -3976,7 +3975,10 @@ define([
                         ((lineNo === range.to.line) && (range.to.ch <= charNum))) {
 
                         // Close all the active elements in the reverse order they were created
-                        $.each(inlineElementsToClose.reverse(), function(i, element) {
+                        // TODO: only close the style that needs to be closed plus anything after it in the active list
+                        $.each(inlineElementsToClose.reverse(), function(i, styleObj) {
+                            var element;
+                            element = styleObj.element;
                             if (element && !self.voidElements[element]) {
                                 html += '</' + element + '>';
                             }
@@ -3985,23 +3987,34 @@ define([
 
                         // Find out which elements are no longer active
                         $.each(annotationEnd[charNum] || {}, function(i, styleObj) {
+
+                            var inlineActiveIndex;
                             
                             // If any of the styles is "raw" mode, clear the raw flag
                             if (styleObj.raw) {
                                 raw = false;
                             }
-                            
-                            delete inlineActive[styleObj.className];
+
+                            // Find and delete the last occurrance in inlineActive
+                            // Note: array.lastIndexOf() might not be supported in older browsers
+                            inlineActiveIndex = inlineActive.lastIndexOf(styleObj);
+                            if (inlineActiveIndex > -1) {
+                                inlineActive.splice(inlineActiveIndex, 1);
+                            }
+
+                            // Find the last occurance in inlineElementsToClose
+                            // And close that element plus any elements that were after it
                         });
 
-                        // Re-open elements that are still active
-                        // if we are still in the range
+                        // Re-open elements that are still active if we are still in the range
                         if (charInRange) {
-                            
-                            $.each(inlineActive, function(className, styleObj) {
+
+                            // TODO: reopen the styles that were closed
+
+                            $.each(inlineActive, function(i, styleObj) {
                                 var element;
                                 if (!self.voidElements[ styleObj.element ]) {
-                                    inlineElementsToClose.push(styleObj.element);
+                                    inlineElementsToClose.push(styleObj);
                                     html += openElement(styleObj);
                                 }
                             });
@@ -4022,22 +4035,18 @@ define([
                                 raw = true;
                             }
 
-                            // Make sure this element is not already opened
-                            if (!inlineActive[styleObj.className]) {
+                            // Save this element on the list of active elements
+                            inlineActive.push(styleObj);
 
-                                // Save this element on the list of active elements
-                                inlineActive[styleObj.className] = styleObj;
+                            // Open the new element
+                            if (charInRange) {
 
-                                // Open the new element
-                                if (charInRange) {
-
-                                    // Also push it on a stack so we can close elements in reverse order.
-                                    if (!self.voidElements[ styleObj.element ]) {
-                                        inlineElementsToClose.push(styleObj.element);
-                                    }
-
-                                    html += openElement(styleObj);
+                                // Also push it on a stack so we can close elements in reverse order.
+                                if (!self.voidElements[ styleObj.element ]) {
+                                    inlineElementsToClose.push(styleObj);
                                 }
+
+                                html += openElement(styleObj);
                             }
                         });
                     } // if annotationStart
