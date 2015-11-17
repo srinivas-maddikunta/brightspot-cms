@@ -3742,7 +3742,7 @@ define([
             // Loop through the content one line at a time
             doc.eachLine(function(line) {
 
-                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineElementsToClose, lineNo, lineInRange, outputChar, raw, rawLastChar;
+                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineActiveIndex, inlineActiveIndexLast, inlineElementsToClose, lineNo, lineInRange, outputChar, raw, rawLastChar;
 
                 lineNo = line.lineNo();
                 
@@ -3974,21 +3974,10 @@ define([
                     if (annotationEnd[charNum] || 
                         ((lineNo === range.to.line) && (range.to.ch <= charNum))) {
 
-                        // Close all the active elements in the reverse order they were created
-                        // TODO: only close the style that needs to be closed plus anything after it in the active list
-                        $.each(inlineElementsToClose.reverse(), function(i, styleObj) {
-                            var element;
-                            element = styleObj.element;
-                            if (element && !self.voidElements[element]) {
-                                html += '</' + element + '>';
-                            }
-                        });
-                        inlineElementsToClose = [];
-
                         // Find out which elements are no longer active
-                        $.each(annotationEnd[charNum] || {}, function(i, styleObj) {
+                        $.each(annotationEnd[charNum] || [], function(i, styleObj) {
 
-                            var inlineActiveIndex;
+                            var element, styleToClose;
                             
                             // If any of the styles is "raw" mode, clear the raw flag
                             if (styleObj.raw) {
@@ -3996,25 +3985,62 @@ define([
                             }
 
                             // Find and delete the last occurrance in inlineActive
-                            // Note: array.lastIndexOf() might not be supported in older browsers
-                            inlineActiveIndex = inlineActive.lastIndexOf(styleObj);
-                            if (inlineActiveIndex > -1) {
-                                inlineActive.splice(inlineActiveIndex, 1);
+                            inlineActiveIndex = -1;
+                            for (i = 0; i < inlineActive.length; i++) {
+                                if (inlineActive[i].key === styleObj.key) {
+                                    inlineActiveIndex = i;
+                                }
                             }
+                            if (inlineActiveIndex > -1) {
 
-                            // Find the last occurance in inlineElementsToClose
-                            // And close that element plus any elements that were after it
+                                // Remove the element from the array of active elements
+                                inlineActive.splice(inlineActiveIndex, 1);
+                                
+                                // Save this index so we can reopen any overlapping styles
+                                // For example if the overlapping marks look like this:
+                                // 1<b>23<i>45</b>67</i>890
+                                // Then when we reach char 6, we need to close the <i> and <b>,
+                                // but then we must reopen the <i>. So our final result will be:
+                                // 1<b>23<i>45</i></b><i>67</i>890
+                                inlineActiveIndexLast = inlineActiveIndex - 1;
+                                
+                                // Close all the active elements in the reverse order they were created
+                                // Only close the style that needs to be closed plus anything after it in the active list
+                                while (styleToClose = inlineElementsToClose.pop()) {
+                                    
+                                    element = styleToClose.element;
+                                    if (element && !self.voidElements[element]) {
+                                        html += '</' + element + '>';
+                                    }
+                                    
+                                    // Stop when we get to the style we're looking for
+                                    if (styleToClose.key === styleObj.key) {
+                                        break;
+                                    }
+                                }
+                            }
                         });
 
-                        // Re-open elements that are still active if we are still in the range
+                        // Re-open elements that are still active if we are still in the range.
                         if (charInRange) {
 
-                            // TODO: reopen the styles that were closed
-
                             $.each(inlineActive, function(i, styleObj) {
+                                
                                 var element;
+
+                                // Only re-open elements after the last element closed
+                                if (i <= inlineActiveIndexLast) {
+                                    return;
+                                }
+
+                                // If it's a void element (that doesn't require a closing element)
+                                // there is no need to reopen it
                                 if (!self.voidElements[ styleObj.element ]) {
+
+                                    // Add the element to the list of elements that need to be closed later
                                     inlineElementsToClose.push(styleObj);
+
+                                    // Re-open the element
                                     html += openElement(styleObj);
                                 }
                             });
