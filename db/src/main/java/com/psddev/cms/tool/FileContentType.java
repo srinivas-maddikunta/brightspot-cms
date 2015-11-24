@@ -66,4 +66,12 @@ public interface FileContentType {
             page.writeEnd();
         }
     }
+
+    /**
+     * @deprecated Use {@link #getFileContentType(StorageItem)} instead.
+     */
+    static FileContentType getFileFieldWriter(StorageItem storageItem) {
+        return getFileContentType(storageItem);
+    }
+
 }
