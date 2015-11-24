@@ -6,14 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
@@ -21,10 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.psddev.cms.db.ImageCrop;
 import com.psddev.cms.db.ImageTag;
-import com.psddev.cms.db.ImageTextOverlay;
-import com.psddev.cms.db.StandardImageSize;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.FileContentType;
 import com.psddev.cms.tool.PageServlet;
@@ -34,7 +25,6 @@ import com.psddev.cms.tool.file.MetadataAfterSave;
 import com.psddev.cms.tool.file.MetadataBeforeSave;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
-import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.IoUtils;
@@ -46,7 +36,6 @@ import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StorageItemFilter;
 import com.psddev.dari.util.StorageItemUploadPart;
 import com.psddev.dari.util.StringUtils;
-import com.psddev.dari.util.TypeReference;
 
 @RoutingFilter.Path(application = "cms", value = "/content/field/storageItem")
 public class StorageItemField extends PageServlet {

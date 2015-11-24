@@ -21,7 +21,6 @@ import com.psddev.cms.db.StandardImageSize;
 import com.psddev.cms.tool.FileContentType;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ColorDistribution;
-import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.CollectionUtils;
@@ -78,13 +77,13 @@ public class ImageFileType implements FileContentType {
         }
 
         if (fieldValueMetadata == null) {
-            fieldValueMetadata = new LinkedHashMap<String, Object>();
+            fieldValueMetadata = new LinkedHashMap<>();
         }
 
         Map<String, Object> edits = (Map<String, Object>) fieldValueMetadata.get("cms.edits");
 
         if (edits == null) {
-            edits = new HashMap<String, Object>();
+            edits = new HashMap<>();
             fieldValueMetadata.put("cms.edits", edits);
         }
 
@@ -106,10 +105,10 @@ public class ImageFileType implements FileContentType {
         Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
         }, fieldValueMetadata.get("cms.crops"));
         if (crops == null) {
-            crops = new HashMap<String, ImageCrop>();
+            crops = new HashMap<>();
         }
 
-        crops = new TreeMap<String, ImageCrop>(crops);
+        crops = new TreeMap<>(crops);
 
         Map<String, StandardImageSize> sizes = new HashMap<String, StandardImageSize>();
         for (StandardImageSize size : StandardImageSize.findAll()) {
@@ -124,7 +123,7 @@ public class ImageFileType implements FileContentType {
         }, fieldValueMetadata.get("cms.focus"));
 
         if (focusPoint == null) {
-            focusPoint = new HashMap<String, Double>();
+            focusPoint = new HashMap<>();
         }
 
         /** INSIDE POST LOGIC **/
@@ -141,7 +140,7 @@ public class ImageFileType implements FileContentType {
         Double focusX = page.paramOrDefault(Double.class, focusXName, null);
         Double focusY = page.paramOrDefault(Double.class, focusYName, null);
 
-        edits = new HashMap<String, Object>();
+        edits = new HashMap<>();
 
         if (brightness != 0.0) {
             edits.put("brightness", brightness);
@@ -172,7 +171,7 @@ public class ImageFileType implements FileContentType {
         }
 
         if (!ObjectUtils.isBlank(page.params(String.class, blurName))) {
-            blurs = new ArrayList<String>();
+            blurs = new ArrayList<>();
             for (String blur : page.params(String.class, blurName)) {
                 if (!blurs.contains(blur)) {
                     blurs.add(blur);

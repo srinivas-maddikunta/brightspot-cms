@@ -1,7 +1,6 @@
 package com.psddev.cms.tool;
 
 import java.io.IOException;
-import java.lang.reflect.Modifier;
 
 import javax.servlet.ServletException;
 
