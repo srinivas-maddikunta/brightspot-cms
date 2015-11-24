@@ -97,9 +97,6 @@ public class StorageItemField extends PageServlet {
             fieldValue = StorageItemFilter.getParameter(request, fileJsonParamName, getStorageSetting(Optional.of(field)));
         }
 
-        String metadataFieldName = fieldName + ".metadata";
-        String cropsFieldName = fieldName + ".crops";
-
         String action = page.param(actionName);
 
         Map<String, Object> fieldValueMetadata = null;
@@ -146,11 +143,6 @@ public class StorageItemField extends PageServlet {
 
         Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
         }, fieldValueMetadata.get("cms.crops"));
-        if (crops == null) {
-            // for backward compatibility
-            crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
-            }, state.getValue(cropsFieldName));
-        }
         if (crops == null) {
             crops = new HashMap<String, ImageCrop>();
         }
@@ -353,10 +345,6 @@ public class StorageItemField extends PageServlet {
                 }
             }
             fieldValueMetadata.put("cms.crops", crops);
-            // Removes legacy cropping information
-            if (state.getValue(cropsFieldName) != null) {
-                state.remove(cropsFieldName);
-            }
 
             // Set focus point
             if (focusX != null && focusY != null) {
@@ -364,18 +352,6 @@ public class StorageItemField extends PageServlet {
                 focusPoint.put("y", focusY);
             }
             fieldValueMetadata.put("cms.focus", focusPoint);
-
-            // Transfers legacy metadata over to it's new location within the StorageItem object
-            Map<String, Object> legacyMetadata = ObjectUtils.to(new TypeReference<Map<String, Object>>() {
-            }, state.getValue(metadataFieldName));
-            if (legacyMetadata != null && !legacyMetadata.isEmpty()) {
-                for (Map.Entry<String, Object> entry : legacyMetadata.entrySet()) {
-                    if (!fieldValueMetadata.containsKey(entry.getKey())) {
-                        fieldValueMetadata.put(entry.getKey(), entry.getValue());
-                    }
-                }
-                state.remove(metadataFieldName);
-            }
 
             if (newItem != null) {
                 newItem.setMetadata(fieldValueMetadata);
