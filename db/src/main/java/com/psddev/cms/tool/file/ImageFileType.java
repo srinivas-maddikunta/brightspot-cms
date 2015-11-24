@@ -88,16 +88,6 @@ public class ImageFileType implements FileContentType {
             fieldValueMetadata.put("cms.edits", edits);
         }
 
-        double brightness = ObjectUtils.to(double.class, edits.get("brightness"));
-        double contrast = ObjectUtils.to(double.class, edits.get("contrast"));
-        boolean flipH = ObjectUtils.to(boolean.class, edits.get("flipH"));
-        boolean flipV = ObjectUtils.to(boolean.class, edits.get("flipV"));
-        boolean grayscale = ObjectUtils.to(boolean.class, edits.get("grayscale"));
-        boolean invert = ObjectUtils.to(boolean.class, edits.get("invert"));
-        int rotate = ObjectUtils.to(int.class, edits.get("rotate"));
-        boolean sepia = ObjectUtils.to(boolean.class, edits.get("sepia"));
-        int sharpen = ObjectUtils.to(int.class, edits.get("sharpen"));
-
         List<String> blurs = new ArrayList<String>();
         if (!ObjectUtils.isBlank(edits.get("blur"))) {
             Object blur = edits.get("blur");
@@ -138,15 +128,15 @@ public class ImageFileType implements FileContentType {
         }
 
         /** INSIDE POST LOGIC **/
-        brightness = page.param(double.class, brightnessName);
-        contrast = page.param(double.class, contrastName);
-        flipH = page.param(boolean.class, flipHName);
-        flipV = page.param(boolean.class, flipVName);
-        grayscale = page.param(boolean.class, grayscaleName);
-        invert = page.param(boolean.class, invertName);
-        rotate = page.param(int.class, rotateName);
-        sepia = page.param(boolean.class, sepiaName);
-        sharpen = page.param(int.class, sharpenName);
+        double brightness = page.param(double.class, brightnessName);
+        double contrast = page.param(double.class, contrastName);
+        boolean flipH = page.param(boolean.class, flipHName);
+        boolean flipV = page.param(boolean.class, flipVName);
+        boolean grayscale = page.param(boolean.class, grayscaleName);
+        boolean invert = page.param(boolean.class, invertName);
+        int rotate = page.param(int.class, rotateName);
+        boolean sepia = page.param(boolean.class, sepiaName);
+        int sharpen = page.param(int.class, sharpenName);
 
         Double focusX = page.paramOrDefault(Double.class, focusXName, null);
         Double focusY = page.paramOrDefault(Double.class, focusYName, null);
