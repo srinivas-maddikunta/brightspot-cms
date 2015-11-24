@@ -303,13 +303,13 @@ public class ImageFileType implements FileContentType {
         }
 
         if (fieldValueMetadata == null) {
-            fieldValueMetadata = new LinkedHashMap<String, Object>();
+            fieldValueMetadata = new LinkedHashMap<>();
         }
 
         Map<String, Object> edits = (Map<String, Object>) fieldValueMetadata.get("cms.edits");
 
         if (edits == null) {
-            edits = new HashMap<String, Object>();
+            edits = new HashMap<>();
             fieldValueMetadata.put("cms.edits", edits);
         }
 
@@ -342,10 +342,10 @@ public class ImageFileType implements FileContentType {
         }, fieldValueMetadata.get("cms.crops"));
 
         if (crops == null) {
-            crops = new HashMap<String, ImageCrop>();
+            crops = new HashMap<>();
         }
 
-        crops = new TreeMap<String, ImageCrop>(crops);
+        crops = new TreeMap<>(crops);
 
         Map<String, StandardImageSize> sizes = new HashMap<String, StandardImageSize>();
         for (StandardImageSize size : StandardImageSize.findAll()) {
@@ -360,7 +360,7 @@ public class ImageFileType implements FileContentType {
         }, fieldValueMetadata.get("cms.focus"));
 
         if (focusPoint == null) {
-            focusPoint = new HashMap<String, Double>();
+            focusPoint = new HashMap<>();
         }
 
         page.writeStart("div",
@@ -659,11 +659,11 @@ public class ImageFileType implements FileContentType {
                 page.writeTag("input",
                         "type", "hidden",
                         "name", page.h(inputName + ".focusX"),
-                        "value", page.h(focusPoint != null && focusPoint.containsKey("x") ? focusPoint.get("x") : ""));
+                        "value", page.h(focusPoint.containsKey("x") ? focusPoint.get("x") : ""));
                 page.writeTag("input",
                         "type", "hidden",
                         "name", page.h(inputName + ".focusY"),
-                        "value", page.h(focusPoint != null && focusPoint.containsKey("y") ? focusPoint.get("y") : ""));
+                        "value", page.h(focusPoint.containsKey("y") ? focusPoint.get("y") : ""));
             page.writeEnd();
         page.writeEnd();
     }
