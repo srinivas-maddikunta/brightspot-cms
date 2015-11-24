@@ -24,6 +24,10 @@ public interface FileContentType {
      */
     double getPriority(StorageItem storageItem);
 
+    default void process(ToolPageContext page, StorageItem storageItem) {
+
+    }
+
     void writePreview(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException;
 
     static FileContentType getFileContentType(StorageItem storageItem) {
