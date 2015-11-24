@@ -276,8 +276,6 @@ public class ImageFileType implements FileContentType {
 
         HttpServletRequest request = page.getRequest();
 
-        ObjectField field = (ObjectField) request.getAttribute("field");
-
         String inputName = page.paramOrDefault(String.class, "inputName", (String) request.getAttribute("inputName"));
         String originalWidthName = inputName + ".originalWidth";
         String actionName = inputName + ".action";
