@@ -26,7 +26,7 @@ public interface FileContentType {
 
     void writePreview(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException;
 
-    static FileContentType getFileFieldWriter(StorageItem storageItem) {
+    static FileContentType getFileContentType(StorageItem storageItem) {
 
         if (storageItem == null) {
             return null;
@@ -55,7 +55,7 @@ public interface FileContentType {
 
     static void writeFilePreview(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException {
 
-        FileContentType fileContentType = FileContentType.getFileFieldWriter(fieldValue);
+        FileContentType fileContentType = FileContentType.getFileContentType(fieldValue);
         if (fileContentType != null) {
             fileContentType.writePreview(page, state, fieldValue);
         } else {
