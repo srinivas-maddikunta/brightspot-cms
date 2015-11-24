@@ -278,13 +278,6 @@ public class ImageFileType implements FileContentType {
 
         ObjectField field = (ObjectField) request.getAttribute("field");
 
-        String fieldName;
-        if (field != null) {
-            fieldName = field.getInternalName();
-        } else {
-            fieldName = page.param(String.class, "fieldName");
-        }
-
         String inputName = page.paramOrDefault(String.class, "inputName", (String) request.getAttribute("inputName"));
         String originalWidthName = inputName + ".originalWidth";
         String actionName = inputName + ".action";
@@ -300,8 +293,6 @@ public class ImageFileType implements FileContentType {
         String sepiaName = inputName + ".sepia";
         String sharpenName = inputName + ".sharpen";
         String blurName = inputName + ".blur";
-
-        String cropsFieldName = fieldName + ".crops";
 
         String action = page.param(actionName);
 
@@ -349,11 +340,7 @@ public class ImageFileType implements FileContentType {
 
         Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
         }, fieldValueMetadata.get("cms.crops"));
-        if (crops == null) {
-            // for backward compatibility
-            crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
-            }, state.getValue(cropsFieldName));
-        }
+
         if (crops == null) {
             crops = new HashMap<String, ImageCrop>();
         }
