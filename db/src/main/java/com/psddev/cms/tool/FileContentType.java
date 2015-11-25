@@ -88,6 +88,7 @@ public interface FileContentType {
     /**
      * @deprecated Use {@link #getFileContentType(StorageItem)} instead.
      */
+    @Deprecated
     static FileContentType getFileFieldWriter(StorageItem storageItem) {
         return getFileContentType(storageItem);
     }
