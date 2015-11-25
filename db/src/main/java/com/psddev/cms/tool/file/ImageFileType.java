@@ -50,8 +50,6 @@ public class ImageFileType implements FileContentType {
      * Processes metadata inputs, and adds resulting metadata and edits
      * to image StorageItem.
      *
-     * @param page
-     * @param storageItem
      */
     @Override
     public void process(ToolPageContext page, StorageItem storageItem) {
@@ -137,7 +135,7 @@ public class ImageFileType implements FileContentType {
 
         // Crops.
         Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
-                ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {}, fieldValueMetadata.get("cms.crops")),
+                ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() { }, fieldValueMetadata.get("cms.crops")),
                 new HashMap<>()
         );
 
@@ -221,80 +219,38 @@ public class ImageFileType implements FileContentType {
     }
 
     @Override
-    public void writePreview(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException {
+    public void writePreview(ToolPageContext page, State state, StorageItem storageItem) throws IOException, ServletException {
+
+        if (storageItem == null) {
+            return;
+        }
 
         HttpServletRequest request = page.getRequest();
 
         String inputName = page.paramOrDefault(String.class, "inputName", (String) request.getAttribute("inputName"));
         String originalWidthName = inputName + ".originalWidth";
-        String actionName = inputName + ".action";
         String cropsName = inputName + ".crops.";
 
-        String brightnessName = inputName + ".brightness";
-        String contrastName = inputName + ".contrast";
-        String flipHName = inputName + ".flipH";
-        String flipVName = inputName + ".flipV";
-        String grayscaleName = inputName + ".grayscale";
-        String invertName = inputName + ".invert";
-        String rotateName = inputName + ".rotate";
-        String sepiaName = inputName + ".sepia";
-        String sharpenName = inputName + ".sharpen";
-        String blurName = inputName + ".blur";
+        Map<String, Object> metadata = ObjectUtils.firstNonNull(
+                ObjectUtils.to(new TypeReference<Map<String, Object>>() { }, storageItem.getMetadata()),
+                new LinkedHashMap<>()
+        );
 
-        String action = page.param(String.class, actionName);
+        // Edits.
+        Map<String, Object> edits = ObjectUtils.firstNonNull(
+                ObjectUtils.to(new TypeReference<Map<String, Object>>() { }, metadata.get("cms.edits")),
+                new HashMap<>()
+        );
 
-        Map<String, Object> fieldValueMetadata = null;
-        boolean isFormPost = request.getAttribute("isFormPost") != null ? (Boolean) request.getAttribute("isFormPost") : false;
-        if (fieldValue != null && (!isFormPost || "keep".equals(action))) {
-            fieldValueMetadata = fieldValue.getMetadata();
-        }
-
-        if (fieldValueMetadata == null) {
-            fieldValueMetadata = new LinkedHashMap<>();
-        }
-
-        Map<String, Object> edits = (Map<String, Object>) fieldValueMetadata.get("cms.edits");
-
-        if (edits == null) {
-            edits = new HashMap<>();
-            fieldValueMetadata.put("cms.edits", edits);
-        }
-
-        double brightness = ObjectUtils.to(double.class, edits.get("brightness"));
-        double contrast = ObjectUtils.to(double.class, edits.get("contrast"));
-        boolean flipH = ObjectUtils.to(boolean.class, edits.get("flipH"));
-        boolean flipV = ObjectUtils.to(boolean.class, edits.get("flipV"));
-        boolean grayscale = ObjectUtils.to(boolean.class, edits.get("grayscale"));
-        boolean invert = ObjectUtils.to(boolean.class, edits.get("invert"));
-        int rotate = ObjectUtils.to(int.class, edits.get("rotate"));
-        boolean sepia = ObjectUtils.to(boolean.class, edits.get("sepia"));
-        int sharpen = ObjectUtils.to(int.class, edits.get("sharpen"));
-
-        List<String> blurs = new ArrayList<String>();
-        if (!ObjectUtils.isBlank(edits.get("blur"))) {
-            Object blur = edits.get("blur");
-            if (blur instanceof String && ObjectUtils.to(String.class, blur).matches("(\\d+x){3}\\d+")) {
-                blurs.add(ObjectUtils.to(String.class, blur));
-            } else if (blur instanceof List) {
-                for (Object blurItem : (List) blur) {
-                    String blurValue = ObjectUtils.to(String.class, blurItem);
-                    if (blurValue.matches("(\\d+x){3}\\d+")) {
-                        blurs.add(blurValue);
-                    }
-                }
-            }
-        }
-
-        Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<TreeMap<String, ImageCrop>>() {
-        }, fieldValueMetadata.get("cms.crops"));
-
-        if (crops == null) {
-            crops = new HashMap<>();
-        }
+        // Crops and StandardImageSizes.
+        Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
+                ObjectUtils.to(new TypeReference<TreeMap<String, ImageCrop>>() { }, metadata.get("cms.crops")),
+                new HashMap<>()
+        );
 
         crops = new TreeMap<>(crops);
 
-        Map<String, StandardImageSize> sizes = new HashMap<String, StandardImageSize>();
+        Map<String, StandardImageSize> sizes = new HashMap<>();
         for (StandardImageSize size : StandardImageSize.findAll()) {
             String sizeId = size.getId().toString();
             sizes.put(sizeId, size);
@@ -303,12 +259,11 @@ public class ImageFileType implements FileContentType {
             }
         }
 
-        Map<String, Double> focusPoint = ObjectUtils.to(new TypeReference<Map<String, Double>>() {
-        }, fieldValueMetadata.get("cms.focus"));
-
-        if (focusPoint == null) {
-            focusPoint = new HashMap<>();
-        }
+        // Focus Point.
+        Map<String, Double> focusPoint = ObjectUtils.firstNonNull(
+                ObjectUtils.to(new TypeReference<Map<String, Double>>() { }, metadata.get("cms.focus")),
+                new HashMap<>()
+        );
 
         page.writeStart("div",
                 "class", "imageEditor");
@@ -334,7 +289,7 @@ public class ImageFileType implements FileContentType {
                         page.writeStart("li");
                             page.writeStart("a",
                                     "class", "action-preview",
-                                    "href", fieldValue.getPublicUrl(),
+                                    "href", storageItem.getPublicUrl(),
                                     "target", "_blank");
                                 page.writeHtml(page.localize(ImageFileType.class, "action.viewOriginal"));
                             page.writeEnd();
@@ -343,7 +298,7 @@ public class ImageFileType implements FileContentType {
                         page.writeStart("li");
                             page.writeStart("a",
                                     "class", "icon icon-crop",
-                                    "href", page.h(page.url("/contentImages", "data", ObjectUtils.toJson(fieldValue))),
+                                    "href", page.h(page.url("/contentImages", "data", ObjectUtils.toJson(storageItem))),
                                     "target", "contentImages");
                                 page.writeHtml(page.localize(ImageFileType.class, "action.viewResized"));
                             page.writeEnd();
@@ -361,6 +316,25 @@ public class ImageFileType implements FileContentType {
                     page.writeStart("table");
                         page.writeStart("tbody");
                             if (usingJavaImageEditor) {
+
+                                String blurName = inputName + ".blur";
+
+                                // Blurs (only with JavaImageEditor).
+                                List<String> blurs = new ArrayList<>();
+                                if (!ObjectUtils.isBlank(edits.get("blur"))) {
+                                    Object blur = edits.get("blur");
+                                    if (blur instanceof String && ObjectUtils.to(String.class, blur).matches("(\\d+x){3}\\d+")) {
+                                        blurs.add(ObjectUtils.to(String.class, blur));
+                                    } else if (blur instanceof List) {
+                                        for (Object blurItem : (List) blur) {
+                                            String blurValue = ObjectUtils.to(String.class, blurItem);
+                                            if (blurValue.matches("(\\d+x){3}\\d+")) {
+                                                blurs.add(blurValue);
+                                            }
+                                        }
+                                    }
+                                }
+
                                 page.writeStart("tr");
                                     page.writeStart("th");
                                         page.writeHtml(page.localize(ImageFileType.class, "label.blur"));
@@ -380,6 +354,24 @@ public class ImageFileType implements FileContentType {
                                     page.writeEnd();
                                 page.writeEnd();
                             }
+
+                            String brightnessName = inputName + ".brightness";
+                            String contrastName = inputName + ".contrast";
+                            String flipHName = inputName + ".flipH";
+                            String flipVName = inputName + ".flipV";
+                            String grayscaleName = inputName + ".grayscale";
+                            String invertName = inputName + ".invert";
+                            String rotateName = inputName + ".rotate";
+                            String sepiaName = inputName + ".sepia";
+
+                            double brightness = ObjectUtils.to(double.class, edits.get("brightness"));
+                            double contrast = ObjectUtils.to(double.class, edits.get("contrast"));
+                            boolean flipH = ObjectUtils.to(boolean.class, edits.get("flipH"));
+                            boolean flipV = ObjectUtils.to(boolean.class, edits.get("flipV"));
+                            boolean grayscale = ObjectUtils.to(boolean.class, edits.get("grayscale"));
+                            boolean invert = ObjectUtils.to(boolean.class, edits.get("invert"));
+                            int rotate = ObjectUtils.to(int.class, edits.get("rotate"));
+                            boolean sepia = ObjectUtils.to(boolean.class, edits.get("sepia"));
 
                             // Brightness
                             page.writeStart("tr");
@@ -462,6 +454,10 @@ public class ImageFileType implements FileContentType {
                             page.writeEnd();
 
                             if (usingJavaImageEditor) {
+
+                                String sharpenName = inputName + ".sharpen";
+                                int sharpen = ObjectUtils.to(int.class, edits.get("sharpen"));
+
                                 // Sharpen
                                 page.writeStart("tr");
                                 page.writeStart("th");
@@ -571,7 +567,7 @@ public class ImageFileType implements FileContentType {
                 String fieldValueUrl;
                 String resizeScale = "";
                 if (ImageEditor.Static.getDefault() != null) {
-                    ImageTag.Builder imageTagBuilder = new ImageTag.Builder(fieldValue)
+                    ImageTag.Builder imageTagBuilder = new ImageTag.Builder(storageItem)
                             .setWidth(1000)
                             .setResizeOption(ResizeOption.ONLY_SHRINK_LARGER)
                             .setEdits(false);
@@ -595,7 +591,7 @@ public class ImageFileType implements FileContentType {
                     }
                     fieldValueUrl = imageTagBuilder.toUrl();
                 } else {
-                    fieldValueUrl = fieldValue.getPublicUrl();
+                    fieldValueUrl = storageItem.getPublicUrl();
                 }
                 page.writeTag("img",
                         "alt", "",

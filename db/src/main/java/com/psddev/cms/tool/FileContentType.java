@@ -41,7 +41,7 @@ public interface FileContentType {
      * @param page Can't be {@code null}.
      * @param state State of the object with the StorageItem field
      * @param fieldValue StorageItem value for the field
-     * 
+     *
      * @throws IOException
      * @throws ServletException
      */
