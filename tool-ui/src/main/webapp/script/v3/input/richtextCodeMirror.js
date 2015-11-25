@@ -1,4 +1,12 @@
-define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint', 'v3/spellcheck'], function($, CodeMirror, CodeMirrorShowHint, spellcheckAPI) {
+define([
+    'jquery',
+    'v3/spellcheck',
+    'codemirror/lib/codemirror',
+    'codemirror/addon/hint/show-hint',
+    'codemirror/addon/dialog/dialog',
+    'codemirror/addon/search/searchcursor',
+    'codemirror/addon/search/search'
+], function($, spellcheckAPI, CodeMirror) {
     
     var CodeMirrorRte;
 
@@ -276,6 +284,7 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
             self.clipboardInit();
             self.trackInit();
             self.spellcheckInit();
+            self.modeInit();
         },
 
         
@@ -403,6 +412,8 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
 
                 if (self.doubleClickTimestamp && (now - self.doubleClickTimestamp < 500) ) {
 
+                    delete self.doubleClickTimestamp;
+                    
                     // Figure out the line and character based on the mouse coord that was clicked
                     pos = editor.coordsChar({left:event.pageX, top:event.pageY}, 'page');
 
@@ -1553,6 +1564,17 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
 
                 className = mark.className;
 
+                // Skip any classname that is not in our styles list
+                if (!self.classes[className]) {
+                    return;
+                }
+     
+                // Skip any classname that has an onClick since we dont' want to mess with those.
+                // For example, links.
+                if (self.classes[className].onClick) {
+                    return;
+                }
+                
                 if (!marksByClassName[className]) {
                     marksByClassName[className] = [];
                 }
@@ -3187,7 +3209,242 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
 
         },
 
+        //==================================================
+        // Mode Functions
+        // Switch between plain text and rich text modes
+        //==================================================
+        
+        modeInit: function() {
+            var self = this;
+            self.mode = 'rich';
+        },
 
+
+        /**
+         * Returns the current mode.
+         * @returns {String} 'plain' or 'rich'
+         */
+        modeGet: function() {
+            var self = this;
+            return self.mode === 'plain' ? 'plain' : 'rich';
+        },
+
+        
+        modeToggle: function() {
+            
+            var self = this;
+            var mode;
+
+            mode = self.modeGet();
+
+            if (mode === 'rich') {
+                self.modeSetPlain();
+            } else {
+                self.modeSetRich();
+            }
+        },
+
+        
+        modeSetPlain: function() {
+            var self = this;
+            var editor = self.codeMirror;
+            var $wrapper = $(editor.getWrapperElement());
+
+            self.mode = 'plain';
+            
+            $wrapper.hide();
+
+            if (self.$el.is('textarea')) {
+                self.$el.show();
+            }
+            
+            // Trigger an event on the textarea to notify other code that the mode has been changed
+            self.modeTriggerEvent();
+        },
+
+        
+        modeSetRich: function() {
+            var self = this;
+            var editor = self.codeMirror;
+            var $wrapper = $(editor.getWrapperElement());
+            
+            self.mode = 'rich';
+            
+            if (self.$el.is('textarea')) {
+                self.$el.hide();
+            }
+            $wrapper.show();
+            
+            // Trigger an event on the textarea to notify other code that the mode has been changed
+            self.modeTriggerEvent();
+        },
+
+        
+        /**
+         * Trigger an event on the textarea to notify other code that the mode has been changed.
+         */
+        modeTriggerEvent: function() {
+            var self = this;
+            self.$el.trigger('rteModeChange', [self.modeGet()]);
+        },
+        
+        //==================================================
+        // Case Functions (lower case and uppper case)
+        //
+        // Note we can't just change the text directly in CodeMirror,
+        // because that would obliterate the markers we use for styling.
+        // So instead we copy the range as HTML, change the case of
+        // the text nodes in the HTML, then paste the HTML back into
+        // the same range.
+        //==================================================
+
+        /**
+         * Toggle the case "smartly".
+         * If the text is all uppercase, change to all lower case.
+         * If the text is all lowercase, or a mix, then change to all uppercase.
+         * @param {Object} [range=current range]
+         */
+        caseToggleSmart: function(range) {
+            
+            var editor, self, text, textUpper;
+
+            self = this;
+            
+            range = range || self.getRange();
+
+            editor = self.codeMirror;
+
+            // Get the text for the range
+            text = editor.getRange(range.from, range.to) || '';
+            textUpper = text.toUpperCase();
+
+            if (text === textUpper) {
+                return self.caseToLower(range);
+            } else {
+                return self.caseToUpper(range);
+            }
+        },
+
+        
+        /**
+         * Change to lower case.
+         * @param {Object} [range=current range]
+         */
+        caseToLower: function(range) {
+            
+            var html, node, self;
+
+            self = this;
+
+            range = range || self.getRange();
+
+            // Get the HTML for the range
+            html = self.toHTML(range);
+
+            // Convert the text nodes to lower case
+            node = self.htmlToLowerCase(html);
+            
+            // Save it back to the range as lower case text
+            self.fromHTML(node, range, true);
+
+            // Reset the selection range since it will be wiped out
+            self.setSelection(range);
+        },
+
+        
+        /**
+         * Change to upper case.
+         * @param {Object} [range=current range]
+         */
+        caseToUpper: function(range) {
+            
+            var html, node, self;
+
+            self = this;
+
+            range = range || self.getRange();
+
+            // Get the HTML for the range
+            html = self.toHTML(range);
+
+            // Convert the text nodes to upper case
+            node = self.htmlToUpperCase(html);
+            
+            // Save it back to the range as lower case text
+            self.fromHTML(node, range, true);
+            
+            // Reset the selection range since it will be wiped out
+            self.setSelection(range);
+        },
+
+        
+        /**
+         * Change the text nodes to lower case within some HTML.
+         * @param {String|DOM} html
+         */
+        htmlToLowerCase: function(html) {
+            var self;
+            self = this;
+            return self.htmlChangeCase(html, false);
+        },
+
+        
+        /**
+         * Change the text nodes to lower case within some HTML.
+         * @param {String|DOM} html
+         */
+        htmlToUpperCase: function(html) {
+            var self;
+            self = this;
+            return self.htmlChangeCase(html, true);
+        },
+
+        
+        /**
+         * Change the text nodes to lower or upper case within some HTML.
+         * @param {String|DOM} html
+         */
+        htmlChangeCase: function(html, upper) {
+            var node, self;
+            
+            self = this;
+            
+            // Call recursive function to change all the text nodes
+            node = self.htmlParse(html);
+            if (node) {
+                self.htmlChangeCaseProcessNode(node, upper);
+            }
+            return node;
+        },
+
+        /**
+         * Recursive function to change case of text nodes.
+         * @param {DOM} node
+         * @param {Boolean} upper
+         * Set to true for upper case, or false for lower case.
+         */
+        htmlChangeCaseProcessNode: function(node, upper) {
+            var childNodes, i, length, self;
+            self = this;
+            
+            if (node.nodeType === 3) {
+                if (node.nodeValue) {
+                    node.nodeValue = upper ? node.nodeValue.toUpperCase() : node.nodeValue.toLowerCase();
+                }
+            } else {
+                childNodes = node.childNodes;
+                length = childNodes.length;
+                for (i = 0; i < length; ++ i) {
+                    self.htmlChangeCaseProcessNode(childNodes[i], upper);
+                }
+            }
+        },
+        
+        // Other possibilities for the future?
+        // caseToggle (toggle case of each character)
+        // caseSentence (first word cap, others lower)
+        // caseTitle (first letter of each word)
+        
         //==================================================
         // Miscelaneous Functions
         //==================================================
@@ -3267,6 +3524,20 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
                 from: self.codeMirror.getCursor('from'),
                 to: self.codeMirror.getCursor('to')
             };
+        },
+        
+        /**
+         * Sets the selection to a range.
+         */
+        setSelection: function(range){
+
+            var editor, self;
+
+            self = this;
+
+            editor = self.codeMirror;
+
+            editor.setSelection(range.from, range.to);
         },
 
 
@@ -3384,12 +3655,13 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
         empty: function() {
             var editor, self;
             self = this;
-            self.codeMirror.setValue('');
-
+            
             // Destroy all enhancements
             $.each(self.enhancementCache, function(i, mark) {
                 self.enhancementRemove(mark);
             });
+            
+            self.codeMirror.setValue('');
         },
 
 
@@ -3399,6 +3671,47 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
             self.codeMirror.setCursor(line, ch);
         },
 
+
+        /**
+         * Returns the range for a mark.
+         * @returns {Object}
+         * The range of the mark (with from and to parameters)
+         * or an empty object if the mark has been cleared.
+         */
+        markGetRange: function(mark) {
+            var pos, self;
+            self = this;
+            pos = {};
+            if (mark.find) {
+                pos = mark.find() || {};
+            }
+            return pos;
+        },
+
+        
+        /**
+         * Given a CodeMirror mark, replace the text within it
+         * without destroying the mark.
+         * Normally if you were to use the CodeMirror functions to replace a range,
+         * the mark would be destroyed.
+         */
+        replaceMarkText: function(mark, text) {
+            var pos, self;
+
+            self = this;
+
+            pos = self.markGetRange(mark);
+            if (!pos.from) {
+                return;
+            }
+
+            // Replacing the entire mark range will remove the mark so we need
+            // to add text at the end of the mark, then remove the original text
+            self.codeMirror.replaceRange(text, pos.to, pos.to);
+            if (!(pos.from.line === pos.to.line && pos.from.ch === pos.to.ch)) {
+                self.codeMirror.replaceRange('', pos.from, pos.to);
+            }
+        },
         
         /**
          * Determine if an element is a "container" for another element.
@@ -3575,7 +3888,7 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
             // Loop through the content one line at a time
             doc.eachLine(function(line) {
 
-                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineElementsToClose, lineNo, lineInRange, outputChar, raw, rawLastChar;
+                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineActiveIndex, inlineActiveIndexLast, inlineElementsToClose, lineNo, lineInRange, outputChar, raw, rawLastChar;
 
                 lineNo = line.lineNo();
                 
@@ -3584,7 +3897,7 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
                 
                 // List of inline styles that are currently open.
                 // We need this because if we close one element we will need to re-open all the elements.
-                inlineActive = {};
+                inlineActive = [];
 
                 // List of inline elements that are currently open
                 // (in the order they were opened so they can be closed in reverse order)
@@ -3792,10 +4105,10 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
                     // of italicized text, then we must start by displaying <I> element.
                     if (lineNo === range.from.line && charNum === range.from.ch) {
 
-                            $.each(inlineActive, function(className, styleObj) {
+                            $.each(inlineActive, function(i, styleObj) {
                                 var element;
                                 if (!self.voidElements[ styleObj.element ]) {
-                                    inlineElementsToClose.push(styleObj.element);
+                                    inlineElementsToClose.push(styleObj);
                                     html += openElement(styleObj);
                                 }
                             });
@@ -3807,33 +4120,73 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
                     if (annotationEnd[charNum] || 
                         ((lineNo === range.to.line) && (range.to.ch <= charNum))) {
 
-                        // Close all the active elements in the reverse order they were created
-                        $.each(inlineElementsToClose.reverse(), function(i, element) {
-                            if (element && !self.voidElements[element]) {
-                                html += '</' + element + '>';
-                            }
-                        });
-                        inlineElementsToClose = [];
-
                         // Find out which elements are no longer active
-                        $.each(annotationEnd[charNum] || {}, function(i, styleObj) {
+                        $.each(annotationEnd[charNum] || [], function(i, styleObj) {
+
+                            var element, styleToClose;
                             
                             // If any of the styles is "raw" mode, clear the raw flag
                             if (styleObj.raw) {
                                 raw = false;
                             }
-                            
-                            delete inlineActive[styleObj.className];
+
+                            // Find and delete the last occurrance in inlineActive
+                            inlineActiveIndex = -1;
+                            for (i = 0; i < inlineActive.length; i++) {
+                                if (inlineActive[i].key === styleObj.key) {
+                                    inlineActiveIndex = i;
+                                }
+                            }
+                            if (inlineActiveIndex > -1) {
+
+                                // Remove the element from the array of active elements
+                                inlineActive.splice(inlineActiveIndex, 1);
+                                
+                                // Save this index so we can reopen any overlapping styles
+                                // For example if the overlapping marks look like this:
+                                // 1<b>23<i>45</b>67</i>890
+                                // Then when we reach char 6, we need to close the <i> and <b>,
+                                // but then we must reopen the <i>. So our final result will be:
+                                // 1<b>23<i>45</i></b><i>67</i>890
+                                inlineActiveIndexLast = inlineActiveIndex - 1;
+                                
+                                // Close all the active elements in the reverse order they were created
+                                // Only close the style that needs to be closed plus anything after it in the active list
+                                while (styleToClose = inlineElementsToClose.pop()) {
+                                    
+                                    element = styleToClose.element;
+                                    if (element && !self.voidElements[element]) {
+                                        html += '</' + element + '>';
+                                    }
+                                    
+                                    // Stop when we get to the style we're looking for
+                                    if (styleToClose.key === styleObj.key) {
+                                        break;
+                                    }
+                                }
+                            }
                         });
 
-                        // Re-open elements that are still active
-                        // if we are still in the range
+                        // Re-open elements that are still active if we are still in the range.
                         if (charInRange) {
-                            
-                            $.each(inlineActive, function(className, styleObj) {
+
+                            $.each(inlineActive, function(i, styleObj) {
+                                
                                 var element;
+
+                                // Only re-open elements after the last element closed
+                                if (i <= inlineActiveIndexLast) {
+                                    return;
+                                }
+
+                                // If it's a void element (that doesn't require a closing element)
+                                // there is no need to reopen it
                                 if (!self.voidElements[ styleObj.element ]) {
-                                    inlineElementsToClose.push(styleObj.element);
+
+                                    // Add the element to the list of elements that need to be closed later
+                                    inlineElementsToClose.push(styleObj);
+
+                                    // Re-open the element
                                     html += openElement(styleObj);
                                 }
                             });
@@ -3854,22 +4207,18 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
                                 raw = true;
                             }
 
-                            // Make sure this element is not already opened
-                            if (!inlineActive[styleObj.className]) {
+                            // Save this element on the list of active elements
+                            inlineActive.push(styleObj);
 
-                                // Save this element on the list of active elements
-                                inlineActive[styleObj.className] = styleObj;
+                            // Open the new element
+                            if (charInRange) {
 
-                                // Open the new element
-                                if (charInRange) {
-
-                                    // Also push it on a stack so we can close elements in reverse order.
-                                    if (!self.voidElements[ styleObj.element ]) {
-                                        inlineElementsToClose.push(styleObj.element);
-                                    }
-
-                                    html += openElement(styleObj);
+                                // Also push it on a stack so we can close elements in reverse order.
+                                if (!self.voidElements[ styleObj.element ]) {
+                                    inlineElementsToClose.push(styleObj);
                                 }
+
+                                html += openElement(styleObj);
                             }
                         });
                     } // if annotationStart
@@ -4515,6 +4864,20 @@ define(['jquery', 'codemirror/lib/codemirror', 'codemirror/addon/hint/show-hint'
             var self;
             self = this;
             self.codeMirror.clearHistory();
+        },
+
+
+        find: function(){
+            var self;
+            self = this;
+            self.codeMirror.execCommand('find');
+        },
+
+        
+        replace: function(){
+            var self;
+            self = this;
+            self.codeMirror.execCommand('replace');
         },
 
         

@@ -2654,7 +2654,7 @@ public class ToolPageContext extends WebPageContext {
             }
 
             writeStart("div",
-                    "class", "objectInputs",
+                    "class", "objectInputs" + (type.as(ToolUi.class).isReadOnly() ? " objectInputs-readOnly" : ""),
                     "lang", type != null ? type.as(ToolUi.class).getLanguageTag() : null,
                     "data-type", type != null ? type.getInternalName() : null,
                     "data-id", state.getId(),
@@ -2720,6 +2720,9 @@ public class ToolPageContext extends WebPageContext {
                         fields.addAll(0, firsts);
                         fields.addAll(lasts);
                     }
+
+                    // prevents empty tab from displaying on Singletons
+                    fields.removeIf(f -> f.getInternalName().equals("dari.singleton.key"));
 
                     DependencyResolver<ObjectField> resolver = new DependencyResolver<>();
                     Map<String, ObjectField> fieldByName = fields.stream()

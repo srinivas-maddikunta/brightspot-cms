@@ -366,6 +366,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             { style: 'subscript', text: 'Sub', className: 'rte2-toolbar-subscript', tooltip: 'Subscript' },
             { style: 'link', text: 'Link', className: 'rte2-toolbar-link', tooltip: 'Link' },
             { style: 'html', text: 'HTML', className: 'rte2-toolbar-html', tooltip: 'Raw HTML' },
+            // { action: 'caseToggleSmart', text: 'Case', className: 'rte2-toolbar-noicon', tooltip: 'Toggle upper/lowercase' },
             { action: 'clear', text: 'Clear', className: 'rte2-toolbar-clear', tooltip: 'Clear Formatting' },
 
             { separator:true, inline:false },
@@ -395,7 +396,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             { action: 'collapse', text: 'Collapse All Comments', className: 'rte2-toolbar-comment-collapse', collapseStyle: 'comment', tooltip: 'Collapse All Comments' },
 
             { separator:true },
+
             { action:'fullscreen', text: 'Fullscreen', className: 'rte2-toolbar-fullscreen', tooltip: 'Toggle Fullscreen Editing' },
+            { action:'modeToggle', text: 'HTML', className: 'rte2-toolbar-noicon', tooltip: 'Toggle HTML Mode' },
 
             // Example adding buttons to insert special characters or other text:
             // { text: 'Special Characters', submenu: [
@@ -475,6 +478,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.enhancementInit();
             self.trackChangesInit();
             self.placeholderInit();
+            self.modeInit();
             
             // Refresh the editor after all the initialization is done.
             // We put it in a timeout to ensure the editor has displayed before doing the refresh.
@@ -631,23 +635,26 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // This is useful for when the external code doesn't know the self.$el (textarea)
             self.$container.data('rte2', self);
 
+            self.$editor = $('<div/>', {'class':'rte2-codemirror'}).appendTo(self.$container);
+
+            // Move textarea after the editor
+            self.$el.appendTo(self.$container);
+            
             // Since the rte will trigger special events on the container,
             // we should catch them and pass them to the textarea
-            self.$container.on('rteFocus', function(){
+            self.$editor.on('rteFocus', function(){
                 self.$el.trigger('rteFocus', [self]);
                 return false;
             });
-            self.$container.on('rteBlur', function(){
+            self.$editor.on('rteBlur', function(){
                 self.$el.trigger('rteBlur', [self]);
                 return false;
             });
-            self.$container.on('rteChange', function(){
+            self.$editor.on('rteChange', function(){
                 self.$el.trigger('rteChange', [self]);
                 return false;
             });
-
-            self.$editor = $('<div/>', {'class':'rte2-codemirror'}).appendTo(self.$container);
-                
+            
             // Hide the textarea
             self.$el.hide();
 
@@ -655,8 +662,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (self.doOnSubmit) {
 
                 self.$el.closest('form').on('submit', function(){
-                    self.trackChangesSave();
-                    self.$el.val(self.toHTML());
+                    if (self.rte.modeGet() === 'rich') {
+                        self.trackChangesSave();
+                        self.$el.val(self.toHTML());
+                    }
                 });
             }
 
@@ -678,10 +687,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             
             // Set up periodic update of the textarea
             self.previewInit();
-
-            self.$editor.closest('.inputContainer').on('focus', '.rte2-toolbar a', function () {
-                self.rte.focus();
-            });
         },
 
 
@@ -745,6 +750,42 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         fullscreenIsActive: function() {
             return $('body').hasClass('rte-fullscreen');
+        },
+
+        
+        /*==================================================
+         * Mode plain or rich
+         *==================================================*/
+        
+        modeInit: function() {
+            var self = this;
+            
+            self.$container.on('rteModeChange', function(event, mode) {
+                if (mode === 'plain') {
+                    self.modeSetPlain();
+                } else {
+                    self.modeSetRich();
+                }
+            });
+        },
+
+        
+        modeSetPlain: function() {
+            var self = this;
+            
+            self.$el.val(self.rte.toHTML());
+            
+            self.$el.show();
+            
+            // Trigger a resize event on the window so the textarea will get resized
+            $(window).resize();
+        },
+
+        
+        modeSetRich: function() {
+            var self = this;
+            self.$el.hide();
+            self.rte.fromHTML(self.$el.val());
         },
 
         
@@ -1084,6 +1125,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 switch (item.action) {
 
+                case 'caseToggleSmart':
+                    rte.caseToggleSmart();
+                    break;
+                    
+                case 'caseToLower':
+                    rte.caseToLower();
+                    break;
+
+                case 'caseToUpper':
+                    rte.caseToUpper();
+                    break;
+
                 case 'clear':
                     rte.removeStyles();
                     break;
@@ -1149,13 +1202,30 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 case 'trackChangesShowFinalToggle':
                     rte.trackDisplayToggle();
                     break;
+
+                case 'find':
+                    rte.focus();
+                    rte.find();
+                    return; // return so we don't run rte.focus() again
+                    break;
+
+                case 'replace':
+                    rte.focus();
+                    rte.replace();
+                    return; // return so we don't run rte.focus() again
+
+                case 'modeToggle':
+                    rte.modeToggle();
+                    break;
                 }
+
 
             } else if (item.style) {
 
                 if (styleObj.onClick) {
 
-                    mark = rte.inlineGetMark(item.style) || rte.setStyle(item.style);
+                    // Create a new mark then call the onclick function on it
+                    mark = rte.setStyle(item.style);
                     if (mark) {
                         styleObj.onClick(event, mark);
                     }
@@ -1183,11 +1253,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         toolbarUpdate: function() {
 
-            var $links, rte, self, styles;
+            var $links, mode, rte, self, styles;
 
             self = this;
             rte = self.rte;
 
+            // Get the mode of the editor ('plain' or 'rich')
+            mode = rte.modeGet();
+
+            // Show or hide toolbar buttons based on the mode
+            // Show them all if 'rich' mode, otherwise hide them.
+            // Later we will show certain actions for 'plain' mode.
+            self.$toolbar.children('li').toggle(mode === 'rich');
+            
             // First make all the buttons inactive,
             // Then we'll decide which need to be active
             $links = self.$toolbar.find('a');
@@ -1228,7 +1306,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                         break;
 
                     case 'fullscreen':
+                        
+                        // Make the button active if in fullscreen  mode
                         $link.toggleClass('active', self.fullscreenIsActive());
+                        
+                        // Always show this button when in rich or plain mode
+                        $link.parent().show();
+                        break;
+                        
+                    case 'modeToggle':
+                        // Make the button active if in 'plain' mode
+                        // And always show the button
+                        $link.toggleClass('active', mode === 'plain');
+                        $link.parent().show();
                         break;
                     }
 
@@ -1287,7 +1377,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.$toolbar.hide();
         },
 
-
         /**
          * Keep the toolbar in view when the page scrolls or the window is resized.
          */
@@ -1317,25 +1406,25 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             containerTop = $container.offset().top;
             toolbarHeight = $toolbar.outerHeight();
 
-            // Do nothing if the container is small
-            if ($container.outerHeight() < 3 * toolbarHeight) {
-                return;
-            }
 
             // Is the rich text editor completely in view?
-            if (windowTop < containerTop) {
+            // Or is the editor so small that moving the toolbar wouldn't be wise?
+            if (($container.outerHeight() < 3 * toolbarHeight) || windowTop < containerTop) {
 
-                // Yes, completely in view. So remove positioning from the toolbar
-                raf(function() {
+                if ($toolbar.hasClass('rte2-toolbar-fixed')) {
+                    
+                    // Yes, completely in view. So remove positioning from the toolbar
+                    raf(function() {
 
-                     // Remove extra padding  above the editor because the toolbar will no longer be fixed
-                    $container.css('padding-top', 0);
+                        // Remove extra padding  above the editor because the toolbar will no longer be fixed position
+                        $container.css('padding-top', 0);
 
-                    // Restore toolbar to original styles
-                    $toolbar.removeClass('rte2-toolbar-fixed');
-                    $toolbar.attr('style', self._toolbarOldStyle);
-                    self._toolbarOldStyle = null;
-                });
+                        // Restore toolbar to original styles
+                        $toolbar.removeClass('rte2-toolbar-fixed');
+                        $toolbar.attr('style', self._toolbarOldStyle);
+                        self._toolbarOldStyle = null;
+                    });
+                }
 
             } else {
 
@@ -2699,7 +2788,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         toHTML: function() {
             var html, self;
             self = this;
-            html = self.rte.toHTML();
+            if (self.rte.modeGet() === 'rich') {
+                html = self.rte.toHTML();
+            } else {
+                html = self.$el.val();
+            }
             return html;
         },
 
@@ -2713,11 +2806,21 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         focus: function() {
             var self;
             self = this;
-            self.rte.focus();
-            self.toolbarUpdate();
-            self.rte.refresh();
+            if (self.rte.modeGet() === 'rich') {
+                self.rte.focus();
+                self.toolbarUpdate();
+                self.rte.refresh();
+            } else {
+                self.$el.focus();
+            }
         },
 
+        refresh: function() {
+            var self;
+            self = this;
+            self.rte.refresh();
+        },
+        
         setCursor: function(line, ch) {
             var self;
             self.rte.setCursor(line, ch);
