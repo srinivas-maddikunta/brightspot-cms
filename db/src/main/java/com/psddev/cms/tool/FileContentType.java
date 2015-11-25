@@ -71,6 +71,10 @@ public interface FileContentType {
 
     static void writeFilePreview(ToolPageContext page, State state, StorageItem fieldValue) throws IOException, ServletException {
 
+        if (fieldValue == null) {
+            return;
+        }
+
         FileContentType fileContentType = FileContentType.getFileContentType(fieldValue);
         if (fileContentType != null) {
             fileContentType.writePreview(page, state, fieldValue);
