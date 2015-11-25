@@ -46,14 +46,23 @@ public class ImageFileType implements FileContentType {
         return DEFAULT_PRIORITY_LEVEL;
     }
 
+    /**
+     * Processes metadata inputs, and adds resulting metadata and edits
+     * to image StorageItem.
+     *
+     * @param page
+     * @param storageItem
+     */
     @Override
     public void process(ToolPageContext page, StorageItem storageItem) {
 
-        /** BEFORE FORM LOGIC **/
+        if (storageItem == null) {
+            return;
+        }
+
         String inputName = ObjectUtils.firstNonBlank((String) page.getRequest().getAttribute("inputName"), page.param(String.class, "inputName"));
         String cropsName = inputName + ".crops.";
 
-        String actionName = inputName + ".action";
         String brightnessName = inputName + ".brightness";
         String contrastName = inputName + ".contrast";
         String flipHName = inputName + ".flipH";
@@ -68,65 +77,7 @@ public class ImageFileType implements FileContentType {
         String focusXName = inputName + ".focusX";
         String focusYName = inputName + ".focusY";
 
-        String action = page.param(actionName);
-
-        Map<String, Object> fieldValueMetadata = null;
-
-        if (storageItem != null && "keep".equals(action)) {
-            fieldValueMetadata = storageItem.getMetadata();
-        }
-
-        if (fieldValueMetadata == null) {
-            fieldValueMetadata = new LinkedHashMap<>();
-        }
-
-        Map<String, Object> edits = (Map<String, Object>) fieldValueMetadata.get("cms.edits");
-
-        if (edits == null) {
-            edits = new HashMap<>();
-            fieldValueMetadata.put("cms.edits", edits);
-        }
-
-        List<String> blurs = new ArrayList<String>();
-        if (!ObjectUtils.isBlank(edits.get("blur"))) {
-            Object blur = edits.get("blur");
-            if (blur instanceof String && ObjectUtils.to(String.class, blur).matches("(\\d+x){3}\\d+")) {
-                blurs.add(ObjectUtils.to(String.class, blur));
-            } else if (blur instanceof List) {
-                for (Object blurItem : (List) blur) {
-                    String blurValue = ObjectUtils.to(String.class, blurItem);
-                    if (blurValue.matches("(\\d+x){3}\\d+")) {
-                        blurs.add(blurValue);
-                    }
-                }
-            }
-        }
-
-        Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
-        }, fieldValueMetadata.get("cms.crops"));
-        if (crops == null) {
-            crops = new HashMap<>();
-        }
-
-        crops = new TreeMap<>(crops);
-
-        Map<String, StandardImageSize> sizes = new HashMap<String, StandardImageSize>();
-        for (StandardImageSize size : StandardImageSize.findAll()) {
-            String sizeId = size.getId().toString();
-            sizes.put(sizeId, size);
-            if (crops.get(sizeId) == null) {
-                crops.put(sizeId, new ImageCrop());
-            }
-        }
-
-        Map<String, Double> focusPoint = ObjectUtils.to(new TypeReference<Map<String, Double>>() {
-        }, fieldValueMetadata.get("cms.focus"));
-
-        if (focusPoint == null) {
-            focusPoint = new HashMap<>();
-        }
-
-        /** INSIDE POST LOGIC **/
+        // Edits.
         double brightness = page.param(double.class, brightnessName);
         double contrast = page.param(double.class, contrastName);
         boolean flipH = page.param(boolean.class, flipHName);
@@ -137,10 +88,7 @@ public class ImageFileType implements FileContentType {
         boolean sepia = page.param(boolean.class, sepiaName);
         int sharpen = page.param(int.class, sharpenName);
 
-        Double focusX = page.paramOrDefault(Double.class, focusXName, null);
-        Double focusY = page.paramOrDefault(Double.class, focusYName, null);
-
-        edits = new HashMap<>();
+        Map<String, Object> edits = new HashMap<>();
 
         if (brightness != 0.0) {
             edits.put("brightness", brightness);
@@ -171,7 +119,7 @@ public class ImageFileType implements FileContentType {
         }
 
         if (!ObjectUtils.isBlank(page.params(String.class, blurName))) {
-            blurs = new ArrayList<>();
+            List<String> blurs = new ArrayList<>();
             for (String blur : page.params(String.class, blurName)) {
                 if (!blurs.contains(blur)) {
                     blurs.add(blur);
@@ -185,26 +133,36 @@ public class ImageFileType implements FileContentType {
             }
         }
 
-        /** isFormPost after StorageItem has been created **/
-        if (storageItem != null) {
-            fieldValueMetadata.putAll(storageItem.getMetadata());
-        }
+        Map<String, Object> fieldValueMetadata = new LinkedHashMap<>(storageItem.getMetadata());
 
-        fieldValueMetadata.put("cms.edits", edits);
+        // Crops.
+        Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
+                ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {}, fieldValueMetadata.get("cms.crops")),
+                new HashMap<>()
+        );
+
+        crops = new TreeMap<>(crops);
+
+        for (StandardImageSize size : StandardImageSize.findAll()) {
+            String sizeId = size.getId().toString();
+            if (crops.get(sizeId) == null) {
+                crops.put(sizeId, new ImageCrop());
+            }
+        }
 
         // Standard sizes.
         for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
             Map.Entry<String, ImageCrop> e = i.next();
             String cropId = e.getKey();
-            double x = page.doubleParam(cropsName + cropId + ".x");
-            double y = page.doubleParam(cropsName + cropId + ".y");
-            double width = page.doubleParam(cropsName + cropId + ".width");
-            double height = page.doubleParam(cropsName + cropId + ".height");
-            String texts = page.param(cropsName + cropId + ".texts");
-            String textSizes = page.param(cropsName + cropId + ".textSizes");
-            String textXs = page.param(cropsName + cropId + ".textXs");
-            String textYs = page.param(cropsName + cropId + ".textYs");
-            String textWidths = page.param(cropsName + cropId + ".textWidths");
+            double x = page.param(double.class, cropsName + cropId + ".x");
+            double y = page.param(double.class, cropsName + cropId + ".y");
+            double width = page.param(double.class, cropsName + cropId + ".width");
+            double height = page.param(double.class, cropsName + cropId + ".height");
+            String texts = page.param(String.class, cropsName + cropId + ".texts");
+            String textSizes = page.param(String.class, cropsName + cropId + ".textSizes");
+            String textXs = page.param(String.class, cropsName + cropId + ".textXs");
+            String textYs = page.param(String.class, cropsName + cropId + ".textYs");
+            String textWidths = page.param(String.class, cropsName + cropId + ".textWidths");
             if (x != 0.0 || y != 0.0 || width != 0.0 || height != 0.0 || !ObjectUtils.isBlank(texts)) {
                 ImageCrop crop = e.getValue();
                 crop.setX(x);
@@ -245,19 +203,21 @@ public class ImageFileType implements FileContentType {
                 i.remove();
             }
         }
-        fieldValueMetadata.put("cms.crops", crops);
 
-        // Set focus point
+        // Focus Point.
+        Map<String, Double> focusPoint = new HashMap<>();
+        Double focusX = page.paramOrDefault(Double.class, focusXName, null);
+        Double focusY = page.paramOrDefault(Double.class, focusYName, null);
         if (focusX != null && focusY != null) {
             focusPoint.put("x", focusX);
             focusPoint.put("y", focusY);
         }
+
+        fieldValueMetadata.put("cms.edits", edits);
+        fieldValueMetadata.put("cms.crops", crops);
         fieldValueMetadata.put("cms.focus", focusPoint);
 
-        if (storageItem != null) {
-            storageItem.setMetadata(fieldValueMetadata);
-        }
-
+        storageItem.setMetadata(fieldValueMetadata);
     }
 
     @Override
@@ -281,7 +241,7 @@ public class ImageFileType implements FileContentType {
         String sharpenName = inputName + ".sharpen";
         String blurName = inputName + ".blur";
 
-        String action = page.param(actionName);
+        String action = page.param(String.class, actionName);
 
         Map<String, Object> fieldValueMetadata = null;
         boolean isFormPost = request.getAttribute("isFormPost") != null ? (Boolean) request.getAttribute("isFormPost") : false;
@@ -325,7 +285,7 @@ public class ImageFileType implements FileContentType {
             }
         }
 
-        Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
+        Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<TreeMap<String, ImageCrop>>() {
         }, fieldValueMetadata.get("cms.crops"));
 
         if (crops == null) {
