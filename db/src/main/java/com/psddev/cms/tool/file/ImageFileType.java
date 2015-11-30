@@ -60,32 +60,17 @@ public class ImageFileType implements FileContentType {
         }
 
         String inputName = ObjectUtils.firstNonBlank((String) page.getRequest().getAttribute("inputName"), page.param(String.class, "inputName"));
-        String cropsName = inputName + ".crops.";
-
-        String brightnessName = inputName + ".brightness";
-        String contrastName = inputName + ".contrast";
-        String flipHName = inputName + ".flipH";
-        String flipVName = inputName + ".flipV";
-        String grayscaleName = inputName + ".grayscale";
-        String invertName = inputName + ".invert";
-        String rotateName = inputName + ".rotate";
-        String sepiaName = inputName + ".sepia";
-        String sharpenName = inputName + ".sharpen";
-        String blurName = inputName + ".blur";
-
-        String focusXName = inputName + ".focusX";
-        String focusYName = inputName + ".focusY";
 
         // Edits.
-        double brightness = page.param(double.class, brightnessName);
-        double contrast = page.param(double.class, contrastName);
-        boolean flipH = page.param(boolean.class, flipHName);
-        boolean flipV = page.param(boolean.class, flipVName);
-        boolean grayscale = page.param(boolean.class, grayscaleName);
-        boolean invert = page.param(boolean.class, invertName);
-        int rotate = page.param(int.class, rotateName);
-        boolean sepia = page.param(boolean.class, sepiaName);
-        int sharpen = page.param(int.class, sharpenName);
+        double brightness = page.param(double.class, inputName + ".brightness");
+        double contrast = page.param(double.class, inputName + ".contrast");
+        boolean flipH = page.param(boolean.class, inputName + ".flipH");
+        boolean flipV = page.param(boolean.class, inputName + ".flipV");
+        boolean grayscale = page.param(boolean.class, inputName + ".grayscale");
+        boolean invert = page.param(boolean.class, inputName + ".invert");
+        int rotate = page.param(int.class, inputName + ".rotate");
+        boolean sepia = page.param(boolean.class, inputName + ".sepia");
+        int sharpen = page.param(int.class, inputName + ".sharpen");
 
         Map<String, Object> edits = new HashMap<>();
 
@@ -117,6 +102,7 @@ public class ImageFileType implements FileContentType {
             edits.put("sharpen", sharpen);
         }
 
+        String blurName = inputName + ".blur";
         if (!ObjectUtils.isBlank(page.params(String.class, blurName))) {
             List<String> blurs = new ArrayList<>();
             for (String blur : page.params(String.class, blurName)) {
@@ -150,6 +136,7 @@ public class ImageFileType implements FileContentType {
         }
 
         // Standard sizes.
+        String cropsName = inputName + ".crops.";
         for (Iterator<Map.Entry<String, ImageCrop>> i = crops.entrySet().iterator(); i.hasNext();) {
             Map.Entry<String, ImageCrop> e = i.next();
             String cropId = e.getKey();
@@ -205,8 +192,8 @@ public class ImageFileType implements FileContentType {
 
         // Focus Point.
         Map<String, Double> focusPoint = new HashMap<>();
-        Double focusX = page.paramOrDefault(Double.class, focusXName, null);
-        Double focusY = page.paramOrDefault(Double.class, focusYName, null);
+        Double focusX = page.paramOrDefault(Double.class, inputName + ".focusX", null);
+        Double focusY = page.paramOrDefault(Double.class, inputName + ".focusY", null);
         if (focusX != null && focusY != null) {
             focusPoint.put("x", focusX);
             focusPoint.put("y", focusY);
@@ -600,6 +587,8 @@ public class ImageFileType implements FileContentType {
                         "src", page.url("/misc/proxy.jsp",
                                 "url", fieldValueUrl,
                                 "hash", StringUtils.hex(StringUtils.hmacSha1(Settings.getSecret(), fieldValueUrl))));
+
+                //TODO: move focus inputs inside .imageEditor.edits
                 page.writeTag("input",
                         "type", "hidden",
                         "name", page.h(inputName + ".focusX"),
