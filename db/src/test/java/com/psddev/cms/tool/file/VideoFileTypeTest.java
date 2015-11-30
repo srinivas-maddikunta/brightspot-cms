@@ -3,7 +3,6 @@ package com.psddev.cms.tool.file;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -16,19 +15,14 @@ import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 import com.psddev.cms.tool.FileContentType;
-import com.psddev.cms.tool.PageWriter;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.util.StorageItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -78,18 +72,22 @@ public class VideoFileTypeTest {
 
         @Test
         public void validatePreview() throws IOException, ServletException {
-            ToolPageContext page = spy(new ToolPageContext((ServletContext) null, null, null));
+
+            // Mock ToolPageContext
             StringWriter writer = new StringWriter();
+            ToolPageContext page = spy(new ToolPageContext((ServletContext) null, null, null));
+
             doReturn(new PrintWriter(writer)).when(page).getDelegate();
+            doReturn("test").when(page).localize(any(), any());
 
+            // Mock StorageItem
             String path = "/video/file.mp4";
-
-            doAnswer(invocation -> "test").when(page).localize(any(), any());
             when(storageItem.getPublicUrl()).thenReturn(path);
 
+            // Write video preview to writer
             videoFileType.writePreview(page, null, storageItem);
 
-            // validate html output
+            // Validate html output
             Document doc = Jsoup.parse(writer.toString());
 
             Element video = doc.select("video").first();
