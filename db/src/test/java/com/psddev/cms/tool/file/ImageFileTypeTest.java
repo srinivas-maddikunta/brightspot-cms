@@ -47,6 +47,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyVararg;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -106,6 +109,9 @@ public class ImageFileTypeTest {
         private static final String SEPIA = "true";
         private static final ImageCrop CROP_1;
         private static final ImageCrop CROP_2;
+        private static final List<StandardImageSize> SIZES;
+        public static final StandardImageSize SIZE1;
+        public static final StandardImageSize SIZE2;
 
         static {
             METADATA = new HashMap<>();
@@ -139,11 +145,29 @@ public class ImageFileTypeTest {
             CROP_2.setWidth(200);
             CROP_2.setHeight(100);
 
-            CROPS.put(StandardImageSizeDatabase.SIZE1.getId().toString(), CROP_1);
-            CROPS.put(StandardImageSizeDatabase.SIZE2.getId().toString(), CROP_2);
-
             FOCUS.put("x", FOCUS_X);
             FOCUS.put("y", FOCUS_Y);
+
+            SIZE1 = new StandardImageSize();
+            SIZE1.setDisplayName("size1");
+            SIZE1.setInternalName("size1");
+            SIZE1.setWidth(100);
+            SIZE1.setHeight(100);
+            SIZE1.getState().setId(UuidUtils.createSequentialUuid());
+
+            SIZE2 = new StandardImageSize();
+            SIZE2.setDisplayName("size2");
+            SIZE2.setInternalName("size2");
+            SIZE2.setWidth(100);
+            SIZE2.setHeight(100);
+            SIZE2.getState().setId(UuidUtils.createSequentialUuid());
+
+            SIZES = new ArrayList<>();
+            SIZES.add(SIZE1);
+            SIZES.add(SIZE2);
+
+            CROPS.put(SIZE1.getId().toString(), CROP_1);
+            CROPS.put(SIZE2.getId().toString(), CROP_2);
         }
 
         ToolPageContext page;
@@ -151,12 +175,14 @@ public class ImageFileTypeTest {
 
         @Mock
         StorageItem storageItem;
-
         @Mock
         State state;
-
         @Mock
         HttpServletRequest request;
+        @Mock
+        Database database;
+        @Mock
+        DatabaseEnvironment databaseEnvironment;
 
         @Before
         public void before() throws IOException {
@@ -168,10 +194,9 @@ public class ImageFileTypeTest {
             doReturn(null).when(data).getDistribution();
             doReturn(data).when(state).as(any());
 
-            // Use Mock Database
-            Database database = spy(StandardImageSizeDatabase.class);
-            DatabaseEnvironment environment = mock(DatabaseEnvironment.class);
-            doReturn(environment).when(database).getEnvironment();
+            // Prepare Mock Database
+            doReturn(SIZES).when(database).readAll(anyObject());
+            doReturn(databaseEnvironment).when(database).getEnvironment();
             Database.Static.overrideDefault(database);
 
             // Override ImageEditor
@@ -246,8 +271,8 @@ public class ImageFileTypeTest {
             assertTrue(sizeRows.size() == 2);
 
 
-            validateCropInputs(sizeRows.get(0), StandardImageSizeDatabase.SIZE1, CROP_1);
-            validateCropInputs(sizeRows.get(1), StandardImageSizeDatabase.SIZE2, CROP_2);
+            validateCropInputs(sizeRows.get(0), SIZE1, CROP_1);
+            validateCropInputs(sizeRows.get(1), SIZE2, CROP_2);
         }
 
         private void validateEditInput(Element container, String inputName, String expectedValue) {
@@ -268,59 +293,6 @@ public class ImageFileTypeTest {
         private void validateInput(Element input, String expectedValue) {
             assertNotNull(input);
             assertEquals(input.attr("value"), expectedValue);
-        }
-    }
-
-    @Ignore
-    public static class StandardImageSizeDatabase extends AbstractDatabase<Object> {
-
-        public static final StandardImageSize SIZE1;
-        public static final StandardImageSize SIZE2;
-
-        static {
-            SIZE1 = new StandardImageSize();
-            SIZE1.setDisplayName("size1");
-            SIZE1.setInternalName("size1");
-            SIZE1.setWidth(100);
-            SIZE1.setHeight(100);
-            SIZE1.getState().setId(UuidUtils.createSequentialUuid());
-
-            SIZE2 = new StandardImageSize();
-            SIZE2.setDisplayName("size2");
-            SIZE2.setInternalName("size2");
-            SIZE2.setWidth(100);
-            SIZE2.setHeight(100);
-            SIZE2.getState().setId(UuidUtils.createSequentialUuid());
-        }
-
-        @Override
-        public Object openConnection() {
-            return null;
-        }
-
-        @Override
-        public void closeConnection(Object o) {
-
-        }
-
-        @Override
-        protected void doInitialize(String s, Map<String, Object> map) {
-
-        }
-
-        @Override
-        public Date readLastUpdate(Query<?> query) {
-            return null;
-        }
-
-        @Override
-        public <T> PaginatedResult<T> readPartial(Query<T> query, long l, int i) {
-            List<T> result = new ArrayList<>();
-
-            result.add((T) SIZE1);
-            result.add((T) SIZE2);
-
-            return new PaginatedResult<>(l, i, result);
         }
     }
 
