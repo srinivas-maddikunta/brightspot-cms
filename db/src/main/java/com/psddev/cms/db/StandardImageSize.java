@@ -19,31 +19,6 @@ public class StandardImageSize extends Record {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StandardImageSize.class);
 
-    private static final PullThroughValue<PeriodicValue<List<StandardImageSize>>>
-            ALL = new PullThroughValue<PeriodicValue<List<StandardImageSize>>>() {
-
-        @Override
-        protected PeriodicValue<List<StandardImageSize>> produce() {
-            return new PeriodicValue<List<StandardImageSize>>() {
-
-                @Override
-                protected List<StandardImageSize> update() {
-
-                    Query<StandardImageSize> query = Query.from(StandardImageSize.class).sortAscending("displayName");
-                    Date cacheUpdate = getUpdateDate();
-                    Date databaseUpdate = query.lastUpdate();
-                    if (databaseUpdate == null || (cacheUpdate != null && !databaseUpdate.after(cacheUpdate))) {
-                        List<StandardImageSize> sizes = get();
-                        return sizes != null ? sizes : Collections.<StandardImageSize>emptyList();
-                    }
-
-                    LOGGER.info("Loading image sizes");
-                    return query.selectAll();
-                }
-            };
-        }
-    };
-
     @Indexed(unique = true)
     @Required
     private String displayName;
@@ -60,11 +35,6 @@ public class StandardImageSize extends Record {
 
     private CropOption cropOption;
     private ResizeOption resizeOption;
-
-    /** Returns a list of all the image sizes. */
-    public static List<StandardImageSize> findAll() {
-        return ALL.get().get();
-    }
 
     public String getDisplayName() {
         return displayName;
@@ -120,5 +90,38 @@ public class StandardImageSize extends Record {
 
     public void setResizeOption(ResizeOption resizeOption) {
         this.resizeOption = resizeOption;
+    }
+
+    @Deprecated
+    private static final PullThroughValue<PeriodicValue<List<StandardImageSize>>>
+            ALL = new PullThroughValue<PeriodicValue<List<StandardImageSize>>>() {
+
+        @Override
+        protected PeriodicValue<List<StandardImageSize>> produce() {
+            return new PeriodicValue<List<StandardImageSize>>() {
+
+                @Override
+                protected List<StandardImageSize> update() {
+
+                    Query<StandardImageSize> query = Query.from(StandardImageSize.class).sortAscending("displayName");
+                    Date cacheUpdate = getUpdateDate();
+                    Date databaseUpdate = query.lastUpdate();
+                    if (databaseUpdate == null || (cacheUpdate != null && !databaseUpdate.after(cacheUpdate))) {
+                        List<StandardImageSize> sizes = get();
+                        return sizes != null ? sizes : Collections.<StandardImageSize>emptyList();
+                    }
+
+                    LOGGER.info("Loading image sizes");
+                    return query.selectAll();
+                }
+            };
+        }
+    };
+
+    /**
+     * @deprecated Use {@link Query#selectAll()} instead.
+     */
+    public static List<StandardImageSize> findAll() {
+        return ALL.get().get();
     }
 }

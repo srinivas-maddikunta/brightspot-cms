@@ -21,6 +21,7 @@ import com.psddev.cms.db.StandardImageSize;
 import com.psddev.cms.tool.FileContentType;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ColorDistribution;
+import com.psddev.dari.db.Query;
 import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.CollectionUtils;
@@ -141,7 +142,7 @@ public class ImageFileType implements FileContentType {
 
         crops = new TreeMap<>(crops);
 
-        for (StandardImageSize size : StandardImageSize.findAll()) {
+        for (StandardImageSize size : Query.from(StandardImageSize.class).selectAll()) {
             String sizeId = size.getId().toString();
             if (crops.get(sizeId) == null) {
                 crops.put(sizeId, new ImageCrop());
@@ -251,7 +252,7 @@ public class ImageFileType implements FileContentType {
         crops = new TreeMap<>(crops);
 
         Map<String, StandardImageSize> sizes = new HashMap<>();
-        for (StandardImageSize size : StandardImageSize.findAll()) {
+        for (StandardImageSize size : Query.from(StandardImageSize.class).selectAll()) {
             String sizeId = size.getId().toString();
             sizes.put(sizeId, size);
             if (crops.get(sizeId) == null) {
