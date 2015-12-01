@@ -1,7 +1,6 @@
 package com.psddev.cms.tool.file;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -28,6 +27,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.runners.MockitoJUnitRunner;
+import com.google.common.collect.ImmutableMap;
+import com.psddev.cms.TestStorageItem;
 import com.psddev.cms.db.ImageCrop;
 import com.psddev.cms.db.StandardImageSize;
 import com.psddev.cms.tool.FileContentType;
@@ -36,7 +37,6 @@ import com.psddev.dari.db.ColorDistribution;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.State;
-import com.psddev.dari.util.AbstractStorageItem;
 import com.psddev.dari.util.ImageEditor;
 import com.psddev.dari.util.JavaImageEditor;
 import com.psddev.dari.util.ObjectUtils;
@@ -444,25 +444,6 @@ public class ImageFileTypeTest {
 
         @Override
         public void initialize(String s, Map<String, Object> map) {
-
-        }
-    }
-
-    @Ignore
-    public static class TestStorageItem extends AbstractStorageItem {
-
-        @Override
-        public boolean isInStorage() {
-            return false;
-        }
-
-        @Override
-        protected InputStream createData() throws IOException {
-            return null;
-        }
-
-        @Override
-        protected void saveData(InputStream data) throws IOException {
 
         }
     }
