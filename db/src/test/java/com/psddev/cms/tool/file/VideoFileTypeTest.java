@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import com.psddev.cms.tool.FileContentType;
+import com.psddev.cms.tool.TestToolPageContext;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.util.StorageItem;
 import static org.junit.Assert.assertEquals;
@@ -74,11 +75,7 @@ public class VideoFileTypeTest {
         public void validatePreview() throws IOException, ServletException {
 
             // Mock ToolPageContext
-            StringWriter writer = new StringWriter();
-            ToolPageContext page = spy(new ToolPageContext((ServletContext) null, null, null));
-
-            doReturn(new PrintWriter(writer)).when(page).getDelegate();
-            doReturn("test").when(page).localize(any(), any());
+            TestToolPageContext page = spy(new TestToolPageContext(null, null, null));
 
             // Mock StorageItem
             String path = "/video/file.mp4";
@@ -88,7 +85,7 @@ public class VideoFileTypeTest {
             videoFileType.writePreview(page, null, storageItem);
 
             // Validate html output
-            Document doc = Jsoup.parse(writer.toString());
+            Document doc = page.getDocument();
 
             Element video = doc.select("video").first();
             assertNotNull(video);

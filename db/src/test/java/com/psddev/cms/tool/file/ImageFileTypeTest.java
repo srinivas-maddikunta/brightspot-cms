@@ -32,6 +32,7 @@ import com.psddev.cms.TestStorageItem;
 import com.psddev.cms.db.ImageCrop;
 import com.psddev.cms.db.StandardImageSize;
 import com.psddev.cms.tool.FileContentType;
+import com.psddev.cms.tool.TestToolPageContext;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ColorDistribution;
 import com.psddev.dari.db.Database;
@@ -304,8 +305,7 @@ public class ImageFileTypeTest {
     @RunWith(MockitoJUnitRunner.class)
     public static class PreviewTest {
 
-        ToolPageContext page;
-        StringWriter writer;
+        TestToolPageContext page;
 
         @Mock
         StorageItem storageItem;
@@ -340,14 +340,10 @@ public class ImageFileTypeTest {
             Settings.setOverride(imageEditorPrefix + "class", TestImageEditor.class.getName());
 
             // Prepare ToolPageContext
-            page = spy(new ToolPageContext((ServletContext) null, null, null));
+            page = spy(new TestToolPageContext(null, null, null));
 
             when(request.getParameter(eq("inputName"))).thenReturn(FIELD_NAME);
             doReturn(request).when(page).getRequest();
-
-            writer = new StringWriter();
-            doReturn(new PrintWriter(writer)).when(page).getDelegate();
-            doReturn("test").when(page).localize(any(), any());
         }
 
         @After
@@ -369,7 +365,7 @@ public class ImageFileTypeTest {
             // Writes image preview to writer
             new ImageFileType().writePreview(page, state, storageItem);
 
-            Document doc = Jsoup.parse(writer.toString());
+            Document doc = page.getDocument();
 
             // Verify Tools
             Element toolsContainer = doc.select(".imageEditor-tools").first();
