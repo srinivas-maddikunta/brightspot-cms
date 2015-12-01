@@ -61,17 +61,17 @@ public class StorageItemField extends PageServlet {
         StorageItem fieldValue = null;
 
         if (state != null) {
-            fieldValue = (StorageItem) state.getValue(fieldName);
+            fieldValue = (StorageItem) state.get(fieldName);
         } else {
             // handles processing of files uploaded on frontend
             UUID typeId = page.param(UUID.class, "typeId");
             ObjectType type = ObjectType.getInstance(typeId);
             field = type.getField(fieldName);
             state = State.getInstance(type.createObject(null));
-            fieldValue = StorageItemFilter.getParameter(request, fileJsonParamName, getStorageSetting(Optional.of(field)));
+            fieldValue = StorageItemFilter.getParameter(request, fileJsonParamName, getStorageSetting(Optional.ofNullable(field)));
         }
 
-        String action = page.param(actionName);
+        String action = page.param(String.class, actionName);
         boolean isFormPost = request.getAttribute("isFormPost") != null ? (Boolean) request.getAttribute("isFormPost") : false;
 
         Class hotSpotClass = ObjectUtils.getClassByName(ImageTag.HOTSPOT_CLASS);
@@ -82,10 +82,10 @@ public class StorageItemField extends PageServlet {
             StorageItem newItem = null;
 
             if ("keep".equals(action)) {
-                newItem = StorageItemFilter.getParameter(request, fileJsonParamName, getStorageSetting(Optional.of(field)));
+                newItem = StorageItemFilter.getParameter(request, fileJsonParamName, getStorageSetting(Optional.ofNullable(field)));
 
             } else if ("newUpload".equals(action)) {
-                newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.of(field)));
+                newItem = StorageItemFilter.getParameter(request, fileParamName, getStorageSetting(Optional.ofNullable(field)));
 
             } else if ("dropbox".equals(action)) {
                 Map<String, Object> fileData = (Map<String, Object>) ObjectUtils.fromJson(page.param(String.class, dropboxName));
@@ -133,7 +133,7 @@ public class StorageItemField extends PageServlet {
                     }
                 }
             } else if ("newUrl".equals(action)) {
-                newItem = StorageItem.Static.createUrl(page.param(urlName));
+                newItem = StorageItem.Static.createUrl(page.param(String.class, urlName));
             }
 
             // Do additional processing specific to content type
@@ -144,7 +144,7 @@ public class StorageItemField extends PageServlet {
                 }
             }
 
-            state.putValue(fieldName, newItem);
+            state.put(fieldName, newItem);
 
             if (projectUsingBrightSpotImage) {
                 page.include("set/hotSpot.jsp");
