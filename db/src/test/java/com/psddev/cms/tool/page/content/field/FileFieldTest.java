@@ -22,10 +22,14 @@ import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.TestToolPageContext;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.tool.page.StorageItemField;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyVararg;
 import static org.mockito.Matchers.eq;
@@ -35,12 +39,9 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(Enclosed.class)
-public class StorageItemFieldTest {
+public class FileFieldTest {
 
     static final String INPUT_NAME = "file";
     static final String FIELD_NAME = "file";
@@ -97,7 +98,7 @@ public class StorageItemFieldTest {
             when(request.getParameterValues(INPUT_NAME + ".file.json"))
                     .thenReturn(new String[]{ObjectUtils.toJson(storageItem)});
 
-            StorageItemField.processField(page);
+            FileField.processField(page);
 
             compareStorageItem((StorageItem) state.getRawValue(FIELD_NAME), storageItem);
             verifyNoPageWrites(page);
@@ -110,7 +111,7 @@ public class StorageItemFieldTest {
             when(request.getParameterValues(INPUT_NAME + ".file"))
                     .thenReturn(new String[]{ObjectUtils.toJson(storageItem)});
 
-            StorageItemField.processField(page);
+            FileField.processField(page);
 
             compareStorageItem((StorageItem) state.getRawValue(FIELD_NAME), storageItem);
             verifyNoPageWrites(page);
@@ -123,7 +124,7 @@ public class StorageItemFieldTest {
             when(request.getParameter(INPUT_NAME + ".url"))
                     .thenReturn(storageItem.getPath());
 
-            StorageItemField.processField(page);
+            FileField.processField(page);
 
             compareStorageItem((StorageItem) state.getRawValue(FIELD_NAME), storageItem);
 
@@ -189,7 +190,7 @@ public class StorageItemFieldTest {
 
         @Test
         public void noFieldValue() throws IOException, ServletException {
-            StorageItemField.processField(page);
+            FileField.processField(page);
 
             Document doc = page.getDocument();
             Element inputWrapper = doc.select(".inputSmall").first();
@@ -206,7 +207,7 @@ public class StorageItemFieldTest {
         public void existingFieldValue() throws IOException, ServletException {
             state.put(INPUT_NAME, storageItem);
 
-            StorageItemField.processField(page);
+            FileField.processField(page);
 
             Document doc = page.getDocument();
             Element inputWrapper = doc.select(".inputSmall").first();

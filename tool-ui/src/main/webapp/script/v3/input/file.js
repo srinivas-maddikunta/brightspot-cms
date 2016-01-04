@@ -118,7 +118,7 @@ function ($, bsp_utils, uploader) {
       $uploadPreview.removeClass('loading');
 
       $.ajax({
-        url: window.CONTEXT_PATH + 'content/field/storageItem',
+        url: window.CONTEXT_PATH + 'content/field/file',
         dataType: 'html',
         data: params
       }).done(function (htmlResponse) {
@@ -151,7 +151,7 @@ function ($, bsp_utils, uploader) {
 
       // gets dims image preview
       $.ajax({
-        url: window.CONTEXT_PATH + 'content/uploadFiles',
+        url: window.CONTEXT_PATH + 'content/upload',
         dataType: 'html',
         data: params
       }).done(function (html) {

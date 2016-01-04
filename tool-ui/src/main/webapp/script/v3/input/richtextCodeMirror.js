@@ -539,8 +539,6 @@ define([
                 }
             }
 
-            self.rawCleanup();
-
             return mark;
         },
 
@@ -613,6 +611,14 @@ define([
          *
          * @param Object [range=current selection]
          * The range of positions {from,to} 
+         *
+         * @param Object [options]
+         * Set of key/value pairs to specify options.
+         * These options will be passed as mark options when the mark is created.
+         *
+         * @param Object [options.triggerChange=true]
+         * Set this to false if you do not want to trigger the rteChange event after setting the style.
+         * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
          */
         inlineSetStyle: function(style, range, options) {
             
@@ -678,7 +684,9 @@ define([
             // Trigger a cursorActivity event so for example toolbar can pick up changes
             CodeMirror.signal(editor, "cursorActivity");
 
-            self.triggerChange();
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
             
             return mark;
             
@@ -1436,7 +1444,7 @@ define([
             
             $.each(editor.getAllMarks(), function(i, mark) {
 
-                var pos, styleObj, from, to;
+                var pos, styleObj, from, to, marks;
                 
                 // Is this a "raw" mark?
                 styleObj = self.classes[mark.className] || {};
@@ -1451,8 +1459,38 @@ define([
                     from = pos.from;
                     to = pos.to;
 
-                    // Clear other styles
-                    self.inlineRemoveStyle('', {from:from, to:to}, {includeTrack:true, except:mark.className, triggerChange:false});
+                    // Determine if there are other marks in this range
+                    marks = editor.findMarks(from, to);
+                    if (marks.length > 1) {
+
+                        $.each(marks, function(i, markInside) {
+
+                            var posInside;
+
+                            // Skip this mark if it is the raw mark
+                            if (markInside.className === mark.className) {
+                                return;
+                            }
+
+                            posInside = markInside.find() || {};
+                            
+                            // Make sure the mark is actually inside the raw area
+                            if (posInside.from.ch === pos.to.ch || posInside.to.ch === pos.from.ch) {
+                                
+                                // Don't do anything because the mark is next to the raw mark, not inside it
+                                
+                            } else {
+                                
+                                // Clear other styles within the raw mark
+                                self.inlineRemoveStyle('', {from:from, to:to}, {includeTrack:true, except:mark.className, triggerChange:false});
+
+                                // Return false to exit the each loop
+                                return false;
+                            }
+                            
+                        });
+
+                    }
                 }
                 
             });
@@ -1668,15 +1706,24 @@ define([
          *
          * @param Object [range=current selection]
          * The range of positions {from,to}.
+         *
+         * @param Object [options]
+         * Set of key/value pairs to specify options.
+         * These options will be passed as mark options when the mark is created.
+         *
+         * @param Object [options.triggerChange=true]
+         * Set this to false if you do not want to trigger the rteChange event after setting the style.
+         * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
          */
-        blockSetStyle: function(style, range) {
+        blockSetStyle: function(style, range, options) {
 
             var className, editor, lineNumber, self, styleObj;
 
             self = this;
             editor = self.codeMirror;
             range = range || self.getRange();
-
+            options = options || {};
+            
             if (typeof style === 'string') {
                 styleObj = self.styles[style];
             } else {
@@ -1698,8 +1745,10 @@ define([
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
             editor.refresh();
-            
-            self.triggerChange();
+
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
         },
 
         
@@ -4779,9 +4828,9 @@ define([
                 }
                 
                 if (styleObj.line) {
-                    self.blockSetStyle(styleObj, annotation);
+                    self.blockSetStyle(styleObj, annotation, {triggerChange:false});
                 } else {
-                    self.inlineSetStyle(styleObj, annotation, {addToHistory:false});
+                    self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false});
                 }
             });
 

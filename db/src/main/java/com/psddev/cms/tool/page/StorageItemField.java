@@ -42,6 +42,7 @@ import com.psddev.dari.util.AggregateException;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.ImageMetadataMap;
 import com.psddev.dari.util.IoUtils;
+import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.MultipartRequest;
 import com.psddev.dari.util.MultipartRequestFilter;
 import com.psddev.dari.util.ObjectUtils;
@@ -56,7 +57,7 @@ import com.psddev.dari.util.TypeReference;
  * @deprecated
  *
  * Legacy StorageItemField implementation. Will be replaced
- * by com.psddev.cms.tool.page.content.field.StorageItemField.
+ * by {@link com.psddev.cms.tool.page.content.field.FileField}.
  *
  */
 
@@ -625,8 +626,9 @@ public class StorageItemField extends PageServlet {
                         ToolUi ui = field.as(ToolUi.class);
                         String processorPath = ui.getStoragePreviewProcessorPath();
                         if (processorPath != null) {
-                            page.include(RoutingFilter.Static.getApplicationPath(ui.getStoragePreviewProcessorApplication())
-                                    + StringUtils.ensureStart(processorPath, "/"));
+                            JspUtils.include(request, page.getResponse(), page.getWriter(),
+                                    RoutingFilter.Static.getApplicationPath(ui.getStoragePreviewProcessorApplication())
+                                            + StringUtils.ensureStart(processorPath, "/"));
                         }
                     } else {
                         FileContentType.writeFilePreview(page, state, fieldValue);

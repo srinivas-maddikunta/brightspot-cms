@@ -28,6 +28,7 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.IoUtils;
+import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RandomUuidStorageItemPathGenerator;
 import com.psddev.dari.util.RoutingFilter;
@@ -37,10 +38,10 @@ import com.psddev.dari.util.StorageItemFilter;
 import com.psddev.dari.util.StorageItemUploadPart;
 import com.psddev.dari.util.StringUtils;
 
-@RoutingFilter.Path(application = "cms", value = "/content/field/storageItem")
-public class StorageItemField extends PageServlet {
+@RoutingFilter.Path(application = "cms", value = "/content/field/file")
+public class FileField extends PageServlet {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StorageItemField.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileField.class);
 
     public static void processField(ToolPageContext page) throws IOException, ServletException {
 
@@ -62,13 +63,15 @@ public class StorageItemField extends PageServlet {
 
         if (state != null) {
             fieldValue = (StorageItem) state.get(fieldName);
-        } else {
-            // handles processing of files uploaded on frontend
+        } else if (page.isAjaxRequest()) {
+            // Handles requests from front end upload
             UUID typeId = page.param(UUID.class, "typeId");
             ObjectType type = ObjectType.getInstance(typeId);
             field = type.getField(fieldName);
             state = State.getInstance(type.createObject(null));
             fieldValue = StorageItemFilter.getParameter(request, fileJsonParamName, getStorageSetting(Optional.ofNullable(field)));
+            request.setAttribute("object", state);
+            request.setAttribute("field", field);
         }
 
         String action = page.param(String.class, actionName);
@@ -147,7 +150,7 @@ public class StorageItemField extends PageServlet {
             state.put(fieldName, newItem);
 
             if (projectUsingBrightSpotImage) {
-                page.include("set/hotSpot.jsp");
+                page.include("/WEB-INF/field/set/hotSpot.jsp");
             }
             return;
 
@@ -168,14 +171,14 @@ public class StorageItemField extends PageServlet {
                                 "data-hide", ".fileSelectorItem",
                                 "data-show", ".fileSelectorExisting",
                                 "value", "keep");
-                            page.writeHtml(page.localize(StorageItemField.class, "option.keep"));
+                            page.writeHtml(page.localize(FileField.class, "option.keep"));
                         page.writeEnd();
                     }
 
                     page.writeStart("option",
                             "data-hide", ".fileSelectorItem",
                             "value", "none");
-                        page.writeHtml(page.localize(StorageItemField.class, "option.none"));
+                        page.writeHtml(page.localize(FileField.class, "option.none"));
                     page.writeEnd();
 
                     page.writeStart("option",
@@ -183,14 +186,14 @@ public class StorageItemField extends PageServlet {
                             "data-show", ".fileSelectorNewUpload",
                             "value", "newUpload",
                             fieldValue == null && field.isRequired() ? " selected" : "");
-                        page.writeHtml(page.localize(StorageItemField.class, "option.newUpload"));
+                        page.writeHtml(page.localize(FileField.class, "option.newUpload"));
                     page.writeEnd();
 
                     page.writeStart("option",
                             "data-hide", ".fileSelectorItem",
                             "data-show", ".fileSelectorNewUrl",
                             "value", "newUrl");
-                        page.writeHtml(page.localize(StorageItemField.class, "option.newUrl"));
+                        page.writeHtml(page.localize(FileField.class, "option.newUrl"));
                     page.writeEnd();
 
                     if (!ObjectUtils.isBlank(page.getCmsTool().getDropboxApplicationKey())) {
@@ -252,8 +255,9 @@ public class StorageItemField extends PageServlet {
                         ToolUi ui = field.as(ToolUi.class);
                         String processorPath = ui.getStoragePreviewProcessorPath();
                         if (processorPath != null) {
-                            page.include(RoutingFilter.Static.getApplicationPath(ui.getStoragePreviewProcessorApplication())
-                                    + StringUtils.ensureStart(processorPath, "/"));
+                            JspUtils.include(request, page.getResponse(), page.getWriter(),
+                                    RoutingFilter.Static.getApplicationPath(ui.getStoragePreviewProcessorApplication())
+                                            + StringUtils.ensureStart(processorPath, "/"));
                         }
                     } else {
                         FileContentType.writeFilePreview(page, state, fieldValue);
@@ -263,7 +267,7 @@ public class StorageItemField extends PageServlet {
         page.writeEnd();
 
         if (projectUsingBrightSpotImage) {
-            page.include("set/hotSpot.jsp");
+            page.include("/WEB-INF/field/set/hotSpot.jsp");
         }
     }
 
