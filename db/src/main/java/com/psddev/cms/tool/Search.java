@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
@@ -511,6 +512,24 @@ public class Search extends Record {
 
     }
 
+    public static void restrictQueryToUserAccessibleTypes(ToolPageContext page, Query query) {
+        Set<UUID> restrictedTypes = new HashSet<>();
+        Set<UUID> allowedTypes = new HashSet<>();
+        for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypesByGroup(Content.SEARCHABLE_GROUP)) {
+            if (page.hasPermission("type/" + type.getId() + "/write")) {
+                allowedTypes.add(type.getId());
+            } else {
+                restrictedTypes.add(type.getId());
+            }
+        }
+
+        if (restrictedTypes.size() > allowedTypes.size()) {
+            query.and("_type = ?", allowedTypes);
+        } else if (restrictedTypes.size() > 0) {
+            query.and("_type != ?", restrictedTypes);
+        }
+    }
+
     public Query<?> toQuery(Site site) {
 
         // If the query string is an URL, hit it to find the ID.
@@ -896,7 +915,9 @@ public class Search extends Record {
         }
 
         if (validTypeIds != null) {
-            query.and("_type = ?", validTypeIds);
+            query.and("_type = ?", validTypeIds.stream().filter(typeId -> page.hasPermission("type/" + typeId + "/write")).collect(Collectors.toSet()));
+        } else if (page != null && page.getUser() != null && page.getUser().getRole() != null && page.getUser().getRole().getPermissions().contains("+type/")) {
+            restrictQueryToUserAccessibleTypes(page, query);
         }
 
         String color = getColor();

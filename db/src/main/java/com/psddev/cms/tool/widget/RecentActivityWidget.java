@@ -94,6 +94,10 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                 visibilitiesFilter = item -> State.getInstance(item).isVisible();
             }
 
+            if (itemType == null) {
+                Search.restrictQueryToUserAccessibleTypes(page, contentQuery);
+            }
+
             QueryRestriction.updateQueryUsingAll(contentQuery, page);
 
             result = contentQuery.and("_any matches *").selectFiltered(offset, limit, visibilitiesFilter);
