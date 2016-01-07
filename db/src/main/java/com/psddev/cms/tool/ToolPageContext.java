@@ -44,10 +44,13 @@ import javax.servlet.jsp.PageContext;
 import com.google.common.base.MoreObjects;
 import com.ibm.icu.text.MessageFormat;
 import com.psddev.cms.db.PageFilter;
+import com.psddev.cms.db.RichTextElement;
+import com.psddev.cms.tool.file.SvgFileType;
 import com.psddev.cms.view.PageViewClass;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.util.CascadingMap;
+import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.CollectionUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -564,8 +567,11 @@ public class ToolPageContext extends WebPageContext {
         try {
             String pattern = bundle.getString(key);
 
-            return new String(pattern.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-
+            if (bundle instanceof ObjectTypeResourceBundle) {
+                return pattern;
+            } else {
+                return new String(pattern.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+            }
         } catch (MissingResourceException error) {
             return null;
         }
@@ -1278,10 +1284,18 @@ public class ToolPageContext extends WebPageContext {
      */
     public String getPreviewThumbnailUrl(Object object) {
         if (object != null) {
-            StorageItem preview = State.getInstance(object).getPreview();
+
+            StorageItem preview = object instanceof StorageItem
+                    ? (StorageItem) object
+                    : State.getInstance(object).getPreview();
 
             if (preview != null) {
-                if (ImageEditor.Static.getDefault() != null) {
+
+                String contentType = preview.getContentType();
+
+                if (ImageEditor.Static.getDefault() != null
+                        && (contentType != null && !contentType.equals(SvgFileType.CONTENT_TYPE))) {
+
                     return new ImageTag.Builder(preview)
                             .setHeight(300)
                             .setResizeOption(ResizeOption.ONLY_SHRINK_LARGER)
@@ -1916,6 +1930,23 @@ public class ToolPageContext extends WebPageContext {
             commonTimes.add(commonTimeMap);
         }
 
+        List<Map<String, Object>> richTextElements = new ArrayList<>();
+
+        for (Class<? extends RichTextElement> c : ClassFinder.findConcreteClasses(RichTextElement.class)) {
+            RichTextElement.Tag tag = c.getAnnotation(RichTextElement.Tag.class);
+
+            if (tag != null) {
+                Map<String, Object> richTextElement = new CompactMap<>();
+                ObjectType type = ObjectType.getInstance(c);
+
+                richTextElement.put("tag", tag.value());
+                richTextElement.put("styleName", type.getInternalName().replace(".", "-"));
+                richTextElement.put("typeId", type.getId().toString());
+                richTextElement.put("displayName", type.getDisplayName());
+                richTextElements.add(richTextElement);
+            }
+        }
+
         writeStart("script", "type", "text/javascript");
             write("var CONTEXT_PATH = '", cmsUrl("/"), "';");
             write("var UPLOAD_PATH = ", "'" + Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "';");
@@ -1925,6 +1956,7 @@ public class ToolPageContext extends WebPageContext {
             write("var RTE_ENABLE_ANNOTATIONS = ", getCmsTool().isEnableAnnotations(), ';');
             write("var DISABLE_TOOL_CHECKS = ", getCmsTool().isDisableToolChecks(), ';');
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
+            write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
             write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ", getCmsTool().isDisableCodeMirrorRichTextEditor(), ';');
             write("var DISABLE_RTC = ", getCmsTool().isDisableRtc(), ';');
         writeEnd();
