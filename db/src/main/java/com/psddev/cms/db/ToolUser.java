@@ -16,7 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -37,6 +36,9 @@ import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.Password;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
+
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 /** User that uses the CMS and other related tools. */
 @ToolUi.DefaultSortField("name")
@@ -454,8 +456,7 @@ public class ToolUser extends Record implements ToolEntity {
 
         Site currentSite = getCurrentSite();
 
-        return Site.Static.findAll()
-            .stream()
+        return StreamSupport.stream(Site.Static.findAll())
             .filter((Site site) -> hasPermission(site.getPermissionId()) && !ObjectUtils.equals(currentSite, site))
             .collect(Collectors.toList());
     }

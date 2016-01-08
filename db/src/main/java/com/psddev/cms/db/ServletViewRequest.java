@@ -8,9 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
+import java8.util.Spliterators;
+import java8.util.stream.Stream;
+import java8.util.stream.StreamSupport;
 
 /**
  * ViewRequest implementation that uses the Java Servlet Spec for handling HTTP
@@ -56,6 +58,6 @@ class ServletViewRequest implements ViewRequest {
     @Override
     public <T> Stream<T> getParameter(Class<T> returnType, String name) {
         String[] values = request.getParameterValues(name);
-        return values != null ? Arrays.stream(values).map((param) -> ObjectUtils.to(returnType, param)).filter((value) -> value != null) : Stream.empty();
+        return values != null ? StreamSupport.stream(Arrays.asList(values)).map((param) -> ObjectUtils.to(returnType, param)).filter((value) -> value != null) : StreamSupport.stream(Spliterators.<T>emptySpliterator(), false);
     }
 }

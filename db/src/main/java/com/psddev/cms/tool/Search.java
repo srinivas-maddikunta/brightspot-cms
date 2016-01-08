@@ -23,8 +23,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
@@ -55,6 +53,8 @@ import com.psddev.dari.util.PaginatedResult;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UuidUtils;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 public class Search extends Record {
 
@@ -809,9 +809,15 @@ public class Search extends Record {
                 int count = ObjectUtils.to(int.class, globalFilters.get(key + "#"));
 
                 if (count > 0) {
+
+                    List<Integer> range = new ArrayList<>();
+                    for (int i = 0; i < count; i++) {
+                        range.add(i);
+                    }
+
                     query.and("* matches ?",
-                            IntStream.range(0, count)
-                                    .mapToObj(i -> globalFilters.get(key + i))
+                            StreamSupport.stream(range)
+                                    .map(i -> globalFilters.get(key + i))
                                     .collect(Collectors.toSet()));
 
                 } else {
@@ -883,9 +889,14 @@ public class Search extends Record {
                         int count = ObjectUtils.to(int.class, value.get("#"));
 
                         if (count > 0) {
+                            List<Integer> range = new ArrayList<>();
+                            for (int i = 0; i < count; i++) {
+                                range.add(i);
+                            }
+
                             query.and(fieldName + " = ?",
-                                    IntStream.range(0, count)
-                                            .mapToObj(i -> value.get(String.valueOf(i)))
+                                    StreamSupport.stream(range)
+                                            .map(i -> value.get(String.valueOf(i)))
                                             .collect(Collectors.toSet()));
 
                         } else {

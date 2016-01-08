@@ -28,11 +28,8 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
@@ -119,6 +116,10 @@ import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.TypeReference;
 import com.psddev.dari.util.Utf8Filter;
 import com.psddev.dari.util.WebPageContext;
+import java8.util.function.Functions;
+import java8.util.stream.Collectors;
+import java8.util.stream.Stream;
+import java8.util.stream.StreamSupport;
 
 /**
  * {@link WebPageContext} with extra methods that work well with
@@ -1335,7 +1336,7 @@ public class ToolPageContext extends WebPageContext {
 
             String label = getObjectLabelOrDefault(state, DEFAULT_OBJECT_LABEL);
 
-            if (WHITESPACE_PATTERN.splitAsStream(label)
+            if (StreamSupport.stream(Arrays.asList(label.split(WHITESPACE_PATTERN.pattern())))
                     .filter(word -> word.length() > 41)
                     .findFirst()
                     .isPresent()) {
@@ -2156,11 +2157,11 @@ public class ToolPageContext extends WebPageContext {
      *                   type permission will not be checked.
      * @return a new {@code Predicate<ObjectType>}
      */
-    public java.util.function.Predicate<ObjectType> createTypeDisplayPredicate(Collection<String> permissions) {
+    public java8.util.function.Predicate<ObjectType> createTypeDisplayPredicate(Collection<String> permissions) {
 
         return (ObjectType type) ->
             type.isConcrete()
-                && (ObjectUtils.isBlank(permissions) || permissions.stream().allMatch((String permission) -> hasPermission("type/" + type.getId() + "/" + permission)))
+                && (ObjectUtils.isBlank(permissions) || StreamSupport.stream(permissions).allMatch((String permission) -> hasPermission("type/" + type.getId() + "/" + permission)))
                 && (getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses() || type.getObjectClass() != null)
                 && !(Draft.class.equals(type.getObjectClass()))
                 && (!type.isDeprecated() || Query.fromType(type).hasMoreThan(0));
@@ -2768,13 +2769,14 @@ public class ToolPageContext extends WebPageContext {
                     }
 
                     // prevents empty tab from displaying on Singletons
-                    fields.removeIf(f -> f.getInternalName().equals("dari.singleton.key"));
+                    fields = StreamSupport.stream(fields).filter(f -> !f.getInternalName().equals("dari.singleton.key")).collect(Collectors.toList());
+                    //fields.removeIf(f -> f.getInternalName().equals("dari.singleton.key"));
 
                     DependencyResolver<ObjectField> resolver = new DependencyResolver<>();
-                    Map<String, ObjectField> fieldByName = fields.stream()
-                            .collect(Collectors.toMap(ObjectField::getInternalName, Function.identity()));
+                    Map<String, ObjectField> fieldByName = StreamSupport.stream(fields)
+                            .collect(Collectors.toMap(ObjectField::getInternalName, Functions.identity()));
 
-                    fields.forEach(field -> {
+                    StreamSupport.stream(fields).forEach(field -> {
                         ToolUi ui = field.as(ToolUi.class);
 
                         toFields(fieldByName, ui.getDisplayAfter())
@@ -2843,7 +2845,7 @@ public class ToolPageContext extends WebPageContext {
     }
 
     private static Stream<ObjectField> toFields(Map<String, ObjectField> fieldByName, Collection<String> fieldNames) {
-        return fieldNames.stream()
+        return StreamSupport.stream(fieldNames)
                 .map(fieldByName::get)
                 .filter(f -> f != null);
     }

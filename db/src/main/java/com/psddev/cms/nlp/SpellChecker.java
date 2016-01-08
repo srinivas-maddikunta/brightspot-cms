@@ -5,12 +5,11 @@ import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.Lazy;
 import com.psddev.dari.util.TypeDefinition;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 /**
  * Spell checker.
@@ -36,21 +35,7 @@ public interface SpellChecker {
      * @see ResourceBundle.Control#getCandidateLocales(String, Locale)
      */
     static List<String> createDictionaryNames(String baseName, Locale locale) {
-        Preconditions.checkNotNull(baseName);
-        Preconditions.checkNotNull(locale);
-
-        ResourceBundle.Control control = ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_CLASS);
-        Stream<String> names = control
-                .getCandidateLocales(baseName, locale)
-                .stream()
-                .filter(l -> !Locale.ROOT.equals(l))
-                .map(l -> control.toBundleName(baseName, l));
-
-        if (baseName.length() == 0) {
-            names = names.map(name -> name.substring(1));
-        }
-
-        return names.collect(Collectors.toList());
+        return Static.createDictionaryNames(baseName, locale);
     }
 
     /**
@@ -68,10 +53,10 @@ public interface SpellChecker {
 
         List<SpellChecker> instances = SpellCheckerPrivate.INSTANCES.get();
 
-        return instances.stream()
+        return StreamSupport.stream(instances)
                 .filter(c -> c.isPreferred(locale))
                 .findFirst()
-                .orElseGet(() -> instances.stream()
+                .orElseGet(() -> StreamSupport.stream(instances)
                         .filter(c -> c.isSupported(locale))
                         .findFirst()
                         .orElse(null));
@@ -108,6 +93,30 @@ public interface SpellChecker {
      * @return {@code null} if the given {@code word} is spelled correctly.
      */
     List<String> suggest(Locale locale, String word);
+
+    public static class Static {
+        public static List<String> createDictionaryNames(String baseName, Locale locale) {
+            Preconditions.checkNotNull(baseName);
+            Preconditions.checkNotNull(locale);
+
+            ResourceBundle.Control control = ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_CLASS);
+
+            if (baseName.length() == 0) {
+                return StreamSupport.stream(control
+                        .getCandidateLocales(baseName, locale))
+                        .filter(l -> !Locale.ROOT.equals(l))
+                        .map(l -> control.toBundleName(baseName, l))
+                        .map(name -> name.substring(1))
+                        .collect(Collectors.toList());
+            } else {
+                return StreamSupport.stream(control
+                        .getCandidateLocales(baseName, locale))
+                        .filter(l -> !Locale.ROOT.equals(l))
+                        .map(l -> control.toBundleName(baseName, l))
+                        .collect(Collectors.toList());
+            }
+        }
+    }
 }
 
 class SpellCheckerPrivate {
@@ -116,9 +125,8 @@ class SpellCheckerPrivate {
 
         @Override
         protected List<SpellChecker> create() throws Exception {
-            return ClassFinder.findConcreteClasses(SpellChecker.class)
-                    .stream()
-                    .sorted(Comparator.comparing(Class::getName))
+            return StreamSupport.stream(ClassFinder.findConcreteClasses(SpellChecker.class))
+                    .sorted((c1, c2) -> c1.getClass().getName().compareTo(c2.getClass().getName()))
                     .map(c -> TypeDefinition.getInstance(c).newInstance())
                     .collect(Collectors.toList());
         }

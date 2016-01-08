@@ -5,7 +5,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
@@ -27,6 +26,8 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.PaginatedResult;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
 
@@ -156,8 +157,7 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
                     }
 
                     page.writeTypeSelect(
-                            ObjectType.getInstance(Content.class).as(ToolUi.class).findDisplayTypes()
-                                    .stream()
+                            StreamSupport.stream(ObjectType.getInstance(Content.class).as(ToolUi.class).findDisplayTypes())
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             type,

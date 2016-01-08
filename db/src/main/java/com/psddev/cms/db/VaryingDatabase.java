@@ -160,12 +160,13 @@ public class VaryingDatabase extends ForwardingDatabase {
 
     @Deprecated
     @Override
-    public <T> List<T> readList(Query<T> query) {
-        List<T> list = super.readList(query);
+    public List readList(Query query) {
+    //public <T> List<T> readList(Query<T> query) { //Java7 erasure issue
+        List list = super.readList(query);
         Profile profile = getProfile();
 
         if (profile != null) {
-            for (T item : list) {
+            for (Object item : list) {
                 Variation.Static.applyAll(item, profile);
             }
         }

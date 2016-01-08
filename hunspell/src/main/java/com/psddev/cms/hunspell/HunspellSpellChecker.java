@@ -18,7 +18,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
+import com.google.common.base.Optional;
+import java8.util.stream.StreamSupport;
 
 /**
  * Spell checker implementation using
@@ -57,8 +58,8 @@ public class HunspellSpellChecker implements SpellChecker {
                 public void onRemoval(RemovalNotification<String, Optional<Hunspell>> removalNotification) {
                     Optional<Hunspell> hunspellOptional = removalNotification.getValue();
 
-                    if (hunspellOptional != null) {
-                        hunspellOptional.ifPresent(Hunspell::close);
+                    if (hunspellOptional != null && hunspellOptional.isPresent()) {
+                        hunspellOptional.get().close();
                     }
                 }
             })
@@ -84,14 +85,13 @@ public class HunspellSpellChecker implements SpellChecker {
                         }
                     }
 
-                    return Optional.empty();
+                    return Optional.absent();
                 }
             });
 
     private Hunspell findHunspell(Locale locale) {
-        return SpellChecker.createDictionaryNames("HunspellDictionary", locale)
-                .stream()
-                .map(l -> hunspells.getUnchecked(l).orElse(null))
+        return StreamSupport.stream(SpellChecker.Static.createDictionaryNames("HunspellDictionary", locale))
+                .map(l -> hunspells.getUnchecked(l).isPresent() ? hunspells.getUnchecked(l).get() : null)
                 .filter(h -> h != null)
                 .findFirst()
                 .orElse(null);

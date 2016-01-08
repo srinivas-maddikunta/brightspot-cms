@@ -1,6 +1,6 @@
 package com.psddev.cms.view;
 
-import java.util.stream.Stream;
+import java8.util.stream.Stream;
 
 /**
  * The context in which views are created while serving an HTTP request.

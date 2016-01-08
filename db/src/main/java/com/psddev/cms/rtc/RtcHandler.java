@@ -1,5 +1,6 @@
 package com.psddev.cms.rtc;
 
+import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -25,8 +26,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
+import java8.util.stream.StreamSupport;
 
 class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
@@ -47,7 +48,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
                     return session != null
                             ? Optional.of(session.getUserId())
-                            : Optional.empty();
+                            : Optional.absent();
                 }
             });
 
@@ -86,9 +87,9 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
         if (session != null) {
             session.delete();
 
-            Query.from(RtcEvent.class)
+            StreamSupport.stream(Query.from(RtcEvent.class)
                     .where("cms.rtc.event.sessionId = ?", sessionId)
-                    .selectAll()
+                    .selectAll())
                     .forEach(RtcEvent::onDisconnect);
         }
     }
@@ -128,7 +129,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                     String className = (String) messageJson.get("className");
                     Map<String, Object> data = (Map<String, Object>) messageJson.get("data");
                     UUID sessionId = createSessionId(resource);
-                    UUID userId = userIds.getUnchecked(sessionId).orElse(null);
+                    UUID userId = userIds.getUnchecked(sessionId).isPresent() ? userIds.getUnchecked(sessionId).get() : null;
 
                     if (userId == null) {
                         return;
@@ -171,7 +172,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                 if (message instanceof RtcBroadcastMessage) {
                     RtcBroadcastMessage broadcastMessage = (RtcBroadcastMessage) message;
                     AtmosphereResource resource = event.getResource();
-                    UUID userId = userIds.getUnchecked(createSessionId(resource)).orElse(null);
+                    UUID userId = userIds.getUnchecked(createSessionId(resource)).isPresent() ? userIds.getUnchecked(createSessionId(resource)).get() : null;
 
                     if (userId == null) {
                         return;

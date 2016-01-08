@@ -2,14 +2,13 @@ package com.psddev.cms.tool;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import com.psddev.dari.db.Record;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UuidUtils;
+import java8.util.stream.StreamSupport;
 
 @Dashboard.Embedded
 public class Dashboard extends Record {
@@ -28,13 +27,19 @@ public class Dashboard extends Record {
         Dashboard dashboard = new Dashboard();
         List<DashboardColumn> columns = dashboard.getColumns();
 
-        ClassFinder.findConcreteClasses(DefaultDashboardWidget.class).forEach(c -> {
+        StreamSupport.stream(ClassFinder.findConcreteClasses(DefaultDashboardWidget.class)).forEach(c -> {
             DefaultDashboardWidget widget = TypeDefinition.getInstance(c).newInstance();
             int columnIndex = widget.getColumnIndex();
 
             widget.getState().setId(UuidUtils.createVersion3Uuid(WIDGET_ID_NAME_PREFIX + c.getName()));
 
-            IntStream.range(0, columnIndex - columns.size() + 1)
+            List<Integer> range = new ArrayList<>();
+            for (int i = 0; i <  columnIndex - columns.size() + 1; i++) {
+                range.add(i);
+            }
+
+            //IntStream.range(0, columnIndex - columns.size() + 1)
+            StreamSupport.stream(range)
                     .forEach(i -> columns.add(new DashboardColumn()));
 
             columns.get(columnIndex)
@@ -51,8 +56,10 @@ public class Dashboard extends Record {
 
             Collections.sort(
                     column.getWidgets(),
-                    Comparator.comparingInt(w -> ((DefaultDashboardWidget) w).getWidgetIndex())
-                            .thenComparing(w -> w.getClass().getName()));
+                    (w1, w2) -> (((DefaultDashboardWidget) w1).getWidgetIndex() + " " + w1.getClass().getName()).compareTo(((DefaultDashboardWidget) w2).getWidgetIndex() + " " + w2.getClass().getName()));
+
+                    //Comparator.comparingInt(w -> ((DefaultDashboardWidget) w).getWidgetIndex())
+                      //      .thenComparing(w -> w.getClass().getName()));
         }
 
         return dashboard;

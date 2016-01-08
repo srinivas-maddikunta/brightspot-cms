@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 @RoutingFilter.Path(application = "cms", value = "spellCheck")
 public class SpellCheck extends PageServlet {
@@ -39,8 +40,7 @@ public class SpellCheck extends PageServlet {
                 List<String> words = page.params(String.class, "word");
 
                 if (!ObjectUtils.isBlank(words)) {
-                    response.put("results", words
-                            .stream()
+                    response.put("results", StreamSupport.stream(words)
                             .map(word -> spellChecker.suggest(locale, word))
                             .collect(Collectors.toList()));
                 }

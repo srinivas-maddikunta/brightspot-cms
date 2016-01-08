@@ -30,8 +30,9 @@ import java.util.Map;
 import java.util.Set;
 
 import java.util.UUID;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java8.util.function.Supplier;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 /**
  * Am unmodifiable Map implementation that uses a view (java bean) as the
@@ -54,7 +55,7 @@ class ViewMap implements Map<String, Object> {
     private Once resolver = new Once() {
         @Override
         protected void run() throws Exception {
-            ViewMap.this.keySet().forEach(ViewMap.this::get);
+            StreamSupport.stream(ViewMap.this.keySet()).forEach(ViewMap.this::get);
         }
     };
 
@@ -79,7 +80,7 @@ class ViewMap implements Map<String, Object> {
         this.resolved = new HashMap<>();
 
         try {
-            Arrays.stream(Introspector.getBeanInfo(view.getClass()).getPropertyDescriptors())
+            StreamSupport.stream(Arrays.asList(Introspector.getBeanInfo(view.getClass()).getPropertyDescriptors()))
                     .filter((prop) -> includeClassName || !"class".equals(prop.getName()))
                     .forEach(prop -> unresolved.put(prop.getName(), () -> invoke(prop.getReadMethod(), view)));
 
@@ -181,8 +182,7 @@ class ViewMap implements Map<String, Object> {
     @Override
     public String toString() {
 
-        return "{" + StringUtils.join(entrySet()
-                .stream()
+        return "{" + StringUtils.join(StreamSupport.stream(entrySet())
                 .map((e) -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.toList()), ", ") + "}";
     }

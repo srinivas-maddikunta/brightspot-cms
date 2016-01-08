@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
@@ -26,6 +25,8 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.PaginatedResult;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 public class RecentActivityWidget extends DefaultDashboardWidget {
 
@@ -114,8 +115,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                         "action", page.url(null));
 
                     page.writeTypeSelect(
-                            com.psddev.cms.db.Template.Static.findUsedTypes(page.getSite())
-                                    .stream()
+                            StreamSupport.stream(com.psddev.cms.db.Template.Static.findUsedTypes(page.getSite()))
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,

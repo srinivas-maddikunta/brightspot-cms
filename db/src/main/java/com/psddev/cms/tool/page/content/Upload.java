@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.psddev.cms.db.BulkUploadDraft;
 import com.psddev.cms.db.ImageTag;
@@ -41,6 +41,7 @@ import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StorageItemFilter;
 import com.psddev.dari.util.StringUtils;
+import java8.util.stream.StreamSupport;
 
 @RoutingFilter.Path(application = "cms", value = "/content/upload")
 @SuppressWarnings("serial")
@@ -154,7 +155,7 @@ public class Upload extends PageServlet {
                     } else {
 
                         SearchResultSelection selection = page.getUser().resetCurrentSelection();
-                        newObjectIds.forEach(selection::addItem);
+                        StreamSupport.stream(newObjectIds).forEach(selection::addItem);
                         database.commitWrites();
 
                         Search search = new Search();

@@ -3,14 +3,12 @@ package com.psddev.cms.tool.page;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
@@ -31,6 +29,8 @@ import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UrlBuilder;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 
 @RoutingFilter.Path(application = "cms", value = "/searchResultActions")
 public class SearchResultActions extends PageServlet {
@@ -187,12 +187,12 @@ public class SearchResultActions extends PageServlet {
         }
 
         // Sort SearchResultActions first by getClass().getSimpleName(), then by getClass().getName() for tie-breaking.
-        for (Class<? extends SearchResultAction> actionClass : ClassFinder.Static.findClasses(SearchResultAction.class)
-                .stream()
+        for (Class<? extends SearchResultAction> actionClass : StreamSupport.stream(ClassFinder.Static.findClasses(SearchResultAction.class))
                 .filter(c -> !c.isInterface() && !Modifier.isAbstract(c.getModifiers()))
-                .sorted(Comparator
+                /*.sorted(Comparator
                         .<Class<? extends SearchResultAction>, String>comparing(Class::getSimpleName)
-                        .thenComparing(Class::getName))
+                        .thenComparing(Class::getName))*/
+                .sorted((c1, c2) -> (c1.getClass().getSimpleName() + " " + c1.getClass().getName()).compareTo(c2.getClass().getSimpleName() + " " + c2.getClass().getName()))
                 .collect(Collectors.toList())) {
 
             TypeDefinition.getInstance(actionClass).newInstance().writeHtml(page, search, count > 0 ? currentSelection : null);

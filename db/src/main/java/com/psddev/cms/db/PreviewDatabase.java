@@ -173,8 +173,8 @@ public class PreviewDatabase extends ForwardingDatabase {
     // --- Deprecated ---
 
     @Deprecated
-    @Override
-    public <T> List<T> readList(Query<T> query) {
+    public List readList(Query query) {
+    //public <T> List<T> readList(Query<T> query) { //Java7 erasure issue
         return readAll(query);
     }
 }

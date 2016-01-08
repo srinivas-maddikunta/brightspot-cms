@@ -10,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -20,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.base.Optional;
 import com.psddev.cms.db.BulkUploadDraft;
 import com.psddev.cms.db.ImageTag;
 import com.psddev.cms.db.Site;
@@ -45,6 +45,7 @@ import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.SparseSet;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
+import java8.util.stream.StreamSupport;
 
 @RoutingFilter.Path(application = "cms", value = "/content/uploadFiles")
 @SuppressWarnings("serial")
@@ -228,7 +229,7 @@ public class UploadFiles extends PageServlet {
 
                         item.save();
 
-                        StorageItemField.tryExtractMetadata(item, item.getMetadata(), Optional.empty());
+                        StorageItemField.tryExtractMetadata(item, item.getMetadata(), Optional.absent());
 
                         Object object = selectedType.createObject(null);
                         State state = State.getInstance(object);
@@ -280,7 +281,7 @@ public class UploadFiles extends PageServlet {
                     } else {
 
                         SearchResultSelection selection = page.getUser().resetCurrentSelection();
-                        newObjectIds.forEach(selection::addItem);
+                        StreamSupport.stream(newObjectIds).forEach(selection::addItem);
                         database.commitWrites();
 
                         Search search = new Search();
