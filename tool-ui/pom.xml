@@ -65,4 +65,38 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>jspJava7Test</id>
+            <activation>
+                <property>
+                    <name>jspJava7Test</name>
+                </property>
+           </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                      <groupId>org.eclipse.jetty</groupId>
+                       <artifactId>jetty-jspc-maven-plugin</artifactId>
+                       <version>9.3.6.v20151106</version>
+                       <executions>
+                         <execution>
+                           <phase>generate-resources</phase>
+                           <id>jspc</id>
+                           <goals>
+                             <goal>jspc</goal>
+                           </goals>
+                           <configuration>
+                               <!--<keepSources>true</keepSources>-->
+                               <sourceVersion>1.7</sourceVersion>
+                               <targetVersion>1.7</targetVersion>
+                           </configuration>
+                         </execution>
+                       </executions>
+                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

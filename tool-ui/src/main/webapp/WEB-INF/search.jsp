@@ -24,6 +24,7 @@ com.psddev.dari.util.Utf8Filter,
 com.psddev.dari.util.UrlBuilder,
 
 java.util.ArrayList,
+java.util.Arrays,
 java.util.Collections,
 java.util.HashSet,
 java.util.Iterator,
@@ -32,8 +33,13 @@ java.util.LinkedHashSet,
 java.util.List,
 java.util.Map,
 java.util.Set,
-java.util.UUID
-, java.util.Arrays, java.util.stream.Collectors, com.google.common.collect.ImmutableSet" %><%
+java.util.UUID,
+
+java8.util.stream.Collectors,
+java8.util.stream.StreamSupport,
+
+com.google.common.collect.ImmutableSet" %>
+<%
 
 ToolPageContext wp = new ToolPageContext(pageContext);
 PageWriter writer = wp.getWriter();
@@ -244,7 +250,7 @@ writer.start("div", "class", "searchForm");
 
                 if (!singleType && !validTypes.isEmpty()) {
                     wp.writeTypeSelect(
-                            validTypes.stream()
+                            StreamSupport.stream(validTypes)
                                 .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                 .collect(Collectors.<ObjectType>toSet()),
                             selectedType,
@@ -562,7 +568,7 @@ writer.start("div", "class", "searchForm");
                         }
 
                         wp.writeTypeSelect(
-                                creatableTypes.stream()
+                                StreamSupport.stream(creatableTypes)
                                     .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("write", "read")))
                                     .collect(Collectors.<ObjectType>toSet()),
                                 selectedType,
