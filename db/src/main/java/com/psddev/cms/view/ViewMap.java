@@ -5,6 +5,7 @@ import com.psddev.dari.db.Metric;
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.Once;
+import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StringUtils;
 
 import com.google.common.collect.ImmutableMap;
@@ -23,7 +24,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -55,7 +57,8 @@ class ViewMap implements Map<String, Object> {
     private Once resolver = new Once() {
         @Override
         protected void run() throws Exception {
-            StreamSupport.stream(ViewMap.this.keySet()).forEach(ViewMap.this::get);
+            // copy keys to new set to prevent concurrent modification exception.
+            StreamSupport.stream(new LinkedHashSet<>(ViewMap.this.unresolved.keySet())).forEach(ViewMap.this::get);
         }
     };
 
@@ -72,12 +75,13 @@ class ViewMap implements Map<String, Object> {
      * Creates a new Map backed by the specified view.
      *
      * @param view the view to wrap.
+     * @param includeClassName true if class names for each view should be included in the map.
      */
     public ViewMap(Object view, boolean includeClassName) {
         this.includeClassName = includeClassName;
         this.view = view;
-        this.unresolved = new HashMap<>();
-        this.resolved = new HashMap<>();
+        this.unresolved = new LinkedHashMap<>();
+        this.resolved = new LinkedHashMap<>();
 
         try {
             StreamSupport.stream(Arrays.asList(Introspector.getBeanInfo(view.getClass()).getPropertyDescriptors()))
@@ -99,17 +103,20 @@ class ViewMap implements Map<String, Object> {
 
     @Override
     public int size() {
-        return unresolved.size();
+        resolver.ensure();
+        return resolved.size();
     }
 
     @Override
     public boolean isEmpty() {
-        return unresolved.isEmpty();
+        resolver.ensure();
+        return resolved.isEmpty();
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return unresolved.containsKey(key);
+        resolver.ensure();
+        return resolved.containsKey(key);
     }
 
     @Override
@@ -126,11 +133,13 @@ class ViewMap implements Map<String, Object> {
                 return resolved.get(key);
 
             } else {
-                Supplier<Object> supplier = unresolved.get(key);
+                Supplier<Object> supplier = unresolved.remove(key);
 
                 if (supplier != null) {
                     Object value = convertValue(supplier.get());
-                    resolved.put((String) key, value);
+                    if (value != null) {
+                        resolved.put((String) key, value);
+                    }
                     return value;
 
                 } else {
@@ -153,7 +162,7 @@ class ViewMap implements Map<String, Object> {
     }
 
     @Override
-    public void putAll(Map<? extends String, ?> m) {
+    public void putAll(Map<? extends String, ?> map) {
         throw new UnsupportedOperationException();
     }
 
@@ -164,7 +173,8 @@ class ViewMap implements Map<String, Object> {
 
     @Override
     public Set<String> keySet() {
-        return Collections.unmodifiableSet(unresolved.keySet());
+        resolver.ensure();
+        return Collections.unmodifiableSet(resolved.keySet());
     }
 
     @Override
@@ -262,8 +272,19 @@ class ViewMap implements Map<String, Object> {
             return method.invoke(view);
 
         } catch (IllegalAccessException | InvocationTargetException e) {
-            LOGGER.warn("Failed to invoke method: " + method, e);
-            return null;
+
+            String message = "Failed to invoke method: " + method;
+
+            Throwable cause = e.getCause();
+            cause = cause != null ? cause : e;
+
+            LOGGER.error(message, cause);
+
+            if (Settings.isProduction()) {
+                return null;
+            } else {
+                throw new RuntimeException(message, cause);
+            }
         }
     }
 }

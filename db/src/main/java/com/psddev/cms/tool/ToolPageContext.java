@@ -617,10 +617,9 @@ public class ToolPageContext extends WebPageContext {
 
                 PageViewClass pageViewClass = object.getClass().getAnnotation(PageViewClass.class);
 
-                // would be better if there was a separate API to just "find" the creator class
-                // rather than incurring the overhead of also creating it.
-                if ((pageViewClass != null && ViewCreator.createCreator(object, pageViewClass.value()) != null)
-                        || ViewCreator.createCreator(object, PageFilter.PAGE_VIEW_TYPE) != null) {
+                if ((pageViewClass != null && ViewCreator.findCreatorClass(object, pageViewClass.value(), null, null) != null)
+                        || ViewCreator.findCreatorClass(object, null, PageFilter.PAGE_VIEW_TYPE, null) != null
+                        || ViewCreator.findCreatorClass(object, null, PageFilter.PREVIEW_VIEW_TYPE, null) != null) {
                     return true;
                 }
             }
@@ -1958,6 +1957,7 @@ public class ToolPageContext extends WebPageContext {
             write("var DISABLE_TOOL_CHECKS = ", getCmsTool().isDisableToolChecks(), ';');
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
             write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
+            write("var ENABLE_PADDED_CROPS = ", getCmsTool().isEnablePaddedCrop(), ';');
             write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ", getCmsTool().isDisableCodeMirrorRichTextEditor(), ';');
             write("var DISABLE_RTC = ", getCmsTool().isDisableRtc(), ';');
         writeEnd();
@@ -1971,7 +1971,7 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.extra.js"));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.handsontable.full.js"));
+        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "handsontable.full.js"));
         writeEnd();
 
         writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "d3.js"));

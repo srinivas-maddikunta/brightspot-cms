@@ -29,6 +29,7 @@ import java8.util.stream.StreamSupport;
 public class Draft extends Content {
 
     private static final String OLD_VALUES_EXTRA = "cms.draft.oldValues";
+    private static final Object REMOVED = new Object();
 
     @Indexed
     private DraftStatus status;
@@ -269,6 +270,10 @@ public class Draft extends Content {
                     entry.setValue(mergeValue(environment, oldIdMaps, differences, entry.getValue()));
                 }
 
+                if (newIdMap.get(State.ID_KEY) == null) {
+                    return REMOVED;
+                }
+
             } else {
                 StreamSupport.stream(valueMap.entrySet()).forEach(entry -> newIdMap.put(entry.getKey(), mergeValue(environment, oldIdMaps, differences, entry.getValue())));
             }
@@ -278,6 +283,7 @@ public class Draft extends Content {
         } else if (value instanceof List) {
             return StreamSupport.stream((List<Object>) value)
                     .map(item -> mergeValue(environment, oldIdMaps, differences, item))
+                    .filter(item -> item != REMOVED)
                     .collect(Collectors.toList());
         }
 

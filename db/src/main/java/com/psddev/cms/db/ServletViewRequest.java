@@ -4,6 +4,7 @@ import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewRequest;
 import com.psddev.dari.util.ObjectUtils;
 
+import com.psddev.dari.util.TypeDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,33 +32,41 @@ class ServletViewRequest implements ViewRequest {
     @Override
     public <V> V createView(Class<V> viewClass, Object model) {
 
-        ViewCreator<Object, V> vc = ViewCreator.createCreator(model, viewClass);
-
-        if (vc != null) {
+        Class<? extends ViewCreator<? super Object, V, ? super ServletViewRequest>> viewCreatorClass = ViewCreator.findCreatorClass(model, viewClass, null, this);
+        if (viewCreatorClass != null) {
+            ViewCreator<? super Object, ? extends V, ? super ServletViewRequest> vc = TypeDefinition.getInstance(viewCreatorClass).newInstance();
             return vc.createView(model, this);
 
         } else {
-            LOGGER.warn("Could not find view creator of [" + viewClass
-                    + "] for object of type [" + (model != null ? model.getClass() : "null") + "]!");
+            LOGGER.warn("Could not find view creator for view of type [" + viewClass.getName()
+                    + "] and object of type [" + (model != null ? model.getClass() : "null") + "]!");
             return null;
         }
     }
 
     @Override
     public Object createView(String viewType, Object model) {
-        ViewCreator<Object, ?> vc = ViewCreator.createCreator(model, viewType);
 
-        if (vc != null) {
+        Class<? extends ViewCreator<? super Object, ?, ? super ServletViewRequest>> viewCreatorClass = ViewCreator.findCreatorClass(model, null, viewType, this);
+        if (viewCreatorClass != null) {
+            ViewCreator<? super Object, ?, ? super ServletViewRequest> vc = TypeDefinition.getInstance(viewCreatorClass).newInstance();
             return vc.createView(model, this);
 
         } else {
+            LOGGER.warn("Could not find view creator for view of type [" + viewType
+                    + "] and object of type [" + (model != null ? model.getClass() : "null") + "]!");
             return null;
         }
     }
 
-    @Override
+    // To support backward compatibility from 3.1 when the concept of namespace
+    // had not yet been introduced.
+    @Deprecated
     public <T> Stream<T> getParameter(Class<T> returnType, String name) {
         String[] values = request.getParameterValues(name);
-        return values != null ? StreamSupport.stream(Arrays.asList(values)).map((param) -> ObjectUtils.to(returnType, param)).filter((value) -> value != null) : StreamSupport.stream(Spliterators.<T>emptySpliterator(), false);
+
+        return values != null ?  StreamSupport.stream(Arrays.asList(values))
+                .map(rawItem -> ObjectUtils.to(returnType, rawItem))
+                .filter(item -> item != null) : StreamSupport.stream(Spliterators.<T>emptySpliterator(), false);
     }
 }
