@@ -274,6 +274,18 @@ public class ToolPageContext extends WebPageContext {
         return Static.getTypeLabel(object);
     }
 
+    public String localizeImmutableContextOverrides(String context, ImmutableMap<String, String> immutableContextOverrides, String key) throws IOException {
+        Map<String, Object> contextOverrides = new CompactMap<>();
+        contextOverrides.putAll(immutableContextOverrides);
+        return localize(context, contextOverrides, key);
+    }
+
+    public String localizeImmutableDateContextOverrides(String context, ImmutableMap<String, Date> immutableContextOverrides, String key) throws IOException {
+        Map<String, Object> contextOverrides = new CompactMap<>();
+        contextOverrides.putAll(immutableContextOverrides);
+        return localize(context, contextOverrides, key);
+    }
+
     public String localize(Object context, Map<String, Object> contextOverrides, String key) throws IOException {
         String baseName = null;
 
@@ -3891,6 +3903,15 @@ public class ToolPageContext extends WebPageContext {
     /** @see Content.Static#purge */
     public void purge(Object object) {
         Content.Static.purge(object, getSite(), getUser());
+    }
+
+    public java8.util.function.Predicate permissionsPredicate(State state) {
+        return new java8.util.function.Predicate<String>() {
+            @Override
+            public boolean test(String name) {
+                return hasPermission("type/" + state.getTypeId() + "/" + name);
+            }
+        };
     }
 
     // --- WebPageContext support ---
