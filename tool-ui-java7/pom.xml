@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+        http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.psddev</groupId>
+        <artifactId>cms</artifactId>
+        <version>3.2-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>cms-tool-ui-java7</artifactId>
+    <version>3.2-SNAPSHOT</version>
+    <packaging>war</packaging>
+
+    <name>BrightSpot CMS: Tool UI</name>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>com.psddev</groupId>
+            <artifactId>cms-tool-ui</artifactId>
+            <version>3.2-SNAPSHOT</version>
+            <type>war</type>
+        </dependency>
+
+        <dependency>
+            <groupId>com.psddev</groupId>
+            <artifactId>cms-db-java7</artifactId>
+            <version>3.2-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.psddev</groupId>
+            <artifactId>dari-db-java7</artifactId>
+            <version>3.2-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.psddev</groupId>
+            <artifactId>dari-util-java7</artifactId>
+            <version>3.2-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.psddev</groupId>
+            <artifactId>image</artifactId>
+            <optional>true</optional>
+            <version>1.1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+        </dependency>
+
+        <!-- Environmental -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>javax.servlet.jsp-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <webResources>
+                        <resource>
+                            <filtering>true</filtering>
+                            <directory>src/main/webapp</directory>
+                            <includes>
+                                <include>**/web.xml</include>
+                            </includes>
+                        </resource>
+                    </webResources>
+                    <overlays>
+                        <overlay>
+                            <groupId>com.psddev</groupId>
+                            <artifactId>cms-tool-ui</artifactId>
+                            <targetPath>.</targetPath>
+                        </overlay>
+                    </overlays>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>jspJava7Test</id>
+            <activation>
+                <property>
+                    <name>jspJava7Test</name>
+                </property>
+           </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                      <groupId>org.eclipse.jetty</groupId>
+                       <artifactId>jetty-jspc-maven-plugin</artifactId>
+                       <version>9.3.6.v20151106</version>
+                       <executions>
+                         <execution>
+                           <phase>generate-resources</phase>
+                           <id>jspc</id>
+                           <goals>
+                             <goal>jspc</goal>
+                           </goals>
+                           <configuration>
+                               <sourceVersion>1.7</sourceVersion>
+                               <targetVersion>1.7</targetVersion>
+                           </configuration>
+                         </execution>
+                       </executions>
+                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>
