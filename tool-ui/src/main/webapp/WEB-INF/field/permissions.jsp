@@ -39,13 +39,10 @@ java.util.List,
 java.util.Map,
 java.util.Set,
 java.util.TreeSet,
-java.util.stream.Stream,
-
-java8.util.function.Consumer,
 java8.util.function.Consumer,
 
-com.google.common.collect.ImmutableMap
-" %><%
+com.google.common.collect.ImmutableMap,
+java8.util.stream.StreamSupport" %><%
 
 // --- Logic ---
 
