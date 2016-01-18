@@ -993,6 +993,7 @@ public class CmsTool extends Tool {
             }
             return excludedTypes.stream()
                     .map(ObjectType::getInstance)
+                    .filter(type -> type != null)
                     .collect(Collectors.toSet());
         }
     }
