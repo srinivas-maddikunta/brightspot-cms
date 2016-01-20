@@ -1,19 +1,17 @@
 package com.psddev.cms.db;
 
+import java.util.Arrays;
+import java.util.stream.Stream;
+
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewRequest;
 import com.psddev.dari.util.ObjectUtils;
-
 import com.psddev.dari.util.TypeDefinition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
 
 import javax.servlet.http.HttpServletRequest;
-import java8.util.Spliterators;
-import java8.util.stream.Stream;
-import java8.util.stream.StreamSupport;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ViewRequest implementation that uses the Java Servlet Spec for handling HTTP
@@ -64,9 +62,8 @@ class ServletViewRequest implements ViewRequest {
     @Deprecated
     public <T> Stream<T> getParameter(Class<T> returnType, String name) {
         String[] values = request.getParameterValues(name);
-
-        return values != null ?  StreamSupport.stream(Arrays.asList(values))
+        return values != null ? Arrays.asList(values).stream()
                 .map(rawItem -> ObjectUtils.to(returnType, rawItem))
-                .filter(item -> item != null) : StreamSupport.stream(Spliterators.<T>emptySpliterator(), false);
+                .filter(item -> item != null) : Stream.empty();
     }
 }

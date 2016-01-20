@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java8.util.function.BiConsumer;
+import java.util.function.BiConsumer;
 
 /**
  * For capturing any updates to the instances of the given {@code <T>} type

@@ -1,6 +1,6 @@
 package com.psddev.cms.view;
 
-import java8.util.stream.Stream;
+import java.util.stream.Stream;
 
 /**
  * @deprecated no replacement.
