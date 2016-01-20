@@ -262,7 +262,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                             wp.writeHtml("New");
 
                         } else {
-                            if (draft != null) {
+                            if (draft != null && !draft.isNewContent()) {
                                 wp.writeObjectLabel(ObjectType.getInstance(Draft.class));
 
                                 String draftName = draft.getName();
@@ -420,7 +420,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                } else if (history != null || draft != null) {
+                } else if (history != null || (draft != null && !draft.isNewContent())) {
                     State original = State.getInstance(Query.
                             from(Object.class).
                             where("_id = ?", editing).
@@ -609,7 +609,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                         wp.writeStart("div", "class", "message message-warning");
                             wp.writeStart("p");
-                                if (draft != null) {
+                                if (draft != null && !draft.isNewContent()) {
                                     wp.writeObjectLabel(ObjectType.getInstance(Draft.class));
 
                                     String draftName = draft.getName();
@@ -655,7 +655,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                             }
 
                             wp.writeStart("div", "class", "actions");
-                                if (draft != null) {
+                                if (draft != null && !draft.isNewContent()) {
                                     wp.writeStart("a",
                                             "class", "icon icon-action-edit",
                                             "href", wp.url("", "draftId", null));
@@ -1777,11 +1777,11 @@ private static void renderWidgets(ToolPageContext wp, Object object, String posi
 
 private enum Device {
 
-    DESKTOP("Desktop", 1280),
     TABLET_LANDSCAPE("Tablet - Landscape", 1024),
     TABLET_PORTRAIT("Tablet - Portrait", 768),
     MOBILE_LANDSCAPE("Mobile - Landscape", 480),
-    MOBILE_PORTRAIT("Mobile - Portrait", 320);
+    MOBILE_PORTRAIT("Mobile - Portrait", 320),
+    DESKTOP("Desktop", 1280);
 
     public final String label;
     public final int width;
