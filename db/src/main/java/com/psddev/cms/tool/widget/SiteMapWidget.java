@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
@@ -27,8 +28,6 @@ import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PaginatedResult;
 import com.psddev.dari.util.StringUtils;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
 
 @SuppressWarnings("deprecation")
 public class SiteMapWidget extends DashboardWidget {
@@ -148,7 +147,8 @@ public class SiteMapWidget extends DashboardWidget {
                         "action", page.url(null));
 
                     page.writeTypeSelect(
-                            StreamSupport.stream(com.psddev.cms.db.Template.Static.findUsedTypes(page.getSite()))
+                            com.psddev.cms.db.Template.Static.findUsedTypes(page.getSite())
+                                    .stream()
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,

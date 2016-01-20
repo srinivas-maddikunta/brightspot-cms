@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
-import org.joda.time.DateTime;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.psddev.cms.db.Content;
@@ -25,8 +25,7 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.PaginatedResult;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import org.joda.time.DateTime;
 
 public class RecentActivityWidget extends DefaultDashboardWidget {
 
@@ -115,7 +114,8 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                         "action", page.url(null));
 
                     page.writeTypeSelect(
-                            StreamSupport.stream(com.psddev.cms.db.Template.Static.findUsedTypes(page.getSite()))
+                            com.psddev.cms.db.Template.Static.findUsedTypes(page.getSite())
+                                    .stream()
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,
