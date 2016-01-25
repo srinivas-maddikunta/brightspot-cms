@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -20,8 +22,6 @@ import com.psddev.dari.db.State;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.UuidUtils;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
 
 /** Unpublished object or unsaved changes to an existing object. */
 @Draft.DisplayName("Content Update")
@@ -89,16 +89,13 @@ public class Draft extends Content {
         Map<String, Map<String, Object>> oldIdMaps = findIdMaps(oldValues);
         Map<String, Map<String, Object>> differences = new CompactMap<>();
 
-        StreamSupport.stream(oldIdMaps.keySet()).filter(newIdMaps::containsKey).forEach(id -> {
+        oldIdMaps.keySet().stream().filter(newIdMaps::containsKey).forEach(id -> {
             Map<String, Object> oldIdMap = oldIdMaps.get(id);
             Map<String, Object> newIdMap = newIdMaps.get(id);
-            Map<String, Object> combinedMap = new CompactMap<String, Object>();
             Map<String, Object> changes = new CompactMap<>();
             ObjectType type = environment.getTypeById(ObjectUtils.to(UUID.class, newIdMap.get(State.TYPE_KEY)));
 
-            combinedMap.putAll(oldIdMap);
-            combinedMap.putAll(newIdMap);
-            StreamSupport.stream(combinedMap.keySet()).forEach(key -> {
+            Stream.concat(oldIdMap.keySet().stream(), newIdMap.keySet().stream()).forEach(key -> {
                 Object oldValue = oldIdMap.get(key);
                 Object newValue = newIdMap.get(key);
 
@@ -135,9 +132,9 @@ public class Draft extends Content {
             }
         });
 
-        StreamSupport.stream(newIdMaps.entrySet()).forEach(entry -> {
-            if (!oldIdMaps.containsKey(entry.getKey())) {
-                differences.put(entry.getKey(), entry.getValue());
+        newIdMaps.forEach((id, newIdMap) -> {
+            if (!oldIdMaps.containsKey(id)) {
+                differences.put(id, newIdMap);
             }
         });
 
@@ -181,7 +178,7 @@ public class Draft extends Content {
         }
 
         if (collection != null) {
-            StreamSupport.stream(collection).forEach(item -> addIdMaps(valuesById, item));
+            collection.forEach(item -> addIdMaps(valuesById, item));
         }
     }
 
@@ -209,7 +206,8 @@ public class Draft extends Content {
             }
 
         } else if (value instanceof Collection) {
-            return StreamSupport.stream((Collection<Object>) value)
+            return ((Collection<Object>) value)
+                    .stream()
                     .map(Draft::minifyValue)
                     .collect(Collectors.toList());
 
@@ -278,13 +276,14 @@ public class Draft extends Content {
                 }
 
             } else {
-                StreamSupport.stream(valueMap.entrySet()).forEach(entry -> newIdMap.put(entry.getKey(), mergeValue(environment, oldIdMaps, differences, entry.getValue())));
+                valueMap.forEach((k, v) -> newIdMap.put(k, mergeValue(environment, oldIdMaps, differences, v)));
             }
 
             return newIdMap;
 
         } else if (value instanceof List) {
-            return StreamSupport.stream((List<Object>) value)
+            return ((List<Object>) value)
+                    .stream()
                     .map(item -> mergeValue(environment, oldIdMaps, differences, item))
                     .filter(item -> item != REMOVED)
                     .collect(Collectors.toList());

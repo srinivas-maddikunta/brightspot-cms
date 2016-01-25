@@ -139,30 +139,6 @@
                                             <className>com/psddev/cms/tool/page/SearchAdvancedFullResult</className>
                                             <differenceType>8001</differenceType>
                                         </difference>
-                                        <difference>
-                                            <className>com/psddev/cms/rtc/RtcBroadcast</className>
-                                            <differenceType>7005</differenceType>
-                                            <method>void forEachBroadcast(java.lang.Object, java.util.function.BiConsumer)</method>
-                                            <to>void forEachBroadcast(java.lang.Object, java8.util.function.BiConsumer)</to>
-                                        </difference>
-                                        <difference>
-                                            <className>com/psddev/cms/tool/ToolPageContext</className>
-                                            <differenceType>7006</differenceType>
-                                            <method>java.util.function.Predicate createTypeDisplayPredicate(java.util.Collection)</method>
-                                            <to>java8.util.function.Predicate</to>
-                                        </difference>
-                                        <difference>
-                                            <className>com/psddev/cms/tool/page/content/field/FileField</className>
-                                            <differenceType>7005</differenceType>
-                                            <method>java.lang.String getStorageSetting(java.util.Optional)</method>
-                                            <to>java.lang.String getStorageSetting(com.google.common.base.Optional)</to>
-                                        </difference>
-                                        <difference>
-                                            <className>com/psddev/cms/view/ViewRequest</className>
-                                            <differenceType>7006</differenceType>
-                                            <method>java.util.stream.Stream getParameter(java.lang.Class, java.lang.String)</method>
-                                            <to>java8.util.stream.Stream</to>
-                                        </difference>
                                     </ignored>
                                     <logResults>true</logResults>
                                 </configuration>

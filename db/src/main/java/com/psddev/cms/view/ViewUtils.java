@@ -11,7 +11,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import java8.util.stream.StreamSupport;
 final class ViewUtils {
 
     private ViewUtils() {
@@ -62,7 +61,7 @@ final class ViewUtils {
         Set<Class<?>> superClasses = new HashSet<>();
         Set<Class<?>> interfaces = new HashSet<>();
 
-        StreamSupport.stream(superTypes).forEach((superType) -> {
+        superTypes.forEach((superType) -> {
             if (superType.isAssignableFrom(sourceClass)) {
                 if (superType.isInterface()) {
                     interfaces.add(superType);

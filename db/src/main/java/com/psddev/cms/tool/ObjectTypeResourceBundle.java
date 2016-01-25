@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.ListResourceBundle;
 import java.util.Map;
 import java.util.Set;
-import java8.util.stream.StreamSupport;
 
 final class ObjectTypeResourceBundle extends ListResourceBundle {
 
@@ -46,7 +45,7 @@ final class ObjectTypeResourceBundle extends ListResourceBundle {
         CodeUtils.addRedefineClassesListener(classes -> {
             GLOBAL_BUNDLE.reset();
 
-            StreamSupport.stream(classes)
+            classes.stream()
                     .map(ObjectType::getInstance)
                     .filter(type -> type != null)
                     .forEach(TYPE_BUNDLES::invalidate);
@@ -95,7 +94,7 @@ final class ObjectTypeResourceBundle extends ListResourceBundle {
         map.put("tab.Main", "Main");
 
         this.map = ImmutableMap.copyOf(map);
-        this.contents = StreamSupport.stream(map.entrySet())
+        this.contents = map.entrySet().stream()
                 .map(entry -> new Object[] { entry.getKey(), entry.getValue() })
                 .toArray(Object[][]::new);
     }

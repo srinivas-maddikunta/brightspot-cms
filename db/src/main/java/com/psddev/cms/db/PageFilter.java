@@ -40,9 +40,9 @@ import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewOutput;
 import com.psddev.cms.view.ViewRenderer;
 import com.psddev.cms.view.ViewRequest;
-import com.psddev.cms.view.ViewResponse;
 import com.psddev.cms.view.servlet.ServletViewRequestAnnotationProcessor;
 import com.psddev.cms.view.servlet.ServletViewRequestAnnotationProcessorClass;
+import com.psddev.cms.view.ViewResponse;
 import com.psddev.dari.db.Application;
 import com.psddev.dari.db.ApplicationFilter;
 import com.psddev.dari.db.Database;
@@ -65,7 +65,6 @@ import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItemFilter;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
-import java8.util.stream.StreamSupport;
 
 public class PageFilter extends AbstractFilter {
 
@@ -1388,8 +1387,8 @@ public class PageFilter extends AbstractFilter {
             }
         }
 
-        StreamSupport.stream(viewResponse.getCookies()).forEach(response::addCookie);
-        StreamSupport.stream(viewResponse.getSignedCookies()).forEach(cookie -> JspUtils.setSignedCookie(response, cookie));
+        viewResponse.getCookies().forEach(response::addCookie);
+        viewResponse.getSignedCookies().forEach(cookie -> JspUtils.setSignedCookie(response, cookie));
 
         String redirectUrl = viewResponse.getRedirectUri();
         if (redirectUrl != null) {
