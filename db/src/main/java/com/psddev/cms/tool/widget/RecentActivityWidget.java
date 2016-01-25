@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
+import org.joda.time.DateTime;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.psddev.cms.db.Content;
@@ -25,7 +26,6 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.PaginatedResult;
-import org.joda.time.DateTime;
 
 public class RecentActivityWidget extends DefaultDashboardWidget {
 
