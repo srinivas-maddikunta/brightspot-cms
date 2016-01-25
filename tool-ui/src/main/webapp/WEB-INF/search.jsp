@@ -247,7 +247,7 @@ writer.start("div", "class", "searchForm");
                 if (!singleType && !validTypes.isEmpty()) {
                     wp.writeTypeSelect(
                             StreamSupport.stream(validTypes)
-                                .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("read")))
+                                .filter(wp.createTypeDisplayPredicateForJava7Jsp(ImmutableSet.of("read")))
                                 .collect(Collectors.<ObjectType>toSet()),
                             selectedType,
                             "Any Types",
@@ -610,7 +610,7 @@ writer.start("div", "class", "searchForm");
 
                         wp.writeTypeSelect(
                                 StreamSupport.stream(creatableTypes)
-                                    .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("write", "read")))
+                                    .filter(wp.createTypeDisplayPredicateForJava7Jsp(ImmutableSet.of("write", "read")))
                                     .collect(Collectors.<ObjectType>toSet()),
                                 selectedType,
                                 null,

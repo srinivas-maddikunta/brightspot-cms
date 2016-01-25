@@ -2191,6 +2191,17 @@ public class ToolPageContext extends WebPageContext {
                 && (!type.isDeprecated() || Query.fromType(type).hasMoreThan(0));
     }
 
+    @Deprecated //Remove when we move off JSPs
+    public java8.util.function.Predicate<ObjectType> createTypeDisplayPredicateForJava7Jsp(Collection<String> permissions) {
+
+        return (ObjectType type) ->
+            type.isConcrete()
+                && (ObjectUtils.isBlank(permissions) || StreamSupport.stream(permissions).allMatch((String permission) -> hasPermission("type/" + type.getId() + "/" + permission)))
+                && (getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses() || type.getObjectClass() != null)
+                && !(Draft.class.equals(type.getObjectClass()))
+                && (!type.isDeprecated() || Query.fromType(type).hasMoreThan(0));
+    }
+
     private void writeTypeSelectReally(
             boolean multiple,
             Iterable<ObjectType> types,
