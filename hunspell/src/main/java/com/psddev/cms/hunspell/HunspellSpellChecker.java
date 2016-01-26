@@ -1,15 +1,5 @@
 package com.psddev.cms.hunspell;
 
-import com.atlascopco.hunspell.Hunspell;
-import com.google.common.base.Preconditions;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-import com.psddev.cms.nlp.SpellChecker;
-
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -18,7 +8,18 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
-import com.google.common.base.Optional;
+import java.util.Optional;
+
+import javax.annotation.ParametersAreNonnullByDefault;
+
+import com.atlascopco.hunspell.Hunspell;
+import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.psddev.cms.nlp.SpellChecker;
 import java8.util.stream.StreamSupport;
 
 /**
@@ -85,12 +86,12 @@ public class HunspellSpellChecker implements SpellChecker {
                         }
                     }
 
-                    return Optional.absent();
+                    return Optional.empty();
                 }
             });
 
     private Hunspell findHunspell(Locale locale) {
-        return StreamSupport.stream(SpellChecker.Static.createDictionaryNames("HunspellDictionary", locale))
+        return StreamSupport.stream(SpellChecker.createDictionaryNames("HunspellDictionary", locale))
                 .map(l -> hunspells.getUnchecked(l).isPresent() ? hunspells.getUnchecked(l).get() : null)
                 .filter(h -> h != null)
                 .findFirst()

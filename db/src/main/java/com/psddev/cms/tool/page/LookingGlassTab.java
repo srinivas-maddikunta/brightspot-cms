@@ -2,8 +2,6 @@ package com.psddev.cms.tool.page;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -70,25 +68,12 @@ public class LookingGlassTab extends ProfilePanelTab {
 
         List<ToolUserDevice> recentDevices = new ArrayList<ToolUserDevice>(actionsByDevice.keySet());
 
-        Comparator<ToolUserDevice> toolUserDeviceComparator = new Comparator<ToolUserDevice>() {
-            @Override
-            public int compare(ToolUserDevice x, ToolUserDevice y) {
-                long xTime = actionsByDevice.get(x).get(0).getTime();
-                long yTime = actionsByDevice.get(y).get(0).getTime();
-
-                return xTime < yTime ? 1 : (xTime > yTime ? -1 : 0);
-            }
-        };
-
-        Collections.sort(recentDevices, toolUserDeviceComparator);
-
-        //Java 7 replacement above
-        /*recentDevices.sort((x, y) -> {
+        recentDevices.sort((x, y) -> {
             long xTime = actionsByDevice.get(x).get(0).getTime();
             long yTime = actionsByDevice.get(y).get(0).getTime();
 
             return xTime < yTime ? 1 : (xTime > yTime ? -1 : 0);
-        });*/
+        });
 
         page.writeStart("div",
                 "class", "p-tud-lg tabbed",

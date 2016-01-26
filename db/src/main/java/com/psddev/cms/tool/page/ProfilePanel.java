@@ -3,6 +3,7 @@ package com.psddev.cms.tool.page;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -26,8 +27,7 @@ public class ProfilePanel extends PageServlet {
     protected void doService(ToolPageContext page) throws IOException, ServletException {
         List<Class<? extends ProfilePanelTab>> tabClasses = new ArrayList<>(ClassFinder.Static.findClasses(ProfilePanelTab.class));
 
-        Collections.sort(tabClasses, (c1, c2) -> (c1.getClass().getSimpleName() + " " + c1.getClass().getName()).compareTo(c2.getClass().getSimpleName() + " " + c2.getClass().getName()));
-        //Collections.sort(tabClasses, Comparator.<Class<? extends ProfilePanelTab>, String>comparing(Class::getSimpleName).thenComparing(Class::getName));
+        Collections.sort(tabClasses, Comparator.<Class<? extends ProfilePanelTab>, String>comparing(Class::getSimpleName).thenComparing(Class::getName));
 
         tabClasses.remove(ProfileTab.class);
         tabClasses.add(0, ProfileTab.class);
