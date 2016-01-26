@@ -274,12 +274,14 @@ public class ToolPageContext extends WebPageContext {
         return Static.getTypeLabel(object);
     }
 
+    @Deprecated //Remove when we move off JSPs
     public String localizeImmutableContextOverrides(String context, ImmutableMap<String, String> immutableContextOverrides, String key) throws IOException {
         Map<String, Object> contextOverrides = new CompactMap<>();
         contextOverrides.putAll(immutableContextOverrides);
         return localize(context, contextOverrides, key);
     }
 
+    @Deprecated //Remove when we move off JSPs
     public String localizeImmutableDateContextOverrides(String context, ImmutableMap<String, Date> immutableContextOverrides, String key) throws IOException {
         Map<String, Object> contextOverrides = new CompactMap<>();
         contextOverrides.putAll(immutableContextOverrides);
@@ -4004,6 +4006,7 @@ public class ToolPageContext extends WebPageContext {
         Content.Static.purge(object, getSite(), getUser());
     }
 
+    @Deprecated //Remove when we move off JSPs
     public java8.util.function.Predicate permissionsPredicate(State state) {
         return new java8.util.function.Predicate<String>() {
             @Override

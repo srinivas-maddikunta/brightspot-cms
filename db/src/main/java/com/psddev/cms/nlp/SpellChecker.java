@@ -1,16 +1,16 @@
 package com.psddev.cms.nlp;
 
+import com.google.common.base.Preconditions;
+import com.psddev.dari.util.ClassFinder;
+import com.psddev.dari.util.Lazy;
+import com.psddev.dari.util.TypeDefinition;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.base.Preconditions;
-import com.psddev.dari.util.ClassFinder;
-import com.psddev.dari.util.Lazy;
-import com.psddev.dari.util.TypeDefinition;
 
 /**
  * Spell checker.
