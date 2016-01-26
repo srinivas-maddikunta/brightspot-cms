@@ -11,10 +11,9 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java8.util.Optional;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 
 /**
  * Creator of view objects from a model object.
@@ -75,30 +74,29 @@ public interface ViewCreator<M, V, VR> {
         for (Class<?> annotatableClass : ViewUtils.getAnnotatableClasses(modelClass)) {
 
             allCreatorClasses.addAll(
-                    StreamSupport.stream(Arrays.asList(annotatableClass.getAnnotations()))
-                            .filter(annotation -> annotation instanceof ViewMapping)
-                                    // check that it matches the view type if it exists
-                            .filter(viewMapping -> viewType == null || Arrays.asList(((ViewMapping) viewMapping).types()).contains(viewType))
+                    Arrays.stream(annotatableClass.getAnnotationsByType(ViewMapping.class))
+                            // check that it matches the view type if it exists
+                            .filter(viewMapping -> viewType == null || Arrays.asList(viewMapping.types()).contains(viewType))
                             // get the annotation's view creator class
-                            .map(annotation -> ((ViewMapping) annotation).value())
-                                    // make sure it's a concrete class
+                            .map(ViewMapping::value)
+                            // make sure it's a concrete class
                             .filter(klass -> !Modifier.isAbstract(klass.getModifiers()) && !Modifier.isInterface(klass.getModifiers()))
                             .collect(Collectors.toList()));
 
             if (viewType == null && annotatableClass.isAnnotationPresent(StaticNestedViewMappings.class)) {
                 allCreatorClasses.addAll(
-                        StreamSupport.stream(Arrays.asList(annotatableClass.getClasses()))
+                        Arrays.stream(annotatableClass.getClasses())
                                 // make sure it's a view creator class
                                 .filter(ViewCreator.class::isAssignableFrom)
-                                        // make sure it's a concrete class
+                                // make sure it's a concrete class
                                 .filter(klass -> !Modifier.isAbstract(klass.getModifiers()) && !Modifier.isInterface(klass.getModifiers()))
-                                        // cast it
+                                // cast it
                                 .map(klass -> (Class<? extends ViewCreator>) klass)
                                 .collect(Collectors.toList()));
             }
         }
 
-        StreamSupport.stream(allCreatorClasses).forEach(creatorClass -> {
+        allCreatorClasses.forEach(creatorClass -> {
 
             TypeDefinition<? extends ViewCreator> typeDef = TypeDefinition.getInstance(creatorClass);
             Class<?> declaredModelClass = typeDef.getInferredGenericTypeArgumentClass(ViewCreator.class, 0);
@@ -171,21 +169,20 @@ public interface ViewCreator<M, V, VR> {
         for (Class<?> annotatableClass : ViewUtils.getAnnotatableClasses(modelClass)) {
 
             allCreatorClasses.addAll(
-                    StreamSupport.stream(Arrays.asList(annotatableClass.getAnnotations()))
-                            .filter(annotation -> annotation instanceof ViewMapping)
-                            .map(annotation -> ((ViewMapping) annotation).value())
+                    Arrays.stream(annotatableClass.getAnnotationsByType(ViewMapping.class))
+                            .map(ViewMapping::value)
                             .collect(Collectors.toList()));
 
             if (annotatableClass.isAnnotationPresent(StaticNestedViewMappings.class)) {
                 allCreatorClasses.addAll(
-                        StreamSupport.stream(Arrays.asList(annotatableClass.getClasses()))
+                        Arrays.stream(annotatableClass.getClasses())
                                 .filter(ViewCreator.class::isAssignableFrom)
                                 .map((klass) -> (Class<? extends ViewCreator>) klass)
                                 .collect(Collectors.toList()));
             }
         }
 
-        StreamSupport.stream(allCreatorClasses).forEach(creatorClass -> {
+        allCreatorClasses.forEach(creatorClass -> {
 
             TypeDefinition<? extends ViewCreator> typeDef = TypeDefinition.getInstance(creatorClass);
             Class<?> declaredModelClass = typeDef.getInferredGenericTypeArgumentClass(ViewCreator.class, 0);
@@ -253,10 +250,8 @@ public interface ViewCreator<M, V, VR> {
     @Deprecated
     static <M> ViewCreator<M, ?, Object> createCreator(M model, String viewType) {
         for (Class<?> c : ViewUtils.getAnnotatableClasses(model.getClass())) {
-            for (ViewMapping mapping : StreamSupport.stream(Arrays.asList(c.getAnnotations())).filter(annotation -> annotation instanceof ViewMapping)
-                                                    .map(annotation -> (ViewMapping) annotation)
-                                                    .collect(Collectors.toList())) {
-                Optional<String> name = StreamSupport.stream(Arrays.asList(mapping.types()))
+            for (ViewMapping mapping : c.getAnnotationsByType(ViewMapping.class)) {
+                Optional<String> name = Arrays.stream(mapping.types())
                         .filter(n -> n.equals(viewType))
                         .findFirst();
 
