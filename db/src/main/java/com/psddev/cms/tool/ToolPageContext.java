@@ -1974,6 +1974,7 @@ public class ToolPageContext extends WebPageContext {
         List<Map<String, Object>> richTextElements = new ArrayList<>();
 
         Map<String, Set<String>> contextMap = new HashMap<>();
+        Map<String, Set<String>> clearMap = new HashMap<>();
 
         LoadingCache<Class<?>, Set<Class<?>>> concreteClassMap = CacheBuilder.newBuilder()
                 .build(new CacheLoader<Class<?>, Set<Class<?>>>() {
@@ -1998,6 +1999,7 @@ public class ToolPageContext extends WebPageContext {
 
                 richTextElement.put("tag", tag.value());
                 richTextElement.put("void", tag.empty());
+                richTextElement.put("line", tag.line());
                 richTextElement.put("popup", type.getFields().stream()
                         .filter(f -> !f.as(ToolUi.class).isHidden())
                         .findFirst()
@@ -2029,6 +2031,22 @@ public class ToolPageContext extends WebPageContext {
                             contextMap.get(p).add(tagName);
                         });
 
+                Stream.of(tag.clear())
+                        .map(concreteClassMap::getUnchecked)
+                        .flatMap(Collection::stream)
+                        .filter(RichTextElement.class::isAssignableFrom)
+                        .map(b -> b.getAnnotation(RichTextElement.Tag.class))
+                        .filter(Objects::nonNull)
+                        .<String>map(RichTextElement.Tag::value)
+                        .map(String::trim)
+                        .filter(p -> !ObjectUtils.isBlank(p))
+                        .forEach((String p) -> {
+                            if (clearMap.get(p) == null) {
+                                clearMap.put(p, new HashSet<>());
+                            }
+                            clearMap.get(p).add(tagName);
+                        });
+
                 String menu = tag.menu().trim();
 
                 if (!menu.isEmpty()) {
@@ -2043,10 +2061,18 @@ public class ToolPageContext extends WebPageContext {
         }
 
         for (Map<String, Object> richTextElement : richTextElements) {
-            Set<String> context = contextMap.get(richTextElement.get("tag"));
+
+            String tagName = (String) richTextElement.get("tag");
+            Set<String> context = contextMap.get(tagName);
 
             if (!ObjectUtils.isBlank(context)) {
                 richTextElement.put("context", context);
+            }
+
+            Set<String> clear = clearMap.get(tagName);
+
+            if (!ObjectUtils.isBlank(clear)) {
+                richTextElement.put("clear", clear);
             }
         }
 

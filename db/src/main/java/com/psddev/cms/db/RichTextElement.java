@@ -23,7 +23,9 @@ public abstract class RichTextElement extends Record {
         String value();
         boolean empty() default false;
         boolean root() default true;
+        boolean line() default false;
         Class<?>[] children() default { };
+        Class<?>[] clear() default { };
         String menu() default "";
     }
 }
