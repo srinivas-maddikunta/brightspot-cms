@@ -22,6 +22,7 @@ com.psddev.cms.db.WorkflowState,
 com.psddev.cms.db.WorkflowTransition,
 com.psddev.cms.db.WorkStream,
 com.psddev.cms.tool.CmsTool,
+com.psddev.cms.tool.ContentEditWidgetDisplay,
 com.psddev.cms.tool.ToolPageContext,
 com.psddev.cms.tool.Widget,
 
@@ -34,6 +35,7 @@ com.psddev.dari.util.HtmlWriter,
 com.psddev.dari.util.JspUtils,
 com.psddev.dari.util.ObjectUtils,
 com.psddev.dari.util.StringUtils,
+com.psddev.cms.tool.ContentEditable,
 
 java.io.StringWriter,
 java.util.ArrayList,
@@ -44,8 +46,8 @@ java.util.Map,
 java.util.Set,
 java.util.UUID,
 
-org.joda.time.DateTime
-, com.google.common.collect.ImmutableMap" %><%
+org.joda.time.DateTime,
+com.google.common.collect.ImmutableMap" %><%
 
 // --- Logic ---
 
@@ -244,6 +246,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             data-o-id="<%= State.getInstance(selected).getId() %>"
             data-o-label="<%= wp.h(State.getInstance(selected).getLabel()) %>"
             data-o-preview="<%= wp.h(wp.getPreviewThumbnailUrl(selected)) %>"
+            data-object-id="<%= State.getInstance(editing).getId() %>"
             data-content-locked-out="<%= lockedOut && !editAnyway %>"
             data-content-id="<%= State.getInstance(editing).getId() %>">
 
@@ -258,7 +261,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                             wp.writeHtml("New");
 
                         } else {
-                            if (draft != null) {
+                            if (draft != null && !draft.isNewContent()) {
                                 wp.writeObjectLabel(ObjectType.getInstance(Draft.class));
 
                                 String draftName = draft.getName();
@@ -303,7 +306,10 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
 
                         wp.write(": " );
-                        wp.write(wp.getObjectLabelOrDefault(editing, "<em>" + wp.localize(null, "label.untitled") + "</em>"));
+
+                        wp.writeStart("span", "data-dynamic-html", "${toolPageContext.createObjectLabelHtml(content)}");
+                            wp.write(wp.createObjectLabelHtml(editing));
+                        wp.writeEnd();
                     wp.writeEnd();
 
                     if (selected instanceof Page &&
@@ -416,7 +422,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                } else if (history != null || draft != null) {
+                } else if (history != null || (draft != null && !draft.isNewContent())) {
                     State original = State.getInstance(Query.
                             from(Object.class).
                             where("_id = ?", editing).
@@ -502,7 +508,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                     long total = complete + incomplete + skipped;
 
                     wp.writeStart("div",
-                            "class", "block",
+                            "class", "publishing-workflow block",
                             "style", wp.cssString(
                                     "border-bottom", "1px solid #bbb",
                                     "padding-bottom", "5px"));
@@ -589,7 +595,9 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                     wp.writeEnd();
                 }
 
-                boolean isWritable = wp.hasPermission("type/" + editingState.getTypeId() + "/write") && !editingState.getType().as(ToolUi.class).isReadOnly();
+                boolean isWritable = wp.hasPermission("type/" + editingState.getTypeId() + "/write")
+                        && !editingState.getType().as(ToolUi.class).isReadOnly()
+                        && ContentEditable.shouldContentBeEditable(editing);
                 boolean isDraft = !editingState.isNew() && (contentData.isDraft() || draft != null);
                 boolean isHistory = history != null;
                 boolean isTrash = contentData.isTrash();
@@ -605,7 +613,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                         wp.writeStart("div", "class", "message message-warning");
                             wp.writeStart("p");
-                                if (draft != null) {
+                                if (draft != null && !draft.isNewContent()) {
                                     wp.writeObjectLabel(ObjectType.getInstance(Draft.class));
 
                                     String draftName = draft.getName();
@@ -651,7 +659,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                             }
 
                             wp.writeStart("div", "class", "actions");
-                                if (draft != null) {
+                                if (draft != null && !draft.isNewContent()) {
                                     wp.writeStart("a",
                                             "class", "icon icon-action-edit",
                                             "href", wp.url("", "draftId", null));
@@ -764,6 +772,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                         // Workflow actions.
                         if (!isTrash &&
+                                !(draft != null && draft.getSchedule() != null) &&
                                 (editingState.isNew() ||
                                 !editingState.isVisible() ||
                                 draft != null ||
@@ -1213,7 +1222,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
     <script type="text/javascript">
         (function($, win, undef) {
-            var PEEK_WIDTH = 160,
+            var PEEK_WIDTH = 99,
                     $win = $(win),
                     doc = win.document,
                     $doc = $(doc),
@@ -1732,30 +1741,36 @@ private static void renderWidgets(ToolPageContext wp, Object object, String posi
         wp.write("\">");
 
         for (Widget widget : widgets) {
-            if (wp.hasPermission(widget.getPermissionId())) {
+            if (!wp.hasPermission(widget.getPermissionId())) {
+                continue;
+            }
 
-                wp.write("<input type=\"hidden\" name=\"");
-                wp.write(wp.h(state.getId()));
-                wp.write("/_widget\" value=\"");
-                wp.write(wp.h(widget.getInternalName()));
-                wp.write("\">");
+            if (object instanceof ContentEditWidgetDisplay
+                    && !((ContentEditWidgetDisplay) object).shouldDisplayContentEditWidget(widget.getInternalName())) {
+                continue;
+            }
 
-                String displayHtml;
+            wp.write("<input type=\"hidden\" name=\"");
+            wp.write(wp.h(state.getId()));
+            wp.write("/_widget\" value=\"");
+            wp.write(wp.h(widget.getInternalName()));
+            wp.write("\">");
 
-                try {
-                    displayHtml = widget.createDisplayHtml(wp, object);
+            String displayHtml;
 
-                } catch (Exception ex) {
-                    StringWriter sw = new StringWriter();
-                    HtmlWriter hw = new HtmlWriter(sw);
-                    hw.putAllStandardDefaults();
-                    hw.start("pre", "class", "message message-error").object(ex).end();
-                    displayHtml = sw.toString();
-                }
+            try {
+                displayHtml = widget.createDisplayHtml(wp, object);
 
-                if (!ObjectUtils.isBlank(displayHtml)) {
-                    wp.write(displayHtml);
-                }
+            } catch (Exception ex) {
+                StringWriter sw = new StringWriter();
+                HtmlWriter hw = new HtmlWriter(sw);
+                hw.putAllStandardDefaults();
+                hw.start("pre", "class", "message message-error").object(ex).end();
+                displayHtml = sw.toString();
+            }
+
+            if (!ObjectUtils.isBlank(displayHtml)) {
+                wp.write(displayHtml);
             }
         }
         wp.write("</div>");

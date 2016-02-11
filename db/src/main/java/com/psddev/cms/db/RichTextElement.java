@@ -9,7 +9,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.Map;
 
-@RichTextElement.Embedded
 public abstract class RichTextElement extends Record {
 
     public abstract void fromAttributes(Map<String, String> attributes);
@@ -22,5 +21,9 @@ public abstract class RichTextElement extends Record {
     public @interface Tag {
 
         String value();
+        boolean empty() default false;
+        boolean root() default false;
+        Class<?>[] children() default { };
+        String menu() default "";
     }
 }

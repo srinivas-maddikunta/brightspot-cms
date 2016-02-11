@@ -101,6 +101,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 
                 // Do not allow links to span multiple lines
                 singleLine: true,
+
+                // Label to use for the dropdown
+                enhancementName: 'Link',
                 
                 onClick: function(event, mark) {
 
@@ -1078,10 +1081,16 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         toolbarHandleClick: function(item, event) {
 
-            var mark, rte, self, styleObj, value;
+            var $button, mark, rte, self, styleObj, value;
 
             self = this;
 
+            // Don't do the click if the button is not allowed in the current context
+            $button = $(event.target);
+            if ($button.hasClass('outOfContext')) {
+                return;
+            }
+            
             rte = self.rte;
 
             styleObj = self.rte.styles[item.style] || {};
@@ -1229,7 +1238,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         toolbarUpdate: function() {
 
-            var $links, mode, rte, self, styles;
+            var contextArray, $links, mode, rte, self, styles;
 
             self = this;
             rte = self.rte;
@@ -1252,10 +1261,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Note ALL characters in the range must have the style or it won't be returned
             styles = $.extend({}, rte.inlineGetStyles(), rte.blockGetStyles());
 
+            // Get all the context elements for the currently selected range of characters
+            context = rte.getContext();
+            
             // Go through each link in the toolbar and see if the style is defined
             $links.each(function(){
 
-                var config, $link, makeActive;
+                var activeElements, allRoot, config, $link, makeActive, styleObj;
 
                 $link = $(this);
 
@@ -1329,6 +1341,43 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                         }
 
                     }
+
+                    // Special case if the toolbar style should only be displayed in certain contexts
+                    styleObj = self.styles[config.style] || {};
+                    if (styleObj.context) {
+                        
+                        // Loop through all the current contexts.
+                        // Note there can be multiple contexts because multiple characters can be
+                        // selected in the range, and each character might be in a different context.
+                        // For example, if the character R represents the selected range:
+                        // aaa<B>RRR</B>RRR<I>RRR</I>aaa
+                        // Then the context would be B, I, and null.
+                        //
+                        // We must check each context that is selected, to determine if
+                        // the style is allowed in that context.
+                        //
+                        // If the style fails for any one of the contexts, then it
+                        // should be invalid, and we should prevent the user from applying the style
+                        // across the range.
+
+                        
+                        // Loop through all the contexts for the selected range
+                        validContext = true;
+                        $.each(context, function(i, contextElement) {
+
+                            // Is this contextElement listed among the context allowed by the current style?
+                            if ($.inArray(contextElement, styleObj.context) === -1) {
+                                validContext = false;
+                                return false; // stop looping
+                            }
+                        });
+
+                        // Set a class on the toolbar button to indicate we are out of context.
+                        // That class will be used to style the button, but also
+                        // to prevent clicking on the button.
+                        $link.toggleClass('outOfContext', !validContext);
+                    }
+                    
                 }
             });
 
@@ -1510,7 +1559,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     return false;
                 }
             }).appendTo(document.body)
-                .popup() // turn it into a popup
+                .popup({parent:self.$container}) // turn it into a popup
                 .popup('close') // but initially close the popup
                 .popup('container').on('close', function() {
                     // If the popup is canceled with Esc or otherwise,
@@ -2232,7 +2281,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         enhancementMove: function(el, direction) {
 
-            var $el, mark, self, topNew, topOriginal, topWindow;
+            var $el, doScroll, mark, self, $popup, topNew, topOriginal, topWindow;
 
             self = this;
 
@@ -2253,9 +2302,15 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 // Adjust the scroll position of the window so the enhancement stays in the same position relative to the mouse.
                 // This is to let the user repeatedly click the Up/Down button to move the enhancement multiple lines.
-                topWindow = $(window).scrollTop();
-                $(window).scrollTop(topWindow + topNew - topOriginal);
-
+                // But only if we are not in a popup
+                $popup = $el.popup('container');
+                if ($popup.length && $popup.css('position') === 'fixed') {
+                    doScroll = false;
+                }
+                if (doScroll !== false) {
+                    topWindow = $(window).scrollTop();
+                    $(window).scrollTop(topWindow + topNew - topOriginal);
+                }
             }
         },
 
@@ -2721,12 +2776,15 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         inlineEnhancementHandleClick: function(event, mark) {
 
-            var enhancementEditUrl, $div, $divLink, html, self, styleObj;
+            var enhancementEditUrl, $div, $divLink, html, offset, self, styleObj;
 
             self = this;
 
             styleObj = self.rte.classes[mark.className] || {};
             if (!styleObj.enhancementType) {
+                return;
+            }
+            if (styleObj.popup === false) {
                 return;
             }
             
@@ -2756,11 +2814,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     text: '.'
                 })
                 
-            }).appendTo('body').css({
-                'top': event.pageY,
-                'left': event.pageX
-            });
+            }).appendTo('body');
 
+            // Set the position of the popup
+            offset = self.rte.getOffset(range);
+            $div.css({
+                'top': offset.top,
+                'left': offset.left
+            });
             $divLink = $div.find('a');
 
             // Add data to the link with the rte and the mark,
@@ -2858,7 +2919,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Initialize the table.
             $placeholder.handsontable({
                 'data': data,
-                minCols:2,
+                minCols:1,
                 minRows:1,
                 stretchH: 'all',
                 contextMenu: {
@@ -2887,19 +2948,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 wordWrap:true,
                 outsideClickDeselects:false,
                 editor:false,
-                afterSelectionEnd: function(){
-
-                    // Workaround - after a row or column is added a cell is selected.
-                    // Do not pop up the editor in that case.
-                    if (self.tableCancelEdit) {
-                        self.tableCancelEdit = false;
-                        return;
-                    }
-                    
-                    // Use a timeout to prevent the popup from being closed due to the click event
-                    setTimeout(function(){
-                        self.tableEditSelection($placeholder);
-                    }, 10);
+                afterSelectionEnd: function(r, c, r2, c2){
+                    self.tableShowContextMenu($placeholder, r, c);
                 },
                 afterCreateRow: function() {
                     // Workaround - after a row or column is added a cell is selected.
@@ -2925,9 +2975,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                  
             });
 
-            // Problem with "null" appearing in new rows, might be fixed soon with this issue
-            // https://github.com/handsontable/handsontable/issues/2816
-            
             // Add the div to the editor
             mark = self.rte.enhancementAdd($div[0], line, {
                 block:true,
@@ -2944,6 +2991,34 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Table will not render when it is not visible,
             // so tell it to render now that it has been added to the page
             $placeholder.handsontable('render');
+        },
+
+        
+        /**
+         * Show the context menu for a table cell.
+         * NOTE: this is not an offically supported API for handsontable,
+         * so it could possibly  break with future updates.
+         *
+         * @param {Element} el
+         * The placeholder element where the table was created.
+         * @param {Number} row
+         * @param {Number} col
+         */
+        tableShowContextMenu: function(el, row, col) {
+
+            var h, height, menu, offset, self, $td, width;
+
+            self = this;
+            
+            h = $(el).handsontable('getInstance');
+            if (h) {
+                menu = h.getPlugin('contextMenu');
+                $td = $(h.getCell(row, col));
+                offset = $td.offset();
+                height = $td.height();
+                width = $td.width();
+                menu.open({top:offset.top + height, left:offset.left, width:width, height:height});
+            }
         },
 
         
@@ -3192,21 +3267,56 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         tableEditInit: function() {
             
-            var self;
+            var $controls, self;
 
             self = this;
 
+            // Check if editor already exists
             if (self.$tableEditDiv) {
+                
+                // Empty the editor
+                self.tableEditRte.rte.empty();
+                
+                // Turn off track changes before we add content to the editor
+                self.tableEditRte.rte.trackSet(false);
+            
                 return;
             }
             
             // Create popup used to display the editor
             self.$tableEditDiv = $('<div>', {'class':'rte2-table-editor'}).appendTo(document.body);
+            
+            $('<h1/>', {
+                'class': 'widget-heading',
+                text: 'Edit Table Cell'
+            }).appendTo(self.$tableEditDiv);
+
             self.$tableEditTextarea = $('<textarea>').appendTo(self.$tableEditDiv);
             self.tableEditRte = Object.create(Rte);
             self.tableEditRte.init(self.$tableEditTextarea);
+
+            $controls = $('<div/>', {'class': 'rte2-table-editor-controls'}).appendTo(self.$tableEditDiv);
+
+            self.$tableEditSave = $('<button/>', {
+                'class': 'rte2-table-editor-save',
+                text: 'Set',
+                click: function(event) {
+                    event.preventDefault();
+                    $(this).popup('close');
+                }
+            }).appendTo($controls);
             
-            self.$tableEditDiv.popup().popup('close');
+            self.$tableEditSave = $('<button/>', {
+                'class': 'rte2-table-editor-cancel',
+                text: 'Cancel',
+                click: function(event) {
+                    event.preventDefault();
+                    self.tableEditCancel = true;
+                    $(this).popup('close');
+                }
+            }).appendTo($controls);
+
+            self.$tableEditDiv.popup({parent:self.$container}).popup('close');
             
             // Give the popup a name so we can control the width
             self.$tableEditDiv.popup('container').attr('name', 'rte2-frame-table-editor');
@@ -3230,20 +3340,34 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // (but only do this once)
             self.tableEditInit();
 
+            // Set a flag so we only update the table cell if user clicks the save button
+            self.tableEditCancel = false;
+            
             value = $el.handsontable('getValue') || '';
-
+            
             self.$tableEditDiv.popup('open');
+
             self.tableEditRte.fromHTML(value);
+
+            // Turn on or off track changes in the table editor, based on the track changes setting in the main editor
+            self.tableEditRte.rte.trackSet( self.rte.trackIsOn() );
+
             self.tableEditRte.focus();
             self.tableEditRte.refresh();
 
             // Due to a bug in handsontable, it steals the arrow keys even when it does not have focus.
             // So until that bug is fixed we must deselect the current cell to allow the editor to get the arrow keys.
             $el.handsontable('deselectCell');
-            
+
             self.$tableEditDiv.popup('container').one('closed', function(){
-                value = self.tableEditRte.toHTML();
-                $el.handsontable('setDataAtCell', range[0], range[1], value);
+
+                 if (self.tableEditCancel) {
+                     self.tableEditCancel = false;
+                 } else {
+                     value = self.tableEditRte.toHTML();
+                     $el.handsontable('setDataAtCell', range[0], range[1], value);
+                 }
+
             });
 
         },
@@ -3335,7 +3459,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self = this;
 
             self.$container.on('rteChange', $.debounce(2000, function(){
-                self.previewUpdate();
+                if ($('.contentPreview').is(':visible')) {
+                    self.previewUpdate();
+                }
             }));
         },
 
@@ -3418,11 +3544,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             separator: true
         });
 
-        var richTextElementsSubmenu = [];
+        var richTextElementsSubmenus = {};
         
         $.each(RICH_TEXT_ELEMENTS, function (index, rtElement) {
-            var tag = rtElement.tag;
             var styleName = rtElement.styleName;
+            var submenu;
+            var tag = rtElement.tag;
+            var toolbarButton;
 
             Rte.styles[styleName] = {
                 className: 'rte2-style-' + styleName,
@@ -3430,19 +3558,37 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 enhancementName: rtElement.displayName,
                 element: tag,
                 elementAttrAny: true,
-                singleLine: true
+                singleLine: true,
+                "void": Boolean(rtElement.void),
+                popup: rtElement.popup === false ? false : true,
+                context: rtElement.context
             };
 
-            richTextElementsSubmenu.push({
-                className: 'rte2-toolbar-noicon',
+            toolbarButton = {
+                className: 'rte2-toolbar-noicon rte2-toolbar-' + styleName,
                 style: styleName,
                 text: rtElement.displayName
-            });
+            };
+            
+            if (rtElement.submenu) {
+                
+                submenu = richTextElementsSubmenus[rtElement.submenu];
+                if (!submenu) {
+                    submenu = [];
+                    richTextElementsSubmenus[rtElement.submenu] = submenu;
+                }
+                submenu.push(toolbarButton);
+            } else {
+                Rte.toolbarConfig.push(toolbarButton);
+            }
         });
 
-        Rte.toolbarConfig.push({
-            text: 'Inline',
-            submenu: richTextElementsSubmenu
+        $.each(richTextElementsSubmenus, function(submenuName, submenuValues) {
+
+            Rte.toolbarConfig.push({
+                text: submenuName,
+                submenu: submenuValues
+            });
         });
     }
 

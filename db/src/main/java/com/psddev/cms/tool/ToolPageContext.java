@@ -3,6 +3,7 @@ package com.psddev.cms.tool;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -42,16 +44,21 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.ibm.icu.text.MessageFormat;
 import com.psddev.cms.db.PageFilter;
 import com.psddev.cms.db.RichTextElement;
 import com.psddev.cms.tool.file.SvgFileType;
+import com.psddev.cms.tool.page.content.PublishModification;
 import com.psddev.cms.view.PageViewClass;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.util.CascadingMap;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.CollectionUtils;
+import com.psddev.dari.util.HtmlWriter;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
@@ -1093,11 +1100,22 @@ public class ToolPageContext extends WebPageContext {
                 state.setStatus(StateStatus.SAVED);
 
             } else if (objectId != null) {
-                Object draftObject = Query
-                        .fromAll()
-                        .where("id = ?", draftId)
-                        .and("com.psddev.cms.db.Draft/objectId = ?", objectId)
-                        .first();
+                Object draftObject;
+
+                if (draftId != null) {
+                    draftObject = Query
+                            .fromAll()
+                            .where("id = ?", draftId)
+                            .and("com.psddev.cms.db.Draft/objectId = ?", objectId)
+                            .first();
+
+                } else {
+                    draftObject = Query
+                            .fromAll()
+                            .and("com.psddev.cms.db.Draft/objectId = ?", objectId)
+                            .and("com.psddev.cms.db.Draft/newContent = true")
+                            .first();
+                }
 
                 if (draftObject instanceof Draft) {
                     Draft draft = (Draft) draftObject;
@@ -1310,43 +1328,67 @@ public class ToolPageContext extends WebPageContext {
     }
 
     /**
-     * Writes a descriptive label HTML for the given {@code object}.
+     * Creates a descriptive HTML label for the given {@code object}.
      *
-     * @param object If {@code null}, writes {@code N/A}.
+     * @param object May be {@code null}.
      */
-    public void writeObjectLabel(Object object) throws IOException {
+    public String createObjectLabelHtml(Object object) throws IOException {
+        StringWriter htmlString = new StringWriter();
+        HtmlWriter html = new HtmlWriter(htmlString);
+
         if (object == null) {
-            writeHtml("N/A");
+            html.writeStart("em");
+            html.writeHtml("N/A");
+            html.writeEnd();
 
         } else {
             State state = State.getInstance(object);
             String visibilityLabel = object instanceof Draft
-                    ? ObjectType.getInstance(Draft.class).getDisplayName()
+                    ? localize(Draft.class, "displayName")
                     : state.getVisibilityLabel();
 
             if (!ObjectUtils.isBlank(visibilityLabel)) {
-                writeStart("span", "class", "visibilityLabel");
-                    writeHtml(visibilityLabel);
-                writeEnd();
-
-                writeHtml(" ");
+                html.writeStart("span", "class", "visibilityLabel");
+                html.writeHtml(visibilityLabel);
+                html.writeEnd();
+                html.writeHtml(" ");
             }
 
-            String label = getObjectLabelOrDefault(state, DEFAULT_OBJECT_LABEL);
+            String label = state.getLabel();
 
-            if (WHITESPACE_PATTERN.splitAsStream(label)
-                    .filter(word -> word.length() > 41)
-                    .findFirst()
-                    .isPresent()) {
-
-                writeStart("span", "class", "breakable");
-                writeHtml(label);
-                writeEnd();
+            if (ObjectUtils.to(UUID.class, label) != null) {
+                html.writeStart("em");
+                html.writeHtml(localize(state.getType(), "label.untitled"));
+                html.writeEnd();
 
             } else {
-                writeHtml(label);
+                label = Static.notTooShort(label);
+
+                if (WHITESPACE_PATTERN.splitAsStream(label)
+                        .filter(word -> word.length() > 41)
+                        .findFirst()
+                        .isPresent()) {
+
+                    html.writeStart("span", "class", "breakable");
+                    html.writeHtml(label);
+                    html.writeEnd();
+
+                } else {
+                    html.writeHtml(label);
+                }
             }
         }
+
+        return htmlString.toString();
+    }
+
+    /**
+     * Writes a descriptive HTML label for the given {@code object}.
+     *
+     * @param object May be {@code null}.
+     */
+    public void writeObjectLabel(Object object) throws IOException {
+        write(createObjectLabelHtml(object));
     }
 
     /**
@@ -1931,18 +1973,80 @@ public class ToolPageContext extends WebPageContext {
 
         List<Map<String, Object>> richTextElements = new ArrayList<>();
 
+        Map<String, Set<String>> contextMap = new HashMap<>();
+
+        LoadingCache<Class<?>, Set<Class<?>>> concreteClassMap = CacheBuilder.newBuilder()
+                .build(new CacheLoader<Class<?>, Set<Class<?>>>() {
+                    @Override
+                    public Set<Class<?>> load(Class<?> aClass) throws Exception {
+                        return new HashSet<Class<?>>(ClassFinder.findConcreteClasses(aClass));
+                    }
+                });
+
         for (Class<? extends RichTextElement> c : ClassFinder.findConcreteClasses(RichTextElement.class)) {
             RichTextElement.Tag tag = c.getAnnotation(RichTextElement.Tag.class);
 
             if (tag != null) {
+
+                String tagName = tag.value().trim();
+                if (StringUtils.isEmpty(tagName)) {
+                    continue;
+                }
+
                 Map<String, Object> richTextElement = new CompactMap<>();
                 ObjectType type = ObjectType.getInstance(c);
 
                 richTextElement.put("tag", tag.value());
+                richTextElement.put("void", tag.empty());
+                richTextElement.put("popup", type.getFields().stream()
+                        .filter(f -> !f.as(ToolUi.class).isHidden())
+                        .findFirst()
+                        .isPresent());
+
+                Set<String> context = contextMap.get(tagName);
+                if (context == null) {
+                    context = new HashSet<>();
+                    contextMap.put(tagName, context);
+                }
+
+                if (tag.root()) {
+                    context.add(null);
+                }
+
+                Stream.of(tag.children())
+                        .map(concreteClassMap::getUnchecked)
+                        .flatMap(Collection::stream)
+                        .filter(RichTextElement.class::isAssignableFrom)
+                        .map(b -> b.getAnnotation(RichTextElement.Tag.class))
+                        .filter(Objects::nonNull)
+                        .<String>map(RichTextElement.Tag::value)
+                        .map(String::trim)
+                        .filter(p -> !ObjectUtils.isBlank(p))
+                        .forEach((String p) -> {
+                            if (contextMap.get(p) == null) {
+                                contextMap.put(p, new HashSet<>());
+                            }
+                            contextMap.get(p).add(tagName);
+                        });
+
+                String menu = tag.menu().trim();
+
+                if (!menu.isEmpty()) {
+                    richTextElement.put("submenu", menu);
+                }
+
                 richTextElement.put("styleName", type.getInternalName().replace(".", "-"));
                 richTextElement.put("typeId", type.getId().toString());
                 richTextElement.put("displayName", type.getDisplayName());
                 richTextElements.add(richTextElement);
+            }
+        }
+
+        for (Map<String, Object> richTextElement : richTextElements) {
+            Set<String> context = contextMap.get(richTextElement.get("tag"));
+
+            if (!ObjectUtils.isBlank(context)) {
+                richTextElement.put("context", context);
             }
         }
 
@@ -2700,7 +2804,10 @@ public class ToolPageContext extends WebPageContext {
             }
 
             writeStart("div",
-                    "class", "objectInputs" + (type.as(ToolUi.class).isReadOnly() ? " objectInputs-readOnly" : ""),
+                    "class", "objectInputs"
+                            + (type.as(ToolUi.class).isReadOnly()
+                            || !ContentEditable.shouldContentBeEditable(state)
+                            ? " objectInputs-readOnly" : ""),
                     "lang", type != null ? type.as(ToolUi.class).getLanguageTag() : null,
                     "data-type", type != null ? type.getInternalName() : null,
                     "data-id", state.getId(),
@@ -2857,14 +2964,19 @@ public class ToolPageContext extends WebPageContext {
         writeSomeFormFields(object, false, null, null);
     }
 
+    public void writeStandardForm(Object object, boolean displayTrashAction) throws IOException, ServletException {
+        writeStandardForm(object, displayTrashAction, false);
+    }
+
     /**
      * Writes a standard form for the given {@code object}.
      *
      * @param object Can't be {@code null}.
      * @param displayTrashAction If {@code null}, displays the trash action
      * instead of the delete action.
+     * @param displayCopyAction If {@code true}, displays the create a copy action
      */
-    public void writeStandardForm(Object object, boolean displayTrashAction) throws IOException, ServletException {
+    public void writeStandardForm(Object object, boolean displayTrashAction, boolean displayCopyAction) throws IOException, ServletException {
         State state = State.getInstance(object);
         ObjectType type = state.getType();
 
@@ -2873,6 +2985,29 @@ public class ToolPageContext extends WebPageContext {
         writeStart("div", "class", "widgetControls");
             includeFromCms("/WEB-INF/objectVariation.jsp", "object", object);
         writeEnd();
+
+        if (displayCopyAction
+                && !State.getInstance(object).isNew()
+                && !(object instanceof com.psddev.dari.db.Singleton)) {
+
+            writeStart("div", "class", "widget-contentCreate");
+                writeStart("div", "class", "action action-create");
+                    writeHtml(h(localize("com.psddev.cms.tool.page.content.Edit", "action.new")));
+                writeEnd();
+                writeStart("ul");
+                    writeStart("li");
+                        writeStart("a", "class", "action action-create", "href", typeUrl(null, type.getId()));
+                            writeHtml(h(localize(state.getType(), "action.newType")));
+                        writeEnd();
+                    writeEnd();
+                    writeStart("li");
+                        writeStart("a", "class", "action action-copy", "href", typeUrl(null, type.getId(), "copyId", state.getId()), "target", "_top");
+                            writeHtml(h(localize(state.getType(), "action.copy")));
+                        writeEnd();
+                    writeEnd();
+                writeEnd();
+            writeEnd();
+        }
 
         includeFromCms("/WEB-INF/objectMessage.jsp", "object", object);
 
@@ -3044,6 +3179,14 @@ public class ToolPageContext extends WebPageContext {
         }
     }
 
+    private void redirectOnWorkflow(String url, Object... parameters) throws IOException {
+        if (getUser().isReturnToDashboardOnWorkflow()) {
+            getResponse().sendRedirect(cmsUrl("/"));
+        } else {
+            redirectOnSave(url, parameters);
+        }
+    }
+
     private void redirectOnSave(String url, Object... parameters) throws IOException {
         if (getUser().isReturnToDashboardOnSave()) {
             getResponse().sendRedirect(cmsUrl("/"));
@@ -3197,6 +3340,11 @@ public class ToolPageContext extends WebPageContext {
 
                 draft = new Draft();
                 draft.setOwner(getUser());
+
+            } else if (draft.isNewContent()) {
+                publish(object);
+                redirectOnSave("");
+                return true;
             }
 
             draft.update(findOldValuesInForm(state), object);
@@ -3286,6 +3434,7 @@ public class ToolPageContext extends WebPageContext {
         }
 
         State state = State.getInstance(object);
+        boolean newContent = state.isNew() || !state.isVisible();
         Content.ObjectModification contentData = state.as(Content.ObjectModification.class);
         ToolUser user = getUser();
 
@@ -3381,11 +3530,19 @@ public class ToolPageContext extends WebPageContext {
                 if (draft == null || param(boolean.class, "newSchedule")) {
                     draft = new Draft();
                     draft.setOwner(user);
+
+                    if (newContent) {
+                        draft.setNewContent(true);
+                    }
                 }
 
                 draft.update(findOldValuesInForm(state), object);
 
-                if (state.isNew() || contentData.isDraft()) {
+                if (state.isNew()) {
+                    contentData.setDraft(true);
+                }
+
+                if (draft.isNewContent()) {
                     contentData.setDraft(true);
                     publish(state);
                     draft.setDifferences(null);
@@ -3525,7 +3682,8 @@ public class ToolPageContext extends WebPageContext {
             state.save();
             redirectOnSave("",
                     "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null,
-                    "id", state.getId());
+                    "id", state.getId(),
+                    "copyId", null);
             return true;
 
         } catch (Exception error) {
@@ -3706,7 +3864,7 @@ public class ToolPageContext extends WebPageContext {
                 }
             }
 
-            redirectOnSave("", "id", state.getId());
+            redirectOnWorkflow("", "id", state.getId());
             return true;
 
         } catch (Exception error) {
@@ -3862,14 +4020,24 @@ public class ToolPageContext extends WebPageContext {
      * @see Content.Static#publish(Object, Site, ToolUser)
      */
     public History publish(Object object) {
-        return updateLockIgnored(Content.Static.publish(object, getSite(), getUser()));
+        ToolUser user = getUser();
+        History history = updateLockIgnored(Content.Static.publish(object, getSite(), user));
+
+        PublishModification.setBroadcast(object, true);
+
+        return history;
     }
 
     /**
      * @see Content.Static#publishDifferences(Object, Map, Site, ToolUser)
      */
     public History publishDifferences(Object object, Map<String, Map<String, Object>> differences) {
-        return updateLockIgnored(Content.Static.publishDifferences(object, differences, getSite(), getUser()));
+        ToolUser user = getUser();
+        History history = updateLockIgnored(Content.Static.publishDifferences(object, differences, getSite(), user));
+
+        PublishModification.setBroadcast(object, true);
+
+        return history;
     }
 
     /**
