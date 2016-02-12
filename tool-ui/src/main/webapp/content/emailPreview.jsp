@@ -7,6 +7,12 @@ com.psddev.cms.db.ToolUser,
 com.psddev.cms.tool.ToolPageContext,
 
 com.psddev.dari.db.ObjectType,
+com.psddev.dari.util.JspUtils,
+com.psddev.dari.util.MailMessage,
+com.psddev.dari.util.MailProvider,
+com.psddev.dari.util.ObjectUtils,
+com.psddev.dari.util.Settings,
+com.psddev.dari.util.StringUtils,
 
 java.util.Date,
 java.util.Map,
@@ -14,8 +20,7 @@ java.util.UUID,
 java.util.regex.Matcher,
 java.util.regex.Pattern
 
-" %>
-<%@ page import="com.psddev.dari.util.*" %><%
+" %><%
     ToolPageContext wp = new ToolPageContext(pageContext);
     if (wp.requireUser()) {
         return;
