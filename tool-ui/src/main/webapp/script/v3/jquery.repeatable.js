@@ -333,6 +333,8 @@ The HTML within the repeatable element must conform to these standards:
 
                 var self = this;
                 var $addButtonContainer;
+                var $addButtonSelect;
+                var tooManyButtons;
                 
                 // Create the Add Item container
                 //   -- Initialize single input mode if necessary
@@ -354,12 +356,49 @@ The HTML within the repeatable element must conform to these standards:
                 // If we are in single input mode then we'll do some extra stuff
                 self.modeSingleInitAddButton();
 
-                // Create an "Add Item" link for each template we found
-                var idIndex = 0;
+                // Create an "Add Item" link for each template we found,
+                // or if there are too many links create a dropdown
+                
+                tooManyButtons = Boolean(self.dom.$templates.length > 3);
+                
+                if (tooManyButtons) {
+
+                    // Create a dropdown to list the available add buttons
+                    $addButtonSelect = $('<select/>', {
+                        'class': 'addButtonSelect'
+                    }).appendTo($addButtonContainer);
+
+                    // Create a single "Add" button to add the selected type from the list
+                    $('<button/>', {
+                        text: self.options.addButtonText,
+                        'class': ''
+                    }).on('click', function(event) {
+                        
+                        var $button, $selected;
+
+                        event.preventDefault();
+                        
+                        // Get the selected option
+                        $selected = $addButtonSelect.find(':selected');
+
+                        // Get a link to the add button for that option, and click it.
+                        // The "addButton" data is saved on the OPTION element.
+                        $button = $selected.data('addButton');
+                        if ($button) {
+                            // Note: normally I wouldn't simulate a click on the button;
+                            // however, there is other pre-existing code that requires that
+                            // add button to be there, so we will continue creating the button
+                            // and hide it if we have too many buttons to show.
+                            $button.click();
+                        }
+                    }).appendTo($addButtonContainer);
+                }
+                
                 self.dom.$templates.each(function() {
                     
                     var $template = $(this);
                     var itemType = $template.attr('data-type') || 'Item';
+                    var $addButton;
                     var addButtonText;
 
                     // Determine which text to use for the add button
@@ -369,7 +408,7 @@ The HTML within the repeatable element must conform to these standards:
                     }
                     
                     // Add an element for the "Add Button" control
-                    $('<span/>', {
+                    $addButton = $('<span/>', {
                         
                         'class': 'addButton',
                         text: addButtonText,
@@ -390,7 +429,21 @@ The HTML within the repeatable element must conform to these standards:
 
                         return false;
                         
-                    }).appendTo($addButtonContainer);
+                    }).toggle(!tooManyButtons) // Hide button if there are too many buttons
+                        .appendTo($addButtonContainer);
+
+                    if (tooManyButtons) {
+                        $('<option/>', {
+                            value: '',
+                            text: itemType,
+                            data: {
+                                // Save the add button in a data attribute,
+                                // so later when user selects this item we know which
+                                // add button should be clicked
+                                'addButton': $addButton
+                            }
+                        }).appendTo($addButtonSelect);
+                    }
                 });
             },
 
