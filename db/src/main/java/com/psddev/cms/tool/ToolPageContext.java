@@ -2119,6 +2119,10 @@ public class ToolPageContext extends WebPageContext {
                 richTextElement.put("typeId", type.getId().toString());
                 richTextElement.put("displayName", type.getDisplayName());
                 richTextElement.put("tooltipText", tag.tooltip());
+
+                if (!ObjectUtils.isBlank(tag.keymaps())) {
+                    richTextElement.put("keymap", tag.keymaps());
+                }
                 richTextElements.add(richTextElement);
             }
         }
