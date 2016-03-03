@@ -92,6 +92,28 @@ define([
          * A function that handles clicks on the mark. It can read additional information
          * saved on the mark, and modify that information.
          * Note at this time an onClick can be used only for inline styles.
+         *
+         * String [enhancementType]
+         * If this is an "inline enhancement" you can specify the enhancement type here.
+         * Normally this is set only by the Brightspot back-end, and this value is used
+         * to display a popup form that is used to modify the attributes on the element.
+         * For example: "00000152-eb09-d919-abd2-ffcd34530004"
+         * 
+         * Boolean [popup=true]
+         * This value is used only for a style that has an enhancementType.
+         * Set this to false if the style should not popup a form to edit the element.
+         * Defaults to true.
+         *
+         * Boolean [toggle=false]
+         * This value is used only for a style that has an enhancementType.
+         * Set this to true if the style should act as a toggle (the user can click
+         * a toolbar button to toggle the style on the selected characters), for example
+         * a simple style like bold or italic that the user can turn on or off.
+         * By default this is false for enhancementType styles, which means each
+         * time the user clicks the toolbar button for the style, a new mark is inserted.
+         * Note if this is set to true, then you cannot nest an enhancmentType style
+         * inside the same enhancementType style.
+         * Note that styles that do not have enhancementType always allow user to toggle.
          */
         styles: {
 
@@ -807,7 +829,7 @@ define([
                 
                 // Add a space to represent the empty element because CodeMirror needs
                 // a character to display for the user to display the mark.
-                editor.replaceRange(' ', {line:range.from.line, ch:range.from.ch}, '+brightspotInlineSetStyle');
+                editor.replaceRange(' ', {line:range.from.line, ch:range.from.ch}, null, '+brightspotInlineSetStyle');
                 
                 range.to.line = range.from.line;
                 range.to.ch = range.from.ch + 1;
@@ -1053,7 +1075,7 @@ define([
                         //        xxx        <-- text to delete (if deleteText is true)
 
                         // Do not allow inline enhancement styles to be split in the middle
-                        if (styleObj.enhancementType) {
+                        if (styleObj.enhancementType && !styleObj.toggle) {
                             return;
                         }
                         
@@ -2259,6 +2281,12 @@ define([
             // CodeMirror doesn't seem to have a way to get a list of enhancements,
             // so we'll have to remember them as we create them.
             self.enhancementCache = {};
+
+            // Check when user presses Return at beginning of a line that contains an enhancement
+            self.codeMirror.on('change', function(cm, changeObj) {
+                self.enhancementNewlineAdjust(changeObj);
+            });
+
         },
         
         
@@ -2377,9 +2405,6 @@ define([
 
             self = this;
             editor = self.codeMirror;
-
-            // Get the options we saved previously so we can create a mark with the same options
-            options = mark.options;
             
             lineMax = editor.lineCount() - 1;
             lineNumber = self.enhancementGetLineNumber(mark) + lineDelta;
@@ -2402,6 +2427,30 @@ define([
                 lineNumber += lineDelta;
             }
 
+            return self.enhancementMoveToLine(mark, lineNumber);
+        },
+
+
+        /**
+         * Move an enhancement block to a specific line.
+         *
+         * @param Object mark
+         * The mark that was returned by the enhancementAdd() function.
+         *
+         * @param Number lineNumber
+         *
+         * @return Object
+         * Returns a new mark that contains the enhancement content.
+         */
+        enhancementMoveToLine: function(mark, lineNumber) {
+            
+            var options, self;
+
+            self = this;
+
+            // Get the options we saved previously so we can create a mark with the same options
+            options = mark.options;
+
             // Depending on the type of mark that was created, the content is stored differently
             content = self.enhancementGetContent(mark);
             $content = $(content).detach();
@@ -2413,7 +2462,46 @@ define([
             return mark;
         },
 
-        
+
+        /**
+         * When a CodeMirror change event occurs, determine if a new line has been added
+         * and if any enhancements on the line need to be adjusted.
+         * Use case: Cursor is at the beginning of a line where an enhancement is attached
+         * (above the line). User presses Return and inserts a new line. The current line
+         * is moved below the new line and moves the enhancement with it. This is not
+         * intuitive since the user expects the new line to be placed below the enhancement.
+         * So in this case we move the enhancement above the new line that was entered.
+         *
+         * @param {Object} changeObj
+         * A change event from CodeMirror.
+         */
+        enhancementNewlineAdjust: function(changeObj) {
+            
+            var lineInfo, lineNumber, self;
+
+            self = this;
+            
+            if (changeObj.from &&
+                changeObj.from.ch === 0 && // change occurred at the first character of the line
+                changeObj.text &&
+                changeObj.text.length > 1 && // change is split into multiple lines
+                changeObj.text[0] === '') { // first character of the change is a new line
+
+                // The original line number
+                lineNumber = changeObj.from.line;
+
+                // The line info for the original line (that was pushed down) so we can get the enhancements
+                lineInfo = self.codeMirror.lineInfo(lineNumber + changeObj.text.length - 1);
+
+                if (lineInfo && lineInfo.widgets) {
+                    $.each(lineInfo.widgets, function(i,mark) {
+                        self.enhancementMoveToLine(mark, lineNumber);
+                    });
+                }
+            }
+        },
+
+
         /**
          * Removes an enhancement.
          *
