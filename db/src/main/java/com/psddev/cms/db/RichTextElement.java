@@ -13,7 +13,14 @@ public abstract class RichTextElement extends Record {
 
     public abstract void fromAttributes(Map<String, String> attributes);
 
+    public void fromBody(String body) {
+    }
+
     public abstract Map<String, String> toAttributes();
+
+    public String toBody() {
+        return null;
+    }
 
     @Documented
     @Retention(RetentionPolicy.RUNTIME)

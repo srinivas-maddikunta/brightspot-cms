@@ -2754,14 +2754,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
             }
 
+            range = self.rte.markGetRange(mark);
+            html = self.rte.toHTML(range);
             enhancementEditUrl = $.addQueryParameters(
                 window.CONTEXT_PATH + '/content/enhancement.jsp',
                 'typeId', styleObj.enhancementType,
-                'attributes', JSON.stringify(mark.attributes));
+                'attributes', JSON.stringify(mark.attributes),
+                'body', $(html).html());
 
-            range = self.rte.markGetRange(mark);
-            html = self.rte.toHTML(range);
-            
             // Create a link for editing the enhancement and position it at the click event
             $div = $('<div/>', {
                 'class': 'rte2-frame-enhancement-inline',
