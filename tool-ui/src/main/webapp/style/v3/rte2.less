@@ -1,8 +1,26 @@
 .rte2-toolbar {
-  background-color: fade(white, 93%);
+  background: white;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 0 1px;
   margin: 0;
+  padding: 0 4px;
   position: relative;
   vertical-align: top;
+
+  &.is_stuck {
+    border-color: @color-border;
+    padding-top: 5px;
+
+    &:after {
+      border-bottom: 1px dotted @color-border;
+      bottom: 0;
+      content: '';
+      left: 5px;
+      position: absolute;
+      right: 5px;
+    }
+  }
 
   .rte2-wrapper > & {
 
@@ -437,13 +455,15 @@ li.CodeMirror-hint-active {
     z-index: 49;
 
     > .rte2-toolbar {
-      background: white;
-      border-bottom: 1px solid @color-separator;
-      left: 0 !important;
-      padding-left: 5px;
-      padding-right: 5px;
-      right: 0 !important;
-      width: auto !important;
+      border-color: @color-separator;
+      border-style: solid;
+      border-width: 0 0 1px 0;
+      padding-top: 5px;
+      margin: 0 -40px;
+
+      &:after {
+        display: none;
+      }
     }
 
     .rte2-toolbar {
@@ -598,10 +618,9 @@ li.CodeMirror-hint-active {
   float: right;
 }
 
-.popup[name=rte2-frame-enhancement-inline] {
+.popup[name^=rte2-frame-enhancement-inline] {
   max-width:1000px;
   width:70%;
-
 }
 
 .popup[name=rte2-frame-table-editor] {

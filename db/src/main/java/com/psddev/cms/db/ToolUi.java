@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.ObjectField;
@@ -34,6 +36,9 @@ public class ToolUi extends Modification<Object> {
 
     private Boolean bulkUpload;
     private String codeType;
+    private Boolean collectionItemProgress;
+    private Boolean collectionItemToggle;
+    private Boolean collectionItemWeight;
     private Boolean colorPicker;
     private String cssClass;
     private Boolean defaultSearchResult;
@@ -61,6 +66,7 @@ public class ToolUi extends Modification<Object> {
     private String languageTag;
     private ToolUiLayoutElement layoutField;
     private List<ToolUiLayoutElement> layoutPlaceholders;
+    private Boolean main;
     private String noteHtml;
     private String noteRendererClassName;
     private String placeholder;
@@ -71,6 +77,8 @@ public class ToolUi extends Modification<Object> {
     private String referenceableViaClassName;
     private Boolean readOnly;
     private boolean richText;
+    private String richTextElementTagName;
+    private Set<String> richTextElementClassNames;
     private boolean secret;
     private Boolean sortable;
     private Set<String> standardImageSizes;
@@ -95,6 +103,30 @@ public class ToolUi extends Modification<Object> {
 
     public void setCodeType(String codeType) {
         this.codeType = codeType;
+    }
+
+    public boolean isCollectionItemProgress() {
+        return Boolean.TRUE.equals(collectionItemProgress);
+    }
+
+    public void setCollectionItemProgress(boolean collectionItemProgress) {
+        this.collectionItemProgress = collectionItemProgress ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemToggle() {
+        return Boolean.TRUE.equals(collectionItemToggle);
+    }
+
+    public void setCollectionItemToggle(boolean collectionItemToggle) {
+        this.collectionItemToggle = collectionItemToggle ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemWeight() {
+        return Boolean.TRUE.equals(collectionItemWeight);
+    }
+
+    public void setCollectionItemWeight(boolean collectionItemWeight) {
+        this.collectionItemWeight = collectionItemWeight ? Boolean.TRUE : null;
     }
 
     public boolean isColorPicker() {
@@ -503,6 +535,35 @@ public class ToolUi extends Modification<Object> {
         this.richText = richText;
     }
 
+    public String getRichTextElementTagName() {
+        return richTextElementTagName;
+    }
+
+    public void setRichTextElementTagName(String richTextElementTagName) {
+        this.richTextElementTagName = richTextElementTagName;
+    }
+
+    public Set<String> getRichTextElementClassNames() {
+        if (richTextElementClassNames == null) {
+            richTextElementClassNames = new LinkedHashSet<>();
+        }
+        return richTextElementClassNames;
+    }
+
+    public void setRichTextElementClassNames(Set<String> richTextElementClassNames) {
+        this.richTextElementClassNames = richTextElementClassNames;
+    }
+
+    public Set<String> findRichTextElementTags() {
+        Set<String> classNames = getRichTextElementClassNames();
+
+        return Database.Static.getDefault().getEnvironment().getTypes().stream()
+                .filter(t -> !Collections.disjoint(t.getGroups(), classNames))
+                .map(t -> t.as(ToolUi.class).getRichTextElementTagName())
+                .filter(n -> !ObjectUtils.isBlank(n))
+                .collect(Collectors.toSet());
+    }
+
     public boolean isReferenceable() {
         if (referenceable == null) {
             referenceable = ObjectUtils.to(Boolean.class, getState().get("cms.ui.isReferenceable"));
@@ -630,6 +691,14 @@ public class ToolUi extends Modification<Object> {
         this.defaultSortField = defaultSortField;
     }
 
+    public boolean isMain() {
+        return Boolean.TRUE.equals(main);
+    }
+
+    public void setMain(boolean main) {
+        this.main = main;
+    }
+
     /**
      * Finds a list of all concrete types that can be displayed in the
      * context of this type or field.
@@ -723,6 +792,65 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, ObjectField field, CodeType annotation) {
             field.as(ToolUi.class).setCodeType(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies whether target field should be displayed using the progress bar and label.
+     * Expected field values are between 0.0 and 1.0.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemProgressProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemProgress {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemProgressProcessor implements ObjectField.AnnotationProcessor<CollectionItemProgress> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemProgress annotation) {
+            field.as(ToolUi.class).setCollectionItemProgress(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies whether the target field should be displayed using a toggle on the collection item.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemToggleProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemToggle {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemToggleProcessor implements ObjectField.AnnotationProcessor<CollectionItemToggle> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemToggle annotation) {
+            field.as(ToolUi.class).setCollectionItemToggle(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies whether the target field should be displayed using the weighted collection UI.
+     * Expected field values are between 0.0 and 1.0.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemWeightProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemWeight {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemWeightProcessor implements ObjectField.AnnotationProcessor<CollectionItemWeight> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemWeight annotation) {
+            field.as(ToolUi.class).setCollectionItemWeight(annotation.value());
         }
     }
 
@@ -1213,6 +1341,27 @@ public class ToolUi extends Modification<Object> {
 
                 type.as(ToolUi.class).getLayoutPlaceholders().add(element);
             }
+        }
+    }
+
+    /**
+     * Specifies whether the class will be listed as a main content type.
+     */
+    @Documented
+    @Inherited
+    @ObjectType.AnnotationProcessorClass(MainProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Main {
+
+        boolean value() default true;
+    }
+
+    private static class MainProcessor implements ObjectType.AnnotationProcessor<Main> {
+
+        @Override
+        public void process(ObjectType objectType, Main annotation) {
+            objectType.as(ToolUi.class).setMain(annotation.value());
         }
     }
 
