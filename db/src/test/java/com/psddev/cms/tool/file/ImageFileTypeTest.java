@@ -254,19 +254,19 @@ public class ImageFileTypeTest {
             Map<String, Object> edits = ObjectUtils.firstNonNull(
                     ObjectUtils.to(new TypeReference<Map<String, Object>>() {
                     }, metadata.get("cms.edits")),
-                    new HashMap<>()
+                    new HashMap<String, Object>()
             );
 
             Map<String, Object> focusPoint = ObjectUtils.firstNonNull(
                     ObjectUtils.to(new TypeReference<Map<String, Object>>() {
                     }, metadata.get("cms.focus")),
-                    new HashMap<>()
+                    new HashMap<String, Object>()
             );
 
             Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
                     ObjectUtils.to(new TypeReference<TreeMap<String, ImageCrop>>() {
                     }, metadata.get("cms.crops")),
-                    new HashMap<>()
+                    new HashMap<String, ImageCrop>()
             );
 
             compareMaps(edits, ObjectUtils.to(new TypeReference<Map<String, Object>>() {
