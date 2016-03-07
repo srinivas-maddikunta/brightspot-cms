@@ -246,9 +246,9 @@ public class ImageFileType implements FileContentType {
                 new HashMap<String, ImageCrop>()
         );
 
-        crops = new TreeMap<>(crops);
+        crops = new TreeMap<String, ImageCrop>(crops);
 
-        Map<String, StandardImageSize> sizes = new HashMap<>();
+        Map<String, StandardImageSize> sizes = new HashMap<String, StandardImageSize>();
         for (StandardImageSize size : Query.from(StandardImageSize.class).selectAll()) {
             String sizeId = size.getId().toString();
             sizes.put(sizeId, size);
