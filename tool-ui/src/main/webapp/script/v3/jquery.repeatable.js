@@ -612,7 +612,7 @@ The HTML within the repeatable element must conform to these standards:
 
             },
 
-           /**
+            /**
              * Conditionally initializes the weighting display for an individual item.
              *
              * @param {Element|jquery object} item
@@ -631,8 +631,15 @@ The HTML within the repeatable element must conform to these standards:
                 if (!$repeatableForm.hasClass('repeatableForm-weighted') || !weightFieldName) {
                     return false;
                 }
-
-                // TODO: setup click event for .removeButton to toggle off item
+                
+                $item.on('click', '.removeButton', function() {
+                    var $this = $(this);
+                    if ($this.closest('li').hasClass('toBeRemoved')) {
+                        self.removeCollectionItemWeight($item);
+                    } else {
+                        self.addCollectionItemWeight($item);
+                    }
+                });
 
                 self.addCollectionItemWeight($item);
             },
@@ -849,8 +856,8 @@ The HTML within the repeatable element must conform to these standards:
 
                                 var newLeftWeightDouble = Math.max(data.originalLeftWeight - (deltaDouble), 0);
                                 var newRightWeightDouble = data.totalWeightDouble - newLeftWeightDouble;
-                                var newLeftWeightPct = Math.round(newLeftWeightDouble * 100);
-                                var newRightWeightPct = Math.round(newRightWeightDouble * 100);
+                                var newLeftWeightPct = Math.max(Math.round(newLeftWeightDouble * 100), 0);
+                                var newRightWeightPct = Math.max(Math.round(newRightWeightDouble * 100), 0);
 
                                 data.leftElement.css({
                                     'flex': newLeftWeightDouble + ' 1 0%'

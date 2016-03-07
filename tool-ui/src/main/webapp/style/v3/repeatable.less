@@ -985,20 +985,26 @@
     > .repeatableLabel {
       padding-left: 120px;
     }
-    
-    &[data-toggle-field-value="false"] {
-        > .repeatableLabel {
-            background: @color-heading;
-        }
-        
-        .repeatableLabel-color {
-            visibility: hidden;
-        }
-        
-        .repeatableLabel-weightLabel:after {
-            content: "-%";
-            min-width: 18px;
-        }
+
+    &[data-toggle-field-value="false"], &.toBeRemoved {
+      > .repeatableLabel {
+        background: @color-heading;
+      }
+
+      .repeatableLabel-color {
+        visibility: hidden;
+      }
+
+      .repeatableLabel-weightLabel:after {
+        content: "-%";
+        min-width: 18px;
+      }
+    }
+
+    &.toBeRemoved {
+      .repeatableLabel-toggleLabel, .repeatableLabel-progress {
+        display: none;
+      }
     }
   }
     
