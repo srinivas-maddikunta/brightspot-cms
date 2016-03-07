@@ -123,7 +123,7 @@ public class ImageFileType implements FileContentType {
         // Crops.
         Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
                 ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() { }, fieldValueMetadata.get("cms.crops")),
-                new HashMap<>()
+                new HashMap<String, ImageCrop>()
         );
 
         crops = new TreeMap<>(crops);
@@ -231,19 +231,19 @@ public class ImageFileType implements FileContentType {
 
         Map<String, Object> metadata = ObjectUtils.firstNonNull(
                 ObjectUtils.to(new TypeReference<Map<String, Object>>() { }, storageItem.getMetadata()),
-                new LinkedHashMap<>()
+                new LinkedHashMap<String, Object>()
         );
 
         // Edits.
         Map<String, Object> edits = ObjectUtils.firstNonNull(
                 ObjectUtils.to(new TypeReference<Map<String, Object>>() { }, metadata.get("cms.edits")),
-                new HashMap<>()
+                new HashMap<String, Object>()
         );
 
         // Crops and StandardImageSizes.
         Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
                 ObjectUtils.to(new TypeReference<TreeMap<String, ImageCrop>>() { }, metadata.get("cms.crops")),
-                new HashMap<>()
+                new HashMap<String, ImageCrop>()
         );
 
         crops = new TreeMap<>(crops);
@@ -260,7 +260,7 @@ public class ImageFileType implements FileContentType {
         // Focus Point.
         Map<String, Double> focusPoint = ObjectUtils.firstNonNull(
                 ObjectUtils.to(new TypeReference<Map<String, Double>>() { }, metadata.get("cms.focus")),
-                new HashMap<>()
+                new HashMap<String, Double>()
         );
 
         page.writeStart("div",
