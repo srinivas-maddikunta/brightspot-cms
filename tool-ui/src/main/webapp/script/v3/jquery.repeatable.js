@@ -893,6 +893,17 @@ The HTML within the repeatable element must conform to these standards:
 
                                 var newLeftWeightDouble = Math.max(data.originalLeftWeight - (deltaDouble), 0);
                                 var newRightWeightDouble = data.totalWeightDouble - newLeftWeightDouble;
+
+                                if (newLeftWeightDouble < 0) {
+                                    newLeftWeightDouble = 0;
+                                    newRightWeightDouble = data.totalWeightDouble;
+                                }
+
+                                if (newRightWeightDouble < 0) {
+                                    newRightWeightDouble = 0;
+                                    newLeftWeightDouble = data.totalWeightDouble;
+                                }
+                                
                                 var newLeftWeightPct = Math.max(Math.round(newLeftWeightDouble * 100), 0);
                                 var newRightWeightPct = Math.max(Math.round(newRightWeightDouble * 100), 0);
 
