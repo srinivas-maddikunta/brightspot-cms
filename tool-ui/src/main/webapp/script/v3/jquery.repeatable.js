@@ -631,6 +631,11 @@ The HTML within the repeatable element must conform to these standards:
                 if (!$repeatableForm.hasClass('repeatableForm-weighted') || !weightFieldName) {
                     return false;
                 }
+
+                // Add weight reset button if not already added
+                if ($repeatableForm.find('> .repeatableForm-weightResetButton').size() <= 0) {
+                    self.initCollectionItemWeightResetButton();
+                }
                 
                 $item.on('click', '.removeButton', function() {
                     var $this = $(this);
@@ -689,7 +694,7 @@ The HTML within the repeatable element must conform to these standards:
                         $itemWeightContainer.children().eq(itemIndex - 1).after($itemWeightColumn);
                     }
 
-                    self.recalculateWeights($item);
+                    self.fixCollectionItemWeights($item);
                 }
             },
 
@@ -708,25 +713,57 @@ The HTML within the repeatable element must conform to these standards:
 
                 $itemWeightsContainer.find('.repeatableForm-itemWeight[data-target="' + $itemWeightInputName + '"]').remove();
 
-                var $itemWeights = $itemWeightsContainer.find('.repeatableForm-itemWeight');
+                //var $itemWeights = $itemWeightsContainer.find('.repeatableForm-itemWeight');
+                self.fixCollectionItemWeights(item);
 
-                var totalRemainingPercent = 0;
-                $itemWeights.each(function(i) {
-                    var $itemWeight = $(this);
-                    totalRemainingPercent += parseFloat($itemWeight.attr('data-weight'));
+                //var totalRemainingPercent = 0;
+                //$itemWeights.each(function(i) {
+                //    var $itemWeight = $(this);
+                //    totalRemainingPercent += parseFloat($itemWeight.attr('data-weight'));
+                //});
+                //
+                //$itemWeights.each(function(i) {
+                //   var $itemWeight = $(this);
+                //   var newDouble = parseFloat($itemWeight.attr('data-weight')) / totalRemainingPercent;
+                //   self.updateCollectionItemWeightData($itemWeight, Math.round(newDouble * 100));
+                //});
+            },
+
+            initCollectionItemWeightResetButton: function () {
+                var self = this;
+                self.dom.$list.parent().prepend(
+                  $('<a>', {
+                      'class': 'repeatableForm-weightResetButton',
+                      'text': 'Reset Weights to Default'
+                  }).on('click', function () {
+                      self.resetCollectionItemWeights();
+                  })
+                );
+            },
+
+            resetCollectionItemWeights: function () {
+
+                var self = this;
+                var $itemWeights = self.dom.$list.parent().find('.repeatableForm-itemWeight');
+                var itemWeightsCount = $itemWeights.size();
+
+                if (itemWeightsCount <= 0) {
+                    return false;
+                }
+
+                var weight = Math.floor(100 / itemWeightsCount);
+
+                $itemWeights.each(function () {
+                    self.updateCollectionItemWeightData(this, weight);
                 });
 
-                $itemWeights.each(function(i) {
-                   var $itemWeight = $(this);
-                   var newDouble = parseFloat($itemWeight.attr('data-weight')) / totalRemainingPercent;
-                   self.updateItemWeightData($itemWeight, Math.round(newDouble * 100));
-                });
+                //self.fixCollectionItemWeights(self.dom.$list.find('li').first());
             },
 
             /**
-             * Recalculates collection item weights.
+             * Prevents rounding errors and sum of weights from exceeding 100%.
              */
-            recalculateWeights: function(item) {
+            fixCollectionItemWeights: function(item) {
 
                 var self = this;
                 var $item = $(item);
@@ -765,11 +802,11 @@ The HTML within the repeatable element must conform to these standards:
                     //     }
                     // }
 
-                    self.updateItemWeightData($itemWeight, newWeightPercent);
+                    self.updateCollectionItemWeightData($itemWeight, newWeightPercent);
                 });
             },
 
-            updateItemWeightData: function(itemWeight, percent) {
+            updateCollectionItemWeightData: function(itemWeight, percent) {
 
                 var $itemWeight = $(itemWeight);
                 var $repeatableForm = $itemWeight.closest('.repeatableForm');
