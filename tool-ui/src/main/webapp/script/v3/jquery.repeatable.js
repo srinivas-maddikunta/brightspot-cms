@@ -681,7 +681,7 @@ The HTML within the repeatable element must conform to these standards:
                 }
                 
                 // Only add weight and handle if toggle is true or not available
-                if ($item.attr('data-toggle-field-value') !== 'true') {
+                if ($item.attr('data-toggle-field-value') === 'false') {
                     return;
                 }
 
@@ -693,7 +693,7 @@ The HTML within the repeatable element must conform to these standards:
                 });
 
                 var itemIndex = $item.parent()
-                                     .children('[data-toggle-field-value="true"]:not(.toBeRemoved)')
+                                     .children(':not([data-toggle-field-value="false"], .toBeRemoved)')
                                      .index($item);
 
                 var $itemWeightContainer = $item.closest('.repeatableForm').find('.repeatableForm-itemWeights');
@@ -888,7 +888,7 @@ The HTML within the repeatable element must conform to these standards:
                                 data.rightIndex = data.rightElement.index();
                                 data.leftIndex = data.leftElement.index();
                                 
-                                var $listElements = self.dom.$list.children('[data-toggle-field-value="true"]:not(.toBeRemoved)');
+                                var $listElements = self.dom.$list.children(':not([data-toggle-field-value="false"], .toBeRemoved)');
 
                                 data.rightLabel = $($listElements.get(data.rightIndex)).find('.repeatableLabel-weightLabel');
                                 data.leftLabel = $($listElements.get(data.leftIndex)).find('.repeatableLabel-weightLabel');
