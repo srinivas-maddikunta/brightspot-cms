@@ -204,6 +204,8 @@ The HTML within the repeatable element must conform to these standards:
 
                 // Create the "Add Item" button(s)
                 self.initAddButton();
+                
+                self.isInitialized = true;
             },
 
             
@@ -584,7 +586,7 @@ The HTML within the repeatable element must conform to these standards:
                     'class': 'repeatableLabel-toggle',
                     'type': 'checkbox',
                     'name':  id + '/' + toggleField,
-                    'value': true,
+                    'value': true
                 }).on('change', function(event) {
                     // Add/remove weight and recalculate
                     var checked = $(this).is(':checked');
@@ -623,8 +625,7 @@ The HTML within the repeatable element must conform to these standards:
                 var self = this;
                 var $item = $(item);
 
-                var weightFieldName = $item.data("weight-field");
-                //var weightFieldValue = parseFloat($item.attr("data-weight-field-value"));
+                var weightFieldName = $item.data('weight-field');
                 var $repeatableForm = $item.closest('.repeatableForm');
 
                 // Only display field weights if all valid types support collection weights
@@ -657,11 +658,15 @@ The HTML within the repeatable element must conform to these standards:
                 var $item = $(item);
                 var color = self.getCollectionItemWeightColor($item);
                 var inputName = $item.find('> input[type="hidden"][name$=".id"]').val() + '/' + $item.data("weight-field");
-                //var weightFieldValue = $item.attr('data-weight-field-value') ? parseFloat($item.attr('data-weight-field-value')) : 'auto';
                 var $itemWeightContainer = $item.closest('.repeatableForm').find('.repeatableForm-itemWeights');
+                var $repeatableWeightLabel = $item.find('> .repeatableLabel-weightLabel');
+                
+                var weightFieldValue;
+                if ($repeatableWeightLabel.size() === 0) {
 
-                // Add hidden input and label for item weight
-                if ($item.find('> .repeatableLabel-weightLabel').size() === 0) {
+                    // Add hidden input and label for item weight
+                    weightFieldValue = $item.attr('data-weight-field-value');
+                    
                     $('<div>', {
                         'class': 'repeatableLabel-weightLabel'
                     }).append($('<span>', {
@@ -670,31 +675,68 @@ The HTML within the repeatable element must conform to these standards:
                     })).append(
                         $('<input>', {
                             'type': 'hidden',
-                            'name': inputName
+                            'name': inputName,
+                            'value': weightFieldValue
                         })
                     ).prependTo($item);
+                    
+                } else {
+                    weightFieldValue = $repeatableWeightLabel.find('input').val();
+                }
+                
+                // Only add weight and handle if toggle is true or not available
+                if ($item.attr('data-toggle-field-value') !== 'true') {
+                    return;
                 }
 
-                var $itemWeightColumn = $('<div>', {
-                        'class': 'repeatableForm-itemWeight',
-                        'style': 'background-color: ' + color + ';',
-                        'data-target': inputName
+                var $itemWeight = $('<div>', {
+                    'class': 'repeatableForm-itemWeight',
+                    'style': 'background-color: ' + color + ';',
+                    'data-target': inputName,
+                    'data-weight': weightFieldValue
+                });
+
+                var itemIndex = $item.parent()
+                                     .children('[data-toggle-field-value="true"]:not(.toBeRemoved)')
+                                     .index($item);
+
+                if (itemIndex === 0) {
+                    $itemWeightContainer.prepend($itemWeight);
+                } else {
+                    $itemWeight.prepend(self.createCollectionItemWeightHandle($item));
+                    $itemWeightContainer.children().eq(itemIndex - 1).after($itemWeight);
+                }
+
+
+                var itemWeightDoubleValue = $itemWeight.attr('data-weight');
+                
+                var newWeightDouble;
+                var newWeightPercent;
+                
+                // If item has no data-weight attr, it is a new item,
+                // and should scale other weights against `baseWeight`
+                
+                if (self.isInitialized == true || !itemWeightDoubleValue) {
+
+                    if (!itemWeightDoubleValue) {
+                        // base weight which is proportional to the # of items
+                        var baseWeight = Math.round((1 / ($itemWeightContainer.children().size())) * 100) / 100;
+                        newWeightPercent = Math.floor(baseWeight * 100);    
+                    } else {
+                        // if item has a value, use it
+                        newWeightPercent = Math.round(parseFloat(itemWeightDoubleValue) * 100);
+                    }
+                    
+                    var modifier = 1 - (newWeightPercent / 100);
+
+                    $($itemWeightContainer.children().not($itemWeight)).each(function () {
+                        self.updateCollectionItemWeightData($(this), Math.floor(modifier * $(this).attr('data-weight') * 100));
                     });
 
-                if ($item.data('toggle-field-value') !== false) {
-
-                    var itemIndex = $item.parent()
-                                         .children('[data-toggle-field-value="true"]')
-                                         .index($item);
-
-                    if (itemIndex === 0) {
-                        $itemWeightContainer.prepend($itemWeightColumn);
-                    } else {
-                        $itemWeightColumn.prepend(self.createCollectionItemWeightHandle($item));
-                        $itemWeightContainer.children().eq(itemIndex - 1).after($itemWeightColumn);
-                    }
-
-                    self.fixCollectionItemWeights($item);
+                    self.updateCollectionItemWeightData($itemWeight, newWeightPercent);
+                    self.fixCollectionItemWeights();
+                } else {
+                    self.updateCollectionItemWeightData($itemWeight, (itemWeightDoubleValue * 100).toFixed());
                 }
             },
 
@@ -706,27 +748,26 @@ The HTML within the repeatable element must conform to these standards:
                 var self = this;
                 var $item = $(item);
 
-                var $itemWeightInputName = $item.find('.repeatableLabel-weightLabel input').attr('name');
-
-                var $repeatableForm = $item.closest('.repeatableForm');
+                var $repeatableForm = self.dom.$list.parent();
                 var $itemWeightsContainer = $repeatableForm.find('.repeatableForm-itemWeights');
 
-                $itemWeightsContainer.find('.repeatableForm-itemWeight[data-target="' + $itemWeightInputName + '"]').remove();
+                $itemWeightsContainer.find('.repeatableForm-itemWeight[data-target="' + $item.find('.repeatableLabel-weightLabel input').attr('name') + '"]').remove();
 
-                //var $itemWeights = $itemWeightsContainer.find('.repeatableForm-itemWeight');
-                self.fixCollectionItemWeights(item);
+                var $itemWeights = $repeatableForm.find('.repeatableForm-itemWeight');
 
-                //var totalRemainingPercent = 0;
-                //$itemWeights.each(function(i) {
-                //    var $itemWeight = $(this);
-                //    totalRemainingPercent += parseFloat($itemWeight.attr('data-weight'));
-                //});
-                //
-                //$itemWeights.each(function(i) {
-                //   var $itemWeight = $(this);
-                //   var newDouble = parseFloat($itemWeight.attr('data-weight')) / totalRemainingPercent;
-                //   self.updateCollectionItemWeightData($itemWeight, Math.round(newDouble * 100));
-                //});
+                var totalRemainingPercent = 0;
+                $itemWeights.each(function(i) {
+                    var $itemWeight = $(this);
+                    totalRemainingPercent += parseFloat($itemWeight.attr('data-weight'));
+                });
+                
+                $itemWeights.each(function(i) {
+                   var $itemWeight = $(this);
+                   var newDouble = parseFloat($itemWeight.attr('data-weight')) / totalRemainingPercent;
+                   self.updateCollectionItemWeightData($itemWeight, Math.round(newDouble * 100));
+                });
+
+                self.fixCollectionItemWeights();
             },
 
             initCollectionItemWeightResetButton: function () {
@@ -734,13 +775,16 @@ The HTML within the repeatable element must conform to these standards:
                 self.dom.$list.parent().prepend(
                   $('<a>', {
                       'class': 'repeatableForm-weightResetButton',
-                      'text': 'Reset Weights to Default'
+                      'text': 'Reset Weights'
                   }).on('click', function () {
                       self.resetCollectionItemWeights();
                   })
                 );
             },
 
+          /**
+           * Resets the collection item weights with an even distribution.
+           */
             resetCollectionItemWeights: function () {
 
                 var self = this;
@@ -757,60 +801,35 @@ The HTML within the repeatable element must conform to these standards:
                     self.updateCollectionItemWeightData(this, weight);
                 });
 
-                //self.fixCollectionItemWeights(self.dom.$list.find('li').first());
+                self.fixCollectionItemWeights();
             },
 
             /**
              * Prevents rounding errors and sum of weights from exceeding 100%.
              */
-            fixCollectionItemWeights: function(item) {
+            fixCollectionItemWeights: function() {
 
                 var self = this;
-                var $item = $(item);
-                var $repeatableForm = $item.closest('.repeatableForm');
-                var $itemWeightContainer = $repeatableForm.find('.repeatableForm-itemWeights');
-                var $itemWeights = $itemWeightContainer.find('.repeatableForm-itemWeight');
-                var itemWeightsCount = $itemWeights.size();
-
-                // Initial weight which is proportional to the # of items
-                var baseWeight = Math.round((1 / (itemWeightsCount)) * 100) / 100;
+                var $itemWeights = self.dom.$list.parent().find('.repeatableForm-itemWeights  > .repeatableForm-itemWeight');
                 var totalPercent = 0;
 
                 $itemWeights.each(function(i) {
                     var $itemWeight = $(this);
+                    var $itemWeightValue = parseFloat($itemWeight.attr('data-weight'));
+                    var $itemWeightPercent = $itemWeightValue * 100;
+                    totalPercent += $itemWeightPercent;
 
-                    var newWeightPercent;
-                    if (!$itemWeight.attr('data-weight')) {
-                        if (i === 0) {
-                            newWeightPercent = 100;
-                        } else {
-                            newWeightPercent = Math.round(baseWeight * 100);
-                        }
-                    } else {
-                        newWeightPercent = Math.round(((1 - baseWeight) * $itemWeight.attr('data-weight')) * 100);
+                    if (i + 1 === $itemWeights.size() && totalPercent !== 100) {
+                        self.updateCollectionItemWeightData($itemWeight, $itemWeightPercent + 100 - totalPercent);
                     }
-
-                    totalPercent += newWeightPercent;
-
-                    // TODO: fix rounding via largest remainder method
-                    // if (i + 1 === $itemWeights.size() && totalPercent !== 100) {
-                    //     var diff = totalPercent - 100;
-                    //     if (diff > 0) {
-                    //         newWeightPercent -= diff;
-                    //     } else {
-                    //         newWeightPercent += diff;
-                    //     }
-                    // }
-
-                    self.updateCollectionItemWeightData($itemWeight, newWeightPercent);
                 });
             },
 
             updateCollectionItemWeightData: function(itemWeight, percent) {
 
+                var self = this;
                 var $itemWeight = $(itemWeight);
                 var $repeatableForm = $itemWeight.closest('.repeatableForm');
-                var $itemWeightContainer = $repeatableForm.find('.repeatableForm-itemWeights');
                 var double = percent / 100;
 
                 $itemWeight.css({ 'flex' :  double + ' 1 0%'});
@@ -818,7 +837,7 @@ The HTML within the repeatable element must conform to these standards:
 
                 var liIndex = $repeatableForm.find('input[name="' + $itemWeight.attr('data-target') + '"]').closest('li').index();
 
-                var $repeatableWeightDisplay = $($itemWeightContainer.next('ol').find('li').get(liIndex)).find('.repeatableLabel-weightLabel');
+                var $repeatableWeightDisplay = $(self.dom.$list.children('li').get(liIndex)).find('.repeatableLabel-weightLabel');
                 $repeatableWeightDisplay.attr('data-weight-label', percent + '%');
                 $repeatableWeightDisplay.find('input').val(double);
             },
@@ -856,6 +875,9 @@ The HTML within the repeatable element must conform to these standards:
              * change the collection item weight field.
              */
             createCollectionItemWeightHandle: function(item) {
+                
+                var self = this;
+                
                 return $(
                     '<div>', {
                         'class': 'repeatableForm-itemWeightHandle',
@@ -870,14 +892,11 @@ The HTML within the repeatable element must conform to these standards:
 
                                 data.rightIndex = data.rightElement.index();
                                 data.leftIndex = data.leftElement.index();
+                                
+                                var $listElements = self.dom.$list.children('[data-toggle-field-value="true"]:not(.toBeRemoved)');
 
-                                var $listElements = data.rightElement.closest('.repeatableForm').find('ol').children();
-
-                                data.rightListItem = $($listElements.get(data.rightIndex));
-                                data.leftListItem = $($listElements.get(data.leftIndex));
-
-                                data.rightLabel = data.rightListItem.find('.repeatableLabel-weightLabel');
-                                data.leftLabel = data.leftListItem.find('.repeatableLabel-weightLabel');
+                                data.rightLabel = $($listElements.get(data.rightIndex)).find('.repeatableLabel-weightLabel');
+                                data.leftLabel = $($listElements.get(data.leftIndex)).find('.repeatableLabel-weightLabel');
 
                                 data.rightInput = data.rightLabel.find('input');
                                 data.leftInput = data.leftLabel.find('input');
@@ -891,8 +910,8 @@ The HTML within the repeatable element must conform to these standards:
                                 var deltaPercent = Math.round((delta / data.totalWidth) * 100);
                                 var deltaDouble =  deltaPercent / 100;
 
-                                var newLeftWeightDouble = Math.max(data.originalLeftWeight - (deltaDouble), 0);
-                                var newRightWeightDouble = data.totalWeightDouble - newLeftWeightDouble;
+                                var newLeftWeightDouble = Math.round((data.originalLeftWeight - deltaDouble) * 100) / 100;
+                                var newRightWeightDouble = Math.round((data.totalWeightDouble - newLeftWeightDouble) * 100) / 100;
 
                                 if (newLeftWeightDouble < 0) {
                                     newLeftWeightDouble = 0;
@@ -910,15 +929,15 @@ The HTML within the repeatable element must conform to these standards:
                                 data.leftElement.css({
                                     'flex': newLeftWeightDouble + ' 1 0%'
                                 }).attr('data-weight', newLeftWeightDouble);
-
+                                
                                 data.rightElement.css({
                                     'flex': newRightWeightDouble + ' 1 0% '
                                 }).attr('data-weight', newRightWeightDouble);
-
+                                
                                 // Update input and numerical display
                                 data.rightLabel.attr('data-weight-label', newRightWeightPct + '%');
                                 data.leftLabel.attr('data-weight-label', newLeftWeightPct + '%');
-
+                                
                                 data.rightInput.val(newRightWeightDouble);
                                 data.leftInput.val(newLeftWeightDouble);
 
