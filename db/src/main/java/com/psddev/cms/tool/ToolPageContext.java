@@ -1749,7 +1749,7 @@ public class ToolPageContext extends WebPageContext {
                                             writeStart("a",
                                                     "href", cmsUrl("/profilePanel"),
                                                     "target", "profilePanel");
-                                                writeHtml("Profile");
+                                                writeHtml(localize(ToolUser.class, "action.profile"));
                                             writeEnd();
                                         writeEnd();
 
@@ -1822,7 +1822,8 @@ public class ToolPageContext extends WebPageContext {
                                             "class", "icon icon-object-toolUser",
                                             "href", cmsUrl("/misc/settings.jsp"),
                                             "target", "misc");
-                                        writeHtml("Profile");
+                                        writeHtml(localize(ToolUser.class, "action.profile"));
+
                                     writeEnd();
                                 writeEnd();
 
@@ -2019,12 +2020,23 @@ public class ToolPageContext extends WebPageContext {
         List<Map<String, Object>> richTextElements = new ArrayList<>();
 
         Map<String, Set<String>> contextMap = new HashMap<>();
+        Map<String, Set<String>> clearContextMap = new HashMap<>();
+        Map<String, String> tagNameToStyleNameMap = new HashMap<>();
 
         LoadingCache<Class<?>, Set<Class<?>>> concreteClassMap = CacheBuilder.newBuilder()
                 .build(new CacheLoader<Class<?>, Set<Class<?>>>() {
                     @Override
                     public Set<Class<?>> load(Class<?> aClass) throws Exception {
                         return new HashSet<Class<?>>(ClassFinder.findConcreteClasses(aClass));
+                    }
+                });
+
+        LoadingCache<Class<?>, Set<Class<?>>> exclusiveClassMap = CacheBuilder.newBuilder()
+                .build(new CacheLoader<Class<?>, Set<Class<?>>>() {
+                    @Override
+                    public Set<Class<?>> load(Class<?> aClass) throws Exception {
+                        return ClassFinder.findConcreteClasses(aClass).stream()
+                                .collect(Collectors.toSet());
                     }
                 });
 
@@ -2044,10 +2056,14 @@ public class ToolPageContext extends WebPageContext {
                 richTextElement.put("tag", tag.value());
                 richTextElement.put("line", tag.block());
                 richTextElement.put("void", tag.empty());
-                richTextElement.put("popup", type.getFields().stream()
+
+                boolean hasFields = type.getFields().stream()
                         .filter(f -> !f.as(ToolUi.class).isHidden())
                         .findFirst()
-                        .isPresent());
+                        .isPresent();
+
+                richTextElement.put("popup", hasFields);
+                richTextElement.put("toggle", !hasFields);
 
                 Set<String> context = contextMap.get(tagName);
                 if (context == null) {
@@ -2075,23 +2091,64 @@ public class ToolPageContext extends WebPageContext {
                             contextMap.get(p).add(tagName);
                         });
 
+                Set<String> exclusiveTags = Stream.of(c.getInterfaces())
+                        .filter(i -> i.isAnnotationPresent(RichTextElement.Exclusive.class))
+                        .map(exclusiveClassMap::getUnchecked)
+                        .flatMap(Collection::stream)
+                        .filter(RichTextElement.class::isAssignableFrom)
+                        .map(b -> b.getAnnotation(RichTextElement.Tag.class))
+                        .filter(Objects::nonNull)
+                        .map(RichTextElement.Tag::value)
+                        .map(String::trim)
+                        .filter(p -> !ObjectUtils.isBlank(p))
+                        .collect(Collectors.toSet());
+
+                exclusiveTags.remove(tagName);
+
+                if (!exclusiveTags.isEmpty()) {
+
+                    clearContextMap.put(tagName, exclusiveTags);
+                }
+
                 String menu = tag.menu().trim();
 
                 if (!menu.isEmpty()) {
                     richTextElement.put("submenu", menu);
                 }
 
-                richTextElement.put("styleName", type.getInternalName().replace(".", "-"));
+                String styleName = type.getInternalName().replace(".", "-");
+                tagNameToStyleNameMap.put(tagName, styleName);
+
+                richTextElement.put("styleName", styleName);
                 richTextElement.put("typeId", type.getId().toString());
                 richTextElement.put("displayName", type.getDisplayName());
+                richTextElement.put("tooltipText", tag.tooltip());
                 richTextElements.add(richTextElement);
             }
         }
 
         for (Map<String, Object> richTextElement : richTextElements) {
-            Set<String> context = contextMap.get(richTextElement.get("tag"));
+
+            String tagName = (String) richTextElement.get("tag");
+
+            Set<String> context = contextMap.get(tagName);
+            Set<String> clearContext = clearContextMap.get(tagName);
+
+            if (!ObjectUtils.isBlank(clearContext)) {
+
+                Set<String> clearStyles = clearContext.stream()
+                        .map(tagNameToStyleNameMap::get)
+                        .collect(Collectors.toSet());
+
+                richTextElement.put("clear", clearStyles);
+            }
 
             if (!ObjectUtils.isBlank(context)) {
+
+                if (!ObjectUtils.isBlank(clearContext)) {
+                    context.addAll(clearContext);
+                }
+
                 richTextElement.put("context", context);
             }
         }
@@ -2107,8 +2164,11 @@ public class ToolPageContext extends WebPageContext {
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
             write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
             write("var ENABLE_PADDED_CROPS = ", getCmsTool().isEnablePaddedCrop(), ';');
-            write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ", getCmsTool().isDisableCodeMirrorRichTextEditor(), ';');
+            write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ",
+                    getCmsTool().isDisableCodeMirrorRichTextEditor()
+                            || (getUser() != null && getUser().isDisableCodeMirrorRichTextEditor()), ';');
             write("var DISABLE_RTC = ", getCmsTool().isDisableRtc(), ';');
+            write("var DISABLE_AJAX_SAVES = ", getCmsTool().isDisableAjaxSaves(), ';');
         writeEnd();
 
         writeStart("script", "type", "text/javascript", "src", "//www.google.com/jsapi");
@@ -2511,6 +2571,7 @@ public class ToolPageContext extends WebPageContext {
                     "data-dynamic-placeholder", ui.getPlaceholderDynamicText(),
                     "data-dynamic-field-name", field.getInternalName(),
                     "data-label", value != null ? getObjectLabel(value) : null,
+                    "data-label-html", value != null ? createObjectLabelHtml(value) : null,
                     "data-pathed", ToolUi.isOnlyPathed(field),
                     "data-preview", getPreviewThumbnailUrl(value),
                     "data-searcher-path", ui.getInputSearcherPath(),
@@ -2928,6 +2989,11 @@ public class ToolPageContext extends WebPageContext {
 
                     // prevents empty tab from displaying on Singletons
                     fields.removeIf(f -> f.getInternalName().equals("dari.singleton.key"));
+
+                    // Do not display fields with @ToolUi.CollectionItemWeight, @ToolUi.CollectionItemToggle, or @ToolUiCollectionItemProgress
+                    fields.removeIf(f -> f.as(ToolUi.class).isCollectionItemToggle()
+                            || f.as(ToolUi.class).isCollectionItemWeight()
+                            || f.as(ToolUi.class).isCollectionItemProgress());
 
                     DependencyResolver<ObjectField> resolver = new DependencyResolver<>();
                     Map<String, ObjectField> fieldByName = fields.stream()

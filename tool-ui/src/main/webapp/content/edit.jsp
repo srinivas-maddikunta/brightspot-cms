@@ -148,6 +148,13 @@ if (workStream != null) {
         workStream.stop(wp.getUser());
         wp.redirect("/", "reason", "stop-work-stream");
         return;
+    } else if (workStream.countIncomplete() == 0) {
+        wp.writeHeader();
+            wp.writeStart("div", "class", "message message-success");
+                wp.writeHtml(wp.localize(WorkStream.class, "message.complete"));
+            wp.writeEnd();
+        wp.writeFooter();
+        return;
     }
 
     State.getInstance(workstreamObject).as(WorkStream.Data.class).complete(workStream, wp.getUser());
@@ -1443,7 +1450,16 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             };
 
             <% if (Boolean.TRUE.equals(wp.getUser().getState().get("liveContentPreview"))) { %>
-                showPreview();
+
+                var previewInterval = window.setInterval(function() {
+
+                    var $form = $('#<%=previewFormId%>');
+
+                    if ($form.size() > 0 && $form.find('input[name="_csrf"]').size() > 0) {
+                        window.clearInterval(previewInterval);
+                        showPreview();
+                    }
+                }, 200);
             <% } else { %>
                 appendPreviewAction();
             <% } %>

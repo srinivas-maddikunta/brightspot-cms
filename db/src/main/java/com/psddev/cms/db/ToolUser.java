@@ -125,8 +125,8 @@ public class ToolUser extends Record implements ToolEntity {
     @ToolUi.Hidden
     private boolean external;
 
+    @ToolUi.Hidden
     @ToolUi.FieldDisplayType("toolUserSavedSearches")
-    @ToolUi.Tab("Search")
     private Map<String, String> savedSearches;
 
     @ToolUi.Placeholder("All Contents")
@@ -140,6 +140,9 @@ public class ToolUser extends Record implements ToolEntity {
 
     @ToolUi.Tab("Advanced")
     private boolean disableNavigateAwayAlert;
+
+    @ToolUi.Tab("Advanced")
+    private boolean disableCodeMirrorRichTextEditor;
 
     @ToolUi.Note("Force the user to change the password on next log in.")
     private boolean changePasswordOnLogIn;
@@ -802,6 +805,14 @@ public class ToolUser extends Record implements ToolEntity {
      */
     public void setDisableNavigateAwayAlert(boolean disableNavigateAwayAlert) {
         this.disableNavigateAwayAlert = disableNavigateAwayAlert;
+    }
+
+    public boolean isDisableCodeMirrorRichTextEditor() {
+        return disableCodeMirrorRichTextEditor;
+    }
+
+    public void setDisableCodeMirrorRichTextEditor(boolean disableCodeMirrorRichTextEditor) {
+        this.disableCodeMirrorRichTextEditor = disableCodeMirrorRichTextEditor;
     }
 
     public boolean isChangePasswordOnLogIn() {
