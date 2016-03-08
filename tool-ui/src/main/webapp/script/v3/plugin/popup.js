@@ -41,6 +41,7 @@
           $original.data('popup-scrollTop', $win.scrollTop());
         }
         $original.addClass('popup-show');
+        $original.resize();
       });
 
       $container.bind('restoreOriginalPosition.popup', function() {
