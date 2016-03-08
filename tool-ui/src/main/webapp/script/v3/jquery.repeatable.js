@@ -658,30 +658,26 @@ The HTML within the repeatable element must conform to these standards:
                 var $item = $(item);
                 var color = self.getCollectionItemWeightColor($item);
                 var inputName = $item.find('> input[type="hidden"][name$=".id"]').val() + '/' + $item.data("weight-field");
-                var $itemWeightContainer = $item.closest('.repeatableForm').find('.repeatableForm-itemWeights');
                 var $repeatableWeightLabel = $item.find('> .repeatableLabel-weightLabel');
                 
                 var weightFieldValue;
                 if ($repeatableWeightLabel.size() === 0) {
-
-                    // Add hidden input and label for item weight
                     weightFieldValue = $item.attr('data-weight-field-value');
-                    
+
                     $('<div>', {
                         'class': 'repeatableLabel-weightLabel'
                     }).append($('<span>', {
                         'class': 'repeatableLabel-color',
                         'style': 'background-color: ' + color
                     })).append(
-                        $('<input>', {
-                            'type': 'hidden',
-                            'name': inputName,
-                            'value': weightFieldValue
-                        })
+                      $('<input>', {
+                          'type': 'hidden',
+                          'name': inputName,
+                          'value': weightFieldValue
+                      })
                     ).prependTo($item);
-                    
                 } else {
-                    weightFieldValue = $repeatableWeightLabel.find('input').val();
+                    weightFieldValue = $item.find('> .repeatableLabel-weightLabel').find('input').val();
                 }
                 
                 // Only add weight and handle if toggle is true or not available
@@ -700,6 +696,7 @@ The HTML within the repeatable element must conform to these standards:
                                      .children('[data-toggle-field-value="true"]:not(.toBeRemoved)')
                                      .index($item);
 
+                var $itemWeightContainer = $item.closest('.repeatableForm').find('.repeatableForm-itemWeights');
                 if (itemIndex === 0) {
                     $itemWeightContainer.prepend($itemWeight);
                 } else {
@@ -710,30 +707,28 @@ The HTML within the repeatable element must conform to these standards:
 
                 var itemWeightDoubleValue = $itemWeight.attr('data-weight');
                 
-                var newWeightDouble;
-                var newWeightPercent;
-                
                 // If item has no data-weight attr, it is a new item,
                 // and should scale other weights against `baseWeight`
                 
-                if (self.isInitialized == true || !itemWeightDoubleValue) {
-
+                if (self.isInitialized === true || !itemWeightDoubleValue) {
+                    
+                    var newWeightDouble;
+                    
                     if (!itemWeightDoubleValue) {
-                        // base weight which is proportional to the # of items
-                        var baseWeight = Math.round((1 / ($itemWeightContainer.children().size())) * 100) / 100;
-                        newWeightPercent = Math.floor(baseWeight * 100);    
+                        // new items are added with a weight proportional to the number of items
+                        newWeightDouble = Math.round((1 / ($itemWeightContainer.children().size())) * 100) / 100;
                     } else {
-                        // if item has a value, use it
-                        newWeightPercent = Math.round(parseFloat(itemWeightDoubleValue) * 100);
+                        // if item exists, use existing weight
+                        newWeightDouble = parseFloat(itemWeightDoubleValue);
                     }
                     
-                    var modifier = 1 - (newWeightPercent / 100);
+                    var modifier = 1 - newWeightDouble;
 
                     $($itemWeightContainer.children().not($itemWeight)).each(function () {
                         self.updateCollectionItemWeightData($(this), Math.floor(modifier * $(this).attr('data-weight') * 100));
                     });
 
-                    self.updateCollectionItemWeightData($itemWeight, newWeightPercent);
+                    self.updateCollectionItemWeightData($itemWeight, (newWeightDouble * 100).toFixed());
                     self.fixCollectionItemWeights();
                 } else {
                     self.updateCollectionItemWeightData($itemWeight, (itemWeightDoubleValue * 100).toFixed());
