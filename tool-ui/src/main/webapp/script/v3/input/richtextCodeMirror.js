@@ -845,6 +845,15 @@ define([
                 range.to.ch = range.from.ch + 1;
             }
 
+            if (styleObj.readOnly) {
+                // Set mark to atomic which means cursor cannot be moved into the mark
+                // and also implies readonly
+                markOptions.atomic = true;
+                markOptions.addToHistory = true;
+                markOptions.inclusiveLeft = false;
+                markOptions.inclusiveRight = false;
+            }
+
             mark = editor.markText(range.from, range.to, markOptions);
             self.inlineSplitMarkAcrossLines(mark);
 
@@ -2816,7 +2825,7 @@ define([
             marks = $.map(marks, function(mark, i) {
                 var styleObj;
                 styleObj = self.classes[mark.className];
-                if (styleObj && (styleObj.onClick || styleObj.void)) {
+                if (styleObj && (styleObj.onClick || styleObj.void || styleObj.readOnly)) {
                     // Keep in the array
                     return mark;
                 } else {
@@ -2862,7 +2871,7 @@ define([
                 }).appendTo($div);
 
                 // Popup edit defaults to true, but if set to false do not include edit link
-                if (styleObj.popup !== false) {
+                if (styleObj.popup !== false && styleObj.onClick) {
                     $('<a/>', {
                         'class': 'rte2-dropdown-edit',
                         text: 'Edit'

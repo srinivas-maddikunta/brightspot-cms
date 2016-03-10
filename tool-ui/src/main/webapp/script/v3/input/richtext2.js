@@ -1480,6 +1480,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                     // Special case if the toolbar style should only be displayed in certain contexts
                     styleObj = self.styles[config.style] || {};
+                    $link.removeClass('outOfContext');
                     if (styleObj.context) {
                         
                         // Loop through all the current contexts.
@@ -3612,6 +3613,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 line: Boolean(rtElement.line),
                 "void": Boolean(rtElement.void),
+                readOnly: Boolean(rtElement.readOnly),
                 popup: rtElement.popup === false ? false : true,
                 context: rtElement.context,
                 clear: rtElement.clear,
