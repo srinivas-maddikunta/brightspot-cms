@@ -1178,7 +1178,7 @@ The HTML within the repeatable element must conform to these standards:
             },
 
           /**
-           * Shortcut function to tell if the mode is 'preview'
+           * Shortcut function to tell if the mode is 'weighted'
            * @returns {Boolean}
            */
           modeIsWeighted: function() {
