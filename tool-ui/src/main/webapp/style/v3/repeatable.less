@@ -968,13 +968,17 @@
     > .repeatableLabel {
       background: white;
       border-bottom: 1px solid @color-border;
-      padding: 12px 368px 12px 45px;
+      padding: 12px 120px 12px 45px;
       &:after {
         top: 12px;
       }
     }
     > .removeButton {
       top: 10px;
+    }
+    
+    &[data-progress-field-value] .repeatableLabel {
+      padding-right: 368px;
     }
 
     &[data-toggle-field-value="false"], &.toBeRemoved {
