@@ -15,7 +15,7 @@
     <properties>
 
         <!-- Dependency Versions -->
-        <dar.version>${dari.version}</dar.version>
+        <dari.version>${dari.version}</dari.version>
         <cms.version>${project.version}</cms.version>
         <solr.version>4.8.1</solr.version>
         <bsp.handlebars.version>1.2-SNAPSHOT</bsp.handlebars.version>
@@ -67,6 +67,21 @@
             <version>${cms.version}</version>
             <type>war</type>
         </dependency>
+
+        <!-- =======
+        Dari Modules
+        ======== -->
+        
+        <!-- AWS Module -->
+        <dependency>
+            <groupId>com.psddev</groupId>
+            <artifactId>dari-aws</artifactId>
+            <version>${dari.version}</version>
+        </dependency>
+
+        <!-- =============
+        Brightspot Modules
+        ============== -->
 
         <!-- CMS Spellchecker -->
         <dependency>
