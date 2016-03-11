@@ -192,6 +192,9 @@ The HTML within the repeatable element must conform to these standards:
 
                 // Intialize a carousel if we need it (for mode=preview)
                 self.modePreviewInit();
+                
+                // Initialize collection item weights if needed
+                self.modeWeightedInit();
 
                 // For each item initialize it
                 self.dom.$list.find('> li').each(function(){
@@ -319,6 +322,11 @@ The HTML within the repeatable element must conform to these standards:
                     self.mode = 'preview';
                     return;
                 }
+                
+                if (self.$element.hasClass('repeatableForm-weighted')) {
+                    self.mode = 'weighted';
+                    return;
+                }
             },
 
 
@@ -412,6 +420,10 @@ The HTML within the repeatable element must conform to these standards:
                 // and set up other stuff for mode=preview
                 self.modePreviewInitItem($item);
                 
+                // Create item weight for the item if necessary,
+                // and set up other stuff for mode=weighted
+                self.modeWeightedInitItem($item);
+                
                 // Create a the label for the item if necessary.
                 // The label acts as a toggle to show and hide the item,
                 // plus it can load the content of the item from a URL
@@ -431,14 +443,11 @@ The HTML within the repeatable element must conform to these standards:
                 // be shown to the user, so we hid it here
                 $item.find(':input[name$=".toggle"]').hide();
                 
-                // Add progress visual
+                // Create progress UI if necessary
                 self.initCollectionItemProgress($item);
                 
-                // Add toggle input for item
+                // Create toggle UI if necessary
                 self.initCollectionItemToggle($item);
-
-                // Add weight data to the item
-                self.initCollectionItemWeight($item);
 
                 // Add the remove control to the item
                 self.initItemRemove($item);
@@ -614,28 +623,54 @@ The HTML within the repeatable element must conform to these standards:
 
             },
 
-            /**
-             * Conditionally initializes the weighting display for an individual item.
-             *
-             * @param {Element|jquery object} item
-             * the item (LI element).
-             */
-            initCollectionItemWeight: function(item) {
+            //==================================================
+            // MODE WEIGHTED
+            //==================================================
+
+           /**
+            * Initialize weighted mode
+            */
+            modeWeightedInit: function() {
+                
+                var self = this;
+                    
+                if (!self.modeIsWeighted()) { 
+                    return;
+                }
+
+                // Set up a listener for when the user drags and drops an item to change the order,
+                // so we can adjust the order of weights
+                self.dom.$list.on('sortable.end', function (event, element) {
+
+                    var $item = $(element);
+    
+                    // Find the index for the new position of the element
+                    var newIndex = $item.index();
+                    var oldIndex = $item.data('repeatableIndex');
+                    self.repositionCollectionItemWeight(oldIndex, newIndex);
+
+                });
+              
+                self.initCollectionItemWeightResetButton();
+          
+            },
+
+           /**
+            * Conditionally initializes the weighting display for an individual item.
+            *
+            * @param {Element|jquery object} item
+            * the item (LI element).
+            */
+            modeWeightedInitItem: function(item) {
 
                 var self = this;
                 var $item = $(item);
 
                 var weightFieldName = $item.data('weight-field');
-                var $repeatableForm = $item.closest('.repeatableForm');
 
                 // Only display field weights if all valid types support collection weights
-                if (!$repeatableForm.hasClass('repeatableForm-weighted') || !weightFieldName) {
+                if (!self.modeIsWeighted() || !weightFieldName) {
                     return false;
-                }
-
-                // Add weight reset button if not already added
-                if ($repeatableForm.find('> .repeatableForm-weightResetButton').size() <= 0) {
-                    self.initCollectionItemWeightResetButton();
                 }
                 
                 $item.on('click', '.removeButton', function() {
@@ -646,6 +681,9 @@ The HTML within the repeatable element must conform to these standards:
                         self.addCollectionItemWeight($item);
                     }
                 });
+
+                // Save original index so that we can use this in sortable.end handler
+                $item.data('repeatableIndex', $item.index());
 
                 self.addCollectionItemWeight($item);
             },
@@ -692,6 +730,7 @@ The HTML within the repeatable element must conform to these standards:
                     'data-weight': weightFieldValue
                 });
 
+                // Filter items that have been toggled off
                 var itemIndex = $item.parent()
                                      .children(':not([data-toggle-field-value="false"], .toBeRemoved)')
                                      .index($item);
@@ -700,10 +739,10 @@ The HTML within the repeatable element must conform to these standards:
                 if (itemIndex === 0) {
                     $itemWeightContainer.prepend($itemWeight);
                 } else {
-                    $itemWeight.prepend(self.createCollectionItemWeightHandle($item));
                     $itemWeightContainer.children().eq(itemIndex - 1).after($itemWeight);
                 }
 
+                $itemWeight.prepend(self.createCollectionItemWeightHandle($item));
 
                 var itemWeightDoubleValue = $itemWeight.attr('data-weight');
                 
@@ -763,6 +802,26 @@ The HTML within the repeatable element must conform to these standards:
                 });
 
                 self.fixCollectionItemWeights();
+            },
+            
+            repositionCollectionItemWeight: function(oldIndex, newIndex) {
+                var self = this;
+                
+                var $weightsContainer = self.dom.$list.parent().find('.repeatableForm-itemWeights');
+                var $weights = $weightsContainer.children();
+                var $weight = $weights.eq(oldIndex);
+                
+                if (newIndex === 0) {
+                    $weightsContainer.prepend($weight);
+                } else {
+                    $weights.eq(newIndex).after($weight);
+                }
+                
+                self.dom.$list.children().each(function() {
+                    var $item = $(this);
+                    $item.data('repeatableIndex', $item.index());
+                })
+                
             },
 
             initCollectionItemWeightResetButton: function () {
@@ -1116,6 +1175,15 @@ The HTML within the repeatable element must conform to these standards:
             modeIsPreview: function() {
                 var self = this;
                 return self.mode === 'preview';
+            },
+
+          /**
+           * Shortcut function to tell if the mode is 'preview'
+           * @returns {Boolean}
+           */
+          modeIsWeighted: function() {
+                var self = this;
+                return self.mode === 'weighted';
             },
 
 
