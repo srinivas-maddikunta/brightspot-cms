@@ -33,6 +33,7 @@ public abstract class RichTextElement extends Record {
         Class<?>[] children() default { };
         String menu() default "";
         String tooltip() default "";
+        double order() default 0d;
     }
 
     private static class TagProcessor implements ObjectType.AnnotationProcessor<Tag> {
