@@ -1220,14 +1220,27 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
                 event.preventDefault();
 
-                if (styleObj.toggle) {
+                var constant = styleObj.constant;
+
+                if (constant) {
+                    var mark = rte.setStyle(item.style);
+
+                    if (mark) {
+                        rte.insert(constant);
+
+                        mark.atomic = true;
+                        mark.inclusiveLeft = false;
+                        mark.inclusiveRight = false;
+                    }
+
+                } else if (styleObj.toggle) {
 
                     // Check to see if we need to toggle off
                     mark = rte.toggleStyle(item.style);
                     if (mark) {
                         self.inlineEnhancementHandleClick(event, mark);
                     }
-                    
+
                 } else {
                     self.inlineEnhancementCreate(event, item.style);
                 }
@@ -3528,7 +3541,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // or it will be split into multiple elements and the popup will not apply to
                 // all of them
                 singleLine: Boolean(rtElement.popup !== false),
-                
+
+                constant: rtElement.constant,
                 line: Boolean(rtElement.line),
                 "void": Boolean(rtElement.void),
                 popup: rtElement.popup === false ? false : true,
