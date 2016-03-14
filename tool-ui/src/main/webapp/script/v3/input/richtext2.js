@@ -29,6 +29,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
     // We only need to load them once.
     var customStylesLoaded = false;
 
+    // Counter used for popup frames
+    var frameTargetCounter = 0;
 
     /**
      * @class
@@ -233,11 +235,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             
             'p[style*="text-align:right"]': 'alignRight',
             'p[style*="text-align:center"]': 'alignCenter',
+
+            // MSWord 'p' elements should be treated as a new line
+            // Special case if 'p' element contains only whitespace remove the whitespace
+            'p[class^=Mso]': function($el) {
+                var $replacement, t;
+                t = $el.text() || '';
+                if (t.match(/^\s*$/)) {
+                    $el.text('');
+                }
+                $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
+                $replacement.append( $el.contents() );
+                $el.replaceWith( $replacement );
+            },
             
-            // Any 'p' element should be treated as a new line
-            // Note: we also add an extra <br> element after the <p> elements.
+            // Any 'p' element should be treated as a new line with a blank line after
             'p': 'linebreak'
-            
         },
 
 
@@ -266,6 +279,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          * @property {Boolean} [custom=false]
          * Placeholder where you want any custom CMS styles to appear in the toolbar.
          * Set this to true.
+         *
+         * @property {Boolean} [richTextElements=false]
+         * Placeholder where you want any custom rich text elements to appear in the toolbar.
+         * Set this to true
          *
          * @property {Boolean} [submenu]
          * Array of submenu items.
@@ -364,6 +381,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             { action:'fullscreen', text: 'Fullscreen', className: 'rte2-toolbar-fullscreen', tooltip: 'Toggle Fullscreen Editing' },
             { action:'modeToggle', text: 'HTML', className: 'rte2-toolbar-noicon', tooltip: 'Toggle HTML Mode' },
 
+            { richTextElements:true }
+
             // Example adding buttons to insert special characters or other text:
             // { text: 'Special Characters', submenu: [
             //   { action: 'insert', text:'em-', className: 'rte2-toolbar-insert', tooltip:'Em-dash', value:'—'},
@@ -404,6 +423,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         inline: false,
 
 
+        /**
+         * Element name to use as the root context when determining if certain styles
+         * are allowed to be used at the cursor position.
+         * Defaults to null.
+         *
+         * @example
+         * // Only allow the use of styles that are allowed inside the 'heading' element.
+         * rte.contextRoot = 'heading';
+         */
+        contextRoot: null,
+
+        
         /**
          * Initialize the rich text editor.
          *
@@ -633,7 +664,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (self.doOnSubmit) {
 
                 self.$el.closest('form').on('submit', function(){
-                    if (self.rte.modeGet() === 'rich') {
+                    if (self.rte.modeGet() === 'rich' && !self.rte.readOnlyGet()) {
                         self.trackChangesSave();
                         self.$el.val(self.toHTML());
                     }
@@ -906,6 +937,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                         self.toolbarInitCustom($toolbar);
 
+                    } else if (item.richTextElements) {
+
+                        self.toolbarInitRichTextElements($toolbar);
+
                     } else {
 
                         self.toolbarAddButton(item, $toolbar);
@@ -989,6 +1024,79 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                     // Create a toolbar button to apply the style
                     self.toolbarAddButton(toolbarItem, $submenu);
+                });
+            });
+        },
+
+
+        /**
+         * Determine if any global RICH_TEXT_ELEMENTS have been defined and should
+         * be added to the toolbar.
+         *
+         * @param {jQuery} $toolbar
+         * The main toolbar for the RTE.
+         */
+        toolbarInitRichTextElements: function ($toolbar) {
+            
+            if (!window.RICH_TEXT_ELEMENTS || RICH_TEXT_ELEMENTS.length === 0) {
+                return;
+            }
+
+            var self = this;
+
+            self.toolbarAddSeparator($toolbar);
+
+            var tags = self.richTextElementTags;
+            var submenus = { };
+
+            $.each(RICH_TEXT_ELEMENTS, function (index, rtElement) {
+
+                // Always skip table elements, because those are used
+                // only to specify context and attributes, but should not
+                // appear in the toolbar
+                if (rtElement.tag === 'table') {
+                    return;
+                }
+                
+                // For this instance of the RTE, was there a custom list
+                // of elements that should be displayed in the toolbar?
+                if (tags && tags.indexOf(rtElement.tag) < 0) {
+                    // Skip this element if it is not listed in the allowed elements
+                    return;
+                }
+
+                var styleName = rtElement.styleName;
+                var submenuName = rtElement.submenu;
+                var submenu;
+                var toolbarButton;
+
+                toolbarButton = {
+                    className: 'rte2-toolbar-noicon rte2-toolbar-' + styleName,
+                    style: styleName,
+                    text: rtElement.displayName,
+                    tooltip: rtElement.tooltipText
+                };
+
+                if (submenuName) {
+                    submenu = submenus[submenuName];
+
+                    if (!submenu) {
+                        submenu = [ ];
+                        submenus[submenuName] = submenu;
+                    }
+
+                    submenu.push(toolbarButton);
+
+                } else {
+                    self.toolbarAddButton(toolbarButton, $toolbar);
+                }
+            });
+
+            $.each(submenus, function (text, submenuItems) {
+                var $submenu;
+                $submenu = self.toolbarAddSubmenu({text: text}, $toolbar);
+                $.each(submenuItems, function(i, item) {
+                    self.toolbarAddButton(item, $submenu);
                 });
             });
         },
@@ -1329,10 +1437,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 // Get the toolbar config object (added to the link when the link was created in toolbarInit()
                 config = $link.data('toolbarConfig');
-
+                if (!config) {
+                    return;
+                }
+                
                 // For toolbar actions we need special logic to determine if the button should be "active"
                 // One exception is for inline enhancements, which are treated as a normal style
-                if (config.action && config.action !== 'enhancementInline') {
+                if (config.action && config.action !== 'enhancementInline' && config.action !== 'table') {
 
                     switch (config.action) {
 
@@ -1400,6 +1511,34 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                     // Special case if the toolbar style should only be displayed in certain contexts
                     styleObj = self.styles[config.style] || {};
+
+                    // Special case for the "Table" button, we will look for a style
+                    // definition for the "table" element, to see if it has any
+                    // context specified
+                    if (config.action === 'table') {
+
+                        // See if we previously saved the table style config
+                        // so we don't do it repeatedly for performance reasons
+                        if (self.tableStyle) {
+                            // We saved it earlier so use it again
+                            styleObj = self.tableStyle;
+                        } else {
+
+                            styleObj = {};
+                            
+                            // Go through all the style definitions and see if one is for the "table" element
+                            $.each(self.styles, function(styleKey, styleObj2) {
+                                if (styleObj2.element === 'table') {
+                                    styleObj = styleObj2;
+                                    return false;
+                                }
+                            });
+
+                            // Cache this style for later so we don't have to find it again
+                            self.tableStyle = styleObj;
+                        }
+                    }
+
                     if (styleObj.context) {
                         
                         // Loop through all the current contexts.
@@ -1416,10 +1555,17 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                         // should be invalid, and we should prevent the user from applying the style
                         // across the range.
 
-                        
                         // Loop through all the contexts for the selected range
                         validContext = true;
                         $.each(context, function(i, contextElement) {
+
+                            // If a different root context was specified, then use that as the root element
+                            // For example, if the rte is meant to edit the content inside a '<mycontent>' element,
+                            // then contextRoot would be 'mycontent', and only those elements allowed in that element
+                            // would be allowed.
+                            if (self.contextRoot && contextElement === null) {
+                                contextElement = self.contextRoot;
+                            }
 
                             // Is this contextElement listed among the context allowed by the current style?
                             if ($.inArray(contextElement, styleObj.context) === -1) {
@@ -2748,7 +2894,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         inlineEnhancementHandleClick: function(event, mark) {
 
-            var enhancementEditUrl, $div, $divLink, html, offset, self, styleObj;
+            var enhancementEditUrl, $div, $divLink, frameName, html, offset, offsetContainer, range, self, styleObj;
 
             self = this;
 
@@ -2776,23 +2922,25 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 'body', $(html).html());
 
             // Create a link for editing the enhancement and position it at the click event
+            frameName = 'rte2-frame-enhancement-inline-' + frameTargetCounter++;
             $div = $('<div/>', {
                 'class': 'rte2-frame-enhancement-inline',
                 'style': 'position:absolute;top:0;left:0;height:1px;overflow:hidden;',
                 html: $('<a/>', {
-                    target: 'rte2-frame-enhancement-inline',
+                    target: frameName,
                     href: enhancementEditUrl,
                     style: 'width:100%;display:block;',
                     text: '.'
                 })
                 
-            }).appendTo('body');
+            }).appendTo(self.$container);
 
             // Set the position of the popup
             offset = self.rte.getOffset(range);
+            offsetContainer = self.$container.offset();
             $div.css({
-                'top': offset.top,
-                'left': offset.left
+                'top': offset.top - offsetContainer.top,
+                'left': offset.left - offsetContainer.left
             });
             $divLink = $div.find('a');
 
@@ -2828,8 +2976,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 $divLink.click();
 
                 // When the popup is closed put focus back on the editor
-                $(document).one('closed', '[name=rte2-frame-enhancement-inline]', function(){
-                        self.focus();
+                $(document).one('closed', '[name=' + frameName + ']', function(){
+                    self.focus();
+                    $div.remove();
+                    self.rte.triggerChange();
                 });
 
             }, 100);
@@ -3361,27 +3511,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          * has changed.
          */
         placeholderInit: function() {
-            
-            var interval, self;
+            var self = this;
 
-            self = this;
-
-            // Set the placeholder
             self.placeholderRefresh();
 
-            // Repeat checking the placeholder because it might change due to other plugins
-            // running on the page even after the page has completed loading
-            interval = setInterval(function(){
-
-                // Check if the editor is still on the page
-                if ($.contains(document, self.$el[0])) {
-                    self.placeholderRefresh();
-                } else {
-                    // If the editor has been removed from the DOM, stop running this!
-                    clearInterval(interval);
-                }
-                
-            }, 200);
+            self.$container.on('rteChange', $.throttle(500, function(){
+                self.placeholderRefresh();
+            }));
         },
 
 
@@ -3390,28 +3526,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          * if so display it over the rich text editor when the editor is empty.
          */
         placeholderRefresh: function() {
+            var self = this;
+            var placeholder = self.$el.attr('placeholder');
 
-            var attrName, count, placeholder, self;
-            self = this;
+            if (!placeholder) {
+                return;
+            }
 
-            // Get the placeholder attribute from the textarea element
-            placeholder = self.$el.attr('placeholder') || '';
+            var count = self.rte.getCount();
+            var $editor = self.$editor;
+            var ATTR_NAME = 'rte2-placeholder';
 
-            attrName = 'rte2-placeholder';
-            
-            // Is the editor empty?
-            count = self.rte.getCount();
-
-            if (count === 0 && placeholder) {
-
-                // Add a placeholder attribute to the container.
-                // CSS rules will overlay the text on top of the editor.
-                self.$editor.attr(attrName, placeholder);
+            if (count === 0) {
+                $editor.attr(ATTR_NAME, placeholder);
                 
-            } else {
-
-                // Remove the attribute so the text will not be overlayed
-                self.$editor.removeAttr(attrName);
+            } else if ($editor.attr(ATTR_NAME)) {
+                $editor.removeAttr(ATTR_NAME);
             }
         },
 
@@ -3452,6 +3582,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             var html, self, val;
             
             self = this;
+
+            // Do not update if we are in read only mode
+            if (self.rte.readOnlyGet()) {
+                return;
+            }
 
             html = self.toHTML();
 
@@ -3517,18 +3652,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
     };
 
-    if (RICH_TEXT_ELEMENTS.length > 0) {
-        Rte.toolbarConfig.push({
-            separator: true
-        });
-
-        var richTextElementsSubmenus = {};
-        
+    if (window.RICH_TEXT_ELEMENTS && RICH_TEXT_ELEMENTS.length > 0) {
         $.each(RICH_TEXT_ELEMENTS, function (index, rtElement) {
             var styleName = rtElement.styleName;
-            var submenu;
             var tag = rtElement.tag;
-            var toolbarButton;
 
             Rte.styles[styleName] = {
                 className: 'rte2-style-' + styleName,
@@ -3550,33 +3677,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 clear: rtElement.clear,
                 toggle: rtElement.toggle
             };
-
-            toolbarButton = {
-                className: 'rte2-toolbar-noicon rte2-toolbar-' + styleName,
-                style: styleName,
-                text: rtElement.displayName,
-                tooltip: rtElement.tooltipText
-            };
-            
-            if (rtElement.submenu) {
-                
-                submenu = richTextElementsSubmenus[rtElement.submenu];
-                if (!submenu) {
-                    submenu = [];
-                    richTextElementsSubmenus[rtElement.submenu] = submenu;
-                }
-                submenu.push(toolbarButton);
-            } else {
-                Rte.toolbarConfig.push(toolbarButton);
-            }
-        });
-
-        $.each(richTextElementsSubmenus, function(submenuName, submenuValues) {
-
-            Rte.toolbarConfig.push({
-                text: submenuName,
-                submenu: submenuValues
-            });
         });
     }
 
@@ -3599,6 +3699,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Make a copy of the object with extend so we don't
             // accidentally change any global default options
             options = $.extend(true, {}, this.option());
+
+            var tags = $input.attr('data-rte-tags');
+
+            if (tags) {
+                options.richTextElementTags = JSON.parse(tags);
+            }
 
             inline = $input.data('inline');
             if (inline !== undefined) {

@@ -1364,7 +1364,7 @@ public class ToolPageContext extends WebPageContext {
                 }
 
             } else if (draft.getSchedule() != null) {
-                return localize(State.getInstance(object).getType(), "visibility.scheduledUpdate");
+                return localize(State.getInstance(object).getType(), "visibility.scheduledDraft");
 
             } else {
                 return localize(Draft.class, "displayName");
@@ -2171,8 +2171,11 @@ public class ToolPageContext extends WebPageContext {
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
             write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
             write("var ENABLE_PADDED_CROPS = ", getCmsTool().isEnablePaddedCrop(), ';');
-            write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ", getCmsTool().isDisableCodeMirrorRichTextEditor(), ';');
+            write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ",
+                    getCmsTool().isDisableCodeMirrorRichTextEditor()
+                            || (getUser() != null && getUser().isDisableCodeMirrorRichTextEditor()), ';');
             write("var DISABLE_RTC = ", getCmsTool().isDisableRtc(), ';');
+            write("var DISABLE_AJAX_SAVES = ", getCmsTool().isDisableAjaxSaves(), ';');
         writeEnd();
 
         writeStart("script", "type", "text/javascript", "src", "//www.google.com/jsapi");
@@ -2575,6 +2578,7 @@ public class ToolPageContext extends WebPageContext {
                     "data-dynamic-placeholder", ui.getPlaceholderDynamicText(),
                     "data-dynamic-field-name", field.getInternalName(),
                     "data-label", value != null ? getObjectLabel(value) : null,
+                    "data-label-html", value != null ? createObjectLabelHtml(value) : null,
                     "data-pathed", ToolUi.isOnlyPathed(field),
                     "data-preview", getPreviewThumbnailUrl(value),
                     "data-searcher-path", ui.getInputSearcherPath(),
@@ -3350,13 +3354,66 @@ public class ToolPageContext extends WebPageContext {
                     if (schedule != null
                             && ObjectUtils.isBlank(schedule.getName())) {
                         schedule.delete();
-                        state.putAtomically("cms.content.scheduleDate", null);
-                        state.save();
+
+                        if (!draft.isNewContent()) {
+                            state.putAtomically("cms.content.scheduleDate", null);
+                            state.save();
+                        }
+                    }
+
+                    if (draft.isNewContent()) {
+                        state.delete();
                     }
                 }
 
             } else {
                 state.delete();
+
+                Query.from(Draft.class)
+                        .where("objectId = ?", state.getId())
+                        .deleteAll();
+            }
+
+            redirectOnSave("");
+            return true;
+
+        } catch (Exception error) {
+            getErrors().add(error);
+            return false;
+        }
+    }
+
+    public boolean tryUnschedule(Object object) {
+        if (!isFormPost()
+                || param(String.class, "action-unschedule") == null) {
+            return false;
+        }
+
+        State state = State.getInstance(object);
+
+        if (!hasPermission("type/" + state.getTypeId() + "/delete")) {
+            throw new IllegalStateException(String.format(
+                    "No permission to delete [%s]!",
+                    state.getType().getLabel()));
+        }
+
+        try {
+            Draft draft = getOverlaidDraft(object);
+
+            if (draft != null) {
+                Schedule schedule = draft.getSchedule();
+
+                if (schedule != null
+                        && ObjectUtils.isBlank(schedule.getName())) {
+                    schedule.delete();
+
+                } else {
+                    draft.setSchedule(null);
+                    draft.save();
+                }
+
+                state.putAtomically("cms.content.scheduleDate", null);
+                state.save();
             }
 
             redirectOnSave("");
