@@ -119,7 +119,6 @@ if (object != null && wp.isFormPost()) {
                 wp.writeRaw("var $source = $page.popup('source');");
                 wp.writeRaw("var rte = $source.data('rte');");
                 wp.writeRaw("var mark = $source.data('mark');");
-                wp.writeRaw("console.log('mark', mark);");
 
                 RichTextElement rte = (RichTextElement) object;
                 Map<String, String> attributes = rte.toAttributes();
