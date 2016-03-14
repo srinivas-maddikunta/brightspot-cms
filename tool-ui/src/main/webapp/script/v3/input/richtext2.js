@@ -235,11 +235,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             
             'p[style*="text-align:right"]': 'alignRight',
             'p[style*="text-align:center"]': 'alignCenter',
+
+            // MSWord 'p' elements should be treated as a new line
+            // Special case if 'p' element contains only whitespace remove the whitespace
+            'p[class^=Mso]': function($el) {
+                var $replacement, t;
+                t = $el.text() || '';
+                if (t.match(/^\s*$/)) {
+                    $el.text('');
+                }
+                $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
+                $replacement.append( $el.contents() );
+                $el.replaceWith( $replacement );
+            },
             
-            // Any 'p' element should be treated as a new line
-            // Note: we also add an extra <br> element after the <p> elements.
+            // Any 'p' element should be treated as a new line with a blank line after
             'p': 'linebreak'
-            
         },
 
 
@@ -1040,6 +1051,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             $.each(RICH_TEXT_ELEMENTS, function (index, rtElement) {
 
+                // Always skip table elements, because those are used
+                // only to specify context and attributes, but should not
+                // appear in the toolbar
+                if (rtElement.tag === 'table') {
+                    return;
+                }
+                
                 // For this instance of the RTE, was there a custom list
                 // of elements that should be displayed in the toolbar?
                 if (tags && tags.indexOf(rtElement.tag) < 0) {
@@ -1412,7 +1430,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 
                 // For toolbar actions we need special logic to determine if the button should be "active"
                 // One exception is for inline enhancements, which are treated as a normal style
-                if (config.action && config.action !== 'enhancementInline') {
+                if (config.action && config.action !== 'enhancementInline' && config.action !== 'table') {
 
                     switch (config.action) {
 
@@ -1480,6 +1498,34 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                     // Special case if the toolbar style should only be displayed in certain contexts
                     styleObj = self.styles[config.style] || {};
+
+                    // Special case for the "Table" button, we will look for a style
+                    // definition for the "table" element, to see if it has any
+                    // context specified
+                    if (config.action === 'table') {
+
+                        // See if we previously saved the table style config
+                        // so we don't do it repeatedly for performance reasons
+                        if (self.tableStyle) {
+                            // We saved it earlier so use it again
+                            styleObj = self.tableStyle;
+                        } else {
+
+                            styleObj = {};
+                            
+                            // Go through all the style definitions and see if one is for the "table" element
+                            $.each(self.styles, function(styleKey, styleObj2) {
+                                if (styleObj2.element === 'table') {
+                                    styleObj = styleObj2;
+                                    return false;
+                                }
+                            });
+
+                            // Cache this style for later so we don't have to find it again
+                            self.tableStyle = styleObj;
+                        }
+                    }
+
                     if (styleObj.context) {
                         
                         // Loop through all the current contexts.

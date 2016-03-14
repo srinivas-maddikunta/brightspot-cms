@@ -444,11 +444,18 @@
 .widget-previewFrameContainer {
   bottom: 20px;
   left: 20px;
-  margin-right: 20px;
-  overflow: auto;
+  overflow: hidden;
+  padding-right: 20px;
   position: absolute;
   right: 0;
   top: 110px;
+
+  iframe {
+    border: none;
+    height: 100%;
+    transform-origin: top left;
+    width: 100%;
+  }
 }
 
 .widget-publishing {
