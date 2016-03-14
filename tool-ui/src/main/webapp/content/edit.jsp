@@ -1365,9 +1365,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         'type': 'post',
                         'url': CONTEXT_PATH + 'content/state.jsp?id=<%= state.getId() %>&' + (questionAt > -1 ? action.substring(questionAt + 1) : ''),
                         'complete': function(request) {
-                            var $previewTarget,
-                                    setHeightTimer,
-                                    setHeight;
+                            var $previewTarget;
 
                             // Make sure that the preview IFRAME exists.
                             $(':input[name=<%= PageFilter.PREVIEW_OBJECT_PARAMETER %>]').val(request.responseText);
@@ -1377,44 +1375,33 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                 $previewTarget = $('<iframe/>', {
                                     'name': '<%= previewTarget %>',
                                     'css': {
-                                        'border-style': 'none',
-                                        'height': '1000px',
-                                        'margin': 0,
-                                        'overflow': 'hidden',
-                                        'padding': 0,
                                         'width': $previewForm.find('select.deviceWidthSelect').val() || '100%'
                                     }
                                 });
-                                $previewWidget.append($('<div/>', {
+
+                                var $container = $('<div/>', {
                                     'class': 'widget-previewFrameContainer',
                                     'html': $previewTarget
-                                }));
-                            }
+                                });
 
-                            // Resize IFRAME so that there isn't a scrollbar.
-                            setHeight = function() {
-                                var $body;
+                                $previewWidget.append($container);
 
-                                if ($previewTarget[0]) {
-                                    $body = $($previewTarget[0].contentWindow.document.body);
-                                    $body.css('overflow', 'hidden');
-                                    $previewTarget.height(Math.max($edit.outerHeight(true), $body.outerHeight(true)));
+                                function resizePreview() {
+                                    var deviceWidth = parseInt($previewForm.find('select.deviceWidthSelect').val(), 10);
+                                    var scale = ($win.width() - 160) / deviceWidth;
 
-                                } else if (setHeightTimer) {
-                                    clearInterval(setHeightTimer);
-                                    setHeightTimer = null;
+                                    $previewTarget.css({
+                                        height: ($win.height() - $container.offset().top - 40) / scale,
+                                        transform: 'scale(' + (scale < 1 ? scale : 1) + ')'
+                                    });
                                 }
-                            };
 
-                            setHeightTimer = setInterval(setHeight, 100);
+                                resizePreview();
+                                $win.resize($.throttle(500, resizePreview));
+                            }
 
                             $previewTarget.load(function() {
                                 $previewWidget.removeClass('widget-loading');
-                                setHeight();
-                                if (setHeightTimer) {
-                                    clearInterval(setHeightTimer);
-                                    setHeightTimer = null;
-                                }
                             });
 
                             // Really load the preview.
