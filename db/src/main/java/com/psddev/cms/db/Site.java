@@ -63,6 +63,9 @@ public class Site extends Record {
 
     @Indexed(unique = true)
     private List<String> urls;
+    
+    @Indexed
+    private SiteCategory siteCategory;
 
     @ToolUi.Tab("Advanced")
     private Variation defaultVariation;
