@@ -1,9 +1,17 @@
 define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
+  function toolHeaderBottom(includeMargin) {
+    var $toolHeader = $('.toolHeader');
+
+    return $toolHeader.is(':visible') ?
+        $toolHeader.offset().top - $(window).scrollTop() + $toolHeader.outerHeight(includeMargin) :
+        0;
+  }
+
   bsp_utils.onDomInsert(document, '.withLeftNav > .leftNav, .withLeftNav > .main, .contentForm-main', {
     insert: function (element) {
       $(element).stick_in_parent({
         offset_top: function () {
-          return $('.toolHeader').outerHeight(true);
+          return toolHeaderBottom(true);
         }
       });
     }
@@ -32,14 +40,14 @@ define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
           $publishing.stick_in_parent({
             parent: '.contentForm',
             offset_top: function () {
-              return $('.toolHeader').outerHeight(true);
+              return toolHeaderBottom(true);
             }
           });
 
           $widgets.stick_in_parent({
             parent: '.contentForm',
             offset_top: function () {
-              return $('.toolHeader').outerHeight(true) + $publishing.outerHeight(true);
+              return toolHeaderBottom(true) + $publishing.outerHeight(true);
             },
             offset_change: function (offset) {
               $widgets.css({
@@ -59,8 +67,7 @@ define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
     insert: function (element) {
       $(element).stick_in_parent({
         offset_top: function () {
-          var $toolHeader = $('.toolHeader');
-          return $toolHeader.is(':visible') ? $toolHeader.outerHeight() : 0;
+          return toolHeaderBottom(false);
         }
       });
     }

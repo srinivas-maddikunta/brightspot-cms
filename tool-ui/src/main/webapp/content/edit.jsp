@@ -148,6 +148,13 @@ if (workStream != null) {
         workStream.stop(wp.getUser());
         wp.redirect("/", "reason", "stop-work-stream");
         return;
+    } else if (workStream.countIncomplete() == 0) {
+        wp.writeHeader();
+            wp.writeStart("div", "class", "message message-success");
+                wp.writeHtml(wp.localize(WorkStream.class, "message.complete"));
+            wp.writeEnd();
+        wp.writeFooter();
+        return;
     }
 
     State.getInstance(workstreamObject).as(WorkStream.Data.class).complete(workStream, wp.getUser());
@@ -160,7 +167,8 @@ if (wp.tryDelete(editing) ||
         wp.tryRestore(editing) ||
         wp.tryTrash(editing) ||
         wp.tryMerge(editing) ||
-        wp.tryWorkflow(editing)) {
+        wp.tryWorkflow(editing) ||
+        wp.tryUnschedule(editing)) {
     return;
 }
 
@@ -585,6 +593,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 boolean isHistory = history != null;
                 boolean isTrash = contentData.isTrash();
                 Schedule schedule = draft != null ? draft.getSchedule() : null;
+                boolean displayWorkflowSave = false;
 
                 if (isWritable) {
 
@@ -640,31 +649,6 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     wp.writeEnd();
                                 }
                             }
-
-                            wp.writeStart("div", "class", "actions");
-                                if (draft != null && !draft.isNewContent()) {
-                                    wp.writeStart("a",
-                                            "class", "icon icon-action-edit",
-                                            "href", wp.url("", "draftId", null));
-                                        wp.writeHtml("Back to ");
-                                        wp.writeHtml(!visible ? "Initial Draft" : "Live");
-                                    wp.writeEnd();
-                                }
-
-                                wp.writeStart("button",
-                                        "class", "link icon icon-action-save",
-                                        "name", "action-draft",
-                                        "value", "true");
-                                    wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.save"));
-                                wp.writeEnd();
-
-                                wp.writeStart("button",
-                                        "class", "link icon icon-action-delete",
-                                        "name", "action-delete",
-                                        "value", "true");
-                                    wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.delete"));
-                                wp.writeEnd();
-                            wp.writeEnd();
                         wp.writeEnd();
 
                     // Message and actions if the content is a past revision.
@@ -707,7 +691,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                     // Message and actions if the content is a trash.
                     } else if (isTrash) {
-                        wp.writeTrashMessage(editing);
+                        wp.writeStart("div", "class", "message message-warning");
+                            wp.writeStart("p");
+                                wp.writeHtml("Archived ");
+                                wp.writeHtml(wp.formatUserDateTime(contentData.getUpdateDate()));
+                                wp.writeHtml(" by ");
+                                wp.writeObjectLabel(contentData.getUpdateUser());
+                                wp.writeHtml(".");
+                            wp.writeEnd();
+                        wp.writeEnd();
                     }
 
                     if (lockedOut) {
@@ -796,67 +788,61 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             sortDescending("date").
                                             first();
 
-                                    wp.writeStart("div", "class", "widget-publishingWorkflow");
-                                        if (!ObjectUtils.isBlank(currentState)) {
-                                            String workflowStateDisplayName = currentState;
+                                    if (!ObjectUtils.isBlank(currentState)) {
+                                        String workflowStateDisplayName = currentState;
 
-                                            for (WorkflowState s : workflow.getStates()) {
-                                                if (ObjectUtils.equals(s.getName(), currentState)) {
-                                                    workflowStateDisplayName = s.getDisplayName();
-                                                    break;
-                                                }
+                                        for (WorkflowState s : workflow.getStates()) {
+                                            if (ObjectUtils.equals(s.getName(), currentState)) {
+                                                workflowStateDisplayName = s.getDisplayName();
+                                                break;
                                             }
-
-                                            wp.writeStart("div", "class", "widget-publishingWorkflowComment");
-                                                wp.writeStart("div", "class", "message message-warning");
-                                                wp.writeStart("span", "class", "visibilityLabel widget-publishingWorkflowState");
-                                                    wp.writeHtml(workflowStateDisplayName);
-                                                wp.writeEnd();
-
-                                                if (log != null) {
-                                                    String comment = log.getComment();
-
-                                                    wp.writeHtml(" ");
-                                                    wp.writeStart("a",
-                                                            "target", "workflowLogs",
-                                                            "href", wp.cmsUrl("/workflowLogs", "objectId", workflowParentState.getId()));
-                                                        if (ObjectUtils.isBlank(comment)) {
-                                                            wp.writeHtml("by ");
-
-                                                        } else {
-                                                            wp.writeStart("q");
-                                                                wp.writeHtml(comment);
-                                                            wp.writeEnd();
-                                                            wp.writeHtml(" said ");
-                                                        }
-
-                                                        wp.writeHtml(log.getUserName());
-                                                        wp.writeHtml(" at ");
-                                                        wp.writeHtml(wp.formatUserDateTime(log.getDate()));
-                                                    wp.writeEnd();
-                                                }
-
-                                                if (draft == null
-                                                        && (wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)
-                                                        || workflow.getTransitionsTo(currentState)
-                                                                .keySet()
-                                                                .stream()
-                                                                .filter(name -> wp.hasPermission("type/" + editingState.getTypeId() + "/" + name))
-                                                                .findFirst()
-                                                                .isPresent())) {
-                                                    wp.writeStart("div", "class", "actions");
-                                                        wp.writeStart("button",
-                                                                "class", "link icon icon-action-save",
-                                                                "name", "action-draft",
-                                                                "value", "true");
-                                                            wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.save"));
-                                                        wp.writeEnd();
-                                                    wp.writeEnd();
-                                                }
-                                                wp.writeEnd();
-                                            wp.writeEnd();
                                         }
 
+                                        wp.writeStart("div", "class", "widget-publishingWorkflowComment");
+                                            wp.writeStart("div", "class", "message message-warning");
+                                            wp.writeStart("span", "class", "visibilityLabel widget-publishingWorkflowState");
+                                                wp.writeHtml(workflowStateDisplayName);
+                                            wp.writeEnd();
+
+                                            if (log != null) {
+                                                String comment = log.getComment();
+
+                                                wp.writeHtml(" ");
+                                                wp.writeStart("a",
+                                                        "target", "workflowLogs",
+                                                        "href", wp.cmsUrl("/workflowLogs", "objectId", workflowParentState.getId()));
+                                                    if (ObjectUtils.isBlank(comment)) {
+                                                        wp.writeHtml("by ");
+
+                                                    } else {
+                                                        wp.writeStart("q");
+                                                            wp.writeHtml(comment);
+                                                        wp.writeEnd();
+                                                        wp.writeHtml(" said ");
+                                                    }
+
+                                                    wp.writeHtml(log.getUserName());
+                                                    wp.writeHtml(" at ");
+                                                    wp.writeHtml(wp.formatUserDateTime(log.getDate()));
+                                                wp.writeEnd();
+                                            }
+
+                                            if (draft == null
+                                                    && (wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)
+                                                    || workflow.getTransitionsTo(currentState)
+                                                            .keySet()
+                                                            .stream()
+                                                            .filter(name -> wp.hasPermission("type/" + editingState.getTypeId() + "/" + name))
+                                                            .findFirst()
+                                                            .isPresent())) {
+
+                                                displayWorkflowSave = true;
+                                            }
+                                            wp.writeEnd();
+                                        wp.writeEnd();
+                                    }
+
+                                    wp.writeStart("div", "class", "widget-publishingWorkflow");
                                         if (!transitionNames.isEmpty()) {
                                             WorkflowLog newLog = new WorkflowLog();
 
@@ -976,41 +962,134 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                         wp.writeHtml(wp.localize(type, "action.publish"));
                                     }
                                 wp.writeEnd();
-
-                                if (wp.hasPermission("type/" + editingState.getTypeId() + "/archive") &&
-                                        !isDraft &&
-                                        !isHistory &&
-                                        !editingState.isNew() &&
-                                        (editingState.getType() == null ||
-                                        !editingState.getType().getGroups().contains(Singleton.class.getName()))) {
-                                    wp.writeStart("button",
-                                            "class", "link icon icon-action-trash",
-                                            "name", "action-trash",
-                                            "value", "true");
-                                        wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.archive"));
-                                    wp.writeEnd();
-                                }
                             wp.writeEnd();
                         }
                     }
                 }
 
-                wp.writeStart("ul", "class", "widget-publishingExtra");
-                    if (isWritable && !isTrash) {
-                        wp.writeStart("li");
-                            wp.writeStart("button",
-                                    "class", "link icon icon-object-draft",
-                                    "name", "action-newDraft",
-                                    "value", "true");
-
-                                if (editingState.isNew()) {
-                                    wp.writeHtml(wp.localize(editingState.getType(), "action.save.initialDraft"));
-
-                                } else {
-                                    wp.writeHtml(wp.localize(Draft.class, "action.newType"));
+                wp.writeStart("div", "class", "widget-publishingExtra");
+                    wp.writeStart("ul", "class", "widget-publishingExtra-left");
+                        if ((!lockedOut || editAnyway) && isWritable) {
+                            if (isDraft) {
+                                if (schedule == null) {
+                                    wp.writeStart("li");
+                                        wp.writeStart("button",
+                                                "class", "link icon icon-action-save",
+                                                "name", "action-draft",
+                                                "value", "true");
+                                            wp.writeHtml(wp.localize(editingState.getType(), "action.save.draft"));
+                                        wp.writeEnd();
+                                    wp.writeEnd();
                                 }
 
+                                if (draft != null && !draft.isNewContent()) {
+                                    wp.writeStart("li");
+                                        wp.writeStart("a",
+                                                "class", "icon icon-arrow-left",
+                                                "href", wp.url("", "draftId", null));
+                                            wp.writeHtml("Back to ");
+                                            wp.writeHtml(!visible ? "Initial Draft" : "Live");
+                                        wp.writeEnd();
+                                    wp.writeEnd();
+                                }
+
+                            } else if (editingState.isVisible()) {
+                                wp.writeStart("li");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-object-draft",
+                                            "name", "action-newDraft",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(editingState.getType(), "action.new.draft"));
+                                    wp.writeEnd();
+                                wp.writeEnd();
+
+                            } else if (displayWorkflowSave) {
+                                wp.writeStart("li");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-action-save",
+                                            "name", "action-draft",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(editingState.getType(), "action.save.draft"));
+                                    wp.writeEnd();
+                                wp.writeEnd();
+                            }
+                        }
+
+                        if (isTrash && wp.hasPermission("type/" + state.getType().getId() + "/restore")) {
+                            wp.writeStart("li");
+                                wp.writeStart("button",
+                                        "class", "link icon icon-action-restore",
+                                        "name", "action-restore",
+                                        "value", "true");
+                                    wp.writeHtml("Restore");
+                                wp.writeEnd();
                             wp.writeEnd();
+                        }
+                    wp.writeEnd();
+
+                    if (!lockedOut || editAnyway) {
+                        wp.writeStart("ul", "class", "widget-publishingExtra-right");
+                            if (isWritable && isDraft) {
+                                if (schedule != null) {
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-action-cancel",
+                                            "name", "action-unschedule",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(editingState.getType(), "action.unschedule"));
+                                    wp.writeEnd();
+                                }
+
+                                wp.writeStart("li");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-action-delete",
+                                            "name", "action-delete",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(
+                                                editingState.getType(),
+                                                draft != null && !draft.isNewContent()
+                                                        ? "action.delete.draft"
+                                                        : "action.delete"));
+                                    wp.writeEnd();
+                                wp.writeEnd();
+                            }
+
+                            if (wp.hasPermission("type/" + editingState.getTypeId() + "/archive") &&
+                                    !isDraft &&
+                                    !isHistory &&
+                                    !editingState.isNew() &&
+                                    (editingState.getType() == null ||
+                                    !editingState.getType().getGroups().contains(Singleton.class.getName()))) {
+
+                                wp.writeStart("li");
+                                    if (displayWorkflowSave) {
+                                        wp.writeStart("button",
+                                                "class", "link icon icon-action-delete",
+                                                "name", "action-delete",
+                                                "value", "true");
+                                            wp.writeHtml(wp.localize(editingState.getType(), "action.delete"));
+                                        wp.writeEnd();
+
+                                    } else if (!isTrash) {
+                                        wp.writeStart("button",
+                                                "class", "link icon icon-action-trash",
+                                                "name", "action-trash",
+                                                "value", "true");
+                                            wp.writeHtml(wp.localize(editingState.getType(), "action.archive"));
+                                        wp.writeEnd();
+                                    }
+                                wp.writeEnd();
+                            }
+
+                            if (isTrash && wp.hasPermission("type/" + state.getType().getId() + "/delete")) {
+                                wp.writeStart("li");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-action-delete",
+                                            "name", "action-delete",
+                                            "value", "true");
+                                        wp.writeHtml("Delete Permanently");
+                                    wp.writeEnd();
+                                wp.writeEnd();
+                            }
                         wp.writeEnd();
                     }
                 wp.writeEnd();
@@ -1212,7 +1291,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                     $body = $(doc.body),
 
                     $edit = $('.content-edit'),
-                    $publishingExtra = $('.widget-publishingExtra'),
+                    $publishingExtra = $('.widget-publishingExtra-left'),
                     $previewAction,
                     appendPreviewAction,
                     removePreviewAction,
@@ -1358,9 +1437,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         'type': 'post',
                         'url': CONTEXT_PATH + 'content/state.jsp?id=<%= state.getId() %>&' + (questionAt > -1 ? action.substring(questionAt + 1) : ''),
                         'complete': function(request) {
-                            var $previewTarget,
-                                    setHeightTimer,
-                                    setHeight;
+                            var $previewTarget;
 
                             // Make sure that the preview IFRAME exists.
                             $(':input[name=<%= PageFilter.PREVIEW_OBJECT_PARAMETER %>]').val(request.responseText);
@@ -1370,44 +1447,33 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                 $previewTarget = $('<iframe/>', {
                                     'name': '<%= previewTarget %>',
                                     'css': {
-                                        'border-style': 'none',
-                                        'height': '1000px',
-                                        'margin': 0,
-                                        'overflow': 'hidden',
-                                        'padding': 0,
                                         'width': $previewForm.find('select.deviceWidthSelect').val() || '100%'
                                     }
                                 });
-                                $previewWidget.append($('<div/>', {
+
+                                var $container = $('<div/>', {
                                     'class': 'widget-previewFrameContainer',
                                     'html': $previewTarget
-                                }));
-                            }
+                                });
 
-                            // Resize IFRAME so that there isn't a scrollbar.
-                            setHeight = function() {
-                                var $body;
+                                $previewWidget.append($container);
 
-                                if ($previewTarget[0]) {
-                                    $body = $($previewTarget[0].contentWindow.document.body);
-                                    $body.css('overflow', 'hidden');
-                                    $previewTarget.height(Math.max($edit.outerHeight(true), $body.outerHeight(true)));
+                                function resizePreview() {
+                                    var deviceWidth = parseInt($previewForm.find('select.deviceWidthSelect').val(), 10);
+                                    var scale = ($win.width() - 160) / deviceWidth;
 
-                                } else if (setHeightTimer) {
-                                    clearInterval(setHeightTimer);
-                                    setHeightTimer = null;
+                                    $previewTarget.css({
+                                        height: ($win.height() - ($container.offset().top - $win.scrollTop()) - 40) / scale,
+                                        transform: 'scale(' + (scale < 1 ? scale : 1) + ')'
+                                    });
                                 }
-                            };
 
-                            setHeightTimer = setInterval(setHeight, 100);
+                                resizePreview();
+                                $win.resize($.throttle(500, resizePreview));
+                            }
 
                             $previewTarget.load(function() {
                                 $previewWidget.removeClass('widget-loading');
-                                setHeight();
-                                if (setHeightTimer) {
-                                    clearInterval(setHeightTimer);
-                                    setHeightTimer = null;
-                                }
                             });
 
                             // Really load the preview.
@@ -1443,7 +1509,16 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             };
 
             <% if (Boolean.TRUE.equals(wp.getUser().getState().get("liveContentPreview"))) { %>
-                showPreview();
+
+                var previewInterval = window.setInterval(function() {
+
+                    var $form = $('#<%=previewFormId%>');
+
+                    if ($form.size() > 0 && $form.find('input[name="_csrf"]').size() > 0) {
+                        window.clearInterval(previewInterval);
+                        showPreview();
+                    }
+                }, 200);
             <% } else { %>
                 appendPreviewAction();
             <% } %>
