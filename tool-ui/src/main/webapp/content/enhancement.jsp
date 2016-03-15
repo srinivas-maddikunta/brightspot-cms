@@ -136,7 +136,9 @@ if (object != null && wp.isFormPost()) {
                             elementHtml.append(' ');
                             elementHtml.append(StringUtils.escapeHtml(name));
                             elementHtml.append('=');
+                            elementHtml.append('"');
                             elementHtml.append(StringUtils.escapeHtml(value));
+                            elementHtml.append('"');
                         });
                     }
 
