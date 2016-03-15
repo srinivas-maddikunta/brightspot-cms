@@ -91,6 +91,7 @@ final boolean isRichTextElement = object instanceof RichTextElement;
 
 if (isRichTextElement) {
     ((RichTextElement) object).fromAttributes((Map<String, String>) ObjectUtils.fromJson(wp.param(String.class, "attributes")));
+    ((RichTextElement) object).fromBody(wp.param(String.class, "body"));
 }
 
 if (object != null && wp.isFormPost()) {
@@ -115,7 +116,46 @@ if (object != null && wp.isFormPost()) {
                 wp.writeEnd();
                 wp.writeStart("script", "type", "text/javascript");
                 wp.writeRaw("var $page = $('#" + pageId + "');");
-                wp.writeRaw("$page.popup('source').data('mark').attributes = " + ObjectUtils.toJson(((RichTextElement) object).toAttributes()) + ";");
+                wp.writeRaw("var $source = $page.popup('source');");
+                wp.writeRaw("var rte = $source.data('rte');");
+                wp.writeRaw("var mark = $source.data('mark');");
+
+                RichTextElement rte = (RichTextElement) object;
+                Map<String, String> attributes = rte.toAttributes();
+                String body = rte.toBody();
+
+                if (body != null) {
+                    StringBuilder elementHtml = new StringBuilder();
+                    String tagName = rte.getClass().getAnnotation(RichTextElement.Tag.class).value();
+
+                    elementHtml.append('<');
+                    elementHtml.append(tagName);
+
+                    if (attributes != null) {
+                        attributes.forEach((name, value) -> {
+                            elementHtml.append(' ');
+                            elementHtml.append(StringUtils.escapeHtml(name));
+                            elementHtml.append('=');
+                            elementHtml.append('"');
+                            elementHtml.append(StringUtils.escapeHtml(value));
+                            elementHtml.append('"');
+                        });
+                    }
+
+                    elementHtml.append('>');
+                    elementHtml.append(body);
+                    elementHtml.append("</");
+                    elementHtml.append(tagName);
+                    elementHtml.append('>');
+
+                    wp.writeRaw("rte.rte.fromHTML('");
+                    wp.writeRaw(StringUtils.escapeJavaScript(elementHtml.toString()));
+                    wp.writeRaw("', rte.rte.markGetRange(mark));");
+
+                } else {
+                    wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
+                }
+
                 wp.writeRaw("$page.popup('close');");
                 wp.writeEnd();
                 return;

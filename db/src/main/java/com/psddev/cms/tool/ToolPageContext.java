@@ -2053,7 +2053,14 @@ public class ToolPageContext extends WebPageContext {
                 Map<String, Object> richTextElement = new CompactMap<>();
                 ObjectType type = ObjectType.getInstance(c);
 
-                richTextElement.put("tag", tag.value());
+                richTextElement.put("tag", tagName);
+
+                String constant = tag.constant().trim();
+
+                if (!constant.isEmpty()) {
+                    richTextElement.put("constant", constant);
+                }
+
                 richTextElement.put("line", tag.block());
                 richTextElement.put("void", tag.empty());
 

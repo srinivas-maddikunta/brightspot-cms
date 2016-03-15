@@ -1328,14 +1328,27 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
                 event.preventDefault();
 
-                if (styleObj.toggle) {
+                var constant = styleObj.constant;
+
+                if (constant) {
+                    var mark = rte.setStyle(item.style);
+
+                    if (mark) {
+                        rte.insert(constant);
+
+                        mark.atomic = true;
+                        mark.inclusiveLeft = false;
+                        mark.inclusiveRight = false;
+                    }
+
+                } else if (styleObj.toggle) {
 
                     // Check to see if we need to toggle off
                     mark = rte.toggleStyle(item.style);
                     if (mark) {
                         self.inlineEnhancementHandleClick(event, mark);
                     }
-                    
+
                 } else {
                     self.inlineEnhancementCreate(event, item.style);
                 }
@@ -2900,14 +2913,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
             }
 
+            range = self.rte.markGetRange(mark);
+            html = self.rte.toHTML(range);
             enhancementEditUrl = $.addQueryParameters(
                 window.CONTEXT_PATH + '/content/enhancement.jsp',
                 'typeId', styleObj.enhancementType,
-                'attributes', JSON.stringify(mark.attributes));
+                'attributes', JSON.stringify(mark.attributes),
+                'body', $(html).html());
 
-            range = self.rte.markGetRange(mark);
-            html = self.rte.toHTML(range);
-            
             // Create a link for editing the enhancement and position it at the click event
             frameName = 'rte2-frame-enhancement-inline-' + frameTargetCounter++;
             $div = $('<div/>', {
@@ -3656,6 +3669,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // all of them
                 singleLine: Boolean(rtElement.popup !== false),
 
+                constant: rtElement.constant,
                 line: Boolean(rtElement.line),
                 "void": Boolean(rtElement.void),
                 popup: rtElement.popup === false ? false : true,
