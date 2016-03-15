@@ -2056,7 +2056,7 @@ public class ToolPageContext extends WebPageContext {
                 richTextElement.put("tag", tag.value());
                 richTextElement.put("line", tag.block());
                 richTextElement.put("void", tag.empty());
-                richTextElement.put("order", tag.order());
+                richTextElement.put("position", tag.position());
 
                 boolean hasFields = type.getFields().stream()
                         .filter(f -> !f.as(ToolUi.class).isHidden())
@@ -2128,7 +2128,11 @@ public class ToolPageContext extends WebPageContext {
             }
         }
 
-        richTextElements.sort((r1, r2) -> ObjectUtils.compare(r1.get("order"), r2.get("order"), false));
+        richTextElements.sort(
+                Comparator.comparing((Map<String, Object> r) -> r.get("position"),
+                        (r1, r2) -> ObjectUtils.compare(r1, r2, false))
+                        .thenComparing(r -> r.get("styleName"),
+                                (r1, r2) -> ObjectUtils.compare(r1, r2, false)));
 
         for (Map<String, Object> richTextElement : richTextElements) {
 
