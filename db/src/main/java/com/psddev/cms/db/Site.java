@@ -63,7 +63,7 @@ public class Site extends Record {
 
     @Indexed(unique = true)
     private List<String> urls;
-    
+
     @Indexed
     private SiteCategory siteCategory;
 
@@ -152,6 +152,14 @@ public class Site extends Record {
     /** Sets the list of URLs that prefix all pages in this site. */
     public void setUrls(List<String> urls) {
         this.urls = urls;
+    }
+
+    public SiteCategory getSiteCategory() {
+        return siteCategory;
+    }
+
+    public void setSiteCategory(SiteCategory siteCategory) {
+        this.siteCategory = siteCategory;
     }
 
     public Variation getDefaultVariation() {

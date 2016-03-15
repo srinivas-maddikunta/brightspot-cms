@@ -6,11 +6,11 @@ import com.psddev.dari.db.Record;
 
 @Record.BootstrapPackages("Sites")
 public class SiteCategory extends Record {
-    
+
     @Required
     @Indexed(unique = true)
     private String name;
-    
+
     @JunctionField("siteCategory")
     private List<Site> sites;
 
