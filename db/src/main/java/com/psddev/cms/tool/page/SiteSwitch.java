@@ -16,7 +16,7 @@ import java.util.UUID;
 
 @RoutingFilter.Path(application = "cms", value = "/siteSwitch")
 public class SiteSwitch extends PageServlet {
-    
+
     private static final String SITE_CATEGORY_INPUT_NAME = "siteCategory";
 
     @Override
@@ -55,12 +55,12 @@ public class SiteSwitch extends PageServlet {
                     page.writeEnd();
 
                     page.writeStart("div", "class", "siteSwitch-content fixedScrollable");
-                        page.writeStart("form", 
-                                "action", page.cmsUrl("/siteSwitchResults"), 
-                                "method", "get", 
+                        page.writeStart("form",
+                                "action", page.cmsUrl("/siteSwitchResults"),
+                                "method", "get",
                                 "data-bsp-autosubmit", "",
                                 "target", "siteSwitchResults");
-                            
+
                             if (Query.from(SiteCategory.class).hasMoreThan(0)) {
                                 page.writeStart("select",
                                         "data-searchable", true,
@@ -69,7 +69,7 @@ public class SiteSwitch extends PageServlet {
                                         "style", "display: block;");
                                     page.writeStart("option", "value", "");
                                     page.writeEnd();
-                                    
+
                                     for (SiteCategory siteCategory : Query.from(SiteCategory.class).selectAll()) {
                                         page.writeStart("option", "value", siteCategory.getId());
                                             page.writeHtml(siteCategory.getLabel());
@@ -82,10 +82,10 @@ public class SiteSwitch extends PageServlet {
                                 page.writeStart("label", "for", page.createId());
                                     page.write(page.localize(SiteSwitch.class, "label.search"));
                                 page.writeEnd();
-                                page.writeTag("input", "id", page.getId(), 
-                                        "class", "autoFocus", 
-                                        "name", "query", 
-                                        "type", "text", 
+                                page.writeTag("input", "id", page.getId(),
+                                        "class", "autoFocus",
+                                        "name", "query",
+                                        "type", "text",
                                         "value", "");
                             page.writeEnd();
                         page.writeEnd();
