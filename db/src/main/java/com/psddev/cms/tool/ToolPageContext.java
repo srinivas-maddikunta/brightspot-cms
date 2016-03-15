@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -2027,7 +2028,13 @@ public class ToolPageContext extends WebPageContext {
                 .build(new CacheLoader<Class<?>, Set<Class<?>>>() {
                     @Override
                     public Set<Class<?>> load(Class<?> aClass) throws Exception {
-                        return new HashSet<Class<?>>(ClassFinder.findConcreteClasses(aClass));
+                        Set<Class<?>> classes = new HashSet<Class<?>>(ClassFinder.findConcreteClasses(aClass));
+
+                        if (!Modifier.isAbstract(aClass.getModifiers()) && !Modifier.isInterface(aClass.getModifiers())) {
+                            classes.add(aClass);
+                        }
+
+                        return classes;
                     }
                 });
 
