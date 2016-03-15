@@ -165,6 +165,7 @@ define(['string'], function (S) {
 
       $listContainer = $('<div/>', {
         'class': plugin.className('container'),
+        'data-original-class': $original.attr('class'),
         'css': containerCss
       });
 

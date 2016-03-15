@@ -364,34 +364,40 @@ The HTML within the repeatable element must conform to these standards:
                 if (tooManyButtons) {
 
                     // Create a dropdown to list the available add buttons
+                    var $addButtonSelectContainer = $('<span/>', {
+                        'class': 'addButtonSelectContainer'
+                    }).appendTo($addButtonContainer);
+
                     $addButtonSelect = $('<select/>', {
-                        'class': 'addButtonSelect'
-                    }).appendTo($addButtonContainer);
+                        'class': 'addButtonSelect',
+                        'data-searchable': true,
+                        on: {
+                            change: function () {
 
-                    // Create a single "Add" button to add the selected type from the list
-                    $('<button/>', {
-                        text: self.options.addButtonText,
-                        'class': ''
-                    }).on('click', function(event) {
-                        
-                        var $button, $selected;
+                                // Get the selected option
+                                var $selected = $addButtonSelect.find(':selected');
 
-                        event.preventDefault();
-                        
-                        // Get the selected option
-                        $selected = $addButtonSelect.find(':selected');
+                                // Get a link to the add button for that option, and click it.
+                                // The "addButton" data is saved on the OPTION element.
+                                var $button = $selected.data('addButton');
+                                if ($button) {
+                                    // Note: normally I wouldn't simulate a click on the button;
+                                    // however, there is other pre-existing code that requires that
+                                    // add button to be there, so we will continue creating the button
+                                    // and hide it if we have too many buttons to show.
+                                    $button.click();
+                                }
 
-                        // Get a link to the add button for that option, and click it.
-                        // The "addButton" data is saved on the OPTION element.
-                        $button = $selected.data('addButton');
-                        if ($button) {
-                            // Note: normally I wouldn't simulate a click on the button;
-                            // however, there is other pre-existing code that requires that
-                            // add button to be there, so we will continue creating the button
-                            // and hide it if we have too many buttons to show.
-                            $button.click();
+                                $addButtonSelect.val('');
+                                $addButtonSelectContainer.find('.dropDown-label').trigger('dropDown-update');
+                                $addButtonSelect.blur();
+                            }
                         }
-                    }).appendTo($addButtonContainer);
+                    }).appendTo($addButtonSelectContainer);
+
+                    $addButtonSelect.append($('<option/>', {
+                        text: 'Add'
+                    }));
                 }
                 
                 self.dom.$templates.each(function() {
@@ -434,7 +440,7 @@ The HTML within the repeatable element must conform to these standards:
 
                     if (tooManyButtons) {
                         $('<option/>', {
-                            value: '',
+                            value: itemType,
                             text: itemType,
                             data: {
                                 // Save the add button in a data attribute,

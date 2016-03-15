@@ -954,8 +954,44 @@
   }
 }
 
-.addButtonSelect {
-  margin-left:15px;
+.addButtonSelectContainer {
+  .icon;
+  .icon-action-add;
+
+  &,
+  .dropDown-label,
+  input[type='text'].dropDown-search {
+    color: @color-link-dark;
+  }
+
+  &:before {
+    line-height: @input-height;
+    vertical-align: bottom;
+  }
+}
+
+.dropDown-container[data-original-class~='addButtonSelect'] {
+  .dropDown-listItem {
+    color: @color-link-dark;
+    padding-left: 6px;
+
+    &:first-child {
+      display: none !important;
+    }
+
+    &.dropDown-listItem-selected {
+      background: white;
+      color: @color-link-dark;
+
+      &.state-hover {
+        background-color: fade(@color-focus, 10%);
+      }
+
+      &:before {
+        display: none;
+      }
+    }
+  }
 }
 
 .repeatableLabel-progress {
