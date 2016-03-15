@@ -82,7 +82,7 @@
                     return;
                 }
                 if (offset_top_function) {
-                    offset = offset_top = offset_top_function();
+                    offset_top = offset_top_function();
                 }
                 last_scroll_height = doc.height();
                 border_top = parseInt(parent.css("border-top-width"), 10);
