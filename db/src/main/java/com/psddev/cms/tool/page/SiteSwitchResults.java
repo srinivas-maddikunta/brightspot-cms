@@ -35,8 +35,8 @@ public class SiteSwitchResults extends PageServlet {
         // Filter sites by site category and query string (if necessary)
         final SiteCategory siteCategory = siteCategoryId != null ? Query.findById(SiteCategory.class, siteCategoryId) : null;
         final String queryString = page.param(String.class, "query");
-        sites.removeIf(s -> (siteCategory != null && siteCategory.equals(s.getSiteCategory()))
-            || (!StringUtils.isBlank(queryString) && !s.is("name ^=[c] ?", queryString)));
+        sites.removeIf(s -> (siteCategory != null && !siteCategory.equals(s.getSiteCategory()))
+            || (!StringUtils.isBlank(queryString) && !s.is("name != missing && name ^=[c] ?", queryString)));
 
         page.writeStart("ul", "class", "links");
             if (currentSite != null && page.hasPermission("site/global") && siteCategoryId == null) {
