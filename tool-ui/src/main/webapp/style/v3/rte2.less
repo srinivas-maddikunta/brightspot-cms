@@ -560,19 +560,18 @@ li.CodeMirror-hint-active {
       padding:0.25em;
     }
 
-    &.toBeRemoved {
-      .background-striped(lighten(@color-remove, 10%));
+    a {
+      color: @color-placeholder;
+
+      &:hover {
+        background-color: fade(white, 93%);
+        text-decoration: none;
+      }
     }
 
-    &,
     &.toBeRemoved {
-      a {
-        color: @color-placeholder;
-
-        &:hover {
-          background-color: fade(white, 93%);
-          text-decoration: none;
-        }
+      &:before {
+        .background-striped(lighten(@color-remove, 40%));
       }
     }
   }
