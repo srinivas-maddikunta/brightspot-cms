@@ -17,8 +17,7 @@ function($) {
           $edit,
           $clear,
           preview,
-          visibility,
-          label,
+          labelHtml,
           dynamicPlaceholderText,
           dynamicFieldName,
           placeholder,
@@ -35,13 +34,12 @@ function($) {
       $edit = shadow.$edit;
       $clear = shadow.$clear;
       preview = $input.attr('data-preview');
-      label = $input.attr('data-label');
-      visibility = $input.attr('data-visibility');
+      labelHtml = $input.attr('data-label-html') || $input.attr('data-label');
       value = $input.val();
 
       if (preview) {
         var $caption = $('<figcaption>', {
-          'text': label
+          'html': labelHtml
         });
 
         $select.html($('<figure/>', {
@@ -53,25 +51,9 @@ function($) {
           ]
         }));
 
-        if (visibility) {
-          $caption.prepend(' ');
-          $caption.prepend($('<span/>', {
-            'class': 'visibilityLabel',
-            'text': visibility
-          }));
-        }
-
       } else {
-        if (label) {
-          $select.text(label);
-
-          if (visibility) {
-            $select.prepend(' ');
-            $select.prepend($('<span/>', {
-              'class': 'visibilityLabel',
-              'text': visibility
-            }));
-          }
+        if (labelHtml) {
+          $select.html(labelHtml);
 
         } else {
           dynamicPlaceholderText = $input.attr('data-dynamic-placeholder');
@@ -209,6 +191,7 @@ function($) {
           if ($input.val()) {
             if ($input.attr('data-restorable') === 'false') {
               $input.removeAttr('data-label');
+              $input.removeAttr('data-label-html');
               $input.removeAttr('data-preview');
 
             } else {

@@ -444,11 +444,18 @@
 .widget-previewFrameContainer {
   bottom: 20px;
   left: 20px;
-  margin-right: 20px;
-  overflow: auto;
+  overflow: hidden;
+  padding-right: 20px;
   position: absolute;
   right: 0;
   top: 110px;
+
+  iframe {
+    border: none;
+    height: 100%;
+    transform-origin: top left;
+    width: 100%;
+  }
 }
 
 .widget-publishing {
@@ -543,23 +550,23 @@
       }
     }
   }
-
-  [name='action-trash'] {
-    bottom: 20px;
-    margin-top: 16px;
-    position: absolute;
-    right: 20px;
-  }
 }
 
 .widget-publishingExtra {
-  list-style-type: none;
-  margin: 15px 70px 0 0;
   overflow: hidden;
 
-  li {
+  &-left,
+  &-right {
+    list-style-type: none;
+    margin: 15px 0 0 0;
+  }
+
+  &-left {
     float: left;
-    margin-right: 20px;
+  }
+
+  &-right {
+    float: right;
   }
 }
 

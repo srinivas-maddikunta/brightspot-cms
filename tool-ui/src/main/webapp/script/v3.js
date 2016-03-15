@@ -116,7 +116,13 @@ function() {
   $doc.dropDown('live', 'select[multiple], select[data-searchable="true"]');
   $doc.editablePlaceholder('live', ':input[data-editable-placeholder]');
 
-  bsp_fixedScrollable.live(document, '.fixedScrollable, .searchResult-list, .popup[name="miscSearch"] .searchFiltersRest');
+  bsp_fixedScrollable.live(document, [
+    '.fixedScrollable',
+    '.searchResult-list',
+    '.popup[name="miscSearch"] .searchFiltersRest',
+    '.popup[data-popup-source-class~="objectId-select"] .searchFiltersRest',
+    '.popup[data-popup-source-class~="objectId-select"] .searchResultList'
+  ].join(','));
 
   $doc.frame({
     'frameClassName': 'frame',
@@ -619,37 +625,64 @@ function() {
     $(document.body).removeClass('toolSearchOpen');
   });
 
-  $doc.on('open', '.popup[data-popup-source-class~="objectId-select"]', function(event) {
+  $doc.on('open', [
+    '.popup[data-popup-source-class~="objectId-select"]',
+    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"]'
+
+  ].join(','), function(event) {
     var $popup = $(event.target);
+    var isEnhancement = $popup.is('.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"]');
     var $input = $popup.popup('source');
+    var $withLeftNav = $input.closest('.withLeftNav');
+
+    $.data($popup[0], 'objectSelect-$withLeftNav', $withLeftNav);
+    $withLeftNav.addClass('objectSelectOpen');
+
     var $container = $input;
     var fieldsLabel = '';
+    var isAdd;
 
     while (true) {
       $container = $container.parent().closest('.inputContainer');
 
       if ($container.length > 0) {
         fieldsLabel = $container.find('> .inputLabel > label').text() + (fieldsLabel ? ' \u2192 ' + fieldsLabel : '');
+        isAdd = $container.find('> .plugin-repeatable').length > 0;
 
       } else {
         break;
       }
     }
 
-    var label = 'Select ' + fieldsLabel;
+    var label = (isEnhancement ? 'Select Enhancement for ' : (isAdd ? 'Add to ' : 'Select ')) + fieldsLabel;
     var objectLabel = $input.closest('.contentForm').attr('data-o-label');
 
     if (objectLabel) {
-      label += ' for ';
+      label += ' - ';
       label += objectLabel;
     }
 
-    $popup.find('> .content > .frame > h1').text(label);
+    bsp_utils.onDomInsert($popup[0], '> .content > .frame > h1', {
+      insert: function (heading) {
+        $(heading).text(label);
+      }
+    });
+  });
+
+  $doc.on('close', [
+    '.popup[data-popup-source-class~="objectId-select"]',
+    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"]'
+
+  ].join(','), function (event) {
+    var $withLeftNav = $.data(event.target, 'objectSelect-$withLeftNav');
+
+    if ($withLeftNav) {
+      $withLeftNav.removeClass('objectSelectOpen');
+    }
   });
 
   $doc.on('open', '.popup[data-popup-source-class~="objectId-edit"]', function(event) {
     var $frame = $(event.target);
-    var $parent = $frame.popup('source').closest('.popup, .toolContent');
 
     // Since the edit popup might contain other popups within it,
     // only run this code when the edit popup is opened
@@ -657,6 +690,8 @@ function() {
     if (!$frame.is('.popup[data-popup-source-class~="objectId-edit"]')) {
       return;
     }
+
+    var $parent = $frame.popup('source').closest('.popup, .toolContent');
 
     $frame.popup('container').removeClass('popup-objectId-edit-hide');
     $parent.addClass('popup-objectId-edit popup-objectId-edit-loading');
@@ -707,7 +742,7 @@ function() {
 
       $frame.prepend($('<a/>', {
         'class': 'popup-objectId-edit-heading',
-        'text': 'Back to ' + $parent.find('.contentForm-main > .widget > h1').clone().find('option:not(:selected)').remove().end().text(),
+        'text': 'Back to ' + $parent.find('.contentForm-main > .widget > h1, > .withLeftNav > .main > .widget > h1').eq(0).clone().find('option:not(:selected)').remove().end().text(),
         'click': function() {
           $frame.popup('close');
           return false;

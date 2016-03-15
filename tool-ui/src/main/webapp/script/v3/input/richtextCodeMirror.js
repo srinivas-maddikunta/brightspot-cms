@@ -92,6 +92,28 @@ define([
          * A function that handles clicks on the mark. It can read additional information
          * saved on the mark, and modify that information.
          * Note at this time an onClick can be used only for inline styles.
+         *
+         * String [enhancementType]
+         * If this is an "inline enhancement" you can specify the enhancement type here.
+         * Normally this is set only by the Brightspot back-end, and this value is used
+         * to display a popup form that is used to modify the attributes on the element.
+         * For example: "00000152-eb09-d919-abd2-ffcd34530004"
+         * 
+         * Boolean [popup=true]
+         * This value is used only for a style that has an enhancementType.
+         * Set this to false if the style should not popup a form to edit the element.
+         * Defaults to true.
+         *
+         * Boolean [toggle=false]
+         * This value is used only for a style that has an enhancementType.
+         * Set this to true if the style should act as a toggle (the user can click
+         * a toolbar button to toggle the style on the selected characters), for example
+         * a simple style like bold or italic that the user can turn on or off.
+         * By default this is false for enhancementType styles, which means each
+         * time the user clicks the toolbar button for the style, a new mark is inserted.
+         * Note if this is set to true, then you cannot nest an enhancmentType style
+         * inside the same enhancementType style.
+         * Note that styles that do not have enhancementType always allow user to toggle.
          */
         styles: {
 
@@ -152,7 +174,12 @@ define([
 
             linebreak: {
                 line:true
+            },
+
+            linebreakSingle:{
+                line:true
             }
+            
         }, // styles
 
         
@@ -415,6 +442,16 @@ define([
 
             editor.on('cursorActivity', function(instance, event) {
                 self.$el.trigger('rteCursorActivity', [self]);
+            });
+
+            editor.on('beforeSelectionChange', function(instance, event) {
+                
+                // If user clicked "Clear" to add text after a mark,
+                // or toggled off part of a style mark, then after the cursor moves,
+                // make the styles inclusive again so a user returning to the mark
+                // can enter more text inside the style.
+                self.inlineMakeInclusive();
+                
             });
             
             editor.on('changes', $.debounce(200, function(instance, event) {
@@ -807,7 +844,7 @@ define([
                 
                 // Add a space to represent the empty element because CodeMirror needs
                 // a character to display for the user to display the mark.
-                editor.replaceRange(' ', {line:range.from.line, ch:range.from.ch}, '+brightspotInlineSetStyle');
+                editor.replaceRange(' ', {line:range.from.line, ch:range.from.ch}, null, '+brightspotInlineSetStyle');
                 
                 range.to.line = range.from.line;
                 range.to.ch = range.from.ch + 1;
@@ -871,7 +908,7 @@ define([
          */
         inlineRemoveStyle: function(styleKey, range, options) {
 
-            var className, deleteText, editor, lineNumber, self, from, to;
+            var className, deleteText, editor, lineNumber, self, from, to, triggerChange;
 
             self = this;
 
@@ -897,7 +934,7 @@ define([
 
             editor.eachLine(from.line, to.line + 1, function(line) {
 
-                var fromCh, toCh, marks;
+                var fromCh, toCh, marks, newMark;
 
                 // Get the character ranges to search within this line.
                 // If we're not on the first line, start at the beginning of the line.
@@ -1023,12 +1060,13 @@ define([
                         //      nn           <-- new mark
                         //        xxxxx      <-- text to delete (if deleteText is true)
 
-                        editor.markText(
+                        newMark = editor.markText(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
-
+                        self.inlineMakeInclusivePush(newMark);
+                        
                         if (deleteText) {
                             // Create a marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
@@ -1053,7 +1091,7 @@ define([
                         //        xxx        <-- text to delete (if deleteText is true)
 
                         // Do not allow inline enhancement styles to be split in the middle
-                        if (styleObj.enhancementType) {
+                        if (styleObj.enhancementType && !styleObj.toggle) {
                             return;
                         }
                         
@@ -1063,11 +1101,12 @@ define([
                             markerOpts
                         );
 
-                        editor.markText(
+                        newMark = editor.markText(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
+                        self.inlineMakeInclusivePush(newMark);
                         
                         if (deleteText) {
                             // Create a marker for the text that will be deleted
@@ -1104,26 +1143,85 @@ define([
 
                         editor.replaceRange('', position.from, position.to, '+brightspotFormatRemoveClass');
                         
-                        // Trigger a change event for the editor
-                        if (options.triggerChange !== false) {
-                            self.triggerChange();
-                        }
+                        // Trigger a change event for the editor later
+                        triggerChange = true;
                     }
                 }
                 if (mark.shouldRemove) {
                     
                     mark.clear();
                     
-                    // Trigger a change event for the editor
-                    if (options.triggerChange !== false) {
-                        self.triggerChange();
-                    }
+                    // Trigger a change event for the editor later
+                    triggerChange = true;
                 }
             });
+
+            // We hold off on triggering a change event until the end because
+            // it seems to cause problems if we trigger a change in the middle
+            // of examining all the marks
+            if (triggerChange && options.triggerChange !== false) {
+                self.triggerChange();
+            }
 
             // Trigger a cursor activity event so the toolbar can update
             CodeMirror.signal(editor, "cursorActivity");
 
+        },
+
+        
+        /**
+         * For elements that were previously made non-inclusive,
+         * make them inclusive now (after the user changed the selection);
+         *
+         * For example, if the user is on the right of a bold style, then
+         * clicking "clear" will make the bold style non-inclusive, so the user
+         * can type type outside the bold style. However, if the user moves the
+         * cursor, then returns to the right of the bold style, the style should
+         * be inclusive again, so the user can add to the bold text.
+         *
+         * This function shoudl be called every time the selection changes.
+         */
+        inlineMakeInclusive: function() {
+
+            var marks, self;
+
+            self = this;
+
+            // Get an array of the marks that were previously saved
+            // when they were made non-inclusive.
+            marks = self.marksToMakeInclusive || [];
+
+            if (marks.length) {
+                
+                $.each(self.marksToMakeInclusive || [], function() {
+                    var mark = this;
+                    mark.inclusiveRight = true;
+                });
+                
+                self.marksToMakeInclusive = [];
+            }
+        },
+
+        
+        /**
+         * Add a mark to the list of marks that must be made inclusive
+         * after the user moves the selection.
+         * @param {Object] mark
+         */
+        inlineMakeInclusivePush: function(mark) {
+            
+            var self;
+
+            self = this;
+            
+            // Ignore certain styles that are internal only like spelling errors
+            if (!self.classes[mark.className]) {
+                return;
+            }
+            
+            self.marksToMakeInclusive = self.marksToMakeInclusive || [];
+
+            self.marksToMakeInclusive.push(mark);
         },
 
 
@@ -2259,6 +2357,12 @@ define([
             // CodeMirror doesn't seem to have a way to get a list of enhancements,
             // so we'll have to remember them as we create them.
             self.enhancementCache = {};
+
+            // Check when user presses Return at beginning of a line that contains an enhancement
+            self.codeMirror.on('change', function(cm, changeObj) {
+                self.enhancementNewlineAdjust(changeObj);
+            });
+
         },
         
         
@@ -2377,9 +2481,6 @@ define([
 
             self = this;
             editor = self.codeMirror;
-
-            // Get the options we saved previously so we can create a mark with the same options
-            options = mark.options;
             
             lineMax = editor.lineCount() - 1;
             lineNumber = self.enhancementGetLineNumber(mark) + lineDelta;
@@ -2402,6 +2503,30 @@ define([
                 lineNumber += lineDelta;
             }
 
+            return self.enhancementMoveToLine(mark, lineNumber);
+        },
+
+
+        /**
+         * Move an enhancement block to a specific line.
+         *
+         * @param Object mark
+         * The mark that was returned by the enhancementAdd() function.
+         *
+         * @param Number lineNumber
+         *
+         * @return Object
+         * Returns a new mark that contains the enhancement content.
+         */
+        enhancementMoveToLine: function(mark, lineNumber) {
+            
+            var options, self;
+
+            self = this;
+
+            // Get the options we saved previously so we can create a mark with the same options
+            options = mark.options;
+
             // Depending on the type of mark that was created, the content is stored differently
             content = self.enhancementGetContent(mark);
             $content = $(content).detach();
@@ -2413,7 +2538,46 @@ define([
             return mark;
         },
 
-        
+
+        /**
+         * When a CodeMirror change event occurs, determine if a new line has been added
+         * and if any enhancements on the line need to be adjusted.
+         * Use case: Cursor is at the beginning of a line where an enhancement is attached
+         * (above the line). User presses Return and inserts a new line. The current line
+         * is moved below the new line and moves the enhancement with it. This is not
+         * intuitive since the user expects the new line to be placed below the enhancement.
+         * So in this case we move the enhancement above the new line that was entered.
+         *
+         * @param {Object} changeObj
+         * A change event from CodeMirror.
+         */
+        enhancementNewlineAdjust: function(changeObj) {
+            
+            var lineInfo, lineNumber, self;
+
+            self = this;
+            
+            if (changeObj.from &&
+                changeObj.from.ch === 0 && // change occurred at the first character of the line
+                changeObj.text &&
+                changeObj.text.length > 1 && // change is split into multiple lines
+                changeObj.text[0] === '') { // first character of the change is a new line
+
+                // The original line number
+                lineNumber = changeObj.from.line;
+
+                // The line info for the original line (that was pushed down) so we can get the enhancements
+                lineInfo = self.codeMirror.lineInfo(lineNumber + changeObj.text.length - 1);
+
+                if (lineInfo && lineInfo.widgets) {
+                    $.each(lineInfo.widgets, function(i,mark) {
+                        self.enhancementMoveToLine(mark, lineNumber);
+                    });
+                }
+            }
+        },
+
+
         /**
          * Removes an enhancement.
          *
@@ -3532,12 +3696,21 @@ define([
             if (self.clipboardSanitizeRules) {
                 $.each(self.clipboardSanitizeRules, function(selector, style) {
                     $el.find(selector).each(function(){
-                        var $match = $(this);
-                        var $replacement = $('<span>', {'data-rte2-sanitize': style});
-                        $replacement.append( $match.contents() );
-                        $match.replaceWith( $replacement );
+                        var $match, $replacement;
+
+                        $match = $(this);
+                        
+                        if ($.isFunction(style)) {
+                            style($match);
+                        } else {
+                            $replacement = $('<span>', {'data-rte2-sanitize': style});
+                            $replacement.append( $match.contents() );
+                            $match.replaceWith( $replacement );
+                        }
                     });
                 });
+
+                // Anything we replaced with "linebreak" should get an extra blank line after
                 $el.find('[data-rte2-sanitize=linebreak]').after('<br/>');
             }
 
