@@ -1463,7 +1463,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     var scale = ($win.width() - 160) / deviceWidth;
 
                                     $previewTarget.css({
-                                        height: ($win.height() - $container.offset().top - 40) / scale,
+                                        height: ($win.height() - ($container.offset().top - $win.scrollTop()) - 40) / scale,
                                         transform: 'scale(' + (scale < 1 ? scale : 1) + ')'
                                     });
                                 }
