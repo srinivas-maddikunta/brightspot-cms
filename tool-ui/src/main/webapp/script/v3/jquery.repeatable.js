@@ -359,7 +359,7 @@ The HTML within the repeatable element must conform to these standards:
                 // Create an "Add Item" link for each template we found,
                 // or if there are too many links create a dropdown
                 
-                tooManyButtons = Boolean(self.dom.$templates.length > 3);
+                tooManyButtons = Boolean(self.dom.$templates.length > 10);
                 
                 if (tooManyButtons) {
 
