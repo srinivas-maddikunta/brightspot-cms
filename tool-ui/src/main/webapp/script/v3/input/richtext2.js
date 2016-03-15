@@ -485,6 +485,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.linkInit();
             self.enhancementInit();
             self.inlineEnhancementInit();
+            self.tableInit();
             self.trackChangesInit();
             self.placeholderInit();
             self.modeInit();
@@ -1522,28 +1523,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     // Special case for the "Table" button, we will look for a style
                     // definition for the "table" element, to see if it has any
                     // context specified
-                    if (config.action === 'table') {
-
-                        // See if we previously saved the table style config
-                        // so we don't do it repeatedly for performance reasons
-                        if (self.tableStyle) {
-                            // We saved it earlier so use it again
-                            styleObj = self.tableStyle;
-                        } else {
-
-                            styleObj = {};
-                            
-                            // Go through all the style definitions and see if one is for the "table" element
-                            $.each(self.styles, function(styleKey, styleObj2) {
-                                if (styleObj2.element === 'table') {
-                                    styleObj = styleObj2;
-                                    return false;
-                                }
-                            });
-
-                            // Cache this style for later so we don't have to find it again
-                            self.tableStyle = styleObj;
-                        }
+                    if (config.action === 'table' && self.tableStyleTable) {
+                        styleObj = self.tableStyleTable;
                     }
 
                     if (styleObj.context) {
@@ -3023,6 +3004,38 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         /*==================================================
          * Tables
          *==================================================*/
+
+
+        /**
+         * Initialize some data used to create tables.
+         */
+        tableInit: function() {
+
+            var self;
+
+            self = this;
+
+            // Go through all the style definitions and see if one is for the "table" element
+            $.each(self.styles, function(styleKey, styleObj) {
+
+                switch (styleObj.element) {
+
+                case 'table':
+                    self.tableStyleTable = styleObj;
+                    break;
+                    
+                case 'tr':
+                    self.tableStyleRow = styleObj;
+                    break;
+                
+                case 'td':
+                case 'th':
+                    self.tableStyleCell = styleObj;
+                    break;
+                }
+                
+            });
+        },
 
 
         /**
