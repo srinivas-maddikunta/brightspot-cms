@@ -210,12 +210,6 @@
   .rte2-enhancement-toolbar-restore { display:inline-block; }
   .rte2-enhancement-toolbar-remove-completely { display:inline-block; }
 }
-.rte2-table {
-  box-sizing: border-box;
-  padding: .5em 5px;
-  position: relative;
-  .background-striped(@color-heading);
-}
 .rte2-table-placeholder {
   overflow:hidden;
   height:auto;
@@ -521,7 +515,8 @@ li.CodeMirror-hint-active {
     }
   }
 
-  .rte2-enhancement {
+  .rte2-enhancement,
+  .rte2-table {
     box-sizing: border-box;
     padding: 0 5px (@lineHeight-default + 5px) 5px;
     position: relative;
