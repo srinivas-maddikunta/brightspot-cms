@@ -248,6 +248,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 $replacement.append( $el.contents() );
                 $el.replaceWith( $replacement );
             },
+
+            // Remove attributes from table elements
+            'table, tr, td, th': function($el) {
+                $el.replaceWith(function () {
+                    return $('<' + this.nodeName + '>').append($(this).contents());
+                });
+            },
             
             // Any 'p' element should be treated as a new line with a blank line after
             'p': 'linebreak'
@@ -3023,14 +3030,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         tableCreate: function($content, line) {
             
-            var columns, data, $div, $placeholder, self;
+            var columns, data, dataRows, $div, ht, $placeholder, self;
             self = this;
 
-            if ($content) {
-                data = self.tableHTMLToData($content);
-            } else {
-                data = [['','']];
-            }
+            // Get the structure of the HTML including attributes
+            data = self.tableHTMLToData($content);
+            
+            // Convert the HTML structure into data that handsontable will understand
+            dataRows = [];
+            $.each(data.childNodes, function(i, row) {
+                var dataRow;
+                dataRow = [];
+                $.each(row.childNodes, function(i, cell) {
+                    dataRow.push(cell.childNodes[0]);
+                });
+                dataRows.push(dataRow);
+            });
 
             if (line === undefined) {
                 line = self.rte.getRange().from.line;
@@ -3045,9 +3060,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Note it appears you must set the style directly on the element or table resizing doesn't work correctly.
             $placeholder = $('<div/>', {'class':'rte2-table-placeholder', style:'overflow:hidden;height:auto;width:100%;'}).appendTo($div);
 
+            // Save table attributes for later
+            if (data.attr) {
+                $placeholder.data('attrTable', data.attr);
+            }
+            
             // Initialize the table.
             $placeholder.handsontable({
-                'data': data,
+                'data': dataRows,
                 minCols:1,
                 minRows:1,
                 stretchH: 'all',
@@ -3112,9 +3132,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     if (self.tableIsToBeRemoved($div)) {
                         return '';
                     } else {
-                        return self.tableDataToHTML($placeholder.handsontable('getData'));
+                        return self.tableToHTML($placeholder);
                     }
                 }
+            });
+
+            // Set meta data (attributes) onto the handsontable cells
+            ht = $placeholder.handsontable('getInstance');
+            $.each(data.childNodes, function(rowIndex, row) {
+                $.each(row.childNodes, function(cellIndex, cell) {
+                    ht.setCellMeta(rowIndex, cellIndex, 'attrRow', row.attr);
+                    ht.setCellMeta(rowIndex, cellIndex, 'attrCell', cell.attr);
+                });
             });
 
             // Table will not render when it is not visible,
@@ -3321,39 +3350,80 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         
         /**
-         * @param [String|Object] $content
-         * HTML for the table element, or a DOM or jQuery object
+         * Parse the HTML of a table and return as a data object.
+         *
+         * @param [String|Object] {$content}
+         * HTML for the table element, or a DOM or jQuery object.
+         * If this is not specified returns data for a new table.
          *
          * @returns Object
-         * Data from the table to be passed to handsontable plugin
+         * Data from the table in the form of an nested Object.
+         * The object consists of nodes with the following parameters:
+         *   tagName = the name of the element (table, tr, td, th)
+         *   attr = a set of key/value pairs representing the attributes on the element
+         *   childNodes = an array of child nodes
+         * Or a node can be a string to represents next within an element.
          */
         tableHTMLToData: function($content) {
             
             var data, self;
 
             self = this;
+
+            // If creating a new table, start with one that has a single row with two columns
+            if (!$content) {
+                data = {
+                    tagName:'table',
+                    childNodes:[
+                        { tagName: 'td', childNodes: [''] },
+                        { tagName: 'td', childNodes: [''] }
+                    ]
+                };
+                return data;
+            }
             
-            // Just in case HTML or a DOM element is passed in
+            // Just in case HTML or a DOM element is passed in convert to jQuery object
             $content = $($content);
 
-            data = [];
+            // Create the initial table node
+            data = {
+                tagName:'table',
+                childNodes: [],
+                attr: self.rte.getAttributes($content)
+            };
 
             // Loop through the rows in the table
-            $content.find('>tr,>tbody >tr').each(function(i, tr) {
+            $content.find('>tr,>tbody >tr,>thead >tr,>tfoot >tr').each(function(i, tr) {
                 
                 var dataRow;
                 
-                dataRow = [];
+                // Create the node for the row
+                dataRow = {
+                    tagName: 'tr',
+                    childNodes: [],
+                    attr: self.rte.getAttributes(tr)
+                };
 
                 // Loop through all the columns in the row
                 $(tr).find('>td,>th').each(function(i, cell) {
 
+                    var dataCell;
+
+                    dataCell = {
+                        tagName: $(cell).prop('tagName').toLowerCase(),
+                        childNodes: [],
+                        attr: self.rte.getAttributes(cell)
+                    };
+
                     // Get the HTML in the column and add it to the row
-                    dataRow.push( $(cell).html() );
+                    dataCell.childNodes.push( $(cell).html() );
+
+                    // Add the cell to the row
+                    dataRow.childNodes.push(dataCell);
                 });
 
-                // Add the row to the table data
-                data.push(dataRow);
+                // Add the row to the table
+                data.childNodes.push(dataRow);
                 
             });
 
@@ -3362,24 +3432,45 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         
         /**
-         * @param Object data
-         * Data from the handsontable plugin
+         * Convert a handsontable placeholder to the HTML for the table.
+         *
+         * @param {Element|jQuery} placeholder
+         * The placeholder element on which handsontable was initialized.
          *
          * @returns String
          * The HTML for the table.
          */
-        tableDataToHTML: function(data) {
+        tableToHTML: function(placeholder) {
 
-            var html, self;
+            var data, ht, html, $placeholder, self, tableAttr;
 
             self = this;
 
-            html = '<table>';
+            $placeholder = $(placeholder);
             
-            $.each(data, function(i, row) {
-                html += '<tr>';
-                $.each(row, function(i, cell) {
-                    html += '<td>' + cell + '</td>';
+            ht = $placeholder.handsontable('getInstance');
+
+            data = ht.getData();
+
+            tableAttr = $placeholder.data('attrTable') || '';
+            
+            html = self.tableOpenElement('table', tableAttr);
+            
+            $.each(data, function(rowIndex, row) {
+                
+                var rowAttr, rowMeta;
+                
+                rowMeta = ht.getCellMeta(rowIndex, 0);
+                rowAttr = rowMeta.attrRow;
+
+                html += self.tableOpenElement('tr', rowAttr);
+                
+                $.each(row, function(cellIndex, cell) {
+                    var cellAttr, cellMeta;
+                    cellMeta = ht.getCellMeta(rowIndex, cellIndex);
+                    cellAttr = cellMeta.attrCell;
+                    
+                    html += self.tableOpenElement('td', cellAttr) + (cell || '') + '</td>';
                 });
                 html += '</tr>';
             });
@@ -3390,6 +3481,37 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         },
 
         
+        /**
+         * Create the opening element plus attributes when exporting HTML.
+         *
+         * @param {String} element
+         * Element name.
+         *
+         * @param {Object} attributes
+         * Set of key/value pairs representing attributes on the element.
+         */
+        tableOpenElement: function(element, attributes) {
+
+            var html, self;
+
+            self = this;
+            
+            html = '';
+
+            attributes = attributes || {};
+                
+            html = '<' + element;
+
+            $.each(attributes, function(attr, value) {
+                html += ' ' + attr + '="' + self.rte.htmlEncode(value) + '"';
+            });
+                
+            html += '>';
+            
+            return html;
+        },
+        
+
         /**
          * 
          */
