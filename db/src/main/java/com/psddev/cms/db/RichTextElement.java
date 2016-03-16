@@ -36,6 +36,7 @@ public abstract class RichTextElement extends Record {
         String value();
         String constant() default "";
         boolean block() default false;
+        boolean readOnly() default false;
         boolean root() default false;
         Class<?>[] children() default { };
         String menu() default "";
