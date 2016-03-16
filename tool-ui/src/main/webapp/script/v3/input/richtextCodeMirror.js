@@ -5780,7 +5780,7 @@ define([
          */
         insert: function(value, styleKey) {
             
-            var range, self;
+            var range, self, mark;
 
             self = this;
 
@@ -5789,11 +5789,13 @@ define([
             
             range = self.getRange();
             if (styleKey) {
-                self.setStyle(styleKey, range);
+                mark = self.setStyle(styleKey, range);
             }
 
             // Now set cursor after the inserted text
             self.codeMirror.setCursor( range.to );
+
+            return mark;
         },
 
         
