@@ -2069,7 +2069,6 @@ public class ToolPageContext extends WebPageContext {
                 }
 
                 richTextElement.put("line", tag.block());
-                richTextElement.put("void", tag.empty());
                 richTextElement.put("position", tag.position());
 
                 boolean hasFields = type.getFields().stream()
