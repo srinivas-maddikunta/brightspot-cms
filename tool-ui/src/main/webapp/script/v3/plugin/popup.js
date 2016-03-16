@@ -41,6 +41,7 @@
           $original.data('popup-scrollTop', $win.scrollTop());
         }
         $original.addClass('popup-show');
+        $original.resize();
       });
 
       $container.bind('restoreOriginalPosition.popup', function() {
@@ -91,7 +92,8 @@
           event.popupClosed = true;
           
           $original.removeClass('popup-show');
-          $original.trigger('closed');  
+          $original.trigger('closed');
+          $original.resize();
           $('.popup').each(function() {
             var $popup = $(this);
             var $source = $popup.popup('source');

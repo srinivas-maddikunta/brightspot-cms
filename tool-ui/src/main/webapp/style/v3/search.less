@@ -4,6 +4,15 @@
 
 .searchResult-container {
   padding-right: (@-actions-width + (@-actions-padding * 2));
+
+  &:before {
+    border-right: 2px solid @color-separator;
+    bottom: 0;
+    content: '';
+    position: absolute;
+    right: (@-actions-width + @-actions-padding - 1px);
+    top: 0;
+  }
 }
 
 .searchResult-views {
@@ -404,6 +413,15 @@
 .searchResult {
   margin-left: (@search-controls-width-large + 42);
   position: relative;
+
+  &:before {
+    border-left: 2px solid @color-separator;
+    bottom: 0;
+    content: '';
+    left: -22px;
+    position: absolute;
+    top: 0;
+  }
 
   .searchForm[max-width^='700px'] & {
     margin-left: (@search-controls-width-small + 42);

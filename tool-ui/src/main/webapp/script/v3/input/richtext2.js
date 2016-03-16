@@ -1392,6 +1392,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // based on the cursor position or selection
             self.toolbarUpdate();
 
+            self.$container.resize();
+
             // Focus back on the editor
             self.focus();
         },
