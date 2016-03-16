@@ -1,40 +1,65 @@
 define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
+  function toolHeaderBottom(includeMargin) {
+    var $toolHeader = $('.toolHeader');
+
+    return $toolHeader.is(':visible') ?
+        $toolHeader.offset().top - $(window).scrollTop() + $toolHeader.outerHeight(includeMargin) :
+        0;
+  }
+
   bsp_utils.onDomInsert(document, '.withLeftNav > .leftNav, .withLeftNav > .main, .contentForm-main', {
     insert: function (element) {
       $(element).stick_in_parent({
         offset_top: function () {
-          return $('.toolHeader').outerHeight(true);
+          return toolHeaderBottom(true);
         }
       });
     }
   });
 
-  bsp_utils.onDomInsert(document, '.contentForm-aside > .contentWidgets', {
-    insert: function (element) {
-      var $element = $(element);
+  bsp_utils.onDomInsert(document, '.contentForm-aside', {
+    insert: function (aside) {
+      var $aside = $(aside);
+      var $publishing = $aside.find('> .widget-publishing');
+      var $widgets = $aside.find('> .contentWidgets');
+      var $window = $(window);
+      var attached;
 
-      $element.stick_in_parent({
-        parent: '.contentForm',
-        offset_top: function () {
-          return $('.toolHeader').outerHeight(true) + $element.closest('.contentForm-aside').find('> .widget-publishing').outerHeight(true);
-        },
-        offset_change: function (offset) {
-          $element.css({
-            clip: 'rect(' + (200 - offset) + 'px auto auto auto)'
+      function stick() {
+        if ($publishing.outerHeight(true) > $window.height() * 0.5) {
+          if (attached) {
+            attached = false;
+
+            $publishing.add($widgets).trigger('sticky_kit:detach');
+            $widgets.css('clip', '');
+          }
+
+        } else if (!attached) {
+          attached = true;
+
+          $publishing.stick_in_parent({
+            parent: '.contentForm',
+            offset_top: function () {
+              return toolHeaderBottom(true);
+            }
+          });
+
+          $widgets.stick_in_parent({
+            parent: '.contentForm',
+            offset_top: function () {
+              return toolHeaderBottom(true) + $publishing.outerHeight(true);
+            },
+            offset_change: function (offset) {
+              $widgets.css({
+                clip: 'rect(' + (150 - offset) + 'px auto auto auto)'
+              });
+            }
           });
         }
-      });
-    }
-  });
+      }
 
-  bsp_utils.onDomInsert(document, '.widget-publishing', {
-    insert: function (element) {
-      $(element).stick_in_parent({
-        parent: '.contentForm',
-        offset_top: function () {
-          return $('.toolHeader').outerHeight(true);
-        }
-      });
+      stick();
+      $window.resize(bsp_utils.throttle(500, stick));
     }
   });
 
@@ -42,9 +67,17 @@ define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
     insert: function (element) {
       $(element).stick_in_parent({
         offset_top: function () {
-          return $('.toolHeader').outerHeight();
+          return toolHeaderBottom(false);
         }
       });
+    }
+  });
+
+  bsp_utils.onDomInsert(document, '.rte2-wrapper.rte-fullscreen', {
+    insert: function (wrapper) {
+      $(wrapper).scroll(bsp_utils.throttle(500, function () {
+        $(document.body).trigger("sticky_kit:recalc");
+      }));
     }
   });
 
