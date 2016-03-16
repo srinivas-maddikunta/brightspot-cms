@@ -94,7 +94,20 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 showFinal:false,
                 
                 // Don't let this style be removed by the "Clear" toolbar button
-                internal: true
+                internal: true,
+
+                onCreate: function (mark) {
+                    var $html = $('html');
+                    var attrs = mark.attributes;
+
+                    if (!attrs) {
+                        attrs = mark.attributes = { };
+                    }
+
+                    attrs['data-user-id'] = $html.attr('data-user-id');
+                    attrs['data-user-label'] = $html.attr('data-user-label');
+                    attrs['data-time'] = +new Date();
+                }
             },
             link: {
                 className: 'rte2-style-link',
@@ -1381,6 +1394,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 } else {
                     mark = rte.toggleStyle(item.style);
+
+                    if (mark) {
+                        styleObj.onCreate(mark);
+                    }
                 }
             }
 
