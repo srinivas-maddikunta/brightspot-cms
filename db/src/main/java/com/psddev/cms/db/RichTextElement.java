@@ -34,7 +34,7 @@ public abstract class RichTextElement extends Record {
     public @interface Tag {
 
         String value();
-        String constant() default "";
+        String initialBody() default "";
         boolean block() default false;
         boolean readOnly() default false;
         boolean root() default false;

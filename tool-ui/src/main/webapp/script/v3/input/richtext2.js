@@ -1328,17 +1328,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
                 event.preventDefault();
 
-                var constant = styleObj.constant;
+                var initialBody = styleObj.initialBody;
 
-                if (constant) {
-                    var mark = rte.setStyle(item.style);
-
+                if (initialBody) {
+                    mark = rte.insert(initialBody, item.style);
                     if (mark) {
-                        rte.insert(constant);
-
-                        mark.atomic = true;
-                        mark.inclusiveLeft = false;
-                        mark.inclusiveRight = false;
+                        self.inlineEnhancementHandleClick(event, mark);
                     }
 
                 } else if (styleObj.toggle) {
@@ -3670,7 +3665,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // all of them
                 singleLine: Boolean(rtElement.popup !== false),
 
-                constant: rtElement.constant,
+                initialBody: rtElement.initialBody,
                 line: Boolean(rtElement.line),
                 readOnly: Boolean(rtElement.readOnly),
                 popup: rtElement.popup === false ? false : true,
