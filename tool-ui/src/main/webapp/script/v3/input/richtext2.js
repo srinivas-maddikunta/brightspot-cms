@@ -3809,6 +3809,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 "void": Boolean(rtElement.void),
                 popup: rtElement.popup === false ? false : true,
                 context: rtElement.context,
+                keymap: rtElement.keymap,
                 clear: rtElement.clear,
                 toggle: rtElement.toggle
             };
