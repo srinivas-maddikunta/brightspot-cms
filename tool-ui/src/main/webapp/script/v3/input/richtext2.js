@@ -1059,20 +1059,21 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             $.each(RICH_TEXT_ELEMENTS, function (index, rtElement) {
 
-                // Always skip table elements, because those are used
-                // only to specify context and attributes, but should not
-                // appear in the toolbar
-                if (rtElement.tag === 'table') {
-                    return;
-                }
-                
                 // For this instance of the RTE, was there a custom list
                 // of elements that should be displayed in the toolbar?
                 if (tags && tags.indexOf(rtElement.tag) < 0) {
+                    
                     // Skip this element if it is not listed in the allowed elements
                     return;
                 }
 
+                // Always skip TR and TD elements, because those are used
+                // only to specify context and attributes, but should not
+                // appear in the toolbar
+                if (rtElement.tag === 'tr' || rtElement.tag === 'td') {
+                    return;
+                }
+                
                 var styleName = rtElement.styleName;
                 var submenuName = rtElement.submenu;
                 var submenu;
@@ -1084,6 +1085,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     text: rtElement.displayName,
                     tooltip: rtElement.tooltipText
                 };
+
+                // Special case - the table element is treated as a toolbar action instead of a style
+                if (rtElement.tag === 'table') {
+                    toolbarButton.action = 'table';
+                }
 
                 if (submenuName) {
                     submenu = submenus[submenuName];
