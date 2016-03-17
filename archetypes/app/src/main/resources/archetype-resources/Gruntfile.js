@@ -15,6 +15,15 @@ module.exports = function (grunt) {
 
             scripts: {
                 dir: 'assets'
+            },
+
+            bower: {
+                'normalize-css': [
+                    {
+                        src: 'normalize.css',
+                        dest: 'bower/normalize-css/normalize.css'
+                    }
+                ]
             }
         }
     });
