@@ -14,6 +14,7 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectMap;
 import com.psddev.dari.util.ObjectUtils;
+import com.psddev.dari.util.PrivateStorageItem;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
 
@@ -64,7 +65,7 @@ public class ContentImages extends PageServlet {
                 page.writeEnd();
 
                 for (StandardImageSize size : StandardImageSize.findAll()) {
-                    String url = new ImageTag.Builder(image).setStandardImageSize(size).toUrl();
+                    String url = new ImageTag.Builder(new PrivateStorageItem(image)).setStandardImageSize(size).toUrl();
 
                     page.writeStart("div", "class", "resizedImage resizedImage-" + size.getInternalName());
                         page.writeElement("img",
