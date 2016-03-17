@@ -208,9 +208,9 @@
                             <includePluginDependencies>true</includePluginDependencies>
                             <mainClass>com.psddev.styleguide.ViewClassGenerator</mainClass>
                             <arguments>
-                                <argument>--json-dir=${project.basedir}/styleguide</argument>
+                                <argument>--json-dir=\${project.basedir}/styleguide</argument>
                                 <argument>--java-package-prefix=\${groupId}.view</argument>
-                                <argument>--build-dir=${project.build.directory}/generated-sources/styleguide</argument>
+                                <argument>--build-dir=\${project.build.directory}/generated-sources/styleguide</argument>
                                 <argument>--watch=${styleguide.viewgenerator.watch}</argument>
                                 <argument>--ignore-files=_config.json</argument>
                                 <argument>--remove-deprecations=true</argument>
