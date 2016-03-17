@@ -2062,14 +2062,14 @@ public class ToolPageContext extends WebPageContext {
 
                 richTextElement.put("tag", tagName);
 
-                String constant = tag.constant().trim();
+                String initialBody = tag.initialBody().trim();
 
-                if (!constant.isEmpty()) {
-                    richTextElement.put("constant", constant);
+                if (!initialBody.isEmpty()) {
+                    richTextElement.put("initialBody", initialBody);
                 }
 
                 richTextElement.put("line", tag.block());
-                richTextElement.put("void", tag.empty());
+                richTextElement.put("readOnly", tag.readOnly());
                 richTextElement.put("position", tag.position());
 
                 boolean hasFields = type.getFields().stream()

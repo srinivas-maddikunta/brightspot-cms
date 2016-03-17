@@ -1328,17 +1328,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
                 event.preventDefault();
 
-                var constant = styleObj.constant;
+                var initialBody = styleObj.initialBody;
 
-                if (constant) {
-                    var mark = rte.setStyle(item.style);
-
+                if (initialBody) {
+                    mark = rte.insert(initialBody, item.style);
                     if (mark) {
-                        rte.insert(constant);
-
-                        mark.atomic = true;
-                        mark.inclusiveLeft = false;
-                        mark.inclusiveRight = false;
+                        self.inlineEnhancementHandleClick(event, mark);
                     }
 
                 } else if (styleObj.toggle) {
@@ -1513,6 +1508,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                     // Special case if the toolbar style should only be displayed in certain contexts
                     styleObj = self.styles[config.style] || {};
+                    $link.removeClass('outOfContext');
 
                     // Special case for the "Table" button, we will look for a style
                     // definition for the "table" element, to see if it has any
@@ -3671,9 +3667,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // all of them
                 singleLine: Boolean(rtElement.popup !== false),
 
-                constant: rtElement.constant,
+                initialBody: rtElement.initialBody,
                 line: Boolean(rtElement.line),
-                "void": Boolean(rtElement.void),
+                readOnly: Boolean(rtElement.readOnly),
                 popup: rtElement.popup === false ? false : true,
                 context: rtElement.context,
                 keymap: rtElement.keymap,
