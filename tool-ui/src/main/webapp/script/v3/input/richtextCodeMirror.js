@@ -174,7 +174,12 @@ define([
 
             linebreak: {
                 line:true
+            },
+
+            linebreakSingle:{
+                line:true
             }
+            
         }, // styles
 
         
@@ -843,6 +848,15 @@ define([
                 
                 range.to.line = range.from.line;
                 range.to.ch = range.from.ch + 1;
+            }
+
+            if (styleObj.readOnly) {
+                // Set mark to atomic which means cursor cannot be moved into the mark
+                // and also implies readonly
+                markOptions.atomic = true;
+                markOptions.addToHistory = true;
+                markOptions.inclusiveLeft = false;
+                markOptions.inclusiveRight = false;
             }
 
             mark = editor.markText(range.from, range.to, markOptions);
@@ -2816,7 +2830,7 @@ define([
             marks = $.map(marks, function(mark, i) {
                 var styleObj;
                 styleObj = self.classes[mark.className];
-                if (styleObj && (styleObj.onClick || styleObj.void)) {
+                if (styleObj && (styleObj.onClick || styleObj.void || styleObj.readOnly)) {
                     // Keep in the array
                     return mark;
                 } else {
@@ -2862,7 +2876,7 @@ define([
                 }).appendTo($div);
 
                 // Popup edit defaults to true, but if set to false do not include edit link
-                if (styleObj.popup !== false) {
+                if (styleObj.popup !== false && styleObj.onClick) {
                     $('<a/>', {
                         'class': 'rte2-dropdown-edit',
                         text: 'Edit'
@@ -2872,24 +2886,24 @@ define([
                         return false;
                     }).appendTo($div);
                 }
-                
+
                 $('<a/>', {
                     'class': 'rte2-dropdown-clear',
-                    text: 'Clear'
+                    text: styleObj.readOnly ? 'Remove' : 'Clear'
                 }).on('click', function(event){
 
                     var pos;
-                    
+
                     event.preventDefault();
 
                     // For void element, delete the text in the mark
-                    if (styleObj.void) {
+                    if (styleObj.readOnly || styleObj.void) {
                         if (mark.find) {
                             pos = mark.find();
                             // Delete below after the mark is cleared
                         }
                     }
-                    
+
                     mark.clear();
                     if (pos) {
                         self.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch}, 'brightspotDropdown');
@@ -2899,7 +2913,7 @@ define([
                     self.triggerChange();
                     return false;
                 }).appendTo($div);
-                
+
             });
 
             // Set position of the dropdown
@@ -3691,12 +3705,21 @@ define([
             if (self.clipboardSanitizeRules) {
                 $.each(self.clipboardSanitizeRules, function(selector, style) {
                     $el.find(selector).each(function(){
-                        var $match = $(this);
-                        var $replacement = $('<span>', {'data-rte2-sanitize': style});
-                        $replacement.append( $match.contents() );
-                        $match.replaceWith( $replacement );
+                        var $match, $replacement;
+
+                        $match = $(this);
+                        
+                        if ($.isFunction(style)) {
+                            style($match);
+                        } else {
+                            $replacement = $('<span>', {'data-rte2-sanitize': style});
+                            $replacement.append( $match.contents() );
+                            $match.replaceWith( $replacement );
+                        }
                     });
                 });
+
+                // Anything we replaced with "linebreak" should get an extra blank line after
                 $el.find('[data-rte2-sanitize=linebreak]').after('<br/>');
             }
 
@@ -5757,7 +5780,7 @@ define([
          */
         insert: function(value, styleKey) {
             
-            var range, self;
+            var range, self, mark;
 
             self = this;
 
@@ -5766,11 +5789,13 @@ define([
             
             range = self.getRange();
             if (styleKey) {
-                self.setStyle(styleKey, range);
+                mark = self.setStyle(styleKey, range);
             }
 
             // Now set cursor after the inserted text
             self.codeMirror.setCursor( range.to );
+
+            return mark;
         },
 
         

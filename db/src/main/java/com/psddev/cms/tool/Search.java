@@ -543,46 +543,6 @@ public class Search extends Record {
     }
 
     public Query<?> toQuery(Site site) {
-
-        // If the query string is an URL, hit it to find the ID.
-        String queryString = getQueryString();
-
-        if (!ObjectUtils.isBlank(queryString)) {
-            try {
-                URL qsUrl = new URL(queryString.trim());
-                URLConnection qsConnection = qsUrl.openConnection();
-
-                if (qsConnection instanceof HttpURLConnection) {
-                    HttpURLConnection qsHttp = (HttpURLConnection) qsConnection;
-
-                    qsHttp.setConnectTimeout(1000);
-                    qsHttp.setReadTimeout(1000);
-                    qsHttp.setRequestMethod("HEAD");
-                    qsHttp.setRequestProperty("Brightspot-Main-Object-Id-Query", "true");
-
-                    InputStream qsInput = qsHttp.getInputStream();
-
-                    try {
-                        UUID mainObjectId = ObjectUtils.to(UUID.class, qsHttp.getHeaderField("Brightspot-Main-Object-Id"));
-
-                        if (mainObjectId != null) {
-                            return Query.fromAll()
-                                    .or("_id = ?", mainObjectId)
-                                    .or("* matches ?", mainObjectId)
-                                    .sortRelevant(100.0, "_id = ?", mainObjectId);
-                        }
-
-                    } finally {
-                        qsInput.close();
-                    }
-                }
-
-            } catch (IOException error) {
-                // Can't connect to the URL in the query string to get the main
-                // object ID, but that's OK to ignore and move on.
-            }
-        }
-
         Query<?> query = null;
         Set<ObjectType> types = getTypes();
         ObjectType selectedType = getSelectedType();
@@ -636,6 +596,48 @@ public class Search extends Record {
                         validTypeIds.add(t.getId());
                     }
                 }
+            }
+        }
+
+        // If the query string is an URL, hit it to find the ID.
+        String queryString = getQueryString();
+
+        if (!ObjectUtils.isBlank(queryString)) {
+            try {
+                URL qsUrl = new URL(queryString.trim());
+                URLConnection qsConnection = qsUrl.openConnection();
+
+                if (qsConnection instanceof HttpURLConnection) {
+                    HttpURLConnection qsHttp = (HttpURLConnection) qsConnection;
+
+                    qsHttp.setConnectTimeout(1000);
+                    qsHttp.setReadTimeout(1000);
+                    qsHttp.setRequestMethod("HEAD");
+                    qsHttp.setRequestProperty("Brightspot-Main-Object-Id-Query", "true");
+
+                    InputStream qsInput = qsHttp.getInputStream();
+
+                    try {
+                        UUID mainObjectId = ObjectUtils.to(UUID.class, qsHttp.getHeaderField("Brightspot-Main-Object-Id"));
+
+                        if (mainObjectId != null) {
+                            if (query.isFromAll() && !validTypeIds.isEmpty()) {
+                                query.and("_type = ?", validTypeIds);
+                            }
+
+                            return query
+                                    .and("_id = ? or * matches ?", mainObjectId, mainObjectId)
+                                    .sortRelevant(100.0, "_id = ?", mainObjectId);
+                        }
+
+                    } finally {
+                        qsInput.close();
+                    }
+                }
+
+            } catch (IOException error) {
+                // Can't connect to the URL in the query string to get the main
+                // object ID, but that's OK to ignore and move on.
             }
         }
 

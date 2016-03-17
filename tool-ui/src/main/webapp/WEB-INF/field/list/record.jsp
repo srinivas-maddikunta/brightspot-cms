@@ -701,7 +701,7 @@ if (!isValueExternal) {
                             "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
                             "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? 0.0 : null,
                             "data-toggle-field-value", !StringUtils.isBlank(toggleFieldName) ? true : null,
-                            "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? "auto" : null
+                            "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? "" : null
                     );
                         wp.writeStart("a",
                                 "href", wp.cmsUrl("/content/repeatableObject.jsp",

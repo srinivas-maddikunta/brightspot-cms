@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -2027,7 +2028,13 @@ public class ToolPageContext extends WebPageContext {
                 .build(new CacheLoader<Class<?>, Set<Class<?>>>() {
                     @Override
                     public Set<Class<?>> load(Class<?> aClass) throws Exception {
-                        return new HashSet<Class<?>>(ClassFinder.findConcreteClasses(aClass));
+                        Set<Class<?>> classes = new HashSet<Class<?>>(ClassFinder.findConcreteClasses(aClass));
+
+                        if (!Modifier.isAbstract(aClass.getModifiers()) && !Modifier.isInterface(aClass.getModifiers())) {
+                            classes.add(aClass);
+                        }
+
+                        return classes;
                     }
                 });
 
@@ -2053,9 +2060,17 @@ public class ToolPageContext extends WebPageContext {
                 Map<String, Object> richTextElement = new CompactMap<>();
                 ObjectType type = ObjectType.getInstance(c);
 
-                richTextElement.put("tag", tag.value());
+                richTextElement.put("tag", tagName);
+
+                String initialBody = tag.initialBody().trim();
+
+                if (!initialBody.isEmpty()) {
+                    richTextElement.put("initialBody", initialBody);
+                }
+
                 richTextElement.put("line", tag.block());
-                richTextElement.put("void", tag.empty());
+                richTextElement.put("readOnly", tag.readOnly());
+                richTextElement.put("position", tag.position());
 
                 boolean hasFields = type.getFields().stream()
                         .filter(f -> !f.as(ToolUi.class).isHidden())
@@ -2123,9 +2138,19 @@ public class ToolPageContext extends WebPageContext {
                 richTextElement.put("typeId", type.getId().toString());
                 richTextElement.put("displayName", type.getDisplayName());
                 richTextElement.put("tooltipText", tag.tooltip());
+
+                if (!ObjectUtils.isBlank(tag.keymaps())) {
+                    richTextElement.put("keymap", tag.keymaps());
+                }
                 richTextElements.add(richTextElement);
             }
         }
+
+        richTextElements.sort(
+                Comparator.comparing((Map<String, Object> r) -> r.get("position"),
+                        (r1, r2) -> ObjectUtils.compare(r1, r2, false))
+                        .thenComparing(r -> r.get("styleName"),
+                                (r1, r2) -> ObjectUtils.compare(r1, r2, false)));
 
         for (Map<String, Object> richTextElement : richTextElements) {
 

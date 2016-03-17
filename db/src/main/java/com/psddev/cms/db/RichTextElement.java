@@ -18,7 +18,14 @@ public abstract class RichTextElement extends Record {
 
     public abstract void fromAttributes(Map<String, String> attributes);
 
+    public void fromBody(String body) {
+    }
+
     public abstract Map<String, String> toAttributes();
+
+    public String toBody() {
+        return null;
+    }
 
     @Documented
     @ObjectType.AnnotationProcessorClass(TagProcessor.class)
@@ -27,12 +34,15 @@ public abstract class RichTextElement extends Record {
     public @interface Tag {
 
         String value();
+        String initialBody() default "";
         boolean block() default false;
-        boolean empty() default false;
+        boolean readOnly() default false;
         boolean root() default false;
         Class<?>[] children() default { };
         String menu() default "";
         String tooltip() default "";
+        String[] keymaps() default { };
+        double position() default 0d;
     }
 
     private static class TagProcessor implements ObjectType.AnnotationProcessor<Tag> {

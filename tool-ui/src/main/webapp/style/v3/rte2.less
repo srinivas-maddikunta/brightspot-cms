@@ -215,12 +215,6 @@
   .rte2-enhancement-toolbar-restore { display:inline-block; }
   .rte2-enhancement-toolbar-remove-completely { display:inline-block; }
 }
-.rte2-table {
-  box-sizing: border-box;
-  padding: .5em 5px;
-  position: relative;
-  .background-striped(@color-heading);
-}
 .rte2-table-placeholder {
   overflow:hidden;
   height:auto;
@@ -526,7 +520,8 @@ li.CodeMirror-hint-active {
     }
   }
 
-  .rte2-enhancement {
+  .rte2-enhancement,
+  .rte2-table {
     box-sizing: border-box;
     padding: 0 5px (@lineHeight-default + 5px) 5px;
     position: relative;
@@ -565,19 +560,18 @@ li.CodeMirror-hint-active {
       padding:0.25em;
     }
 
-    &.toBeRemoved {
-      .background-striped(lighten(@color-remove, 10%));
+    a {
+      color: @color-placeholder;
+
+      &:hover {
+        background-color: fade(white, 93%);
+        text-decoration: none;
+      }
     }
 
-    &,
     &.toBeRemoved {
-      a {
-        color: @color-placeholder;
-
-        &:hover {
-          background-color: fade(white, 93%);
-          text-decoration: none;
-        }
+      &:before {
+        .background-striped(lighten(@color-remove, 40%));
       }
     }
   }
@@ -641,6 +635,9 @@ li.CodeMirror-hint-active {
 }
 
 .rte2-table-editor {
+  .rte2-wrapper {
+    overflow: hidden;
+  }
 }
 .rte2-table-editor-save {
   margin-right: 0.5em;
