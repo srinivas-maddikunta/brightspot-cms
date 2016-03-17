@@ -26,6 +26,7 @@ import com.psddev.dari.util.DimsImageEditor;
 import com.psddev.dari.util.ImageEditor;
 import com.psddev.dari.util.JavaImageEditor;
 import com.psddev.dari.util.ObjectUtils;
+import com.psddev.dari.util.PrivateStorageItem;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
@@ -410,7 +411,8 @@ public class ImageFileType implements FileContentType {
                 String fieldValueUrl;
                 String resizeScale = "";
                 if (ImageEditor.Static.getDefault() != null) {
-                    ImageTag.Builder imageTagBuilder = new ImageTag.Builder(fieldValue)
+                    ImageTag.Builder imageTagBuilder = new ImageTag.Builder(new PrivateStorageItem(fieldValue))
+                            .setPrivateUrl(true)
                             .setWidth(1000)
                             .setResizeOption(ResizeOption.ONLY_SHRINK_LARGER)
                             .setEdits(false);
