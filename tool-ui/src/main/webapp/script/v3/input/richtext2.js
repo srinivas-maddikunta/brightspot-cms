@@ -3447,8 +3447,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 data = {
                     tagName:'table',
                     childNodes:[
-                        { tagName: 'td', childNodes: [''] },
-                        { tagName: 'td', childNodes: [''] }
+                        {
+                            tagName: 'tr',
+                            childNodes: [
+                                { tagName: 'td', childNodes: [''] },
+                                { tagName: 'td', childNodes: [''] }
+                            ]
+                        }
                     ]
                 };
                 return data;
