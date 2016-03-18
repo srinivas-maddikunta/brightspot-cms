@@ -1636,6 +1636,8 @@ public class ToolPageContext extends WebPageContext {
         writeTag("!doctype html");
         writeTag("html",
                 "class", site != null ? site.getCmsCssClass() : null,
+                "data-user-id", user != null ? user.getId() : null,
+                "data-user-label", user != null ? user.getLabel() : null,
                 "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag());
             writeStart("head");
                 writeStart("title");
