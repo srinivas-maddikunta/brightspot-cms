@@ -836,22 +836,6 @@ function() {
     })
   });
 
-  $win.on('mousewheel', function(event, delta, deltaX, deltaY) {
-    var scrollTops = [ ];
-
-    $doc.find('.popup[data-popup-source-class~="objectId-edit"] > .content > .frame').each(function () {
-      scrollTops.push($.data(this, 'popup-content-edit-scrollTop'));
-    });
-
-    if (scrollTops.length === 0) {
-      return;
-    }
-
-    if (deltaY > 0 && $win.scrollTop() - deltaY < scrollTops[scrollTops.length - 1]) {
-      event.preventDefault();
-    }
-  });
-
   $doc.ready(function() {
     (function() {
       var $nav = $('.toolNav');
