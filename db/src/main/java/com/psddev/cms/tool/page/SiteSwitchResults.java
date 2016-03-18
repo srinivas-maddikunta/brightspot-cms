@@ -44,7 +44,7 @@ public class SiteSwitchResults extends PageServlet {
                     page.writeStart("a",
                             "href", page.cmsUrl("/siteSwitch", "switch", true),
                             "target", "_top");
-                        page.writeHtml(page.localize(SiteSwitchResults.class, "label.global"));
+                        page.writeHtml(page.localize(SiteSwitch.class, "label.global"));
                     page.writeEnd();
                 page.writeEnd();
             }
