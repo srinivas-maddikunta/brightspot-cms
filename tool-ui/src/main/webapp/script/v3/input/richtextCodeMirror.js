@@ -5290,7 +5290,7 @@ define([
                 self._fromHTML.apply(self, args);
             });
         },
-        _fromHTML: function(html, range, allowRaw) {
+        _fromHTML: function(html, range, allowRaw, retainStyles) {
 
             var annotations, editor, enhancements, el, history, map, self, val;
 
@@ -5677,26 +5677,28 @@ define([
                 // So instead we'll insert a space, then remove the styles from that space character,
                 // then call an undo() to remove the space from the document (and the undo history).
 
-                if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                if (!retainStyles) {
+                    if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
 
-                    editor.replaceRange(' ', range.from, range.to, 'brightspotRemoveStyles');
-                
-                    // Remove styles from the single character
-                    self.removeStyles({
-                        from: { line:range.from.line, ch:range.from.ch },
-                        to: { line:range.from.line, ch:range.from.ch + 1}
-                    });
+                        editor.replaceRange(' ', range.from, range.to, 'brightspotRemoveStyles');
 
-                    // Undo the insertion of the single character so it doesn't appear in the undo history
-                    editor.undo();
+                        // Remove styles from the single character
+                        self.removeStyles({
+                            from: { line:range.from.line, ch:range.from.ch },
+                            to: { line:range.from.line, ch:range.from.ch + 1}
+                        });
 
-                } else {
+                        // Undo the insertion of the single character so it doesn't appear in the undo history
+                        editor.undo();
 
-                    // Remove styles from the range
-                    self.removeStyles(range);
+                    } else {
 
+                        // Remove styles from the range
+                        self.removeStyles(range);
+
+                    }
                 }
-                
+
             } else {
                 
                 // Replace the entire document
@@ -5710,7 +5712,8 @@ define([
             }
 
             // Add the plain text into the selected range
-            editor.replaceRange(val, range.from, range.to, 'brightspotPaste');
+            editor.replaceRange(val, range.to, range.to, 'brightspotPaste');
+            editor.replaceRange('', range.from, range.to, 'brightspotPaste');
 
             // Before we start adding styles, save the current history.
             // After we add the styles we will restore the history.
