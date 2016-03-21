@@ -101,22 +101,22 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
               $element.closest('.message').toggle(text !== '');
 
+              var $previousText = $element.attr('data-previous-text');
+
               //Replace only when text has changed
-              if ($element.is('[data-dynamic-text]')) {
-                if ($element.text() === null || $element.text() !== text) {
-                  $element.text(text);
-                }
+              if ($previousText === null || $previousText !== text) {
+                if ($element.is('[data-dynamic-text]')) {
+                    $element.text(text);
 
-              } else if ($element.is('[data-dynamic-html]')) {
-                if ($element.html() === null || $element.html() !== text) {
-                  $element.html(text);
-                }
+                } else if ($element.is('[data-dynamic-html]')) {
+                    $element.html(text);
 
-              } else if ($element.is('[data-dynamic-placeholder]')) {
-                if ($element.prop('placeholder') === null || $element.prop('placeholder') !== text) {
-                  $element.prop('placeholder', text);
+                } else if ($element.is('[data-dynamic-placeholder]')) {
+                    $element.prop('placeholder', text);
                 }
               }
+
+              $element.attr('data-previous-text', text);
             });
 
             $form.resize();
