@@ -604,6 +604,7 @@ writer.start("div", "class", "searchForm");
 
                         wp.writeTypeSelect(
                                 creatableTypes.stream()
+                                    .filter(t -> !t.as(ToolUi.class).isReadOnly())
                                     .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("write", "read")))
                                     .collect(Collectors.<ObjectType>toSet()),
                                 selectedType,
