@@ -23,7 +23,6 @@ import javax.servlet.jsp.tagext.TagSupport;
 
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.HtmlWriter;
-import com.psddev.dari.util.ImageEditorPrivateUrl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -679,7 +678,6 @@ public class ImageTag extends TagSupport implements DynamicAttributes {
         private boolean overlay;
         private boolean disableHotSpotCrop;
         private boolean edits = true;
-        private boolean privateUrl = false;
 
         private final Map<String, String> attributes = new LinkedHashMap<String, String>();
 
@@ -716,7 +714,6 @@ public class ImageTag extends TagSupport implements DynamicAttributes {
             srcAttribute = null;
             hideDimensions = false;
             disableHotSpotCrop = false;
-            privateUrl = false;
             attributes.clear();
 
             state = null;
@@ -834,15 +831,6 @@ public class ImageTag extends TagSupport implements DynamicAttributes {
 
         public Builder setEdits(boolean edits) {
             this.edits = edits;
-            return this;
-        }
-
-        public boolean isPrivateUrl() {
-            return privateUrl;
-        }
-
-        public Builder setPrivateUrl(boolean privateUrl) {
-            this.privateUrl = privateUrl;
             return this;
         }
 
@@ -1317,10 +1305,6 @@ public class ImageTag extends TagSupport implements DynamicAttributes {
                 }
                 if (resizeOption != null) {
                     options.put(ImageEditor.RESIZE_OPTION, resizeOption.getImageEditorOption());
-                }
-
-                if (privateUrl) {
-                    options.put(ImageEditorPrivateUrl.PRIVATE_URL_OPTION, true);
                 }
 
                 if (isEdits()) {
