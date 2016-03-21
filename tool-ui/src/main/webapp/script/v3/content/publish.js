@@ -93,7 +93,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
             $(document.body).append($frame);
             $form.attr('target', frameName);
             $frame.load(function () {
-              var $message = $('.contentForm-main > .widget-content > .message', this.contentDocument);
+              var $message = $('.contentForm-main > .widget-content > .message:not(.message-info)', this.contentDocument);
 
               if ($message.length > 0) {
                 $toolMessage.html($message.clone());
