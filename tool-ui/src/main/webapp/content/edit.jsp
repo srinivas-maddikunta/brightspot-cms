@@ -1027,7 +1027,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                    if (!lockedOut || editAnyway) {
+                    if ((!lockedOut || editAnyway) && isWritable) {
                         wp.writeStart("ul", "class", "widget-publishingExtra-right");
                             if (isWritable && isDraft) {
                                 if (schedule != null) {
