@@ -575,7 +575,9 @@ writer.start("div", "class", "searchForm");
 
         writer.end();
 
-        if (!ObjectUtils.isBlank(newJsp) && (selectedType == null || !selectedType.isAbstract())) {
+        if (!ObjectUtils.isBlank(newJsp)
+                && (selectedType == null || !selectedType.isAbstract())
+                && (!singleType || !selectedType.as(ToolUi.class).isReadOnly())) {
             writer.start("div", "class", "searchCreate");
                 writer.start("h2").html("Create").end();
 
