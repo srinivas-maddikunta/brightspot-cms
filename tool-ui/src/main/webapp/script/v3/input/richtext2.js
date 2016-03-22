@@ -1404,7 +1404,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 } else {
                     mark = rte.toggleStyle(item.style);
 
-                    if (mark) {
+                    if (mark && styleObj.onCreate) {
                         styleObj.onCreate(mark);
                     }
                 }
