@@ -636,15 +636,23 @@ define([
                     // Find the mark with the rightmost starting character
                     marks.forEach(function(mark){
                         
-                        var isRightmost, markPosition, pos;
+                        var isRightmost, markPosition, pos, styleObj;
                         
                         if (!mark.className) {
                             return;
                         }
-                        // Make sure this class maps to an element (and is not an internal mark like for spelling errors)
-                        if (!self.classes[mark.className]) {
+                        
+                        // Make sure this class maps to an element
+                        styleObj = self.classes[mark.className];
+                        if (!styleObj) {
                             return;
                         }
+                        
+                        // Make sure this style is not for internal use (like track changes)
+                        if (styleObj.internal) {
+                            return;
+                        }
+
                         if (!mark.find) {
                             return;
                         }
