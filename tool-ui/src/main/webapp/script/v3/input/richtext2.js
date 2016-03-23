@@ -3001,10 +3001,20 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 $divLink.click();
 
                 // When the popup is closed put focus back on the editor
-                $(document).one('closed', '[name=' + frameName + ']', function(){
+                $(document).on('closed.' + frameName, '[name=' + frameName + ']', function(event){
+                    
+                    // Make sure this 'closed' event was fired on the frame,
+                    // and not on some popup within the frame
+                    if (event.target !== event.currentTarget) {
+                        return;
+                    }
+                    
                     self.focus();
                     $div.remove();
                     self.rte.triggerChange();
+
+                    // Stop listening for this event
+                    $(document).off('closed.' + frameName);
                 });
 
             }, 100);
