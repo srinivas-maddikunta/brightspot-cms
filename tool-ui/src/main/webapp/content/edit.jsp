@@ -753,19 +753,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                 draft != null ||
                                 editingState.as(Workflow.Data.class).getCurrentState() != null)) {
 
-                            Workflow workflow = Query
-                                    .from(Workflow.class)
-                                    .and("sites = ?", site)
-                                    .and("contentTypes = ?", editingState.getType())
-                                    .first();
-
-                            if (workflow == null) {
-                                workflow = Query
-                                        .from(Workflow.class)
-                                        .and("sites = missing")
-                                        .and("contentTypes = ?", editingState.getType())
-                                        .first();
-                            }
+                            Workflow workflow = Workflow.findWorkflow(site, editingState);
 
                             if (workflow != null) {
                                 State workflowParentState = draft != null ? draft.getState() : editingState;
@@ -1027,7 +1015,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                    if (!lockedOut || editAnyway) {
+                    if ((!lockedOut || editAnyway) && isWritable) {
                         wp.writeStart("ul", "class", "widget-publishingExtra-right");
                             if (isWritable && isDraft) {
                                 if (schedule != null) {
@@ -1462,9 +1450,13 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     var deviceWidth = parseInt($previewForm.find('select.deviceWidthSelect').val(), 10);
                                     var scale = ($win.width() - 160) / deviceWidth;
 
+                                    if (scale > 1) {
+                                        scale = 1;
+                                    }
+
                                     $previewTarget.css({
                                         height: ($win.height() - ($container.offset().top - $win.scrollTop()) - 40) / scale,
-                                        transform: 'scale(' + (scale < 1 ? scale : 1) + ')'
+                                        transform: 'scale(' + scale + ')'
                                     });
                                 }
 

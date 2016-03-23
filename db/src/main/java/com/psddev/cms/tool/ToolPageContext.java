@@ -1636,6 +1636,8 @@ public class ToolPageContext extends WebPageContext {
         writeTag("!doctype html");
         writeTag("html",
                 "class", site != null ? site.getCmsCssClass() : null,
+                "data-user-id", user != null ? user.getId() : null,
+                "data-user-label", user != null ? user.getLabel() : null,
                 "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag());
             writeStart("head");
                 writeStart("title");
@@ -2062,14 +2064,14 @@ public class ToolPageContext extends WebPageContext {
 
                 richTextElement.put("tag", tagName);
 
-                String constant = tag.constant().trim();
+                String initialBody = tag.initialBody().trim();
 
-                if (!constant.isEmpty()) {
-                    richTextElement.put("constant", constant);
+                if (!initialBody.isEmpty()) {
+                    richTextElement.put("initialBody", initialBody);
                 }
 
                 richTextElement.put("line", tag.block());
-                richTextElement.put("void", tag.empty());
+                richTextElement.put("readOnly", tag.readOnly());
                 richTextElement.put("position", tag.position());
 
                 boolean hasFields = type.getFields().stream()
@@ -4029,7 +4031,7 @@ public class ToolPageContext extends WebPageContext {
         try {
             state.beginWrites();
 
-            Workflow workflow = Query.from(Workflow.class).where("contentTypes = ?", state.getType()).first();
+            Workflow workflow = Workflow.findWorkflow(getSite(), state);
 
             if (workflow != null) {
                 WorkflowTransition transition = workflow.getTransitions().get(action);

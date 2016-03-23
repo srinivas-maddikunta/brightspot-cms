@@ -122,43 +122,31 @@ if (object != null && wp.isFormPost()) {
 
                 RichTextElement rte = (RichTextElement) object;
                 Map<String, String> attributes = rte.toAttributes();
+
+                wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
+
                 String body = rte.toBody();
 
                 if (body != null) {
-                    StringBuilder elementHtml = new StringBuilder();
-                    String tagName = rte.getClass().getAnnotation(RichTextElement.Tag.class).value();
-
-                    elementHtml.append('<');
-                    elementHtml.append(tagName);
-
-                    if (attributes != null) {
-                        attributes.forEach((name, value) -> {
-                            elementHtml.append(' ');
-                            elementHtml.append(StringUtils.escapeHtml(name));
-                            elementHtml.append('=');
-                            elementHtml.append('"');
-                            elementHtml.append(StringUtils.escapeHtml(value));
-                            elementHtml.append('"');
-                        });
-                    }
-
-                    elementHtml.append('>');
-                    elementHtml.append(body);
-                    elementHtml.append("</");
-                    elementHtml.append(tagName);
-                    elementHtml.append('>');
-
+                    wp.writeRaw("var oldMarkInclusiveLeft = mark.inclusiveLeft;");
+                    wp.writeRaw("var oldMarkInclusiveRight = mark.inclusiveRight;");
+                    wp.writeRaw("mark.inclusiveLeft = true;");
+                    wp.writeRaw("mark.inclusiveRight = true;");
                     wp.writeRaw("rte.rte.fromHTML('");
-                    wp.writeRaw(StringUtils.escapeJavaScript(elementHtml.toString()));
-                    wp.writeRaw("', rte.rte.markGetRange(mark));");
-
-                } else {
-                    wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
+                    wp.writeRaw(StringUtils.escapeJavaScript(body));
+                    wp.writeRaw("', rte.rte.markGetRange(mark), true, true);");
+                    wp.writeRaw("mark.inclusiveLeft = oldMarkInclusiveLeft;");
+                    wp.writeRaw("mark.inclusiveRight = oldMarkInclusiveRight;");
                 }
 
-                wp.writeRaw("$page.popup('close');");
-                wp.writeEnd();
-                return;
+                if (wp.param(boolean.class, "action-save-and-close")) {
+                    wp.writeRaw("$page.popup('close');");
+                    wp.writeEnd();
+                    return;
+
+                } else {
+                    wp.writeEnd();
+                }
             }
 
         } else if (wp.param(boolean.class, "isEditObject")) {
@@ -252,9 +240,21 @@ if (object == null) {
         </div>
 
         <div class="buttons">
-            <button class="action action-save">
-                <% wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Enhancement", "action.save")); %>
-            </button>
+            <%
+                if (isRichTextElement && ((RichTextElement) object).shouldCloseOnSave()) {
+                    wp.writeStart("button",
+                            "class", "action action-save",
+                            "name", "action-save-and-close",
+                            "value", true);
+                    wp.writeHtml(wp.localize(state.getType(), "action.saveAndClose"));
+                    wp.writeEnd();
+
+                } else {
+                    wp.writeStart("button", "class", "action action-save");
+                    wp.writeHtml(wp.localize(state.getType(), "action.save"));
+                    wp.writeEnd();
+                }
+            %>
         </div>
     </form>
 
