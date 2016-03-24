@@ -4,6 +4,7 @@ import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StorageItemFilter;
 import com.psddev.dari.util.StringUtils;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -14,7 +15,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Populates a StorageItem with the date from the query parameter from an HTTP request. The
+ * Populates a StorageItem with the data from the query parameter from an HTTP request. The
  * parameter fetched has the same name as the field it populates unless
  * otherwise specified.
  */
@@ -35,11 +36,10 @@ class HttpFileParameterProcessor implements ServletViewRequestAnnotationProcesso
             parameterName = fieldName;
         }
         try {
-            if (ObjectUtils.isBlank(request.getParameter(parameterName))) {
-                return null;
-            }
             return StorageItemFilter.getParameter(request, parameterName, null);
         } catch (IOException e) {
+            LoggerFactory.getLogger(HttpFileParameterProcessor.class)
+                    .error(e.getMessage());
             return null;
         }
     }
