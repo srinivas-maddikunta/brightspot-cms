@@ -1908,7 +1908,11 @@ public class ToolPageContext extends WebPageContext {
                         writeStart("div",
                                 "class", "toolBackground",
                                 "style", cssString(
-                                        "background-image", "url(" + backgroundImage.getPublicUrl() + ")"));
+                                        "background-image", "url("
+                                                + (JspUtils.isSecure(getRequest())
+                                                    ? backgroundImage.getSecurePublicUrl()
+                                                    : backgroundImage.getPublicUrl())
+                                                + ")"));
                         writeEnd();
                     }
     }
