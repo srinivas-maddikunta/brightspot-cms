@@ -582,6 +582,7 @@ writer.start("div", "class", "searchForm");
                 writer.start("h2").html("Create").end();
 
                 writer.start("form",
+                        "class", "objectId-create",
                         "method", "get",
                         "action", wp.url(newJsp),
                         "target", ObjectUtils.isBlank(newTarget) ? null : newTarget);
