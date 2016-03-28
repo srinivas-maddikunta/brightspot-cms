@@ -685,7 +685,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (self.doOnSubmit) {
 
                 self.$el.closest('form').on('submit', function(){
-                    if (self.rte.modeGet() === 'rich' && !self.rte.readOnlyGet()) {
+                    if (self.rte.modeGet() === 'rich' && !self.rte.readOnlyGet() && self.changed) {
                         self.trackChangesSave();
                         self.$el.val(self.toHTML());
                     }
@@ -710,7 +710,24 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Adding HTML to the editor tends to create multiple undo history events,
             // so clear the history to start.
             self.rte.historyClear();
+
+            // Set up an event listener to mark the content as "changed".
+            //
+            // This is because in some cases if the input HTML is transformed when parsing,
+            // we don't want to mark the content as changed unless the user specifically modifies
+            // the content.
+            //
+            // Note we do this after a short timeout because the editor's change events
+            // are debounced, and we need to give the editor time to add the initial
+            // content before we start listening for change events.
             
+            self.changed = false;
+            setTimeout(function() {
+                self.$editor.on('rteChange', function(){
+                    self.changed = true;
+                });
+            }, 1000);
+
             // Set up periodic update of the textarea
             self.previewInit();
         },
@@ -795,6 +812,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         
         modeSetPlain: function() {
             var self = this;
+
+            // Mark this as a change
+            self.rte.triggerChange();
             
             self.$el.val(self.rte.toHTML());
             
@@ -809,6 +829,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             var self = this;
             var rte = self.rte;
             var trackIsOn = rte.trackIsOn();
+            
+            // Mark this as a change
+            self.rte.triggerChange();
             
             self.$el.hide();
 
@@ -2744,6 +2767,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             $enhancement = self.enhancementGetWrapper(el);
 
             $enhancement.data('reference', reference);
+
+            self.rte.triggerChange();
         },
 
 
@@ -3149,6 +3174,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 stretchH: 'all',
                 contextMenu: {
                     callback: function (key, options) {
+                        self.rte.triggerChange();
                         switch (key) {
                         case 'edit':
                             self.tableEditSelection($placeholder);
@@ -3363,7 +3389,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // This is to let the user repeatedly click the Up/Down button to move the enhancement multiple lines.
                 topWindow = $(window).scrollTop();
                 $(window).scrollTop(topWindow + topNew - topOriginal);
-
             }
         },
 
@@ -3376,6 +3401,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self = this;
             $el = self.tableGetWrapper(el);
             $el.addClass('toBeRemoved');
+            self.rte.triggerChange();
         },
 
         
@@ -3400,6 +3426,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self = this;
             $el = self.tableGetWrapper(el);
             $el.removeClass('toBeRemoved');
+            self.rte.triggerChange();
         },
 
 
@@ -4065,6 +4092,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Do not update if we are in read only mode
             if (self.rte.readOnlyGet()) {
+                return;
+            }
+            
+            // Do not update if the content in the editor has not been changed
+            if (!self.changed) {
                 return;
             }
 
