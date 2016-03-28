@@ -751,10 +751,18 @@ function() {
   }).join(', '), {
     insert: function (frame) {
       var $frame = $(frame);
+      var $source = $frame.popup('source');
+      var text = $source.closest('.contentForm').find('> .contentForm-main > .widget > h1, > .withLeftNav > .main > .widget > h1').eq(0).clone().find('option:not(:selected)').remove().end().text();
+
+      if (!text) {
+        text = $source.closest('.frame').find('> h1').text();
+      }
+
+      text = text ? 'Back to ' + text : 'Back';
 
       $frame.prepend($('<a/>', {
         'class': 'popup-objectId-edit-heading',
-        'text': 'Back to ' + $frame.popup('source').closest('.contentForm').find('> .contentForm-main > .widget > h1, > .withLeftNav > .main > .widget > h1').eq(0).clone().find('option:not(:selected)').remove().end().text(),
+        'text': text,
         'click': function() {
           $(this).popup('close');
           return false;
