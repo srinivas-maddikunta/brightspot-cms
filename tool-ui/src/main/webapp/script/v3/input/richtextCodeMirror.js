@@ -2827,7 +2827,9 @@ define([
             $.each(lineStyles, function(styleKey) {
                 var mark;
                 mark = self.blockGetLineData(styleKey, range.from.line);
-                marks.push(mark);
+                if (mark) {
+                    marks.push(mark);
+                }
             });
         
             // Find all the inline marks for the clicked position
