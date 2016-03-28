@@ -718,9 +718,8 @@ function() {
     if (!$parentContent.parent().is('.popup[data-popup-source-class~="objectId-select"]')) {
       $parentContent.css({
         height: $win.height() + scrollTop,
-        overflow: 'hidden',
-        position: 'relative',
-        top: (0 - scrollTop)
+        'margin-top': (0 - scrollTop + parseInt($parentContent.css('margin-top'), 10)),
+        overflow: 'hidden'
       });
     }
 
@@ -790,9 +789,8 @@ function() {
 
     $parentContent.css({
       height: '',
-      overflow: '',
-      position: '',
-      top: ''
+      'margin-top': '',
+      overflow: ''
     });
 
     $win.resize();
