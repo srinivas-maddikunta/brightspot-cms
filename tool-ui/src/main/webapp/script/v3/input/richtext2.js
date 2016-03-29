@@ -2208,17 +2208,17 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (!config.marker) {
 
                 self.enhancementToolbarAddButton({
-                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
-                    target: self.enhancementGetTarget(),
-                    text: 'Options',
-                    className: 'rte2-enhancement-toolbar-options'
-                }, $toolbar);
-
-                self.enhancementToolbarAddButton({
                     href: CONTEXT_PATH + '/content/edit.jsp', // Note this url will be modified to add the enhancement id
                     target: self.enhancementGetTarget(),
                     text: 'Edit',
                     className: 'rte2-enhancement-toolbar-edit'
+                }, $toolbar);
+
+                self.enhancementToolbarAddButton({
+                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
+                    target: self.enhancementGetTarget(),
+                    text: 'Options',
+                    className: 'rte2-enhancement-toolbar-options'
                 }, $toolbar);
 
             }
