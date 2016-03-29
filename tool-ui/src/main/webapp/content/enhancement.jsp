@@ -198,6 +198,10 @@ if (object == null) {
             wp.writeElement("input", "type", "hidden", "name", "refId", "value", ref.getId());
             wp.writeSomeFormFields(ref, false, null, Arrays.asList("record"));
         }
+
+        if (isRichTextElement) {
+            wp.writeFormFields(object);
+        }
         %>
 
         <div class="buttons">
