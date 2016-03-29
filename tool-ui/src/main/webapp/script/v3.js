@@ -691,11 +691,12 @@ function() {
     var $parentPopup = $popup.popup('source').closest('.popup');
 
     if ($parentPopup.length > 0) {
-      return $parentPopup.find('> .content');
-
-    } else {
-      return $('.toolContent');
+      if (OBJECT_EDIT_POPUP_SELECTORS.filter(function (s) { return $parentPopup.is(s); }).length > 0) {
+        return $parentPopup.find('> .content');
+      }
     }
+
+    return $('.toolContent');
   }
 
   $doc.on('open', OBJECT_EDIT_POPUP_SELECTORS, function(event) {
@@ -715,13 +716,11 @@ function() {
 
     var $parentContent = findObjectEditParentContent($popup);
 
-    if (!$parentContent.parent().is('.popup[data-popup-source-class~="objectId-select"]')) {
-      $parentContent.css({
-        height: $win.height() + scrollTop,
-        'margin-top': (0 - scrollTop + parseInt($parentContent.css('margin-top'), 10)),
-        overflow: 'hidden'
-      });
-    }
+    $parentContent.css({
+      height: $win.height() + scrollTop,
+      'margin-top': (0 - scrollTop + parseInt($parentContent.css('margin-top'), 10)),
+      overflow: 'hidden'
+    });
 
     $win.scrollTop(0);
     $win.resize();
