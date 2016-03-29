@@ -206,7 +206,7 @@ if (object == null) {
 
         <div class="buttons">
             <%
-                if (isRichTextElement && ((RichTextElement) object).shouldCloseOnSave()) {
+                if (!isRichTextElement || ((RichTextElement) object).shouldCloseOnSave()) {
                     wp.writeStart("button",
                             "class", "action action-save",
                             "name", "action-save-and-close",
