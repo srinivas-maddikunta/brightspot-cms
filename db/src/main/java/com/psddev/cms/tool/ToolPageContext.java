@@ -3583,6 +3583,7 @@ public class ToolPageContext extends WebPageContext {
 
         State state = State.getInstance(object);
         Site site = getSite();
+        boolean wasDraft = state.as(Content.ObjectModification.class).isDraft();
 
         try {
             updateUsingParameters(object);
@@ -3619,6 +3620,10 @@ public class ToolPageContext extends WebPageContext {
             return true;
 
         } catch (Exception error) {
+            if (!wasDraft) {
+                state.as(Content.ObjectModification.class).setDraft(false);
+            }
+
             getErrors().add(error);
             return false;
         }
