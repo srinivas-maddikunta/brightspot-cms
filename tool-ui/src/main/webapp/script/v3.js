@@ -710,6 +710,10 @@ function() {
       return;
     }
 
+    if ($.isNumeric($.data($popup[0], 'popup-objectId-edit-scrollTop'))) {
+      return;
+    }
+
     var scrollTop = $win.scrollTop();
 
     $.data($popup[0], 'popup-objectId-edit-scrollTop', scrollTop);
