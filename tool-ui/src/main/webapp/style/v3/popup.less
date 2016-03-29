@@ -339,45 +339,6 @@
   }
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(359deg);
-  }
-}
-
-.popup-objectId-edit-loading {
-  &:after {
-    @-size: (@iconSize-default * 3);
-    @-offset: (0 - (@-size / 2));
-
-    animation: spin 1s infinite steps(8);
-    content: '\f110';
-    display: inline-block;
-    font-family: 'FontAwesome';
-    -webkit-font-smoothing: antialiased;
-    font-size: @-size;
-    font-weight: normal;
-    height: @-size;
-    left: 50%;
-    line-height: @-size;
-    margin: @-offset 0 0 @-offset;
-    position: fixed;
-    text-align: center;
-    text-decoration: none !important;
-    top: 50%;
-    width: @-size;
-    z-index: 1;
-  }
-}
-
-.popup-objectId-edit-loaded {
-  opacity: 0.1;
-}
-
 .popup-objectId-edit-heading {
   .icon;
   .icon-arrow-left;
