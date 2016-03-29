@@ -720,13 +720,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Note we do this after a short timeout because the editor's change events
             // are debounced, and we need to give the editor time to add the initial
             // content before we start listening for change events.
-            
+
             self.changed = false;
-            setTimeout(function() {
-                self.$editor.on('rteChange', function(){
-                    self.changed = true;
-                });
-            }, 1000);
+            self.$editor.one('rteChange', function(){
+                self.changed = true;
+            });
 
             // Set up periodic update of the textarea
             self.previewInit();

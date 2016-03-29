@@ -454,9 +454,9 @@ define([
                 
             });
             
-            editor.on('changes', $.debounce(200, function(instance, event) {
+            editor.on('changes', function(instance, event) {
                 self.triggerChange(event);
-            }));
+            });
 
             editor.on('focus', function(instance, event) {
                 self.$el.trigger('rteFocus', [self]);
