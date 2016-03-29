@@ -140,6 +140,15 @@ public class SearchResultRenderer {
         int level = page.paramOrDefault(int.class, TAXON_LEVEL_PARAMETER, 1);
 
         if (level == 1) {
+            List<Object> newItems = Query.fromAll()
+                    .where("_id = ?", search.getNewItemIds())
+                    .selectAll();
+
+            if (!newItems.isEmpty()) {
+                page.writeStart("h2").writeHtml("New").writeEnd();
+                renderList(newItems);
+            }
+
             page.writeStart("h2").writeHtml("Result").writeEnd();
         }
 

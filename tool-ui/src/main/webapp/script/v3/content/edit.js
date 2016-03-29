@@ -1,4 +1,4 @@
-define([ 'jquery', 'v3/rtc' ], function($, rtc) {
+define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
 
   rtc.receive('com.psddev.cms.tool.page.content.EditFieldUpdateBroadcast', function(data) {
     var userId = data.userId;
@@ -181,5 +181,38 @@ define([ 'jquery', 'v3/rtc' ], function($, rtc) {
 
       return true;
     });
+  });
+
+  // Add the new item to the search results.
+  bsp_utils.onDomInsert(document, '.contentForm', {
+    insert: function (form) {
+      var $form = $(form);
+
+      if ($form.attr('data-new') === 'false') {
+        var $source = $form.popup('source');
+
+        if ($source) {
+          var $forms = $source.closest('.searchControls').find('> .searchFilters > form');
+
+          if ($forms.length > 0) {
+            var contentId = $form.attr('data-content-id');
+
+            $forms.each(function () {
+              var $form = $(this);
+
+              if ($form.find('input[type="hidden"][name="ni"][value="' + contentId + '"]').length === 0) {
+                $form.append($('<input/>', {
+                  type: 'hidden',
+                  name: 'ni',
+                  value: contentId
+                }));
+              }
+            });
+
+            $forms.first().submit();
+          }
+        }
+      }
+    }
   });
 });
