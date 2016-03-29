@@ -15,8 +15,9 @@ import java.lang.annotation.Target;
 import java.util.List;
 
 /**
- * Populates a StorageItem with the data from the query parameter from an HTTP request. The
- * parameter fetched has the same name as the field it populates unless
+ * Populates a StorageItem with the data from the query parameter from an HTTP request.
+ * It can process a file input or a string input with json.
+ * The parameter fetched has the same name as the field it populates unless
  * otherwise specified.
  */
 @ServletViewRequestAnnotationProcessorClass(HttpStorageItemParameterProcessor.class)
@@ -24,16 +25,16 @@ import java.util.List;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface HttpStorageItemParameter {
-    String value() default "";
-    String storageName() default "";
+    String name() default "";
+    String storage() default "";
 }
 
 class HttpStorageItemParameterProcessor implements ServletViewRequestAnnotationProcessor<HttpStorageItemParameter> {
 
     @Override
     public List<StorageItem> getValue(HttpServletRequest request, String fieldName, HttpStorageItemParameter annotation) {
-        String parameterName = annotation.value();
-        String storageName = annotation.storageName();
+        String parameterName = annotation.name();
+        String storageName = annotation.storage();
         if (StringUtils.isBlank(parameterName)) {
             parameterName = fieldName;
         }
