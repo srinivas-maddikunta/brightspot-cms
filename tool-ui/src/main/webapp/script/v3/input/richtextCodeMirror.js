@@ -2508,9 +2508,12 @@ define([
             
             if (lineNumber > lineMax) {
                 
-                // Add another line to the end of the editor
+                // Add another line to the end of the editor.
+                // Set the change event origin to "brightspotEnhancementMove" so we know this newline is being
+                // added automatically rather than the user typing (so we don't try to adjust the
+                // position of the enhancement - see enhancementNewlineAdjust()
                 lineLength = editor.getLine(lineMax).length;
-                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, 'brightspotEnhancementMove');
+                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, undefined, 'brightspotEnhancementMove');
                 
             }
 
@@ -2573,6 +2576,10 @@ define([
             var lineInfo, lineNumber, self;
 
             self = this;
+
+            if (changeObj.origin === 'brightspotEnhancementMove') {
+                return;
+            }
             
             if (changeObj.from &&
                 changeObj.from.ch === 0 && // change occurred at the first character of the line
