@@ -25,7 +25,7 @@ import java.util.List;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface HttpStorageItemParameter {
-    String name() default "";
+    String value() default "";
     String storage() default "";
 }
 
@@ -33,7 +33,7 @@ class HttpStorageItemParameterProcessor implements ServletViewRequestAnnotationP
 
     @Override
     public List<StorageItem> getValue(HttpServletRequest request, String fieldName, HttpStorageItemParameter annotation) {
-        String parameterName = annotation.name();
+        String parameterName = annotation.value();
         String storageName = annotation.storage();
         if (StringUtils.isBlank(parameterName)) {
             parameterName = fieldName;
