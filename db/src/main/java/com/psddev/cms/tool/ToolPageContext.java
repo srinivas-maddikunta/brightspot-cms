@@ -1908,7 +1908,11 @@ public class ToolPageContext extends WebPageContext {
                         writeStart("div",
                                 "class", "toolBackground",
                                 "style", cssString(
-                                        "background-image", "url(" + backgroundImage.getPublicUrl() + ")"));
+                                        "background-image", "url("
+                                                + (JspUtils.isSecure(getRequest())
+                                                    ? backgroundImage.getSecurePublicUrl()
+                                                    : backgroundImage.getPublicUrl())
+                                                + ")"));
                         writeEnd();
                     }
     }
@@ -3579,6 +3583,7 @@ public class ToolPageContext extends WebPageContext {
 
         State state = State.getInstance(object);
         Site site = getSite();
+        boolean wasDraft = state.as(Content.ObjectModification.class).isDraft();
 
         try {
             updateUsingParameters(object);
@@ -3615,6 +3620,10 @@ public class ToolPageContext extends WebPageContext {
             return true;
 
         } catch (Exception error) {
+            if (!wasDraft) {
+                state.as(Content.ObjectModification.class).setDraft(false);
+            }
+
             getErrors().add(error);
             return false;
         }
@@ -4031,7 +4040,7 @@ public class ToolPageContext extends WebPageContext {
         try {
             state.beginWrites();
 
-            Workflow workflow = Query.from(Workflow.class).where("contentTypes = ?", state.getType()).first();
+            Workflow workflow = Workflow.findWorkflow(getSite(), state);
 
             if (workflow != null) {
                 WorkflowTransition transition = workflow.getTransitions().get(action);
