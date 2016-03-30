@@ -3675,7 +3675,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             self.$tableEditTextarea = $('<textarea>').appendTo(self.$tableEditDiv);
             self.tableEditRte = Object.create(Rte);
-            self.tableEditRte.init(self.$tableEditTextarea);
+            self.tableEditRte.init(self.$tableEditTextarea, {contextRoot:'td'});
 
             $controls = $('<div/>', {'class': 'rte2-table-editor-controls'}).appendTo(self.$tableEditDiv);
 
