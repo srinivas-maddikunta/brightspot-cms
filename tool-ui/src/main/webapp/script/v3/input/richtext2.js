@@ -1110,7 +1110,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 
                 var styleName = rtElement.styleName;
                 var submenuName = rtElement.submenu;
-                var submenu;
+                var $submenu;
                 var toolbarButton;
 
                 toolbarButton = {
@@ -1126,27 +1126,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 }
 
                 if (submenuName) {
-                    submenu = submenus[submenuName];
-
-                    if (!submenu) {
-                        submenu = [ ];
-                        submenus[submenuName] = submenu;
+                    
+                    $submenu = submenus[submenuName];
+                    if (!$submenu) {
+                        $submenu = submenus[submenuName] = self.toolbarAddSubmenu({text: submenuName}, $toolbar);
                     }
 
-                    submenu.push(toolbarButton);
+                    self.toolbarAddButton(toolbarButton, $submenu);
 
                 } else {
                     self.toolbarAddButton(toolbarButton, $toolbar);
                 }
             });
 
-            $.each(submenus, function (text, submenuItems) {
-                var $submenu;
-                $submenu = self.toolbarAddSubmenu({text: text}, $toolbar);
-                $.each(submenuItems, function(i, item) {
-                    self.toolbarAddButton(item, $submenu);
-                });
-            });
         },
 
 
