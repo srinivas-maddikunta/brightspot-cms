@@ -94,7 +94,20 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 showFinal:false,
                 
                 // Don't let this style be removed by the "Clear" toolbar button
-                internal: true
+                internal: true,
+
+                onCreate: function (mark) {
+                    var $html = $('html');
+                    var attrs = mark.attributes;
+
+                    if (!attrs) {
+                        attrs = mark.attributes = { };
+                    }
+
+                    attrs['data-user-id'] = $html.attr('data-user-id');
+                    attrs['data-user-label'] = $html.attr('data-user-label');
+                    attrs['data-time'] = +new Date();
+                }
             },
             link: {
                 className: 'rte2-style-link',
@@ -235,11 +248,29 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             
             'p[style*="text-align:right"]': 'alignRight',
             'p[style*="text-align:center"]': 'alignCenter',
+
+            // MSWord 'p' elements should be treated as a new line
+            // Special case if 'p' element contains only whitespace remove the whitespace
+            'p[class^=Mso]': function($el) {
+                var $replacement, t;
+                t = $el.text() || '';
+                if (t.match(/^\s*$/)) {
+                    $el.text('');
+                }
+                $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
+                $replacement.append( $el.contents() );
+                $el.replaceWith( $replacement );
+            },
+
+            // Remove attributes from table elements
+            'table, tr, td, th': function($el) {
+                $el.replaceWith(function () {
+                    return $('<' + this.nodeName + '>').append($(this).contents());
+                });
+            },
             
-            // Any 'p' element should be treated as a new line
-            // Note: we also add an extra <br> element after the <p> elements.
+            // Any 'p' element should be treated as a new line with a blank line after
             'p': 'linebreak'
-            
         },
 
 
@@ -462,11 +493,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.$el.data('rte2', self);
 
             self.initStyles();
+            self.enhancementInit();
+            self.inlineEnhancementInit();
+            self.tableInit();
             self.initRte();
             self.toolbarInit();
             self.linkInit();
-            self.enhancementInit();
-            self.inlineEnhancementInit();
             self.trackChangesInit();
             self.placeholderInit();
             self.modeInit();
@@ -652,8 +684,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Set up a submit event on the form to copy the value back into the textarea
             if (self.doOnSubmit) {
 
-                self.$el.closest('form').on('submit', function(){p
-                    if (self.rte.modeGet() === 'rich' && !self.rte.readOnlyGet()) {
+                self.$el.closest('form').on('submit', function(){
+                    if (self.rte.modeGet() === 'rich' && !self.rte.readOnlyGet() && self.changed) {
                         self.trackChangesSave();
                         self.$el.val(self.toHTML());
                     }
@@ -678,7 +710,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Adding HTML to the editor tends to create multiple undo history events,
             // so clear the history to start.
             self.rte.historyClear();
-            
+
+            // Set up an event listener to mark the content as "changed".
+            //
+            // This is because in some cases if the input HTML is transformed when parsing,
+            // we don't want to mark the content as changed unless the user specifically modifies
+            // the content.
+            //
+            // Note we do this after a short timeout because the editor's change events
+            // are debounced, and we need to give the editor time to add the initial
+            // content before we start listening for change events.
+
+            self.changed = false;
+            self.$editor.one('rteChange', function(){
+                self.changed = true;
+            });
+
             // Set up periodic update of the textarea
             self.previewInit();
         },
@@ -763,6 +810,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         
         modeSetPlain: function() {
             var self = this;
+
+            // Mark this as a change
+            self.rte.triggerChange();
             
             self.$el.val(self.rte.toHTML());
             
@@ -777,6 +827,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             var self = this;
             var rte = self.rte;
             var trackIsOn = rte.trackIsOn();
+            
+            // Mark this as a change
+            self.rte.triggerChange();
             
             self.$el.hide();
 
@@ -1043,10 +1096,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // For this instance of the RTE, was there a custom list
                 // of elements that should be displayed in the toolbar?
                 if (tags && tags.indexOf(rtElement.tag) < 0) {
+                    
                     // Skip this element if it is not listed in the allowed elements
                     return;
                 }
 
+                // Always skip TR and TD elements, because those are used
+                // only to specify context and attributes, but should not
+                // appear in the toolbar
+                if (rtElement.tag === 'tr' || rtElement.tag === 'td') {
+                    return;
+                }
+                
                 var styleName = rtElement.styleName;
                 var submenuName = rtElement.submenu;
                 var submenu;
@@ -1058,6 +1119,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     text: rtElement.displayName,
                     tooltip: rtElement.tooltipText
                 };
+
+                // Special case - the table element is treated as a toolbar action instead of a style
+                if (rtElement.tag === 'table') {
+                    toolbarButton.action = 'table';
+                }
 
                 if (submenuName) {
                     submenu = submenus[submenuName];
@@ -1310,14 +1376,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
                 event.preventDefault();
 
-                if (styleObj.toggle) {
+                var initialBody = styleObj.initialBody;
+
+                if (initialBody) {
+                    mark = rte.insert(initialBody, item.style);
+                    if (mark) {
+                        self.inlineEnhancementHandleClick(event, mark);
+                    }
+
+                } else if (styleObj.toggle) {
 
                     // Check to see if we need to toggle off
                     mark = rte.toggleStyle(item.style);
                     if (mark) {
                         self.inlineEnhancementHandleClick(event, mark);
                     }
-                    
+
                 } else {
                     self.inlineEnhancementCreate(event, item.style);
                 }
@@ -1350,6 +1424,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 } else {
                     mark = rte.toggleStyle(item.style);
+
+                    if (mark && styleObj.onCreate) {
+                        styleObj.onCreate(mark);
+                    }
                 }
             }
 
@@ -1360,6 +1438,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Update the toolbar so it makes the buttons active or inactive
             // based on the cursor position or selection
             self.toolbarUpdate();
+
+            self.$container.resize();
 
             // Focus back on the editor
             self.focus();
@@ -1412,7 +1492,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 
                 // For toolbar actions we need special logic to determine if the button should be "active"
                 // One exception is for inline enhancements, which are treated as a normal style
-                if (config.action && config.action !== 'enhancementInline') {
+                if (config.action && config.action !== 'enhancementInline' && config.action !== 'table') {
 
                     switch (config.action) {
 
@@ -1480,6 +1560,15 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                     // Special case if the toolbar style should only be displayed in certain contexts
                     styleObj = self.styles[config.style] || {};
+                    $link.removeClass('outOfContext');
+
+                    // Special case for the "Table" button, we will look for a style
+                    // definition for the "table" element, to see if it has any
+                    // context specified
+                    if (config.action === 'table' && self.tableStyleTable) {
+                        styleObj = self.tableStyleTable;
+                    }
+
                     if (styleObj.context) {
                         
                         // Loop through all the current contexts.
@@ -1955,7 +2044,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         enhancementUpdate: function(el) {
 
-            var $content, $edit, editUrl, $enhancement, emptyText, reference, $select, self;
+            var $content, $options, optionsUrl, $edit, editUrl, $enhancement, emptyText, reference, $select, self;
 
             self = this;
             $enhancement = self.enhancementGetWrapper(el);
@@ -1998,12 +2087,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 $select = $enhancement.find('.rte2-enhancement-toolbar-change');
                 $select.text('Change');
 
+                $options = $enhancement.find('.rte2-enhancement-toolbar-options');
+                optionsUrl = $options.attr('href') || '';
+                optionsUrl = $.addQueryParameters(optionsUrl,
+                        'id', reference.record._ref,
+                        'reference', JSON.stringify(reference));
+                $options.attr('href', optionsUrl);
+
                 // Modify the "Edit" button in the toolbar so it will pop up the edit dialog for the enhancement
                 $edit = $enhancement.find('.rte2-enhancement-toolbar-edit');
                 editUrl = $edit.attr('href') || '';
                 editUrl = $.addQueryParameters(editUrl,
-                                               'id', reference.record._ref,
-                                               'reference', JSON.stringify(reference));
+                        'id', reference.record._ref);
                 $edit.attr('href', editUrl);
             }
 
@@ -2134,10 +2229,17 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (!config.marker) {
 
                 self.enhancementToolbarAddButton({
-                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
+                    href: CONTEXT_PATH + '/content/edit.jsp', // Note this url will be modified to add the enhancement id
                     target: self.enhancementGetTarget(),
                     text: 'Edit',
                     className: 'rte2-enhancement-toolbar-edit'
+                }, $toolbar);
+
+                self.enhancementToolbarAddButton({
+                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
+                    target: self.enhancementGetTarget(),
+                    text: 'Options',
+                    className: 'rte2-enhancement-toolbar-options'
                 }, $toolbar);
 
             }
@@ -2676,6 +2778,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             $enhancement = self.enhancementGetWrapper(el);
 
             $enhancement.data('reference', reference);
+
+            self.rte.triggerChange();
         },
 
 
@@ -2797,7 +2901,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Add onclick function to each style that is marked for inline enhancements
             // except for those with popup:false
-            $.each(self.rte.styles, function(styleKey, styleObj) {
+            $.each(self.styles, function(styleKey, styleObj) {
 
                 // Only modify the inline enhancement styles
                 if (!styleObj.enhancementType) { return; }
@@ -2854,14 +2958,23 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 event.stopPropagation();
             }
 
+            range = self.rte.markGetRange(mark);
+            if (mark.rteTableMark) {
+                // If this mark has rteTableMark=true, that means it is a "fake" CodeMirror mark
+                // that we created for table elements. In that case we do not send the html to the
+                // inline enhancement popup form.
+                html = '';
+            } else {
+                html = self.rte.toHTML(range);
+            }
+            
             enhancementEditUrl = $.addQueryParameters(
                 window.CONTEXT_PATH + '/content/enhancement.jsp',
                 'typeId', styleObj.enhancementType,
-                'attributes', JSON.stringify(mark.attributes));
+                'attributes', JSON.stringify(mark.attributes),
+                'body', $(html).html()
+            );
 
-            range = self.rte.markGetRange(mark);
-            html = self.rte.toHTML(range);
-            
             // Create a link for editing the enhancement and position it at the click event
             frameName = 'rte2-frame-enhancement-inline-' + frameTargetCounter++;
             $div = $('<div/>', {
@@ -2893,10 +3006,17 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Listen for an 'enhancementUpdate' event that will be triggered on
             // the edit link, so we can tell when the enhancement is updated.
             // The enhancement edit form will trigger this event.
-            $divLink.on('enhancementUpdate', function(event, html){
-                self.inlineEnhancementReplaceMark(mark, html);
-            });
-
+            if (!mark.rteTableMark) {
+                
+                // If this mark has rteTableMark=true, that means it is a "fake" CodeMirror mark
+                // that we created for table/tr/td elements. In that case we do not allow the 
+                // inline enhancement popup form to modify the html of the table.
+                
+                $divLink.on('enhancementUpdate', function(event, html){
+                    self.inlineEnhancementReplaceMark(mark, html);
+                });
+            }
+            
             // Listen for an 'enhancementRead' event that will be triggered on
             // the edit popup, so we can communicate the mark back to the popup form.
             // The enhancement edit form can trigger this event.
@@ -2917,9 +3037,20 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 $divLink.click();
 
                 // When the popup is closed put focus back on the editor
-                $(document).one('closed', '[name=' + frameName + ']', function(){
+                $(document).on('closed.' + frameName, '[name=' + frameName + ']', function(event){
+                    
+                    // Make sure this 'closed' event was fired on the frame,
+                    // and not on some popup within the frame
+                    if (event.target !== event.currentTarget) {
+                        return;
+                    }
+                    
                     self.focus();
                     $div.remove();
+                    self.rte.triggerChange();
+
+                    // Stop listening for this event
+                    $(document).off('closed.' + frameName);
                 });
 
             }, 100);
@@ -2959,18 +3090,58 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
 
         /**
+         * Initialize some data used to create tables.
+         */
+        tableInit: function() {
+
+            var self;
+
+            self = this;
+
+            // Go through all the style definitions and see if they contain "table" elements
+            $.each(self.styles, function(styleKey, styleObj) {
+
+                switch (styleObj.element) {
+
+                case 'table':
+                    self.tableStyleTable = styleObj;
+                    break;
+                    
+                case 'tr':
+                    self.tableStyleRow = styleObj;
+                    break;
+                
+                case 'td':
+                case 'th':
+                    self.tableStyleCell = styleObj;
+                    break;
+                }
+                
+            });
+        },
+
+
+        /**
          * 
          */
         tableCreate: function($content, line) {
             
-            var columns, data, $div, $placeholder, self;
+            var columns, contextMenuItems, data, dataRows, $div, ht, $placeholder, self;
             self = this;
 
-            if ($content) {
-                data = self.tableHTMLToData($content);
-            } else {
-                data = [['','']];
-            }
+            // Get the structure of the HTML including attributes
+            data = self.tableHTMLToData($content);
+            
+            // Convert the HTML structure into data that handsontable will understand
+            dataRows = [];
+            $.each(data.childNodes, function(i, row) {
+                var dataRow;
+                dataRow = [];
+                $.each(row.childNodes, function(i, cell) {
+                    dataRow.push(cell.childNodes[0]);
+                });
+                dataRows.push(dataRow);
+            });
 
             if (line === undefined) {
                 line = self.rte.getRange().from.line;
@@ -2985,29 +3156,62 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Note it appears you must set the style directly on the element or table resizing doesn't work correctly.
             $placeholder = $('<div/>', {'class':'rte2-table-placeholder', style:'overflow:hidden;height:auto;width:100%;'}).appendTo($div);
 
+            // Create a fake CodeMirror mark to store the table attributes.
+            // We set rteTableMark to true so we can later tell that this is not a real mark,
+            // so we can avoid certain things like trying to get the range or html for the mark.
+            self.tableMarkSetTable($placeholder, self.tableMarkCreate($placeholder, data.attr));
+
+            // Set up the context menu for table cells
+            contextMenuItems = {
+                edit: {name:'Edit'}
+            };
+
+            if (self.tableStyleTable && self.tableStyleTable.onClick) {
+                contextMenuItems.attrTable = {name:'Edit Table Attributes'}
+            }
+            if (self.tableStyleRow && self.tableStyleRow.onClick) {
+                contextMenuItems.attrRow = {name:'Edit Row Attributes'}
+            }
+            if (self.tableStyleCell && self.tableStyleCell.onClick) {
+                contextMenuItems.attrCell = {name:'Edit Cell Attributes'}
+            }
+            
+            $.extend(contextMenuItems, {
+                row_above: {},
+                row_below: {},
+                col_left: {},
+                col_right: {},
+                remove_row: {},
+                remove_col: {},
+                undo: {},
+                redo: {}
+            });
+            
             // Initialize the table.
             $placeholder.handsontable({
-                'data': data,
+                'data': dataRows,
                 minCols:1,
                 minRows:1,
                 stretchH: 'all',
                 contextMenu: {
                     callback: function (key, options) {
-                        if (key === 'edit') {
+                        self.rte.triggerChange();
+                        switch (key) {
+                        case 'edit':
                             self.tableEditSelection($placeholder);
+                            break;
+                        case 'attrTable':
+                            self.tableEditAttrTable($placeholder);
+                            break;
+                        case 'attrRow':
+                            self.tableEditAttrRow($placeholder);
+                            break;
+                        case 'attrCell':
+                            self.tableEditAttrCell($placeholder);
+                            break;
                         }
                     },
-                    items: {
-                        "edit":{name:'Edit'},
-                        "row_above":{},
-                        "row_below":{},
-                        "col_left":{},
-                        "col_right":{},
-                        "remove_row":{},
-                        "remove_col":{},
-                        "undo":{},
-                        "redo":{}
-                    }
+                    items: contextMenuItems
                 },
                 fillHandle: false,
                 renderAllRows: true,
@@ -3052,9 +3256,34 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     if (self.tableIsToBeRemoved($div)) {
                         return '';
                     } else {
-                        return self.tableDataToHTML($placeholder.handsontable('getData'));
+                        return self.tableToHTML($placeholder);
                     }
                 }
+            });
+
+            // Set meta data onto the handsontable cells.
+            // This will be used to save the element attributes from the HTML,
+            // and also to give a place for the backend RichText elements to
+            // update elements.
+            ht = $placeholder.handsontable('getInstance');
+            $.each(data.childNodes, function(rowIndex, row) {
+                
+                var rowMark;
+
+                rowMark = self.tableMarkCreate($placeholder, row.attr);
+                
+                $.each(row.childNodes, function(cellIndex, cell) {
+                    
+                    var cellMark;
+
+                    cellMark = self.tableMarkCreate($placeholder, cell.attr);
+                    self.tableMarkSetCell($placeholder, rowIndex, cellIndex, cellMark);
+                });
+
+                // Note the row mark is set on every cell in the row.
+                // If it is changed it should be updated on every cell in the row.
+                self.tableMarkSetRow($placeholder, rowIndex, rowMark);
+
             });
 
             // Table will not render when it is not visible,
@@ -3181,7 +3410,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // This is to let the user repeatedly click the Up/Down button to move the enhancement multiple lines.
                 topWindow = $(window).scrollTop();
                 $(window).scrollTop(topWindow + topNew - topOriginal);
-
             }
         },
 
@@ -3194,6 +3422,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self = this;
             $el = self.tableGetWrapper(el);
             $el.addClass('toBeRemoved');
+            self.rte.triggerChange();
         },
 
         
@@ -3218,6 +3447,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self = this;
             $el = self.tableGetWrapper(el);
             $el.removeClass('toBeRemoved');
+            self.rte.triggerChange();
         },
 
 
@@ -3261,39 +3491,85 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         
         /**
-         * @param [String|Object] $content
-         * HTML for the table element, or a DOM or jQuery object
+         * Parse the HTML of a table and return as a data object.
+         *
+         * @param [String|Object] {$content}
+         * HTML for the table element, or a DOM or jQuery object.
+         * If this is not specified returns data for a new table.
          *
          * @returns Object
-         * Data from the table to be passed to handsontable plugin
+         * Data from the table in the form of an nested Object.
+         * The object consists of nodes with the following parameters:
+         *   tagName = the name of the element (table, tr, td, th)
+         *   attr = a set of key/value pairs representing the attributes on the element
+         *   childNodes = an array of child nodes
+         * Or a node can be a string to represents next within an element.
          */
         tableHTMLToData: function($content) {
             
             var data, self;
 
             self = this;
+
+            // If creating a new table, start with one that has a single row with two columns
+            if (!$content) {
+                data = {
+                    tagName:'table',
+                    childNodes:[
+                        {
+                            tagName: 'tr',
+                            childNodes: [
+                                { tagName: 'td', childNodes: [''] },
+                                { tagName: 'td', childNodes: [''] }
+                            ]
+                        }
+                    ]
+                };
+                return data;
+            }
             
-            // Just in case HTML or a DOM element is passed in
+            // Just in case HTML or a DOM element is passed in convert to jQuery object
             $content = $($content);
 
-            data = [];
+            // Create the initial table node
+            data = {
+                tagName:'table',
+                childNodes: [],
+                attr: self.rte.getAttributes($content)
+            };
 
             // Loop through the rows in the table
-            $content.find('>tr,>tbody >tr').each(function(i, tr) {
+            $content.find('>tr,>tbody >tr,>thead >tr,>tfoot >tr').each(function(i, tr) {
                 
                 var dataRow;
                 
-                dataRow = [];
+                // Create the node for the row
+                dataRow = {
+                    tagName: 'tr',
+                    childNodes: [],
+                    attr: self.rte.getAttributes(tr)
+                };
 
                 // Loop through all the columns in the row
                 $(tr).find('>td,>th').each(function(i, cell) {
 
+                    var dataCell;
+
+                    dataCell = {
+                        tagName: $(cell).prop('tagName').toLowerCase(),
+                        childNodes: [],
+                        attr: self.rte.getAttributes(cell)
+                    };
+
                     // Get the HTML in the column and add it to the row
-                    dataRow.push( $(cell).html() );
+                    dataCell.childNodes.push( $(cell).html() );
+
+                    // Add the cell to the row
+                    dataRow.childNodes.push(dataCell);
                 });
 
-                // Add the row to the table data
-                data.push(dataRow);
+                // Add the row to the table
+                data.childNodes.push(dataRow);
                 
             });
 
@@ -3302,24 +3578,44 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         
         /**
-         * @param Object data
-         * Data from the handsontable plugin
+         * Convert a handsontable placeholder to the HTML for the table.
+         *
+         * @param {Element|jQuery} placeholder
+         * The placeholder element on which handsontable was initialized.
          *
          * @returns String
          * The HTML for the table.
          */
-        tableDataToHTML: function(data) {
+        tableToHTML: function(placeholder) {
 
-            var html, self;
+            var data, ht, html, $placeholder, self, tableAttr, tableMark;
 
             self = this;
 
-            html = '<table>';
+            $placeholder = $(placeholder);
             
-            $.each(data, function(i, row) {
-                html += '<tr>';
-                $.each(row, function(i, cell) {
-                    html += '<td>' + cell + '</td>';
+            ht = $placeholder.handsontable('getInstance');
+
+            data = ht.getData();
+
+            tableMark = self.tableMarkGetTable(placeholder) || {};
+            
+            html = self.tableOpenElement('table', tableMark.attributes);
+            
+            $.each(data, function(rowIndex, row) {
+                
+                var rowMark;
+
+                rowMark = self.tableMarkGetRow(placeholder, rowIndex) || {};
+
+                html += self.tableOpenElement('tr', rowMark.attributes);
+
+                $.each(row, function(cellIndex, cell) {
+                    var cellMark;
+
+                    cellMark = self.tableMarkGetCell(placeholder, rowIndex, cellIndex) || {};
+                    
+                    html += self.tableOpenElement('td', cellMark.attributes) + (cell || '') + '</td>';
                 });
                 html += '</tr>';
             });
@@ -3330,6 +3626,37 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         },
 
         
+        /**
+         * Create the opening element plus attributes when exporting HTML.
+         *
+         * @param {String} element
+         * Element name.
+         *
+         * @param {Object} attributes
+         * Set of key/value pairs representing attributes on the element.
+         */
+        tableOpenElement: function(element, attributes) {
+
+            var html, self;
+
+            self = this;
+            
+            html = '';
+
+            attributes = attributes || {};
+                
+            html = '<' + element;
+
+            $.each(attributes, function(attr, value) {
+                html += ' ' + attr + '="' + self.rte.htmlEncode(value) + '"';
+            });
+                
+            html += '>';
+            
+            return html;
+        },
+        
+
         /**
          * 
          */
@@ -3437,9 +3764,270 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                  }
 
             });
-
         },
+
         
+        /**
+         * Edit the table element attributes.
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         */
+        tableEditAttrTable: function(el) {
+            
+            var $el, mark, self;
+            
+            self = this;
+            $el = $(el);
+
+            // Make sure there is backend style that is meant for editing the table
+            if (!self.tableStyleTable) { return; }
+
+            // Get the existing attributes for the table
+            mark = self.tableMarkGetTable(el);
+            if (!mark) { return; }
+
+            mark.className = self.tableStyleTable.className;
+
+            // Pop up backend form to edit the table attributes
+            self.inlineEnhancementHandleClick(null, mark);
+        },
+
+        
+        /**
+         * Edit the tr element attributes.
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         */
+        tableEditAttrRow: function(el) {
+            
+            var $el, mark, rangeTable, self;
+            
+            self = this;
+            $el = $(el);
+
+            // Make sure there is backend style that is meant for editing the table
+            if (!self.tableStyleRow) { return; }
+
+            // Get the selected cell
+            rangeTable = $el.handsontable('getSelected');
+
+            mark = self.tableMarkGetRow(el, rangeTable[0]);
+            if (!mark) {
+                mark = self.tableMarkCreate(el);
+                self.tableMarkSetRow(el, rangeTable[0], mark);
+            }
+
+            mark.className = self.tableStyleRow.className;
+            
+            // Pop up backend form to edit the table attributes
+            self.inlineEnhancementHandleClick(null, mark);
+        },
+
+        
+        /**
+         * Edit the td element attributes.
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         */
+        tableEditAttrCell: function(el) {
+            
+            var $el, mark, rangeTable, self;
+            
+            self = this;
+            $el = $(el);
+
+            // Make sure there is backend style that is meant for editing the table
+            if (!self.tableStyleCell) { return; }
+
+            // Get the selected cell
+            rangeTable = $el.handsontable('getSelected');
+
+            mark = self.tableMarkGetCell(el, rangeTable[0], rangeTable[1]);
+            if (!mark) {
+                mark = self.tableMarkCreate(el);
+                self.tableMarkSetCell(el, rangeTable[0], rangeTable[1], mark);
+            }
+
+            mark.className = self.tableStyleCell.className;
+            
+            // Pop up backend form to edit the table attributes
+            self.inlineEnhancementHandleClick(null, mark);
+        },
+
+
+        /**
+         * Create a fake CodeMirror mark to be used for table, tr, td elements.
+         * @param {Object} attributes
+         * @param {Object} [parameters]
+         * Optional set of parameters to also add to the mark.
+         * For example, to add a className.
+         */
+        tableMarkCreate: function(el, attributes, parameters) {
+            
+            var mark, self;
+            
+            self = this;
+
+            mark = {
+                rteTableMark:true,
+                attributes: attributes || {},
+                find: function() {
+                    // TODO: this returns the position of the bottom of the table,
+                    // which is not a good representation of where we want the
+                    // popup to appear, but that is all that is supported
+                    // by inline enhancement right now
+                    var tableMark, line;
+                    tableMark =  self.tableGetMark(el);
+                    if (tableMark) {
+                        line = tableMark.line.lineNo();
+                        return {from:{line:line,ch:0}, to:{line:line,ch:0}};
+                    } else {
+                        return {from:{line:0,ch:0}, to:{line:0,ch:0}};
+                    }
+                },
+                clear: function() {
+                    // TODO: remove the table?
+                    return;
+                }
+            };
+
+            if (parameters) {
+                $.extend(mark, parameters);
+            }
+            
+            return mark;
+        },
+
+        
+        /**
+         * Update the mark for the table element.
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         * @param {Object} mark
+         * The fake CodeMirror mark for the table element.
+         */
+        tableMarkSetTable: function(el, mark) {
+            var self;
+            self = this;
+            $(el).data('markTable', mark);
+        },
+
+        
+        /**
+         * Retrieve the mark for the table element.
+         *
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         *
+         * @returns {Object} mark
+         * The fake CodeMirror mark for the table element, or undefined if none is defined.
+         */
+        tableMarkGetTable: function(el) {
+            var self;
+            self = this;
+            return $(el).data('markTable');
+        },
+
+        
+        /**
+         * Update the mark for the tr element.
+         * Note this sets the mark on every cell in the row
+         * because cells can be removed and we need to maintain the row mark
+         * when that happens.
+         *
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         *
+         * @param {Number} row
+         * The row number of the table.
+         *
+         * @param {Object} mark
+         * The fake CodeMirror mark for the table element.
+         */
+        tableMarkSetRow: function(el, row, mark) {
+            var col, ht, self;
+            self = this;
+            ht = $(el).handsontable('getInstance');
+            for (col = 0; col < ht.countCols(); col++) {
+                ht.setCellMeta(row, col, 'rowMark', mark);
+            }
+        },
+
+
+        /**
+         * Retrieve the mark for a table row.
+         * 
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         *
+         * @param {Number} row
+         * The row number of the table.
+         *
+         * @returns {Object}
+         * The fake CodeMirror mark for the table element, or undefined if none is defined.
+         */
+        tableMarkGetRow: function(el, row) {
+            var col, ht, meta, self;
+            self = this;
+            ht = $(el).handsontable('getInstance');
+
+            // In some cases like when a new column is added to the table,
+            // the first cell in the row might not have the row mark saved.
+            // So we start with the leftmost cell and keep going until we find a row mark.
+            for (col = 0; col < ht.countCols(); col++) {
+                meta = ht.getCellMeta(row, col);
+                if (meta) {
+                    break;
+                }
+            }
+
+            return meta;
+        },
+
+        
+        /**
+         * Update the mark for the td element (table cell).
+         *
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         *
+         * @param {Number} row
+         * The row number of the table.
+         *
+         * @param {Number} col
+         * The column number of the table.
+         *
+         * @param {Object} mark
+         * The fake CodeMirror mark for the table element.
+         */
+        tableMarkSetCell: function(el, row, col, mark) {
+            var ht, self;
+            self = this;
+            ht = $(el).handsontable('getInstance');
+            ht.setCellMeta(row, col, 'cellMark', mark);
+        },
+
+        
+        /**
+         * Retrieve the mark for a table cell.
+         * 
+         * @param {Element|jquery} el
+         * The placeholder element where handsontable was initialized.
+         *
+         * @param {Number} row
+         * The row number of the table.
+         *
+         * @returns {Object}
+         * The fake CodeMirror mark for the table element, or undefined if none is defined.
+         */
+        tableMarkGetCell: function(el, row, col) {
+            var ht, meta, self;
+            self = this;
+            ht = $(el).handsontable('getInstance');
+            meta = ht.getCellMeta(row, col);
+            return meta.cellMark;
+        },
+
         
         /*==================================================
          * Placeholder
@@ -3527,6 +4115,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (self.rte.readOnlyGet()) {
                 return;
             }
+            
+            // Do not update if the content in the editor has not been changed
+            if (!self.changed) {
+                return;
+            }
 
             html = self.toHTML();
 
@@ -3609,10 +4202,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // all of them
                 singleLine: Boolean(rtElement.popup !== false),
 
+                initialBody: rtElement.initialBody,
                 line: Boolean(rtElement.line),
-                "void": Boolean(rtElement.void),
+                readOnly: Boolean(rtElement.readOnly),
                 popup: rtElement.popup === false ? false : true,
                 context: rtElement.context,
+                keymap: rtElement.keymap,
                 clear: rtElement.clear,
                 toggle: rtElement.toggle
             };

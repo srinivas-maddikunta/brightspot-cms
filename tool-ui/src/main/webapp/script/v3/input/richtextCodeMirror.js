@@ -174,7 +174,12 @@ define([
 
             linebreak: {
                 line:true
+            },
+
+            linebreakSingle:{
+                line:true
             }
+            
         }, // styles
 
         
@@ -438,10 +443,20 @@ define([
             editor.on('cursorActivity', function(instance, event) {
                 self.$el.trigger('rteCursorActivity', [self]);
             });
+
+            editor.on('beforeSelectionChange', function(instance, event) {
+                
+                // If user clicked "Clear" to add text after a mark,
+                // or toggled off part of a style mark, then after the cursor moves,
+                // make the styles inclusive again so a user returning to the mark
+                // can enter more text inside the style.
+                self.inlineMakeInclusive();
+                
+            });
             
-            editor.on('changes', $.debounce(200, function(instance, event) {
-                self.triggerChange();
-            }));
+            editor.on('changes', function(instance, event) {
+                self.triggerChange(event);
+            });
 
             editor.on('focus', function(instance, event) {
                 self.$el.trigger('rteFocus', [self]);
@@ -455,12 +470,19 @@ define([
         
         /**
          * Trigger an rteChange event.
+         *
          * This can happen when user types changes into the editor, or if some kind of mark is modified.
+         * When the event is triggered, it is sent additional data: the object for this rte, plus an optional
+         * extra data parameter.
+         *
+         * @param {Object} [extra]
+         * Extra data parameter to pass with the rteChange event.
+         * For example, this could be the CodeMirror change event.
          */
-        triggerChange: function() {
+        triggerChange: function(extra) {
             var self;
             self = this;
-            self.$el.trigger('rteChange', [self]);
+            self.$el.trigger('rteChange', [self, extra]);
         },
 
         
@@ -621,15 +643,23 @@ define([
                     // Find the mark with the rightmost starting character
                     marks.forEach(function(mark){
                         
-                        var isRightmost, markPosition, pos;
+                        var isRightmost, markPosition, pos, styleObj;
                         
                         if (!mark.className) {
                             return;
                         }
-                        // Make sure this class maps to an element (and is not an internal mark like for spelling errors)
-                        if (!self.classes[mark.className]) {
+                        
+                        // Make sure this class maps to an element
+                        styleObj = self.classes[mark.className];
+                        if (!styleObj) {
                             return;
                         }
+                        
+                        // Make sure this style is not for internal use (like track changes)
+                        if (styleObj.internal) {
+                            return;
+                        }
+
                         if (!mark.find) {
                             return;
                         }
@@ -835,6 +865,15 @@ define([
                 range.to.ch = range.from.ch + 1;
             }
 
+            if (styleObj.readOnly) {
+                // Set mark to atomic which means cursor cannot be moved into the mark
+                // and also implies readonly
+                markOptions.atomic = true;
+                markOptions.addToHistory = true;
+                markOptions.inclusiveLeft = false;
+                markOptions.inclusiveRight = false;
+            }
+
             mark = editor.markText(range.from, range.to, markOptions);
             self.inlineSplitMarkAcrossLines(mark);
 
@@ -893,7 +932,7 @@ define([
          */
         inlineRemoveStyle: function(styleKey, range, options) {
 
-            var className, deleteText, editor, lineNumber, self, from, to;
+            var className, deleteText, editor, lineNumber, self, from, to, triggerChange;
 
             self = this;
 
@@ -919,7 +958,7 @@ define([
 
             editor.eachLine(from.line, to.line + 1, function(line) {
 
-                var fromCh, toCh, marks;
+                var fromCh, toCh, marks, newMark;
 
                 // Get the character ranges to search within this line.
                 // If we're not on the first line, start at the beginning of the line.
@@ -1045,12 +1084,13 @@ define([
                         //      nn           <-- new mark
                         //        xxxxx      <-- text to delete (if deleteText is true)
 
-                        editor.markText(
+                        newMark = editor.markText(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
-
+                        self.inlineMakeInclusivePush(newMark);
+                        
                         if (deleteText) {
                             // Create a marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
@@ -1085,11 +1125,12 @@ define([
                             markerOpts
                         );
 
-                        editor.markText(
+                        newMark = editor.markText(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
+                        self.inlineMakeInclusivePush(newMark);
                         
                         if (deleteText) {
                             // Create a marker for the text that will be deleted
@@ -1126,26 +1167,85 @@ define([
 
                         editor.replaceRange('', position.from, position.to, '+brightspotFormatRemoveClass');
                         
-                        // Trigger a change event for the editor
-                        if (options.triggerChange !== false) {
-                            self.triggerChange();
-                        }
+                        // Trigger a change event for the editor later
+                        triggerChange = true;
                     }
                 }
                 if (mark.shouldRemove) {
                     
                     mark.clear();
                     
-                    // Trigger a change event for the editor
-                    if (options.triggerChange !== false) {
-                        self.triggerChange();
-                    }
+                    // Trigger a change event for the editor later
+                    triggerChange = true;
                 }
             });
+
+            // We hold off on triggering a change event until the end because
+            // it seems to cause problems if we trigger a change in the middle
+            // of examining all the marks
+            if (triggerChange && options.triggerChange !== false) {
+                self.triggerChange();
+            }
 
             // Trigger a cursor activity event so the toolbar can update
             CodeMirror.signal(editor, "cursorActivity");
 
+        },
+
+        
+        /**
+         * For elements that were previously made non-inclusive,
+         * make them inclusive now (after the user changed the selection);
+         *
+         * For example, if the user is on the right of a bold style, then
+         * clicking "clear" will make the bold style non-inclusive, so the user
+         * can type type outside the bold style. However, if the user moves the
+         * cursor, then returns to the right of the bold style, the style should
+         * be inclusive again, so the user can add to the bold text.
+         *
+         * This function shoudl be called every time the selection changes.
+         */
+        inlineMakeInclusive: function() {
+
+            var marks, self;
+
+            self = this;
+
+            // Get an array of the marks that were previously saved
+            // when they were made non-inclusive.
+            marks = self.marksToMakeInclusive || [];
+
+            if (marks.length) {
+                
+                $.each(self.marksToMakeInclusive || [], function() {
+                    var mark = this;
+                    mark.inclusiveRight = true;
+                });
+                
+                self.marksToMakeInclusive = [];
+            }
+        },
+
+        
+        /**
+         * Add a mark to the list of marks that must be made inclusive
+         * after the user moves the selection.
+         * @param {Object] mark
+         */
+        inlineMakeInclusivePush: function(mark) {
+            
+            var self;
+
+            self = this;
+            
+            // Ignore certain styles that are internal only like spelling errors
+            if (!self.classes[mark.className]) {
+                return;
+            }
+            
+            self.marksToMakeInclusive = self.marksToMakeInclusive || [];
+
+            self.marksToMakeInclusive.push(mark);
         },
 
 
@@ -2415,9 +2515,12 @@ define([
             
             if (lineNumber > lineMax) {
                 
-                // Add another line to the end of the editor
+                // Add another line to the end of the editor.
+                // Set the change event origin to "brightspotEnhancementMove" so we know this newline is being
+                // added automatically rather than the user typing (so we don't try to adjust the
+                // position of the enhancement - see enhancementNewlineAdjust()
                 lineLength = editor.getLine(lineMax).length;
-                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, 'brightspotEnhancementMove');
+                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, undefined, 'brightspotEnhancementMove');
                 
             }
 
@@ -2458,6 +2561,8 @@ define([
             self.enhancementRemove(mark);
             
             mark = self.enhancementAdd($content[0], lineNumber, options);
+
+            self.triggerChange();
             
             return mark;
         },
@@ -2480,6 +2585,10 @@ define([
             var lineInfo, lineNumber, self;
 
             self = this;
+
+            if (changeObj.origin === 'brightspotEnhancementMove') {
+                return;
+            }
             
             if (changeObj.from &&
                 changeObj.from.ch === 0 && // change occurred at the first character of the line
@@ -2734,7 +2843,9 @@ define([
             $.each(lineStyles, function(styleKey) {
                 var mark;
                 mark = self.blockGetLineData(styleKey, range.from.line);
-                marks.push(mark);
+                if (mark) {
+                    marks.push(mark);
+                }
             });
         
             // Find all the inline marks for the clicked position
@@ -2745,7 +2856,7 @@ define([
             marks = $.map(marks, function(mark, i) {
                 var styleObj;
                 styleObj = self.classes[mark.className];
-                if (styleObj && (styleObj.onClick || styleObj.void)) {
+                if (styleObj && (styleObj.onClick || styleObj.void || styleObj.readOnly)) {
                     // Keep in the array
                     return mark;
                 } else {
@@ -2791,7 +2902,7 @@ define([
                 }).appendTo($div);
 
                 // Popup edit defaults to true, but if set to false do not include edit link
-                if (styleObj.popup !== false) {
+                if (styleObj.popup !== false && styleObj.onClick) {
                     $('<a/>', {
                         'class': 'rte2-dropdown-edit',
                         text: 'Edit'
@@ -2801,24 +2912,24 @@ define([
                         return false;
                     }).appendTo($div);
                 }
-                
+
                 $('<a/>', {
                     'class': 'rte2-dropdown-clear',
-                    text: 'Clear'
+                    text: styleObj.readOnly ? 'Remove' : 'Clear'
                 }).on('click', function(event){
 
                     var pos;
-                    
+
                     event.preventDefault();
 
                     // For void element, delete the text in the mark
-                    if (styleObj.void) {
+                    if (styleObj.readOnly || styleObj.void) {
                         if (mark.find) {
                             pos = mark.find();
                             // Delete below after the mark is cleared
                         }
                     }
-                    
+
                     mark.clear();
                     if (pos) {
                         self.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch}, 'brightspotDropdown');
@@ -2828,7 +2939,7 @@ define([
                     self.triggerChange();
                     return false;
                 }).appendTo($div);
-                
+
             });
 
             // Set position of the dropdown
@@ -3620,12 +3731,21 @@ define([
             if (self.clipboardSanitizeRules) {
                 $.each(self.clipboardSanitizeRules, function(selector, style) {
                     $el.find(selector).each(function(){
-                        var $match = $(this);
-                        var $replacement = $('<span>', {'data-rte2-sanitize': style});
-                        $replacement.append( $match.contents() );
-                        $match.replaceWith( $replacement );
+                        var $match, $replacement;
+
+                        $match = $(this);
+                        
+                        if ($.isFunction(style)) {
+                            style($match);
+                        } else {
+                            $replacement = $('<span>', {'data-rte2-sanitize': style});
+                            $replacement.append( $match.contents() );
+                            $match.replaceWith( $replacement );
+                        }
                     });
                 });
+
+                // Anything we replaced with "linebreak" should get an extra blank line after
                 $el.find('[data-rte2-sanitize=linebreak]').after('<br/>');
             }
 
@@ -5196,7 +5316,7 @@ define([
                 self._fromHTML.apply(self, args);
             });
         },
-        _fromHTML: function(html, range, allowRaw) {
+        _fromHTML: function(html, range, allowRaw, retainStyles) {
 
             var annotations, editor, enhancements, el, history, map, self, val;
 
@@ -5583,26 +5703,28 @@ define([
                 // So instead we'll insert a space, then remove the styles from that space character,
                 // then call an undo() to remove the space from the document (and the undo history).
 
-                if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                if (!retainStyles) {
+                    if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
 
-                    editor.replaceRange(' ', range.from, range.to, 'brightspotRemoveStyles');
-                
-                    // Remove styles from the single character
-                    self.removeStyles({
-                        from: { line:range.from.line, ch:range.from.ch },
-                        to: { line:range.from.line, ch:range.from.ch + 1}
-                    });
+                        editor.replaceRange(' ', range.from, range.to, 'brightspotRemoveStyles');
 
-                    // Undo the insertion of the single character so it doesn't appear in the undo history
-                    editor.undo();
+                        // Remove styles from the single character
+                        self.removeStyles({
+                            from: { line:range.from.line, ch:range.from.ch },
+                            to: { line:range.from.line, ch:range.from.ch + 1}
+                        });
 
-                } else {
+                        // Undo the insertion of the single character so it doesn't appear in the undo history
+                        editor.undo();
 
-                    // Remove styles from the range
-                    self.removeStyles(range);
+                    } else {
 
+                        // Remove styles from the range
+                        self.removeStyles(range);
+
+                    }
                 }
-                
+
             } else {
                 
                 // Replace the entire document
@@ -5616,7 +5738,8 @@ define([
             }
 
             // Add the plain text into the selected range
-            editor.replaceRange(val, range.from, range.to, 'brightspotPaste');
+            editor.replaceRange(val, range.to, range.to, 'brightspotPaste');
+            editor.replaceRange('', range.from, range.to, 'brightspotPaste');
 
             // Before we start adding styles, save the current history.
             // After we add the styles we will restore the history.
@@ -5686,7 +5809,7 @@ define([
          */
         insert: function(value, styleKey) {
             
-            var range, self;
+            var range, self, mark;
 
             self = this;
 
@@ -5695,11 +5818,13 @@ define([
             
             range = self.getRange();
             if (styleKey) {
-                self.setStyle(styleKey, range);
+                mark = self.setStyle(styleKey, range);
             }
 
             // Now set cursor after the inserted text
             self.codeMirror.setCursor( range.to );
+
+            return mark;
         },
 
         

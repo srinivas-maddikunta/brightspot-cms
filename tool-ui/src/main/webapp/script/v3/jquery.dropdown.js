@@ -152,7 +152,7 @@ define(['string'], function (S) {
       containerCss = {
         'display': 'none',
         'position': isFixedPosition ? 'fixed' : 'absolute',
-        'z-index': $original.zIndex()
+        'z-index': $original.zIndex() + 1000000
       };
 
       $markerContainer = $('<div/>', {
@@ -165,6 +165,7 @@ define(['string'], function (S) {
 
       $listContainer = $('<div/>', {
         'class': plugin.className('container'),
+        'data-original-class': $original.attr('class'),
         'css': containerCss
       });
 

@@ -78,6 +78,7 @@ public class Search extends Record {
     public static final String SORT_PARAMETER = "s";
     public static final String SUGGESTIONS_PARAMETER = "sg";
     public static final String TYPES_PARAMETER = "rt";
+    public static final String NEW_ITEM_IDS_PARAMETER = "ni";
 
     public static final String NEWEST_SORT_LABEL = "Newest";
     public static final String NEWEST_SORT_VALUE = "_newest";
@@ -105,6 +106,7 @@ public class Search extends Record {
     private boolean suggestions;
     private long offset;
     private int limit;
+    private Set<UUID> newItemIds;
 
     public Search() {
     }
@@ -186,6 +188,7 @@ public class Search extends Record {
         setSuggestions(page.param(boolean.class, SUGGESTIONS_PARAMETER));
         setOffset(page.param(long.class, OFFSET_PARAMETER));
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
+        setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.initializeSearch(this, page);
@@ -382,6 +385,17 @@ public class Search extends Record {
         this.limit = limit;
     }
 
+    public Set<UUID> getNewItemIds() {
+        if (newItemIds == null) {
+            newItemIds = new LinkedHashSet<>();
+        }
+        return newItemIds;
+    }
+
+    public void setNewItemIds(Set<UUID> newItemIds) {
+        this.newItemIds = newItemIds;
+    }
+
     public Set<ObjectType> findValidTypes() {
         Set<ObjectType> types = getTypes();
         List<ObjectType> validTypes = new ArrayList<ObjectType>();
@@ -543,46 +557,6 @@ public class Search extends Record {
     }
 
     public Query<?> toQuery(Site site) {
-
-        // If the query string is an URL, hit it to find the ID.
-        String queryString = getQueryString();
-
-        if (!ObjectUtils.isBlank(queryString)) {
-            try {
-                URL qsUrl = new URL(queryString.trim());
-                URLConnection qsConnection = qsUrl.openConnection();
-
-                if (qsConnection instanceof HttpURLConnection) {
-                    HttpURLConnection qsHttp = (HttpURLConnection) qsConnection;
-
-                    qsHttp.setConnectTimeout(1000);
-                    qsHttp.setReadTimeout(1000);
-                    qsHttp.setRequestMethod("HEAD");
-                    qsHttp.setRequestProperty("Brightspot-Main-Object-Id-Query", "true");
-
-                    InputStream qsInput = qsHttp.getInputStream();
-
-                    try {
-                        UUID mainObjectId = ObjectUtils.to(UUID.class, qsHttp.getHeaderField("Brightspot-Main-Object-Id"));
-
-                        if (mainObjectId != null) {
-                            return Query.fromAll()
-                                    .or("_id = ?", mainObjectId)
-                                    .or("* matches ?", mainObjectId)
-                                    .sortRelevant(100.0, "_id = ?", mainObjectId);
-                        }
-
-                    } finally {
-                        qsInput.close();
-                    }
-                }
-
-            } catch (IOException error) {
-                // Can't connect to the URL in the query string to get the main
-                // object ID, but that's OK to ignore and move on.
-            }
-        }
-
         Query<?> query = null;
         Set<ObjectType> types = getTypes();
         ObjectType selectedType = getSelectedType();
@@ -636,6 +610,48 @@ public class Search extends Record {
                         validTypeIds.add(t.getId());
                     }
                 }
+            }
+        }
+
+        // If the query string is an URL, hit it to find the ID.
+        String queryString = getQueryString();
+
+        if (!ObjectUtils.isBlank(queryString)) {
+            try {
+                URL qsUrl = new URL(queryString.trim());
+                URLConnection qsConnection = qsUrl.openConnection();
+
+                if (qsConnection instanceof HttpURLConnection) {
+                    HttpURLConnection qsHttp = (HttpURLConnection) qsConnection;
+
+                    qsHttp.setConnectTimeout(1000);
+                    qsHttp.setReadTimeout(1000);
+                    qsHttp.setRequestMethod("HEAD");
+                    qsHttp.setRequestProperty("Brightspot-Main-Object-Id-Query", "true");
+
+                    InputStream qsInput = qsHttp.getInputStream();
+
+                    try {
+                        UUID mainObjectId = ObjectUtils.to(UUID.class, qsHttp.getHeaderField("Brightspot-Main-Object-Id"));
+
+                        if (mainObjectId != null) {
+                            if (query.isFromAll() && !validTypeIds.isEmpty()) {
+                                query.and("_type = ?", validTypeIds);
+                            }
+
+                            return query
+                                    .and("_id = ? or * matches ?", mainObjectId, mainObjectId)
+                                    .sortRelevant(100.0, "_id = ?", mainObjectId);
+                        }
+
+                    } finally {
+                        qsInput.close();
+                    }
+                }
+
+            } catch (IOException error) {
+                // Can't connect to the URL in the query string to get the main
+                // object ID, but that's OK to ignore and move on.
             }
         }
 
@@ -726,18 +742,12 @@ public class Search extends Record {
                     query.and("* ~= ?", queryString);
                 }
 
-            } else if (selectedType != null) {
-                for (String field : selectedType.getLabelFields()) {
-                    if (selectedType.getIndex(field) != null) {
-                        query.and(selectedType.getInternalName() + "/" + field + " contains[c] ?", queryString);
-                    }
-                    break;
-                }
-
             } else {
                 Predicate predicate = null;
 
-                for (ObjectType type : validTypes) {
+                Set<ObjectType> predicateTypes = selectedType != null ? Collections.singleton(selectedType) : validTypes;
+
+                for (ObjectType type : predicateTypes) {
                     String prefix = type.getInternalName() + "/";
 
                     for (String field : type.getLabelFields()) {
@@ -747,7 +757,6 @@ public class Search extends Record {
                                     predicate,
                                     PredicateParser.Static.parse(prefix + field + " contains[c] ?", queryString));
                         }
-                        break;
                     }
                 }
 

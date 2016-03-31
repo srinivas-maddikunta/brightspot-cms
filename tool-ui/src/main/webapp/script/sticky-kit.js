@@ -54,7 +54,7 @@
                 return el.outerWidth(true);
             }
         };
-        _fn = function(elm, padding_bottom, parent_top, parent_height, top, height, el_float, detached) {
+        _fn = function(elm, border_top, padding_top, parent_top, parent_height, top, height, el_float, detached) {
             var bottomed, detach, fixed, last_pos, last_scroll_height, offset, parent, recalc, recalc_and_tick, recalc_counter, spacer, tick;
 
             if (elm.data("sticky_kit")) {
@@ -76,18 +76,18 @@
                 spacer.css('position', elm.css('position'));
             }
             recalc = function() {
-                var border_top, padding_top, restore;
+                var restore;
 
                 if (detached) {
                     return;
                 }
                 if (offset_top_function) {
-                    offset = offset_top = offset_top_function();
+                    offset_top = offset_top_function();
+                    offset = Math.min(offset_top, offset);
                 }
                 last_scroll_height = doc.height();
                 border_top = parseInt(parent.css("border-top-width"), 10);
                 padding_top = parseInt(parent.css("padding-top"), 10);
-                padding_bottom = parseInt(parent.css("padding-bottom"), 10);
                 parent_top = parent.offset().top + border_top + padding_top;
                 parent_height = parent.height();
                 if (fixed) {
@@ -102,8 +102,7 @@
                     elm.css({
                         position: "",
                         top: "",
-                        width: "",
-                        bottom: ""
+                        width: ""
                     }).removeClass(sticky_class);
                     restore = true;
                 }
@@ -158,7 +157,6 @@
                             bottomed = false;
                             elm.css({
                                 position: "fixed",
-                                bottom: "",
                                 top: offset
                             }).trigger("sticky_kit:unbottom");
                         }
@@ -228,8 +226,7 @@
                         }
                         return elm.css({
                             position: "absolute",
-                            bottom: padding_bottom,
-                            top: "auto"
+                            top: parent_height - height + border_top + padding_top
                         }).trigger("sticky_kit:bottom");
                     }
                 }
@@ -248,7 +245,6 @@
                 elm.removeData("sticky_kit");
                 elm.css({
                     position: "",
-                    bottom: "",
                     top: "",
                     width: ""
                 });

@@ -58,6 +58,11 @@
       
       li {
         display:block;
+
+        a {
+          // Prevent submenu from shrinking and cutting off text when on right side
+          white-space: nowrap;
+        }
       }
     }
 
@@ -201,6 +206,7 @@
   .rte2-enhancement-toolbar-restore { .icon; .icon-undo; width:auto; padding-right:0.5em; display:none; }
   .rte2-enhancement-toolbar-remove-completely { .icon; .icon-remove; color: @color-remove; width:auto; padding-right:0.5em; display:none; }
   .rte2-enhancement-toolbar-change { .icon; .icon-random; width:auto; padding-right:0.5em; }
+  .rte2-enhancement-toolbar-options { .icon; .icon-cog; width:auto; padding-right:0.5em; }
   .rte2-enhancement-toolbar-edit { .icon; .icon-pencil; width:auto; padding-right:0.5em; }
   .rte2-enhancement-toolbar-size { width:auto; }
 }
@@ -209,12 +215,6 @@
   .rte2-enhancement-toolbar-remove { display:none; }
   .rte2-enhancement-toolbar-restore { display:inline-block; }
   .rte2-enhancement-toolbar-remove-completely { display:inline-block; }
-}
-.rte2-table {
-  box-sizing: border-box;
-  padding: .5em 5px;
-  position: relative;
-  .background-striped(@color-heading);
 }
 .rte2-table-placeholder {
   overflow:hidden;
@@ -521,7 +521,8 @@ li.CodeMirror-hint-active {
     }
   }
 
-  .rte2-enhancement {
+  .rte2-enhancement,
+  .rte2-table {
     box-sizing: border-box;
     padding: 0 5px (@lineHeight-default + 5px) 5px;
     position: relative;
@@ -560,19 +561,18 @@ li.CodeMirror-hint-active {
       padding:0.25em;
     }
 
-    &.toBeRemoved {
-      .background-striped(lighten(@color-remove, 10%));
+    a {
+      color: @color-placeholder;
+
+      &:hover {
+        background-color: fade(white, 93%);
+        text-decoration: none;
+      }
     }
 
-    &,
     &.toBeRemoved {
-      a {
-        color: @color-placeholder;
-
-        &:hover {
-          background-color: fade(white, 93%);
-          text-decoration: none;
-        }
+      &:before {
+        .background-striped(lighten(@color-remove, 40%));
       }
     }
   }
@@ -636,6 +636,9 @@ li.CodeMirror-hint-active {
 }
 
 .rte2-table-editor {
+  .rte2-wrapper {
+    overflow: hidden;
+  }
 }
 .rte2-table-editor-save {
   margin-right: 0.5em;

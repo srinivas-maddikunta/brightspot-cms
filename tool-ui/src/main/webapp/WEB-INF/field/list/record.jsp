@@ -632,6 +632,7 @@ if (!isValueExternal) {
                         "data-sortable-item-type", itemType.getId(),
                         "data-type", wp.getObjectLabel(itemType),
                         "data-label", wp.getObjectLabel(item),
+                        "data-label-html", item != null ? wp.createObjectLabelHtml(item) : null,
 
                         // Add the image url for the preview thumbnail, plus the field name that provided the thumbnail
                         // so if that field is changed the front-end knows that the thumbnail should also be updated
@@ -700,7 +701,7 @@ if (!isValueExternal) {
                             "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
                             "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? 0.0 : null,
                             "data-toggle-field-value", !StringUtils.isBlank(toggleFieldName) ? true : null,
-                            "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? "auto" : null
+                            "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? "" : null
                     );
                         wp.writeStart("a",
                                 "href", wp.cmsUrl("/content/repeatableObject.jsp",

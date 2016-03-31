@@ -233,6 +233,10 @@ writer.start("div", "class", "searchForm");
                 writer.writeElement("input", "type", "hidden", "name", Search.PARENT_TYPE_PARAMETER, "value", search.getParentTypeId());
                 writer.writeElement("input", "type", "hidden", "name", Search.SUGGESTIONS_PARAMETER, "value", search.isSuggestions());
 
+                for (UUID newItemId : search.getNewItemIds()) {
+                    writer.writeElement("input", "type", "hidden", "name", Search.NEW_ITEM_IDS_PARAMETER, "value", newItemId);
+                }
+
                 writer.writeElement("input",
                         "type", "hidden",
                         "name", Search.QUERY_STRING_PARAMETER,
@@ -275,6 +279,10 @@ writer.start("div", "class", "searchForm");
                 writer.writeElement("input", "type", "hidden", "name", Search.OFFSET_PARAMETER, "value", search.getOffset());
                 writer.writeElement("input", "type", "hidden", "name", Search.LIMIT_PARAMETER, "value", search.getLimit());
                 writer.writeElement("input", "type", "hidden", "name", Search.SELECTED_TYPE_PARAMETER, "value", selectedType != null ? selectedType.getId() : null);
+
+                for (UUID newItemId : search.getNewItemIds()) {
+                    writer.writeElement("input", "type", "hidden", "name", Search.NEW_ITEM_IDS_PARAMETER, "value", newItemId);
+                }
 
                 writer.start("div", "class", "searchInput");
                     writer.start("label", "for", wp.createId()).html("Search").end();
@@ -575,11 +583,14 @@ writer.start("div", "class", "searchForm");
 
         writer.end();
 
-        if (!ObjectUtils.isBlank(newJsp) && (selectedType == null || !selectedType.isAbstract())) {
+        if (!ObjectUtils.isBlank(newJsp)
+                && (selectedType == null || !selectedType.isAbstract())
+                && (!singleType || !selectedType.as(ToolUi.class).isReadOnly())) {
             writer.start("div", "class", "searchCreate");
                 writer.start("h2").html("Create").end();
 
                 writer.start("form",
+                        "class", "objectId-create",
                         "method", "get",
                         "action", wp.url(newJsp),
                         "target", ObjectUtils.isBlank(newTarget) ? null : newTarget);
@@ -604,6 +615,7 @@ writer.start("div", "class", "searchForm");
 
                         wp.writeTypeSelect(
                                 creatableTypes.stream()
+                                    .filter(t -> !t.as(ToolUi.class).isReadOnly())
                                     .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("write", "read")))
                                     .collect(Collectors.<ObjectType>toSet()),
                                 selectedType,

@@ -29,12 +29,6 @@ if (wp.requireUser()) {
 
 String pageId = wp.createId();
 
-String objectFormId = wp.createId();
-String objectPreviewId = wp.createId();
-
-String editObjectFormId = wp.createId();
-String viewObjectPreviewId = wp.createId();
-
 // init enhancement object
 Object object = wp.findOrReserve();
 State state = State.getInstance(object);
@@ -91,6 +85,7 @@ final boolean isRichTextElement = object instanceof RichTextElement;
 
 if (isRichTextElement) {
     ((RichTextElement) object).fromAttributes((Map<String, String>) ObjectUtils.fromJson(wp.param(String.class, "attributes")));
+    ((RichTextElement) object).fromBody(wp.param(String.class, "body"));
 }
 
 if (object != null && wp.isFormPost()) {
@@ -115,15 +110,38 @@ if (object != null && wp.isFormPost()) {
                 wp.writeEnd();
                 wp.writeStart("script", "type", "text/javascript");
                 wp.writeRaw("var $page = $('#" + pageId + "');");
-                wp.writeRaw("$page.popup('source').data('mark').attributes = " + ObjectUtils.toJson(((RichTextElement) object).toAttributes()) + ";");
-                wp.writeRaw("$page.popup('close');");
-                wp.writeEnd();
-                return;
-            }
+                wp.writeRaw("var $source = $page.popup('source');");
+                wp.writeRaw("var rte = $source.data('rte');");
+                wp.writeRaw("var mark = $source.data('mark');");
 
-        } else if (wp.param(boolean.class, "isEditObject")) {
-            wp.updateUsingParameters(object);
-            wp.publish(object);
+                RichTextElement rte = (RichTextElement) object;
+                Map<String, String> attributes = rte.toAttributes();
+
+                wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
+
+                String body = rte.toBody();
+
+                if (body != null) {
+                    wp.writeRaw("var oldMarkInclusiveLeft = mark.inclusiveLeft;");
+                    wp.writeRaw("var oldMarkInclusiveRight = mark.inclusiveRight;");
+                    wp.writeRaw("mark.inclusiveLeft = true;");
+                    wp.writeRaw("mark.inclusiveRight = true;");
+                    wp.writeRaw("rte.rte.fromHTML('");
+                    wp.writeRaw(StringUtils.escapeJavaScript(body));
+                    wp.writeRaw("', rte.rte.markGetRange(mark), true, true);");
+                    wp.writeRaw("mark.inclusiveLeft = oldMarkInclusiveLeft;");
+                    wp.writeRaw("mark.inclusiveRight = oldMarkInclusiveRight;");
+                }
+
+                if (wp.param(boolean.class, "action-save-and-close")) {
+                    wp.writeRaw("$page.popup('close');");
+                    wp.writeEnd();
+                    return;
+
+                } else {
+                    wp.writeEnd();
+                }
+            }
         }
 
     } catch (Exception ex) {
@@ -155,7 +173,11 @@ if (object == null) {
         wp.writeEnd();
 
     } else {
-        wp.writeFormHeading(object);
+        wp.writeStart("h1");
+            wp.writeHtml("Edit ");
+            wp.writeTypeLabel(object);
+            wp.writeHtml(" Enhancement Options");
+        wp.writeEnd();
     }
 
     // -1 accounts for `object` field if object is isntanceof Reference
@@ -176,95 +198,38 @@ if (object == null) {
             wp.writeElement("input", "type", "hidden", "name", "refId", "value", ref.getId());
             wp.writeSomeFormFields(ref, false, null, Arrays.asList("record"));
         }
+
+        if (isRichTextElement) {
+            wp.writeFormFields(object);
+        }
         %>
 
-        <%-- Object Preview --%>
-        <p id="<%= editObjectFormId %>">
-            <a target="_top" class="action action-edit" href="javascript:;">
-                <% wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Enhancement", "action.edit")); %>
-            </a>
-        </p>
-        <div id="<%= objectPreviewId %>">
-            <div class="rte-enhancement-label">
-                <% if (state.getPreview() != null) { %>
-                    <figure style="height:300px;">
-                        <img src="<%= state.getPreview().getPublicUrl() %>" style="max-height:100%;max-width:100%;"/>
-                        <figcaption>
-                            <%= wp.h(state.getLabel()) %>
-                        </figcaption>
-                    </figure>
-                <% } else { %>
-                    <%= wp.h(state.getLabel()) %>
-                <% } %>
-            </div>
-        </div>
-
-        <% if (!isRichTextElement) { %>
-            <%-- Object Edit Form --%>
-            <p id="<%= viewObjectPreviewId %>" style="display:none;">
-                <a target="_top" class="action action-cancel" href="javascript:;">
-                    <% wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Enhancement", "action.cancel")); %>
-                </a>
-            </p>
-        <% } %>
-        <div id="<%= objectFormId %>" style="display:none;">
-            <% wp.writeFormFields(object); %>
-        </div>
-
         <div class="buttons">
-            <button class="action action-save">
-                <% wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Enhancement", "action.save")); %>
-            </button>
+            <%
+                if (!isRichTextElement || ((RichTextElement) object).shouldCloseOnSave()) {
+                    wp.writeStart("button",
+                            "class", "action action-save",
+                            "name", "action-save-and-close",
+                            "value", true);
+                    wp.writeHtml(wp.localize(state.getType(), "action.saveAndClose"));
+                    wp.writeEnd();
+
+                } else {
+                    wp.writeStart("button", "class", "action action-save");
+                    wp.writeHtml(wp.localize(state.getType(), "action.save"));
+                    wp.writeEnd();
+                }
+            %>
         </div>
     </form>
 
     <script type="text/javascript">
-        if (typeof jQuery !== 'undefined') (function($) {
-            var $objectForm = $('#<%= objectFormId %>');
-            var $objectPreview = $('#<%= objectPreviewId %>');
-            var $editObjectForm = $('#<%= editObjectFormId %>');
-            var $viewObjectForm = $('#<%= viewObjectPreviewId %>');
-
-            $objectForm.append($('<input/>', {
-                'type': 'hidden',
-                'name': 'isEditObject',
-                'value': 'false'}));
-
-            $viewObjectForm.click(function(evt) {
-                $viewObjectForm.hide();
-                $editObjectForm.show();
-
-                $objectForm.hide();
-                $objectPreview.show();
-
-                $objectForm.find('input[name="isEditObject"]').val(false);
-                $(window).resize();
-            });
-
-            $editObjectForm.click(function(evt) {
-                $editObjectForm.hide();
-                $viewObjectForm.show();
-
-                $objectPreview.hide();
-                $objectForm.show();
-
-                $objectForm.find('input[name="isEditObject"]').val(true);
-                $(window).resize();
-            });
-
-            <% if (refFieldCount == 0 || state.isNew()) { %>
-                $editObjectForm.click();
-            <% } %>
-
-            <% if (refFieldCount == 0) { %>
-                $viewObjectForm.remove();
-            <% } %>
-        })(jQuery);
 
         // Update the rich text editor so it points to this enhancement
         if (typeof jQuery !== 'undefined') (function($) {
 
-            var $source = $('#<%= pageId %>').popup('source');
+            var $page = $('#<%= pageId %>');
+            var $source = $page.popup('source');
             var id = '<%= state.getId() %>';
             var label = '<%= wp.js(state.getLabel()) %>';
             var preview = '<%= wp.js(state.getPreview() != null ? state.getPreview().getPublicUrl() : null) %>';
@@ -315,6 +280,10 @@ if (object == null) {
 
                 }
             }
+
+            <% if (wp.isFormPost() && wp.getErrors().isEmpty()) { %>
+                $page.popup('close');
+            <% } %>
 
         })(jQuery);
     </script>
