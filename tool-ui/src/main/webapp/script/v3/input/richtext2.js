@@ -2044,7 +2044,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         enhancementUpdate: function(el) {
 
-            var $content, $edit, editUrl, $enhancement, emptyText, reference, $select, self;
+            var $content, $options, optionsUrl, $edit, editUrl, $enhancement, emptyText, reference, $select, self;
 
             self = this;
             $enhancement = self.enhancementGetWrapper(el);
@@ -2087,12 +2087,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 $select = $enhancement.find('.rte2-enhancement-toolbar-change');
                 $select.text('Change');
 
+                $options = $enhancement.find('.rte2-enhancement-toolbar-options');
+                optionsUrl = $options.attr('href') || '';
+                optionsUrl = $.addQueryParameters(optionsUrl,
+                        'id', reference.record._ref,
+                        'reference', JSON.stringify(reference));
+                $options.attr('href', optionsUrl);
+
                 // Modify the "Edit" button in the toolbar so it will pop up the edit dialog for the enhancement
                 $edit = $enhancement.find('.rte2-enhancement-toolbar-edit');
                 editUrl = $edit.attr('href') || '';
                 editUrl = $.addQueryParameters(editUrl,
-                                               'id', reference.record._ref,
-                                               'reference', JSON.stringify(reference));
+                        'id', reference.record._ref);
                 $edit.attr('href', editUrl);
             }
 
@@ -2223,10 +2229,17 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (!config.marker) {
 
                 self.enhancementToolbarAddButton({
-                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
+                    href: CONTEXT_PATH + '/content/edit.jsp', // Note this url will be modified to add the enhancement id
                     target: self.enhancementGetTarget(),
                     text: 'Edit',
                     className: 'rte2-enhancement-toolbar-edit'
+                }, $toolbar);
+
+                self.enhancementToolbarAddButton({
+                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
+                    target: self.enhancementGetTarget(),
+                    text: 'Options',
+                    className: 'rte2-enhancement-toolbar-options'
                 }, $toolbar);
 
             }
