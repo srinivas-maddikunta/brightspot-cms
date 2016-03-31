@@ -119,6 +119,7 @@ function() {
   bsp_fixedScrollable.live(document, [
     '.fixedScrollable',
     '.searchResult-list',
+    '.searchResultTaxonomyColumn ul',
     '.popup[name="miscSearch"] .searchFiltersRest',
     '.popup[data-popup-source-class~="objectId-select"] .searchFiltersRest',
     '.popup[data-popup-source-class~="objectId-select"] .searchResultList'
@@ -238,7 +239,7 @@ function() {
     });
   });
 
-  $doc.on('click', '.taxonomyExpand', function() {
+  $doc.on('click', '.searchResultTaxonomyExpand', function() {
     var $this = $(this);
     var selectedClass = 'state-selected';
     $this.closest('ul').find('.' + selectedClass).removeClass(selectedClass);
