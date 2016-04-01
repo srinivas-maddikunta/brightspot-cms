@@ -5,16 +5,15 @@ module.exports = function (grunt) {
         bsp: {
             
             styles: {
-                dir: 'assets',
+                dir: '',
                 less: [ '*.less' ],
-                autoprefixer: true,
                 options: {
                     autoprefixer: true
                 }
             },
 
             scripts: {
-                dir: 'assets'
+                dir: ''
             },
 
             bower: {
