@@ -275,13 +275,13 @@ if (object == null) {
                 if (rte2) {
 
                     // Save the enhancement data on the enhancement
-                    // Enhancement will be updated automaticaly when the popup closes
+                    // Enhancement will be updated automatically when the popup closes
                     rte2.enhancementSetReference($source, reference);
 
                 }
             }
 
-            <% if (wp.isFormPost() && wp.getErrors().isEmpty()) { %>
+            <% if (!isRichTextElement && wp.isFormPost() && wp.getErrors().isEmpty()) { %>
                 $page.popup('close');
             <% } %>
 
