@@ -454,9 +454,9 @@ define([
                 
             });
             
-            editor.on('changes', $.debounce(200, function(instance, event) {
-                self.triggerChange();
-            }));
+            editor.on('changes', function(instance, event) {
+                self.triggerChange(event);
+            });
 
             editor.on('focus', function(instance, event) {
                 self.$el.trigger('rteFocus', [self]);
@@ -470,12 +470,19 @@ define([
         
         /**
          * Trigger an rteChange event.
+         *
          * This can happen when user types changes into the editor, or if some kind of mark is modified.
+         * When the event is triggered, it is sent additional data: the object for this rte, plus an optional
+         * extra data parameter.
+         *
+         * @param {Object} [extra]
+         * Extra data parameter to pass with the rteChange event.
+         * For example, this could be the CodeMirror change event.
          */
-        triggerChange: function() {
+        triggerChange: function(extra) {
             var self;
             self = this;
-            self.$el.trigger('rteChange', [self]);
+            self.$el.trigger('rteChange', [self, extra]);
         },
 
         
@@ -636,15 +643,23 @@ define([
                     // Find the mark with the rightmost starting character
                     marks.forEach(function(mark){
                         
-                        var isRightmost, markPosition, pos;
+                        var isRightmost, markPosition, pos, styleObj;
                         
                         if (!mark.className) {
                             return;
                         }
-                        // Make sure this class maps to an element (and is not an internal mark like for spelling errors)
-                        if (!self.classes[mark.className]) {
+                        
+                        // Make sure this class maps to an element
+                        styleObj = self.classes[mark.className];
+                        if (!styleObj) {
                             return;
                         }
+                        
+                        // Make sure this style is not for internal use (like track changes)
+                        if (styleObj.internal) {
+                            return;
+                        }
+
                         if (!mark.find) {
                             return;
                         }
@@ -2500,9 +2515,12 @@ define([
             
             if (lineNumber > lineMax) {
                 
-                // Add another line to the end of the editor
+                // Add another line to the end of the editor.
+                // Set the change event origin to "brightspotEnhancementMove" so we know this newline is being
+                // added automatically rather than the user typing (so we don't try to adjust the
+                // position of the enhancement - see enhancementNewlineAdjust()
                 lineLength = editor.getLine(lineMax).length;
-                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, 'brightspotEnhancementMove');
+                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, undefined, 'brightspotEnhancementMove');
                 
             }
 
@@ -2543,6 +2561,8 @@ define([
             self.enhancementRemove(mark);
             
             mark = self.enhancementAdd($content[0], lineNumber, options);
+
+            self.triggerChange();
             
             return mark;
         },
@@ -2565,6 +2585,10 @@ define([
             var lineInfo, lineNumber, self;
 
             self = this;
+
+            if (changeObj.origin === 'brightspotEnhancementMove') {
+                return;
+            }
             
             if (changeObj.from &&
                 changeObj.from.ch === 0 && // change occurred at the first character of the line
@@ -2819,7 +2843,9 @@ define([
             $.each(lineStyles, function(styleKey) {
                 var mark;
                 mark = self.blockGetLineData(styleKey, range.from.line);
-                marks.push(mark);
+                if (mark) {
+                    marks.push(mark);
+                }
             });
         
             // Find all the inline marks for the clicked position
@@ -5290,7 +5316,7 @@ define([
                 self._fromHTML.apply(self, args);
             });
         },
-        _fromHTML: function(html, range, allowRaw) {
+        _fromHTML: function(html, range, allowRaw, retainStyles) {
 
             var annotations, editor, enhancements, el, history, map, self, val;
 
@@ -5677,26 +5703,28 @@ define([
                 // So instead we'll insert a space, then remove the styles from that space character,
                 // then call an undo() to remove the space from the document (and the undo history).
 
-                if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                if (!retainStyles) {
+                    if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
 
-                    editor.replaceRange(' ', range.from, range.to, 'brightspotRemoveStyles');
-                
-                    // Remove styles from the single character
-                    self.removeStyles({
-                        from: { line:range.from.line, ch:range.from.ch },
-                        to: { line:range.from.line, ch:range.from.ch + 1}
-                    });
+                        editor.replaceRange(' ', range.from, range.to, 'brightspotRemoveStyles');
 
-                    // Undo the insertion of the single character so it doesn't appear in the undo history
-                    editor.undo();
+                        // Remove styles from the single character
+                        self.removeStyles({
+                            from: { line:range.from.line, ch:range.from.ch },
+                            to: { line:range.from.line, ch:range.from.ch + 1}
+                        });
 
-                } else {
+                        // Undo the insertion of the single character so it doesn't appear in the undo history
+                        editor.undo();
 
-                    // Remove styles from the range
-                    self.removeStyles(range);
+                    } else {
 
+                        // Remove styles from the range
+                        self.removeStyles(range);
+
+                    }
                 }
-                
+
             } else {
                 
                 // Replace the entire document
@@ -5710,7 +5738,8 @@ define([
             }
 
             // Add the plain text into the selected range
-            editor.replaceRange(val, range.from, range.to, 'brightspotPaste');
+            editor.replaceRange(val, range.to, range.to, 'brightspotPaste');
+            editor.replaceRange('', range.from, range.to, 'brightspotPaste');
 
             // Before we start adding styles, save the current history.
             // After we add the styles we will restore the history.

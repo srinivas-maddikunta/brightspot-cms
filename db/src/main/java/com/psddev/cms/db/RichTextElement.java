@@ -27,6 +27,10 @@ public abstract class RichTextElement extends Record {
         return null;
     }
 
+    public boolean shouldCloseOnSave() {
+        return true;
+    }
+
     @Documented
     @ObjectType.AnnotationProcessorClass(TagProcessor.class)
     @Retention(RetentionPolicy.RUNTIME)

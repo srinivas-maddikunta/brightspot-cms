@@ -66,6 +66,7 @@ define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
   bsp_utils.onDomInsert(document, '.rte2-toolbar', {
     insert: function (element) {
       $(element).stick_in_parent({
+        recalc_every: 100,
         offset_top: function () {
           return toolHeaderBottom(false);
         }
