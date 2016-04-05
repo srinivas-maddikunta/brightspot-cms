@@ -917,7 +917,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             name = self.$el.closest('.inputContainer').attr('data-name') || '';
             
             if (name) {
-                name = 'bsp.rte.changesTracking.' + name;
+                name = 'bsp.rte2.changesTracking.' + name;
             }
             
             return name;
