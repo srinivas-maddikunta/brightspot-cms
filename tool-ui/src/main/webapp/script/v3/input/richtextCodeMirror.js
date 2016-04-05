@@ -968,7 +968,7 @@ define([
 
                 // Loop through all the marks defined on this line
                 marks = line.markedSpans || [];
-                marks.forEach(function(mark) {
+                marks.slice(0).reverse().forEach(function(mark) {
 
                     var from, markerOpts, markerOptsNotInclusive, matchesClass, outsideOfSelection, selectionStartsBefore, selectionEndsAfter, styleObj, to;
                     
@@ -4978,8 +4978,8 @@ define([
                 
                 if (line.markedSpans) {
                     
-                    $.each(line.markedSpans, function(key, markedSpan) {
-                        
+                    $.each(line.markedSpans.slice(0).reverse(), function(key, markedSpan) {
+
                         var className, endArray, endCh, mark, startArray, startCh, styleObj;
 
                         startCh = markedSpan.from;
@@ -5751,7 +5751,7 @@ define([
             // We reverse the order of the annotations because the parsing was done
             // depth first, and we want to create the marks for parent elements before
             // the marks for child elements (so elements can later be created in the same order)
-            $.each(annotations.reverse(), function(i, annotation) {
+            $.each(annotations, function(i, annotation) {
 
                 var styleObj;
 
