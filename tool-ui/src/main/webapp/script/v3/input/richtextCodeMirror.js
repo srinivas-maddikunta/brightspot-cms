@@ -1242,6 +1242,10 @@ define([
             if (!self.classes[mark.className]) {
                 return;
             }
+
+            if (mark.atomic) {
+                return;
+            }
             
             self.marksToMakeInclusive = self.marksToMakeInclusive || [];
 
