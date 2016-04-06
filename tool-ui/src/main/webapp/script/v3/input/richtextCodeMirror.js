@@ -872,6 +872,10 @@ define([
                 markOptions.addToHistory = true;
                 markOptions.inclusiveLeft = false;
                 markOptions.inclusiveRight = false;
+
+                if (editor.getValue() === '') {
+                    self.insert(' ');
+                }
             }
 
             mark = editor.markText(range.from, range.to, markOptions);
