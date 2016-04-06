@@ -712,7 +712,7 @@ define([
 
                         styleObj = self.classes[rightmostMark.className];
                         if (styleObj && styleObj.element) {
-                            context[styleObj.element] = true;
+                            context[styleObj.element] = styleObj;
                         }
                         
                     } else {
@@ -722,10 +722,11 @@ define([
                         blockStyles = self.blockGetStyles({from:{line:lineNumber, ch:0}, to:{line:lineNumber, ch:0}});
                         foundBlockStyle = false;
                         $.each(blockStyles, function(styleKey) {
-                            var element;
-                            element = self.styles[styleKey].element;
+                            var styleObj = self.styles[styleKey];
+                            var element = styleObj.element;
+
                             if (element) {
-                                context[element] = true;
+                                context[element] = styleObj;
                                 foundBlockStyle = true;
                             }
                         });
@@ -741,18 +742,11 @@ define([
             });
             
             // Convert context object into an array
-            contextArray = [];
-            $.each(context, function(element) {
-                if (element === 'NULL') {
-                }
-                contextArray.push(element);
-            });
-
             if (contextNull) {
-                contextArray.push(null);
+                context[''] = { };
             }
 
-            return contextArray;
+            return context;
         },
         
         
@@ -872,6 +866,10 @@ define([
                 markOptions.addToHistory = true;
                 markOptions.inclusiveLeft = false;
                 markOptions.inclusiveRight = false;
+
+                if (editor.getValue() === '') {
+                    self.insert(' ');
+                }
             }
 
             mark = editor.markText(range.from, range.to, markOptions);
@@ -968,7 +966,7 @@ define([
 
                 // Loop through all the marks defined on this line
                 marks = line.markedSpans || [];
-                marks.forEach(function(mark) {
+                marks.slice(0).reverse().forEach(function(mark) {
 
                     var from, markerOpts, markerOptsNotInclusive, matchesClass, outsideOfSelection, selectionStartsBefore, selectionEndsAfter, styleObj, to;
                     
@@ -1240,6 +1238,10 @@ define([
             
             // Ignore certain styles that are internal only like spelling errors
             if (!self.classes[mark.className]) {
+                return;
+            }
+
+            if (mark.atomic) {
                 return;
             }
             
@@ -4714,7 +4716,15 @@ define([
                     
                     $.each(keys, function(i, keyName) {
                         keymap[keyName] = function (cm) {
-                            return self.toggleStyle(styleKey);
+                            var $button = self.$el.closest('.rte2-wrapper').find('> .rte2-toolbar [data-rte-style="' + styleKey + '"]').eq(0);
+
+                            if ($button.length > 0) {
+                                $button.click();
+                                return false;
+
+                            } else {
+                                return self.toggleStyle(styleKey);
+                            }
                         };
                     });
                 }
@@ -4983,8 +4993,8 @@ define([
                 
                 if (line.markedSpans) {
                     
-                    $.each(line.markedSpans, function(key, markedSpan) {
-                        
+                    $.each(line.markedSpans.slice(0).reverse(), function(key, markedSpan) {
+
                         var className, endArray, endCh, mark, startArray, startCh, styleObj;
 
                         startCh = markedSpan.from;
@@ -5756,7 +5766,7 @@ define([
             // We reverse the order of the annotations because the parsing was done
             // depth first, and we want to create the marks for parent elements before
             // the marks for child elements (so elements can later be created in the same order)
-            $.each(annotations.reverse(), function(i, annotation) {
+            $.each(annotations, function(i, annotation) {
 
                 var styleObj;
 

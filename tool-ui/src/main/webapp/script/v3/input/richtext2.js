@@ -1223,6 +1223,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 'class': item.className || '',
                 html: item.text || '',
                 title: item.tooltip || '',
+                'data-rte-style': item.style,
                 data: {
                     toolbarConfig:item
                 }
@@ -1494,7 +1495,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Get all the context elements for the currently selected range of characters
             context = rte.getContext();
-            
+            var currentRange = rte.getRange();
+            var currentRangeCollapsed = currentRange.from.line === currentRange.to.line && currentRange.from.ch === currentRange.to.ch;
+
             // Go through each link in the toolbar and see if the style is defined
             $links.each(function(){
 
@@ -1604,8 +1607,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                         // across the range.
 
                         // Loop through all the contexts for the selected range
-                        validContext = true;
-                        $.each(context, function(i, contextElement) {
+                        var validContextInner = true;
+                        $.each(context, function(contextElement) {
+                            if (contextElement === '') {
+                                contextElement = null;
+                            }
 
                             // If a different root context was specified, then use that as the root element
                             // For example, if the rte is meant to edit the content inside a '<mycontent>' element,
@@ -1617,15 +1623,28 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                             // Is this contextElement listed among the context allowed by the current style?
                             if ($.inArray(contextElement, styleObj.context) === -1) {
-                                validContext = false;
+                                validContextInner = false;
                                 return false; // stop looping
                             }
                         });
 
+                        var validContextOuter = false;
+
+                        if (!currentRangeCollapsed) {
+                            validContextOuter = true;
+
+                            $.each(context, function (contextElement, contextOptions) {
+                                if (contextOptions.context && $.inArray(styleObj.element, contextOptions.context) === -1) {
+                                    validContextOuter = false;
+                                    return false;
+                                }
+                            });
+                        }
+
                         // Set a class on the toolbar button to indicate we are out of context.
                         // That class will be used to style the button, but also
                         // to prevent clicking on the button.
-                        $link.toggleClass('outOfContext', !validContext);
+                        $link.toggleClass('outOfContext', !(validContextInner || validContextOuter));
                     }
                     
                 }
