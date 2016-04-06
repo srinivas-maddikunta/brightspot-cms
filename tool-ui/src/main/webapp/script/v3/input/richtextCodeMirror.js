@@ -712,7 +712,7 @@ define([
 
                         styleObj = self.classes[rightmostMark.className];
                         if (styleObj && styleObj.element) {
-                            context[styleObj.element] = true;
+                            context[styleObj.element] = styleObj;
                         }
                         
                     } else {
@@ -722,10 +722,11 @@ define([
                         blockStyles = self.blockGetStyles({from:{line:lineNumber, ch:0}, to:{line:lineNumber, ch:0}});
                         foundBlockStyle = false;
                         $.each(blockStyles, function(styleKey) {
-                            var element;
-                            element = self.styles[styleKey].element;
+                            var styleObj = self.styles[styleKey];
+                            var element = styleObj.element;
+
                             if (element) {
-                                context[element] = true;
+                                context[element] = styleObj;
                                 foundBlockStyle = true;
                             }
                         });
@@ -741,18 +742,11 @@ define([
             });
             
             // Convert context object into an array
-            contextArray = [];
-            $.each(context, function(element) {
-                if (element === 'NULL') {
-                }
-                contextArray.push(element);
-            });
-
             if (contextNull) {
-                contextArray.push(null);
+                context[''] = { };
             }
 
-            return contextArray;
+            return context;
         },
         
         
