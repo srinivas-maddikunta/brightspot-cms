@@ -1205,6 +1205,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 'class': item.className || '',
                 html: item.text || '',
                 title: item.tooltip || '',
+                'data-rte-style': item.style,
                 data: {
                     toolbarConfig:item
                 }
