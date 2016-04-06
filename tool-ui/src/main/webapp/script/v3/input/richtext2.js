@@ -107,6 +107,32 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     attrs['data-user-id'] = $html.attr('data-user-id');
                     attrs['data-user-label'] = $html.attr('data-user-label');
                     attrs['data-time'] = +new Date();
+                },
+
+                // Text to display in a dropdown when cursor moves over this style
+                dropdown: function(mark) {
+
+                    var date, user, time, label;
+
+                    label = '';
+                    
+                    if (mark.attributes) {
+                        
+                        user = mark.attributes['data-user-label'];
+                        time = mark.attributes['data-time'];
+
+                        if (user && time) {
+
+                            date = new Date(parseInt(time));
+                            label = user;
+                            try {
+                                // Just in case older browser doesn't support toLocale functions catch the error
+                                label += ': ' + date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                            } catch (e) {}
+                        }
+                    }
+                    
+                    return label;
                 }
             },
             link: {

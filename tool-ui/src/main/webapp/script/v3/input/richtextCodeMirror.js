@@ -2856,7 +2856,7 @@ define([
             marks = $.map(marks, function(mark, i) {
                 var styleObj;
                 styleObj = self.classes[mark.className];
-                if (styleObj && (styleObj.onClick || styleObj.void || styleObj.readOnly)) {
+                if (styleObj && (styleObj.onClick || styleObj.void || styleObj.readOnly || styleObj.dropdown)) {
                     // Keep in the array
                     return mark;
                 } else {
@@ -2896,6 +2896,11 @@ define([
                     'class': 'rte2-dropdown-item'
                 }).appendTo(self.$dropdown);
 
+                if (styleObj.dropdown) {
+                    $div.append( styleObj.dropdown(mark) );
+                    return;
+                }
+                
                 $('<span/>', {
                     'class':'rte2-dropdown-label',
                     text: label
