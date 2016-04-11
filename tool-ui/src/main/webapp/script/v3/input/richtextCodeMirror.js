@@ -2402,7 +2402,7 @@ define([
             data.$preview = $preview;
             
             // Create a line widget to show the preview
-            data.previewMark = editor.addLineWidget(lineNumber, $preview[0], {above: true});
+            data.previewMark = editor.addLineWidget(lineNumber, $preview[0], {above: true, rteBlockPreview:true});
         },
 
         
@@ -2564,8 +2564,11 @@ define([
             };
 
             if (options.block) {
-                
-                mark = editor.addLineWidget(lineNumber, content, {above: true});
+
+                // Create the line widget.
+                // We set a flag rteEnhancement on the line widget, so we can distinguish
+                // it from other line widgets later
+                mark = editor.addLineWidget(lineNumber, content, {above: true, rteEnhancement:true});
 
                 mark.deleteLineFunction = function(){
 
@@ -2732,7 +2735,9 @@ define([
 
                 if (lineInfo && lineInfo.widgets) {
                     $.each(lineInfo.widgets, function(i,mark) {
-                        self.enhancementMoveToLine(mark, lineNumber);
+                        if (mark.rteEnhancement) {
+                            self.enhancementMoveToLine(mark, lineNumber);
+                        }
                     });
                 }
             }
