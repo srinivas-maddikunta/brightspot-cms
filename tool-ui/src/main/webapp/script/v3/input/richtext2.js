@@ -1623,6 +1623,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                             // Is this contextElement listed among the context allowed by the current style?
                             if ($.inArray(contextElement, styleObj.context) === -1) {
+
+                                // Special case - if this style can be toggled, then it should be considered valid
+                                // if the entire range contains this style
+                                if (contextElement === styleObj.element && styleObj.toggle && styles[config.style]) {
+                                    return;
+                                }
+                                
                                 validContextInner = false;
                                 return false; // stop looping
                             }
