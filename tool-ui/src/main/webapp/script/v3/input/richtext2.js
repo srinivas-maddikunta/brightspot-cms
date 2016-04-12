@@ -3227,6 +3227,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 col_right: {},
                 remove_row: {},
                 remove_col: {},
+                clear_cell: {name: 'Clear cells'},
                 undo: {},
                 redo: {}
             });
@@ -3252,6 +3253,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                             break;
                         case 'attrCell':
                             self.tableEditAttrCell($placeholder);
+                            break;
+                        case 'clear_cell':
+                            self.tableClearSelection($placeholder);
                             break;
                         }
                     },
@@ -3808,6 +3812,35 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                  }
 
             });
+        },
+
+
+        /**
+         * Clear the cell that is currently selected.
+         * @param {Element|jQuery} el
+         * The placeholder element where handsontable was instantiated.
+         */
+        tableClearSelection: function(el) {
+            
+            var $el, range, self, value, row, rowMin, rowMax, col, colMin, colMax;
+
+            self = this;
+            $el = $(el);
+            range = $el.handsontable('getSelected');
+
+            rowMin = Math.min(range[0], range[2]);
+            rowMax = Math.max(range[0], range[2]);
+            
+            colMin = Math.min(range[1], range[3]);
+            colMax = Math.max(range[1], range[3]);
+
+            for (row = rowMin; row <= rowMax; row++) {
+                for (col = colMin; col <= colMax; col++) {
+                    $el.handsontable('setDataAtCell', row, col, '');
+                }
+            }
+
+            self.rte.triggerChange();
         },
 
         
