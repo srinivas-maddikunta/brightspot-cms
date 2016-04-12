@@ -137,59 +137,61 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
     update();
   });
 
-  $('.contentForm').each(function() {
-    var $form = $(this);
-    var contentId = $form.attr('data-rtc-content-id');
+  bsp_utils.onDomInsert(document, '.contentForm', {
+    insert: function (form) {
+      var $form = $(form);
+      var contentId = $form.attr('data-rtc-content-id');
 
-    function update() {
-      var fieldNamesByObjectId = { };
+      function update() {
+        var fieldNamesByObjectId = { };
 
-      $form.find('.inputContainer.state-changed, .inputContainer.state-focus').each(function () {
-        var $container = $(this);
-        var objectId = $container.closest('.objectInputs').attr('data-id');
+        $form.find('.inputContainer.state-changed, .inputContainer.state-focus').each(function () {
+          var $container = $(this);
+          var objectId = $container.closest('.objectInputs').attr('data-id');
 
-        (fieldNamesByObjectId[objectId] = fieldNamesByObjectId[objectId] || [ ]).push($container.attr('data-field-name'));
-      });
-
-      if (fieldNamesByObjectId) {
-        rtc.execute('com.psddev.cms.tool.page.content.EditFieldUpdateAction', {
-          contentId: contentId,
-          fieldNamesByObjectId: fieldNamesByObjectId
+          (fieldNamesByObjectId[objectId] = fieldNamesByObjectId[objectId] || [ ]).push($container.attr('data-field-name'));
         });
-      }
-    }
 
-    rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
-      contentId: contentId
-    }, update);
-
-    var updateTimeout;
-
-    $(document).on('blur focus change', '.contentForm :input', function() {
-      if (updateTimeout) {
-        clearTimeout(updateTimeout);
-      }
-
-      updateTimeout = setTimeout(function() {
-        updateTimeout = null;
-        update();
-      }, 50);
-    });
-
-    // Tab navigation from textarea or record input to RTE.
-    $(document).on('keydown', '.contentForm :text, .contentForm textarea, .objectId-select', function (event) {
-      if (event.which === 9) {
-        var $container = $(this).closest('.inputContainer');
-        var rte2 = $container.next('.inputContainer').find('> .inputSmall > .rte2-wrapper').data('rte2');
-
-        if (rte2) {
-          rte2.rte.focus();
-          return false;
+        if (fieldNamesByObjectId) {
+          rtc.execute('com.psddev.cms.tool.page.content.EditFieldUpdateAction', {
+            contentId: contentId,
+            fieldNamesByObjectId: fieldNamesByObjectId
+          });
         }
       }
 
-      return true;
-    });
+      rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
+        contentId: contentId
+      }, update);
+
+      var updateTimeout;
+
+      $(document).on('blur focus change', '.contentForm :input', function() {
+        if (updateTimeout) {
+          clearTimeout(updateTimeout);
+        }
+
+        updateTimeout = setTimeout(function() {
+          updateTimeout = null;
+          update();
+        }, 50);
+      });
+
+      // Tab navigation from textarea or record input to RTE.
+      $(document).on('keydown', '.contentForm :text, .contentForm textarea, .objectId-select', function (event) {
+        if (event.which === 9) {
+          var $container = $(this).closest('.inputContainer');
+          var rte2 = $container.next('.inputContainer').find('> .inputSmall > .rte2-wrapper').data('rte2');
+
+          if (rte2) {
+            rte2.rte.focus();
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }
   });
 
   // Add the new item to the search results.
