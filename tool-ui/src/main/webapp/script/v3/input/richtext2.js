@@ -3759,8 +3759,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 }
             }).appendTo($controls);
 
-            self.$tableEditDiv.popup({parent:self.$container}).popup('close');
-            
+            self.$tableEditDiv.popup().popup('close');
+
             // Give the popup a name so we can control the width
             self.$tableEditDiv.popup('container').attr('name', 'rte2-frame-table-editor');
         },
@@ -3787,7 +3787,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.tableEditCancel = false;
             
             value = $el.handsontable('getValue') || '';
-            
+
+            self.$tableEditDiv.popup('source', $($el.handsontable('getCell', range[0], range[1])));
             self.$tableEditDiv.popup('open');
 
             self.tableEditRte.fromHTML(value);
@@ -3795,7 +3796,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Turn on or off track changes in the table editor, based on the track changes setting in the main editor
             self.tableEditRte.rte.trackSet( self.rte.trackIsOn() );
 
-            self.tableEditRte.focus();
+            // Not sure why the delay is necessary...
+            setTimeout(function () {
+                self.tableEditRte.focus();
+            }, 100);
+
             self.tableEditRte.refresh();
 
             // Due to a bug in handsontable, it steals the arrow keys even when it does not have focus.
