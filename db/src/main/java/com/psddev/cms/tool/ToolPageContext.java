@@ -4238,10 +4238,10 @@ public class ToolPageContext extends WebPageContext {
      * @see Content.Static#publish(Object, Site, ToolUser)
      */
     public History publish(Object object) {
+        PublishModification.setBroadcast(object, true);
+
         ToolUser user = getUser();
         History history = updateLockIgnored(Content.Static.publish(object, getSite(), user));
-
-        PublishModification.setBroadcast(object, true);
 
         return history;
     }
@@ -4250,10 +4250,10 @@ public class ToolPageContext extends WebPageContext {
      * @see Content.Static#publishDifferences(Object, Map, Site, ToolUser)
      */
     public History publishDifferences(Object object, Map<String, Map<String, Object>> differences) {
+        PublishModification.setBroadcast(object, true);
+
         ToolUser user = getUser();
         History history = updateLockIgnored(Content.Static.publishDifferences(object, differences, getSite(), user));
-
-        PublishModification.setBroadcast(object, true);
 
         return history;
     }
