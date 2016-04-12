@@ -128,6 +128,12 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
               $form.find('.state-changed').removeClass('state-changed');
               $form.find('.toBeRemoved').remove();
 
+              var OLD_VALUES_SELECTOR = '.contentForm > input[type="hidden"][name$="/oldValues"]';
+              var $oldValuesInput = $(OLD_VALUES_SELECTOR);
+
+              $oldValuesInput.val($(OLD_VALUES_SELECTOR, this.contentDocument).val());
+              $oldValuesInput.change();
+
               $form.removeAttr('target');
               $frame.remove();
               $.removeData($form[0], 'bsp-publish-submitting');

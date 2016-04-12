@@ -68,60 +68,73 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
   rtc.receive('com.psddev.cms.tool.page.content.PublishBroadcast', function(data) {
     var newValues = data.values;
     var newValuesId = newValues._id;
-    var oldValues = $('input[name="' + newValuesId + '/oldValues"]').val();
+    var $oldValuesInput = $('input[name="' + newValuesId + '/oldValues"]');
 
-    if (oldValues) {
-      var userId = data.userId;
-      var userName = data.userName;
+    $oldValuesInput.off('change.publish-broadcast');
+    $oldValuesInput.on('change.publish-broadcast', update);
 
-      function removeUpdated() {
-        var $updated = $(this);
+    function update() {
+      var oldValues = $oldValuesInput.val();
 
-        $updated.closest('.inputContainer').removeClass('inputContainer-updated');
-        $updated.remove();
-      }
+      if (oldValues) {
+        var userId = data.userId;
+        var userName = data.userName;
 
-      $('.inputUpdated[data-user-id="' + userId + '"]').each(removeUpdated);
+        function removeUpdated() {
+          var $updated = $(this);
+          var $container = $updated.closest('.inputContainer');
 
-      function compare(objectId, oldValues, newValues) {
-        $.each(oldValues, function(fieldName, oldValue) {
-          var oldValueId = oldValue ? oldValue._id : null;
-          var newValue = newValues[fieldName];
+          $updated.remove();
 
-          if (oldValueId) {
-            compare(oldValueId, oldValue, newValue);
-
-          } else if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-            var $container = $('[data-rtc-content-id="' + newValuesId + '"] .objectInputs[data-id="' + objectId + '"] > .inputContainer[data-field-name="' + fieldName + '"]');
-            var $form = $container.closest('form');
-
-            if ($form.length > 0 && !$.data($form[0], 'content-edit-submit')) {
-              $container.addClass('inputContainer-updated');
-
-              $container.find('> .inputLabel').after($('<div/>', {
-                'class': 'inputUpdated',
-                'data-user-id': userId,
-                'html': [
-                  'Updated by ' + userName + ' at ' + new Date(data.date) + ' - ',
-                  $('<a/>', {
-                    'text': 'Ignore',
-                    'click': function() {
-                      if (confirm('Are you sure you want to ignore updates to this field and edit it anyway?')) {
-                        $(this).closest('.inputUpdated').each(removeUpdated);
-                      }
-
-                      return false;
-                    }
-                  })
-                ]
-              }));
-            }
+          if ($container.find('> .inputUpdated').length === 0) {
+            $container.removeClass('inputContainer-updated');
           }
-        });
-      }
+        }
 
-      compare(newValuesId, $.parseJSON(oldValues), newValues);
+        $('.inputUpdated[data-user-id="' + userId + '"]').each(removeUpdated);
+
+        function compare(objectId, oldValues, newValues) {
+          $.each(oldValues, function (fieldName, oldValue) {
+            var oldValueId = oldValue ? oldValue._id : null;
+            var newValue = newValues[fieldName];
+
+            if (oldValueId) {
+              compare(oldValueId, oldValue, newValue);
+
+            } else if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+              var $container = $('[data-rtc-content-id="' + newValuesId + '"] .objectInputs[data-id="' + objectId + '"] > .inputContainer[data-field-name="' + fieldName + '"]');
+              var $form = $container.closest('form');
+
+              if ($form.length > 0) {
+                $container.addClass('inputContainer-updated');
+
+                $container.find('> .inputLabel').after($('<div/>', {
+                  'class': 'inputUpdated',
+                  'data-user-id': userId,
+                  'html': [
+                    'Updated by ' + userName + ' at ' + new Date(data.date) + ' - ',
+                    $('<a/>', {
+                      'text': 'Ignore',
+                      'click': function () {
+                        if (confirm('Are you sure you want to ignore updates to this field and edit it anyway?')) {
+                          $(this).closest('.inputUpdated').each(removeUpdated);
+                        }
+
+                        return false;
+                      }
+                    })
+                  ]
+                }));
+              }
+            }
+          });
+        }
+
+        compare(newValuesId, $.parseJSON(oldValues), newValues);
+      }
     }
+
+    update();
   });
 
   $('.contentForm').each(function() {
@@ -161,10 +174,6 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
         updateTimeout = null;
         update();
       }, 50);
-    });
-
-    $form.on('submit', function() {
-      $.data($form[0], 'content-edit-submit', true);
     });
 
     // Tab navigation from textarea or record input to RTE.
