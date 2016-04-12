@@ -24,6 +24,10 @@
         <!-- Ports -->
         <mysql.port>4706</mysql.port>
         <tomcat.port>9480</tomcat.port>
+
+        <!-- View Generator -->
+        <styleguide.viewgenerator.skip>false</styleguide.viewgenerator.skip>
+        <styleguide.viewgenerator.watch>false</styleguide.viewgenerator.watch>
     </properties>
 
     <groupId>\${groupId}</groupId>
