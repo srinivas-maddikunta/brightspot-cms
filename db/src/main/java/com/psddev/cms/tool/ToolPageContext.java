@@ -3530,18 +3530,29 @@ public class ToolPageContext extends WebPageContext {
                 state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
             }
 
+            if (draft == null
+                    && (state.isNew()
+                    || state.as(Content.ObjectModification.class).isDraft())) {
+
+                state.as(Content.ObjectModification.class).setDraft(true);
+            }
+
+            Map<String, Map<String, Object>> differences = Draft.findDifferences(
+                    state.getDatabase().getEnvironment(),
+                    findOldValuesInForm(state),
+                    state.getSimpleValues());
+
             if (draft == null) {
                 if (state.isNew()
                         || state.as(Content.ObjectModification.class).isDraft()) {
-                    state.as(Content.ObjectModification.class).setDraft(true);
-                    publish(state);
+                    publishDifferences(object, differences);
                     redirectOnSave("",
                             "id", state.getId(),
                             "copyId", null);
                     return true;
 
                 } else if (state.as(Workflow.Data.class).getCurrentState() != null) {
-                    publish(state);
+                    publishDifferences(object, differences);
                     redirectOnSave("");
                     return true;
                 }
@@ -3550,7 +3561,7 @@ public class ToolPageContext extends WebPageContext {
                 draft.setOwner(getUser());
 
             } else if (draft.isNewContent()) {
-                publish(object);
+                publishDifferences(object, differences);
                 redirectOnSave("");
                 return true;
             }
