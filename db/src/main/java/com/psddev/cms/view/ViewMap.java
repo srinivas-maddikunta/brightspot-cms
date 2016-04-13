@@ -1,7 +1,5 @@
 package com.psddev.cms.view;
 
-import com.psddev.dari.db.Recordable;
-import com.psddev.dari.db.State;
 import com.psddev.dari.util.Once;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StringUtils;
@@ -212,12 +210,6 @@ class ViewMap implements Map<String, Object> {
      */
     private Object convertValue(Object value) {
 
-        // FIXME: Always exclude database objects for now. Eventually
-        // @ViewInterface will be required, naturally excluding these object types
-        if (value instanceof State || value instanceof Recordable) {
-            return null;
-        }
-
         if (value instanceof String) {
             return value;
 
@@ -261,7 +253,7 @@ class ViewMap implements Map<String, Object> {
 
             return convertedMap;
 
-        } else if (value != null) {
+        } else if (value != null && !getViewClasses(value).isEmpty()) {
             return new ViewMap(value, includeClassName);
         }
 
@@ -300,7 +292,7 @@ class ViewMap implements Map<String, Object> {
     private static List<Class<?>> getViewClasses(Object view) {
 
         // find all the classes that could contain annotations
-        List<Class<?>> viewInterfaces = ViewUtils.getAnnotatableClasses(view.getClass())
+        return ViewUtils.getAnnotatableClasses(view.getClass())
                 .stream()
                 // only look at interfaces
                 .filter(Class::isInterface)
@@ -308,14 +300,6 @@ class ViewMap implements Map<String, Object> {
                 .filter(klass -> klass.isAnnotationPresent(ViewInterface.class))
                 // add to list
                 .collect(Collectors.toList());
-
-        // if there are none, just return a single item list with the original class
-        // TODO: Eventually this can be removed, and @ViewInterface will be required.
-        if (viewInterfaces.isEmpty()) {
-            viewInterfaces = Collections.singletonList(view.getClass());
-        }
-
-        return viewInterfaces;
     }
 
     // Gets the list of bean property descriptors for the specified class.
