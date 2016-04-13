@@ -102,37 +102,6 @@ class ViewMap implements Map<String, Object> {
         }
     }
 
-    private static List<Class<?>> getViewClasses(Object view) {
-
-        // find all the classes that could contain annotations
-        List<Class<?>> viewInterfaces = ViewUtils.getAnnotatableClasses(view.getClass())
-                .stream()
-                // only look at interfaces
-                .filter(Class::isInterface)
-                // that are annotated with @ViewInterface
-                .filter(klass -> klass.isAnnotationPresent(ViewInterface.class))
-                // add to list
-                .collect(Collectors.toList());
-
-        // if there are none, just return a single item list with the original class
-        // TODO: Eventually this can be removed, and @ViewInterface will be required.
-        if (viewInterfaces.isEmpty()) {
-            viewInterfaces = Collections.singletonList(view.getClass());
-        }
-
-        return viewInterfaces;
-    }
-
-    private static List<PropertyDescriptor> getBeanPropertyDescriptors(Class<?> viewClass) {
-        try {
-            return Arrays.asList(Introspector.getBeanInfo(viewClass).getPropertyDescriptors());
-        } catch (IntrospectionException e) {
-            LOGGER.warn("Failed to introspect bean info for view of type ["
-                    + viewClass.getClass().getName() + "]. Cause: " + e.getMessage());
-            return Collections.emptyList();
-        }
-    }
-
     /**
      * @return the backing view object for this map.
      */
@@ -323,6 +292,40 @@ class ViewMap implements Map<String, Object> {
             } else {
                 throw new RuntimeException(message, cause);
             }
+        }
+    }
+
+    // Gets a list of all the interface classes that are implemented by the view
+    // objects and are annotated with @ViewInterface.
+    private static List<Class<?>> getViewClasses(Object view) {
+
+        // find all the classes that could contain annotations
+        List<Class<?>> viewInterfaces = ViewUtils.getAnnotatableClasses(view.getClass())
+                .stream()
+                // only look at interfaces
+                .filter(Class::isInterface)
+                // that are annotated with @ViewInterface
+                .filter(klass -> klass.isAnnotationPresent(ViewInterface.class))
+                // add to list
+                .collect(Collectors.toList());
+
+        // if there are none, just return a single item list with the original class
+        // TODO: Eventually this can be removed, and @ViewInterface will be required.
+        if (viewInterfaces.isEmpty()) {
+            viewInterfaces = Collections.singletonList(view.getClass());
+        }
+
+        return viewInterfaces;
+    }
+
+    // Gets the list of bean property descriptors for the specified class.
+    private static List<PropertyDescriptor> getBeanPropertyDescriptors(Class<?> viewClass) {
+        try {
+            return Arrays.asList(Introspector.getBeanInfo(viewClass).getPropertyDescriptors());
+        } catch (IntrospectionException e) {
+            LOGGER.warn("Failed to introspect bean info for view of type ["
+                    + viewClass.getClass().getName() + "]. Cause: " + e.getMessage());
+            return Collections.emptyList();
         }
     }
 }
