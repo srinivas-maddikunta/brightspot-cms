@@ -2227,30 +2227,21 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 self.enhancementToolbarAddSeparator($toolbar);
 
-                $sizesSubmenu = self.enhancementToolbarAddSubmenu({
-                    text: 'Image Size',
-                    className: 'rte2-enhancement-toolbar-sizes'
-                }, $toolbar);
-
                 self.enhancementToolbarAddButton({
-                    text: 'None',
+                    text: 'Image Size',
+                    tooltip: 'Select an image size',
                     className: 'rte2-enhancement-toolbar-size',
-                    onClick: function() {
-                        self.enhancementSetSize($toolbar, '');
+                    onMouseEnter: function(event) {
+                        self.enhancementPopupSizesShowDelayed(this, event);
+                    },
+                    onMouseLeave: function(event) {
+                        self.enhancementPopupSizesHideDelayed(this, event);
+                    },
+                    onClick: function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
                     }
-                }, $sizesSubmenu);
-
-                $.each(sizes, function(internalName, displayName) {
-
-                    self.enhancementToolbarAddButton({
-                        text: displayName,
-                        className: 'rte2-enhancement-toolbar-size',
-                        onClick: function() {
-                            self.enhancementSetSize($toolbar, internalName);
-                        }
-                    }, $sizesSubmenu);
-
-                });
+                }, $toolbar);
             }
 
             self.enhancementToolbarAddSeparator($toolbar);
@@ -2385,6 +2376,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     // Call the onclick function, setting "this" to the clicked element
                     item.onClick.call(this, event);
                     return false;
+                });
+            }
+            if (item.onMouseEnter) {
+                $button.on('mouseenter', function(event) {
+                    // Call the mouseenter function, setting "this" to the clicked element
+                    item.onMouseEnter.call(this, event);
+                });
+            }
+            if (item.onMouseLeave) {
+                $button.on('mouseleave', function(event) {
+                    // Call the mouseleave function, setting "this" to the clicked element
+                    item.onMouseLeave.call(this, event);
                 });
             }
 
@@ -2792,6 +2795,145 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         },
 
 
+        /**
+         * Create a poupup if the enhancement has sizes to choose from.
+         * If the popup has been previously created, returns the previously created popup.
+         *
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         *
+         * @returns {jQuery}
+         * jQuery element for the popup.
+         */
+        enhancementPopupSizesCreate: function(el) {
+            
+            var $el, $popup, self, sizes;
+
+            self = this;
+            $el = $(el);
+            
+            sizes = self.enhancementGetSizes();
+
+            $popup = $el.data('enhancementSizesPopup');
+            if (!$popup) {
+                
+                $popup = $('<ul/>', {
+                    'class': 'rte2-enhancement-sizes-popup',
+                }).hover(function(event){
+                    self.enhancementPopupSizesShowDelayed($el);
+                }, function(event) {
+                    self.enhancementPopupSizesHideDelayed($el);
+                }).css('position', 'absolute').hide().appendTo(document.body);
+                
+                $(el).data('enhancementSizesPopup', $popup);
+
+                self.enhancementToolbarAddButton({
+                    text: 'None',
+                    className: 'rte2-enhancement-toolbar-size',
+                    onClick: function() {
+                        self.enhancementSetSize($el, '');
+                        self.enhancementPopupSizesHide(el);
+                    }
+                }, $popup);
+
+                $.each(sizes, function(internalName, displayName) {
+
+                    self.enhancementToolbarAddButton({
+                        text: displayName,
+                        className: 'rte2-enhancement-toolbar-size',
+                        onClick: function() {
+                            self.enhancementSetSize($el, internalName);
+                            self.enhancementPopupSizesHide(el);
+                        }
+                    }, $popup);
+
+                });
+
+            }
+            
+            return $popup;
+        },
+
+        
+        /**
+         * Show the enhancement sizes popup after a short delay.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesShowDelayed: function(el) {
+            
+            var timeout, self;
+
+            self = this;
+            
+            // Cancel any previous attempt to show the popup
+            clearTimeout( $(el).data('enhancementPopupSizesHideDelayed') );
+            
+            timeout = setTimeout(function(){
+                self.enhancementPopupSizesShow(el);
+            }, 100);
+            
+            $(el).data('enhancementPopupSizesShowDelayed', timeout);
+        },
+
+        
+        /**
+         * Show the enhancement sizes popup.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesShow: function(el) {
+
+            var $popup, offset, self;
+
+            self = this;
+
+            $popup = self.enhancementPopupSizesCreate(el);
+
+            // Position the popup under the button
+            offset = $(el).offset();
+
+            $popup.show().offset({ top: offset.top + $(el).height(), left: offset.left});
+
+            $(el).addClass('hovered');
+        },
+
+        
+        /**
+         * Hide the enhancement sizes popup after a short delay.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesHideDelayed: function(el) {
+            
+            var timeout, self;
+
+            self = this;
+            
+            // Cancel any previous attempt to show the popup
+            clearTimeout( $(el).data('enhancementPopupSizesShowDelayed') );
+            
+            timeout = setTimeout(function(){
+                self.enhancementPopupSizesHide(el);
+            }, 200);
+            $(el).data('enhancementPopupSizesHideDelayed', timeout);
+        },
+
+        
+        /**
+         * Hide the enhancement sizes popup.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesHide: function(el) {
+            var $popup, self;
+            self = this;
+            $popup = self.enhancementPopupSizesCreate(el);
+            $popup.hide();
+            $(el).removeClass('hovered');
+        },
+
+        
         /**
          * Get the reference object for the enhancement.
          * @returns {Object}
