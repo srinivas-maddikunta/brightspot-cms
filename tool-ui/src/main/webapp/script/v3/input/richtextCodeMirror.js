@@ -4993,8 +4993,8 @@ define([
                 annotationEnd = {};
                 
                 if (line.markedSpans) {
-                    
-                    $.each(line.markedSpans.slice(0).reverse(), function(key, markedSpan) {
+
+                    $.each(self.toHTMLSortSpans(line), function(key, markedSpan) {
 
                         var className, endArray, endCh, mark, startArray, startCh, styleObj;
 
@@ -5302,6 +5302,83 @@ define([
             return html;
             
         }, // toHTML
+
+
+        /**
+         * Sort CodeMirror spans in the order that elements should appear in the HTML output.
+         *
+         * The general logic goes like this:
+         * Output elements in the order they are found.
+         * If two elements start on the same character:
+         * Check for context rules to see if a certain order is required
+         * (like element A is allowed to be inside element B).
+         * If no context rules apply, then apply the style in the reverse order
+         * in which it was added to the content (like if bold was applied, then italic,
+         * the output would be <i><b></b></i>.
+         *
+         * @param {Object] line
+         * A CodeMirror line object.
+         */
+        toHTMLSortSpans: function(line) {
+            var self;
+            self = this;
+            return line.markedSpans.slice(0).reverse().sort(function(a,b){
+                
+                var classA, classB, outsideB, outsideA, startA, startB, styleA, styleB;
+                
+                startA = a.from;
+                startB = b.from;
+
+                if (startA === startB) {
+                    
+                    classA = a.marker.className;
+                    classB = b.marker.className;
+                    
+                    styleA = self.classes[classA];
+                    styleB = self.classes[classB];
+
+                    if (!(styleA && styleB)) {
+                        return 0;
+                    }
+
+                    // Check if styleA is allowed to be inside styleB
+                    if (styleA.context) {
+                        if ($.inArray(styleB.element, styleA.context) !== -1) {
+                            // a is allowed inside b
+                            outsideB = true;
+                        }
+                    }
+
+                    // Check if styleB is allowed to be inside styleA
+                    if (styleB.context) {
+                        if ($.inArray(styleA.element, styleB.context) !== -1) {
+                            // b is allowed inside a
+                            outsideA = true;
+                        }
+                    }
+
+                    // Determine which style should be first
+                    if (outsideA && outsideB) {
+                        // Both are allowed inside the other, so do not change order
+                        return 0;
+                    } else if (outsideA) {
+                        // B is allowed inside A
+                        return -1;
+                    } else if (outsideB) {
+                        // A is allowed inside B
+                        return 1;
+                    } else {
+                        // No context or neither allowed inside the other, so do not change order
+                        return 0;
+                    }
+                    
+                } else {
+                    // The styles start at different characters,
+                    // so order them based on starting character
+                    return startA - startB;
+                }
+            });
+        },
 
         
         /**
