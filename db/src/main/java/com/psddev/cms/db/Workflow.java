@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.psddev.dari.db.Modification;
@@ -251,6 +252,19 @@ public class Workflow extends Record {
         }
 
         return transitions;
+    }
+
+    public String getStateDisplayName(String workflowState) {
+
+        Optional<String> displayName = getStates()
+                .stream()
+                .filter(st -> st != null && workflowState.equals(st.getName()))
+                .map(WorkflowState::getDisplayName)
+                .findFirst();
+
+        return displayName.isPresent()
+                ? displayName.get()
+                : workflowState;
     }
 
     @Override
