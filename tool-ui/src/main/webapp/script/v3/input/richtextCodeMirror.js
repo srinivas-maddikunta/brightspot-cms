@@ -5320,64 +5320,112 @@ define([
          * A CodeMirror line object.
          */
         toHTMLSortSpans: function(line) {
-            var self;
+            
+            var self, spans, spansSorted, spansByChar;
+            
             self = this;
-            return line.markedSpans.slice(0).reverse().sort(function(a,b){
+
+            // First reverse the order of the marks so the last applied will "wrap" any previous marks
+            spans = line.markedSpans.slice(0).reverse();
+
+            // Group the marks by starting character so we can tell if multiple marks start on the same character
+            spansByChar = [];
+            $.each(spans, function() {
+                var char, span;
+                span = this;
+                char = span.from;
+                spansByChar[char] = spansByChar[char] || [];
+                spansByChar[char].push(span);
+            });
+
+            // Bubble sort the marks for each character based on the context
+            $.each(spansByChar, function() {
                 
-                var classA, classB, outsideB, outsideA, startA, startB, styleA, styleB;
-                
-                startA = a.from;
-                startB = b.from;
-
-                if (startA === startB) {
-                    
-                    classA = a.marker.className;
-                    classB = b.marker.className;
-                    
-                    styleA = self.classes[classA];
-                    styleB = self.classes[classB];
-
-                    if (!(styleA && styleB)) {
-                        return 0;
-                    }
-
-                    // Check if styleA is allowed to be inside styleB
-                    if (styleA.context) {
-                        if ($.inArray(styleB.element, styleA.context) !== -1) {
-                            // a is allowed inside b
-                            outsideB = true;
+                var compare, spans, swapped, temp;
+                spans = this;
+                if (spans.length > 1) {
+                    do {
+                        swapped = false;
+                        for (var i=0; i < spans.length-1; i++) {
+                            compare = self.toHTMLSpanCompare(spans[i], spans[i+1]);
+                            if (compare === 1) {
+                                temp = spans[i];
+                                spans[i] = spans[i+1];
+                                spans[i+1] = temp;
+                                swapped = true;
+                            }
                         }
-                    }
-
-                    // Check if styleB is allowed to be inside styleA
-                    if (styleB.context) {
-                        if ($.inArray(styleA.element, styleB.context) !== -1) {
-                            // b is allowed inside a
-                            outsideA = true;
-                        }
-                    }
-
-                    // Determine which style should be first
-                    if (outsideA && outsideB) {
-                        // Both are allowed inside the other, so do not change order
-                        return 0;
-                    } else if (outsideA) {
-                        // B is allowed inside A
-                        return -1;
-                    } else if (outsideB) {
-                        // A is allowed inside B
-                        return 1;
-                    } else {
-                        // No context or neither allowed inside the other, so do not change order
-                        return 0;
-                    }
-                    
-                } else {
-                    // The styles start at different characters,
-                    // so order them based on starting character
-                    return startA - startB;
+                    } while (swapped);
                 }
             });
+
+            // Merge spansByChar back into a single ordered array
+            spans = [];
+            $.each(spansByChar, function(char, charSpans){
+                if (charSpans) {
+                    $.each(charSpans, function(i, span){
+                        spans.push(span);
+                    });
+                }
+            });
+
+            return spans;
+        },
+
+        /**
+         * Function that compares the context of two spans.
+         * @returns {Boolean}
+         * 0 if the order should not be changed
+         * -1 if a should come first
+         * 1 if b should come first
+         */
+        toHTMLSpanCompare: function(a, b) {
+                
+            var classA, classB, outsideB, outsideA, self, styleA, styleB;
+
+            self = this;
+            
+            classA = a.marker.className;
+            classB = b.marker.className;
+            
+            styleA = self.classes[classA];
+            styleB = self.classes[classB];
+
+            if (!(styleA && styleB)) {
+                return 0;
+            }
+
+            // Check if styleA is allowed to be inside styleB
+            if (styleA.context) {
+                if ($.inArray(styleB.element, styleA.context) !== -1) {
+                    // a is allowed inside b
+                    outsideB = true;
+                }
+            }
+
+            // Check if styleB is allowed to be inside styleA
+            if (styleB.context) {
+                if ($.inArray(styleA.element, styleB.context) !== -1) {
+                    // b is allowed inside a
+                    outsideA = true;
+                }
+            }
+
+            // Determine which style should be first
+            if (outsideA && outsideB) {
+                // Both are allowed inside the other, so do not change order
+                return 0;
+            } else if (outsideA) {
+                // B is allowed inside A
+                return -1;
+            } else if (outsideB) {
+                // A is allowed inside B
+                return 1;
+            } else {
+                // No context or neither allowed inside the other, so do not change order
+                return 0;
+            }
+                
         },
 
         
