@@ -207,11 +207,14 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
 
           if ($forms.length > 0) {
             var contentId = $form.attr('data-content-id');
+            var added = false;
 
             $forms.each(function () {
               var $form = $(this);
 
               if ($form.find('input[type="hidden"][name="ni"][value="' + contentId + '"]').length === 0) {
+                added = true;
+
                 $form.append($('<input/>', {
                   type: 'hidden',
                   name: 'ni',
@@ -220,7 +223,9 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
               }
             });
 
-            $forms.first().submit();
+            if (added) {
+              $forms.first().submit();
+            }
           }
         }
       }
