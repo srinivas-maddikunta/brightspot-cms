@@ -3178,7 +3178,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 })
                 
             }).appendTo(self.$container);
-            console.log(self.$container[0])
 
             // Set the position of the popup
             offset = self.rte.getOffset(range);
