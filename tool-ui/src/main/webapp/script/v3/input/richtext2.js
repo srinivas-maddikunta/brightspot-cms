@@ -3125,7 +3125,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         inlineEnhancementHandleClick: function(event, mark) {
 
-            var enhancementEditUrl, $div, $divLink, frameName, html, offset, offsetContainer, range, self, styleObj;
+            var enhancementEditUrl, $div, $divForm, frameName, html, offset, offsetContainer, range, self, styleObj;
 
             self = this;
 
@@ -3157,8 +3157,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             enhancementEditUrl = $.addQueryParameters(
                 window.CONTEXT_PATH + '/content/enhancement.jsp',
                 'typeId', styleObj.enhancementType,
-                'attributes', JSON.stringify(mark.attributes),
-                'body', $(html).html()
+                'attributes', JSON.stringify(mark.attributes)
             );
 
             // Create a link for editing the enhancement and position it at the click event
@@ -3166,14 +3165,20 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             $div = $('<div/>', {
                 'class': 'rte2-frame-enhancement-inline',
                 'style': 'position:absolute;top:0;left:0;height:1px;overflow:hidden;',
-                html: $('<a/>', {
+                html: $('<form/>', {
                     target: frameName,
-                    href: enhancementEditUrl,
+                    action: enhancementEditUrl,
+                    method: 'post',
                     style: 'width:100%;display:block;',
-                    text: '.'
+                    html: $('<input/>', {
+                        type: 'hidden',
+                        name: 'body',
+                        value: $(html).html()
+                    })
                 })
                 
             }).appendTo(self.$container);
+            console.log(self.$container[0])
 
             // Set the position of the popup
             offset = self.rte.getOffset(range);
@@ -3182,12 +3187,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 'top': offset.top - offsetContainer.top,
                 'left': offset.left - offsetContainer.left
             });
-            $divLink = $div.find('a');
+            $divForm = $div.find('form');
 
             // Add data to the link with the rte and the mark,
             // so any popup form can access them
-            $divLink.data('rte', self);
-            $divLink.data('mark', mark);
+            $divForm.data('rte', self);
+            $divForm.data('mark', mark);
             
             // Listen for an 'enhancementUpdate' event that will be triggered on
             // the edit link, so we can tell when the enhancement is updated.
@@ -3198,7 +3203,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // that we created for table/tr/td elements. In that case we do not allow the 
                 // inline enhancement popup form to modify the html of the table.
                 
-                $divLink.on('enhancementUpdate', function(event, html){
+                $divForm.on('enhancementUpdate', function(event, html){
                     self.inlineEnhancementReplaceMark(mark, html);
                 });
             }
@@ -3207,7 +3212,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // the edit popup, so we can communicate the mark back to the popup form.
             // The enhancement edit form can trigger this event.
             // Alternately the popup form can get the rte and mark from the data on the source link.
-            $divLink.on('enhancementRead', function(event, callback){
+            $divForm.on('enhancementRead', function(event, callback){
                 // Call the callback, passing it the mark.
                 // Also within the callback ensure that "this" refers to this instance of the rte.
                 if (callback) {
@@ -3220,7 +3225,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // with any popups
             setTimeout(function(){
                 
-                $divLink.click();
+                $divForm.submit();
 
                 // When the popup is closed put focus back on the editor
                 $(document).on('closed.' + frameName, '[name=' + frameName + ']', function(event){
