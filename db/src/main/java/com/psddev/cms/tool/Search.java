@@ -751,11 +751,15 @@ public class Search extends Record {
                     String prefix = type.getInternalName() + "/";
 
                     for (String field : type.getLabelFields()) {
-                        if (type.getIndex(field) != null) {
+
+                        ObjectIndex objectIndex = type.getIndex(field);
+                        if (objectIndex != null) {
+
+                            String comparisonOperator = "contains" + (objectIndex.isCaseSensitive() ? "" : "[c]");
                             predicate = CompoundPredicate.combine(
                                     PredicateParser.OR_OPERATOR,
                                     predicate,
-                                    PredicateParser.Static.parse(prefix + field + " contains[c] ?", queryString));
+                                    PredicateParser.Static.parse(prefix + field + " " + comparisonOperator + " ?", queryString));
                         }
                     }
                 }
