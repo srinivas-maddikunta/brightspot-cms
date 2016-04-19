@@ -255,16 +255,12 @@ public class Workflow extends Record {
     }
 
     public String getStateDisplayName(String workflowState) {
-
-        Optional<String> displayName = getStates()
+        return getStates()
                 .stream()
                 .filter(st -> st != null && workflowState.equals(st.getName()))
                 .map(WorkflowState::getDisplayName)
-                .findFirst();
-
-        return displayName.isPresent()
-                ? displayName.get()
-                : workflowState;
+                .findFirst()
+                .orElse(workflowState);
     }
 
     @Override
