@@ -801,9 +801,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             $('.toolHeader').toggle();
 
             // Add classname to change display
-            $('body').toggleClass('rte-fullscreen');
-            self.$container.toggleClass('rte-fullscreen');
-            
+            var $container = self.$container;
+            var fullscreen = $container.hasClass('rte-fullscreen');
+
+            while ($container.length > 0) {
+                $container.toggleClass('rte-fullscreen', !fullscreen);
+                $container = $container.parent();
+            }
+
             // Also kick the editor
             self.rte.refresh();
         },
