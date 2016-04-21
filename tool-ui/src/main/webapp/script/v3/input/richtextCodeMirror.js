@@ -5381,12 +5381,19 @@ define([
          */
         toHTMLSpanCompare: function(a, b) {
                 
-            var classA, classB, outsideB, outsideA, self, styleA, styleB;
+            var classA, classB, markerA, markerB, outsideB, outsideA, self, styleA, styleB;
 
             self = this;
+
+            markerA = a.marker;
+            markerB = b.marker;
+
+            if (!(markerA && markerB)) {
+                return 0;
+            }
             
-            classA = a.marker.className;
-            classB = b.marker.className;
+            classA = markerA.className;
+            classB = markerB.className;
             
             styleA = self.classes[classA];
             styleB = self.classes[classB];
