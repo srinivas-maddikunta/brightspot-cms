@@ -88,7 +88,7 @@ if (isRichTextElement) {
     ((RichTextElement) object).fromBody(wp.param(String.class, "body"));
 }
 
-if (object != null && wp.isFormPost()) {
+if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-and-close") || wp.param(boolean.class, "action-save"))) {
     try {
         request.setAttribute("excludeFields", Arrays.asList("record"));
         wp.updateUsingParameters(ref);
@@ -215,7 +215,10 @@ if (object == null) {
                     wp.writeEnd();
 
                 } else {
-                    wp.writeStart("button", "class", "action action-save");
+                    wp.writeStart("button",
+                            "class", "action action-save",
+                            "name", "action-save",
+                            "value", true);
                     wp.writeHtml(wp.localize(state.getType(), "action.save"));
                     wp.writeEnd();
                 }
