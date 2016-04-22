@@ -249,9 +249,9 @@
   .rte2-enhancement-toolbar-remove-completely { display:inline-block; }
 }
 .rte2-table-placeholder {
-  overflow:hidden;
   height:auto;
   width:100%;
+  position:relative;
 }
 .rte2-style-html {
   font-family: @fontFamily-code;
@@ -673,11 +673,6 @@ li.CodeMirror-hint-active {
   
 }
 
-.rte2-table-editor {
-  .rte2-wrapper {
-    overflow: hidden;
-  }
-}
 .rte2-table-editor-save {
   margin-right: 0.5em;
 }
@@ -690,7 +685,9 @@ li.CodeMirror-hint-active {
   strike { text-decoration:line-through;}
   
   // Within the table do not let users click link or button elements
-  a, button { pointer-events:none; }
+  table {
+    a, button { pointer-events:none; }
+  }
 
   .rte-comment {
     &:extend(.rte2-style-comment);

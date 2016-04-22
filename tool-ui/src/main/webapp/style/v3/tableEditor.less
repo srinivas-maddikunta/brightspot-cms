@@ -1,0 +1,55 @@
+.bspTableEditWrapper {
+  
+  position:relative;
+  z-index: 3;
+
+  table {
+    
+    width:100%;
+    background-color: #fff;
+
+    // Nested tables
+    table {
+      
+      // http://stackoverflow.com/questions/8812757/html-table-full-width-with-margin
+      margin: 1em auto;
+      width: calc(100% - 0.5em);
+    }
+  }
+
+  td, th {
+    min-width:200px;
+    min-height:1em;
+    border:1px solid @color-border;
+    padding:0.25em;
+  }
+
+  .bspTableEditActive {
+    border:1px solid @color-focus;
+    background-color: #eee;
+    & table {
+      background-color: #eee;
+    }
+  }
+}
+
+// Table goes inside here, and if it is too wide it should be scrollable
+.bspTableEditTableWrapper {
+  overflow:auto;
+}
+
+// Context menu will be positioned using javascript
+.bspTableEditContext {
+  display:none;
+  position:absolute;
+  width:auto;
+  padding: 0.25em;
+  border:1px solid #aaa;
+  background-color: #fff;
+  white-space:nowrap;
+
+  a {
+    display:block;
+    margin: 0.2em;
+  }
+}
