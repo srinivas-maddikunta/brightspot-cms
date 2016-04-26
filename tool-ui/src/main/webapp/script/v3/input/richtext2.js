@@ -230,19 +230,110 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 clear: ['alignLeft', 'alignCenter', 'ol', 'ul']
             }
         },
+
         
         /**
          * Rules for cleaning up the clipboard data when content is pasted
-         * from outside the RTE.
+         * from outside the RTE, based on the type of content. These rules
+         * are applied before the general clipboardSanitizeRules.
+         *
+         * This is an object of key/value pairs, where the key is a type identifier,
+         * and value is an object which contains an isType() function and a set of rules.
+         * {
+         *   'typename': {
+         *     isType: function(content) { return Boolean },
+         *     rules: { } // same format as clipboardSanitizeRules
+         *   },
+         *   ...
+         * }
+         *
+         * @example
+         * {
+         *    'googledocs': {
+         *       isType: function(content) { return Boolean($(content).find('b[id^=docs-internal-guid]').length); }
+         *       rules: { }
+         *    },
+         *    'msword': {
+         *       isType: function(content) { return Boolean($(content).find('[class^=Mso]').length); },
+         *       rules: { }
+         *    }
+         */
+        clipboardSanitizeTypes: {
+            
+            'googledocs': {
+                isType: function(content) {
+                    return Boolean($(content).find('[id^=docs-internal-guid]').length);
+                },
+                rules: {
+            
+                    // Note: Google docs encloses the entire document in a 'b' element so we must exclude that one
+                    'b[id^=docs-internal-guid]': '',
+            
+                    // Google docs styles
+                    'span[style*="font-style:italic"]': 'italic',
+                    'span[style*="font-weight:700"]': 'bold',
+                    'span[style*="font-weight:bold"]': 'bold',
+                    'span[style*="font-weight: bold"]': 'bold',
+                    'span[style*="text-decoration:underline"]': 'underline',
+                    'span[style*="vertical-align:super"]': 'superscript',
+                    'span[style*="vertical-align:sub"]': 'subscript',
+
+                    // Google docs puts paragraph within list items, so eliminate it
+                    'li > p': '',
+
+                    // Google docs sometimes uses a paragraph followed by a line break,
+                    // but we're already putting an extra line break after paragraph,
+                    // so just remove the br.
+                    'p ~ br': ''
+                }
+            },
+
+            'msword': {
+                isType: function(content) {
+                    return Boolean($(content).find('[class^=Mso]').length);
+                },
+                rules: {
+
+                    // Since we need to modify the 'p' element,
+                    // we'll have to repeat some of the 'p' element
+                    // rules here to ensure proper ordering of the rules
+                    
+                    'p[style*="text-align: right"]': 'alignRight',
+                    'p[style*="text-align: center"]': 'alignCenter',
+            
+                    'p[style*="text-align:right"]': 'alignRight',
+                    'p[style*="text-align:center"]': 'alignCenter',
+
+                    // MSWord 'p' elements should be treated as a new line
+                    // Special case if 'p' element contains only whitespace remove the whitespace
+                    'p[class^=Mso]': function($el) {
+                        var $replacement, t;
+                        t = $el.text() || '';
+                        if (t.match(/^\s*$/)) {
+                            $el.text('');
+                        }
+                        $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
+                        $replacement.append( $el.contents() );
+                        $el.replaceWith( $replacement );
+                    }
+
+                }
+            }
+        },
+
+
+        /**
+         * Rules for cleaning up the clipboard data when content is pasted
+         * from outside the RTE. These rules are applied *after* the clipboardSanitizeTypes
+         * rules are applied.
          *
          * This is an object of key/value pairs, where the key is a jQuery selector,
          * and value is one of the following:
          * {String} a style name that defines how element should be styled (refer to the "styles" parameter)
+         * {Empty String} to remove the matching element
+         * {Function} to modify the matching element using a custom function
          */
         clipboardSanitizeRules: {
-            
-            // Note: Google docs encloses the entire document in a 'b' element so we must exclude that one
-            'b[id^=docs-internal-guid]': '',
             
             // Any <b> or '<strong>' element should be treated as bold even if it has extra attributes
             // Example MSWord:  <b style="mso-bidi-font-weight:normal">
@@ -254,18 +345,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             'i': 'italic',
             'em': 'italic',
 
-            // Google docs styles
-            'span[style*="font-style:italic"]': 'italic',
-            'span[style*="font-weight:700"]': 'bold',
-            'span[style*="font-weight:bold"]': 'bold',
-            'span[style*="font-weight: bold"]': 'bold',
-            'span[style*="text-decoration:underline"]': 'underline',
-            'span[style*="vertical-align:super"]': 'superscript',
-            'span[style*="vertical-align:sub"]': 'subscript',
-
-            // Google docs puts paragraph within list items, so eliminate it
-            'li > p': '',
-            
             'li[style*="list-style-type:disc"]': 'ul',
             'li[style*="list-style-type:decimal"]': 'ol',
 
@@ -275,31 +354,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             'p[style*="text-align:right"]': 'alignRight',
             'p[style*="text-align:center"]': 'alignCenter',
 
-            // MSWord 'p' elements should be treated as a new line
-            // Special case if 'p' element contains only whitespace remove the whitespace
-            'p[class^=Mso]': function($el) {
-                var $replacement, t;
-                t = $el.text() || '';
-                if (t.match(/^\s*$/)) {
-                    $el.text('');
-                }
-                $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
-                $replacement.append( $el.contents() );
-                $el.replaceWith( $replacement );
-            },
-
             // Remove attributes from table elements
             'table, tr, td, th': function($el) {
                 $el.replaceWith(function () {
                     return $('<' + this.nodeName + '>').append($(this).contents());
                 });
             },
-            
+
             // Any 'p' element should be treated as a new line with a blank line after
             'p': 'linebreak'
         },
 
-
+        
         /**
          * Which buttons are in the toolbar?
          * This is an array of toolbar config objects with the following properties:
@@ -674,6 +740,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Add our clipboard sanitize rules
             self.rte.clipboardSanitizeRules = $.extend(true, {}, self.rte.clipboardSanitizeRules, self.clipboardSanitizeRules);
+            self.rte.clipboardSanitizeTypes = $.extend(true, {}, self.rte.clipboardSanitizeTypes, self.clipboardSanitizeTypes);
 
             // Create a div under the text area to display the toolbar and the editor
             self.$container = $('<div/>', {
