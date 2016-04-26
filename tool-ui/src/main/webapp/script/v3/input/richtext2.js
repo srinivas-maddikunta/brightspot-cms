@@ -107,6 +107,32 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     attrs['data-user-id'] = $html.attr('data-user-id');
                     attrs['data-user-label'] = $html.attr('data-user-label');
                     attrs['data-time'] = +new Date();
+                },
+
+                // Text to display in a dropdown when cursor moves over this style
+                dropdown: function(mark) {
+
+                    var date, user, time, label;
+
+                    label = '';
+                    
+                    if (mark.attributes) {
+                        
+                        user = mark.attributes['data-user-label'];
+                        time = mark.attributes['data-time'];
+
+                        if (user && time) {
+
+                            date = new Date(parseInt(time));
+                            label = user;
+                            try {
+                                // Just in case older browser doesn't support toLocale functions catch the error
+                                label += ': ' + date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                            } catch (e) {}
+                        }
+                    }
+                    
+                    return label;
                 }
             },
             link: {
@@ -685,7 +711,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (self.doOnSubmit) {
 
                 self.$el.closest('form').on('submit', function(){
-                    if (self.rte.modeGet() === 'rich' && !self.rte.readOnlyGet()) {
+                    if (self.rte.modeGet() === 'rich' && !self.rte.readOnlyGet() && self.changed) {
                         self.trackChangesSave();
                         self.$el.val(self.toHTML());
                     }
@@ -710,7 +736,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Adding HTML to the editor tends to create multiple undo history events,
             // so clear the history to start.
             self.rte.historyClear();
-            
+
+            // Set up an event listener to mark the content as "changed".
+            //
+            // This is because in some cases if the input HTML is transformed when parsing,
+            // we don't want to mark the content as changed unless the user specifically modifies
+            // the content.
+            //
+            // Note we do this after a short timeout because the editor's change events
+            // are debounced, and we need to give the editor time to add the initial
+            // content before we start listening for change events.
+
+            self.changed = false;
+            self.$editor.one('rteChange', function(){
+                self.changed = true;
+            });
+
             // Set up periodic update of the textarea
             self.previewInit();
         },
@@ -760,9 +801,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             $('.toolHeader').toggle();
 
             // Add classname to change display
-            $('body').toggleClass('rte-fullscreen');
-            self.$container.toggleClass('rte-fullscreen');
-            
+            var $container = self.$container;
+            var fullscreen = $container.hasClass('rte-fullscreen');
+
+            while ($container.length > 0) {
+                $container.toggleClass('rte-fullscreen', !fullscreen);
+                $container = $container.parent();
+            }
+
             // Also kick the editor
             self.rte.refresh();
         },
@@ -795,6 +841,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         
         modeSetPlain: function() {
             var self = this;
+
+            // Mark this as a change
+            self.rte.triggerChange();
             
             self.$el.val(self.rte.toHTML());
             
@@ -809,6 +858,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             var self = this;
             var rte = self.rte;
             var trackIsOn = rte.trackIsOn();
+            
+            // Mark this as a change
+            self.rte.triggerChange();
             
             self.$el.hide();
 
@@ -896,7 +948,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             name = self.$el.closest('.inputContainer').attr('data-name') || '';
             
             if (name) {
-                name = 'bsp.rte.changesTracking.' + name;
+                name = 'bsp.rte2.changesTracking.' + name;
             }
             
             return name;
@@ -1089,7 +1141,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 
                 var styleName = rtElement.styleName;
                 var submenuName = rtElement.submenu;
-                var submenu;
+                var $submenu;
                 var toolbarButton;
 
                 toolbarButton = {
@@ -1105,27 +1157,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 }
 
                 if (submenuName) {
-                    submenu = submenus[submenuName];
-
-                    if (!submenu) {
-                        submenu = [ ];
-                        submenus[submenuName] = submenu;
+                    
+                    $submenu = submenus[submenuName];
+                    if (!$submenu) {
+                        $submenu = submenus[submenuName] = self.toolbarAddSubmenu({text: submenuName}, $toolbar);
                     }
 
-                    submenu.push(toolbarButton);
+                    self.toolbarAddButton(toolbarButton, $submenu);
 
                 } else {
                     self.toolbarAddButton(toolbarButton, $toolbar);
                 }
             });
 
-            $.each(submenus, function (text, submenuItems) {
-                var $submenu;
-                $submenu = self.toolbarAddSubmenu({text: text}, $toolbar);
-                $.each(submenuItems, function(i, item) {
-                    self.toolbarAddButton(item, $submenu);
-                });
-            });
         },
 
 
@@ -1184,6 +1228,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 'class': item.className || '',
                 html: item.text || '',
                 title: item.tooltip || '',
+                'data-rte-style': item.style,
                 data: {
                     toolbarConfig:item
                 }
@@ -1455,7 +1500,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Get all the context elements for the currently selected range of characters
             context = rte.getContext();
-            
+            var currentRange = rte.getRange();
+            var currentRangeCollapsed = currentRange.from.line === currentRange.to.line && currentRange.from.ch === currentRange.to.ch;
+
             // Go through each link in the toolbar and see if the style is defined
             $links.each(function(){
 
@@ -1565,8 +1612,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                         // across the range.
 
                         // Loop through all the contexts for the selected range
-                        validContext = true;
-                        $.each(context, function(i, contextElement) {
+                        var validContextInner = true;
+                        $.each(context, function(contextElement) {
+                            if (contextElement === '') {
+                                contextElement = null;
+                            }
 
                             // If a different root context was specified, then use that as the root element
                             // For example, if the rte is meant to edit the content inside a '<mycontent>' element,
@@ -1578,15 +1628,35 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                             // Is this contextElement listed among the context allowed by the current style?
                             if ($.inArray(contextElement, styleObj.context) === -1) {
-                                validContext = false;
+
+                                // Special case - if this style can be toggled, then it should be considered valid
+                                // if the entire range contains this style
+                                if (contextElement === styleObj.element && styleObj.toggle && styles[config.style]) {
+                                    return;
+                                }
+                                
+                                validContextInner = false;
                                 return false; // stop looping
                             }
                         });
 
+                        var validContextOuter = false;
+
+                        if (!currentRangeCollapsed) {
+                            validContextOuter = true;
+
+                            $.each(context, function (contextElement, contextOptions) {
+                                if (contextOptions.context && $.inArray(styleObj.element, contextOptions.context) === -1) {
+                                    validContextOuter = false;
+                                    return false;
+                                }
+                            });
+                        }
+
                         // Set a class on the toolbar button to indicate we are out of context.
                         // That class will be used to style the button, but also
                         // to prevent clicking on the button.
-                        $link.toggleClass('outOfContext', !validContext);
+                        $link.toggleClass('outOfContext', !(validContextInner || validContextOuter));
                     }
                     
                 }
@@ -2023,7 +2093,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         enhancementUpdate: function(el) {
 
-            var $content, $edit, editUrl, $enhancement, emptyText, reference, $select, self;
+            var $content, $options, optionsUrl, $edit, editUrl, $enhancement, emptyText, reference, $select, self;
 
             self = this;
             $enhancement = self.enhancementGetWrapper(el);
@@ -2066,12 +2136,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 $select = $enhancement.find('.rte2-enhancement-toolbar-change');
                 $select.text('Change');
 
+                $options = $enhancement.find('.rte2-enhancement-toolbar-options');
+                optionsUrl = $options.attr('href') || '';
+                optionsUrl = $.addQueryParameters(optionsUrl,
+                        'id', reference.record._ref,
+                        'reference', JSON.stringify(reference));
+                $options.attr('href', optionsUrl);
+
                 // Modify the "Edit" button in the toolbar so it will pop up the edit dialog for the enhancement
                 $edit = $enhancement.find('.rte2-enhancement-toolbar-edit');
                 editUrl = $edit.attr('href') || '';
                 editUrl = $.addQueryParameters(editUrl,
-                                               'id', reference.record._ref,
-                                               'reference', JSON.stringify(reference));
+                        'id', reference.record._ref);
                 $edit.attr('href', editUrl);
             }
 
@@ -2156,30 +2232,21 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
                 self.enhancementToolbarAddSeparator($toolbar);
 
-                $sizesSubmenu = self.enhancementToolbarAddSubmenu({
-                    text: 'Image Size',
-                    className: 'rte2-enhancement-toolbar-sizes'
-                }, $toolbar);
-
                 self.enhancementToolbarAddButton({
-                    text: 'None',
+                    text: 'Image Size',
+                    tooltip: 'Select an image size',
                     className: 'rte2-enhancement-toolbar-size',
-                    onClick: function() {
-                        self.enhancementSetSize($toolbar, '');
+                    onMouseEnter: function(event) {
+                        self.enhancementPopupSizesShowDelayed(this, event);
+                    },
+                    onMouseLeave: function(event) {
+                        self.enhancementPopupSizesHideDelayed(this, event);
+                    },
+                    onClick: function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
                     }
-                }, $sizesSubmenu);
-
-                $.each(sizes, function(internalName, displayName) {
-
-                    self.enhancementToolbarAddButton({
-                        text: displayName,
-                        className: 'rte2-enhancement-toolbar-size',
-                        onClick: function() {
-                            self.enhancementSetSize($toolbar, internalName);
-                        }
-                    }, $sizesSubmenu);
-
-                });
+                }, $toolbar);
             }
 
             self.enhancementToolbarAddSeparator($toolbar);
@@ -2202,10 +2269,17 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             if (!config.marker) {
 
                 self.enhancementToolbarAddButton({
-                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
+                    href: CONTEXT_PATH + '/content/edit.jsp', // Note this url will be modified to add the enhancement id
                     target: self.enhancementGetTarget(),
                     text: 'Edit',
                     className: 'rte2-enhancement-toolbar-edit'
+                }, $toolbar);
+
+                self.enhancementToolbarAddButton({
+                    href: CONTEXT_PATH + '/content/enhancement.jsp', // Note this url will be modified to add the enhancement id
+                    target: self.enhancementGetTarget(),
+                    text: 'Options',
+                    className: 'rte2-enhancement-toolbar-options'
                 }, $toolbar);
 
             }
@@ -2307,6 +2381,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                     // Call the onclick function, setting "this" to the clicked element
                     item.onClick.call(this, event);
                     return false;
+                });
+            }
+            if (item.onMouseEnter) {
+                $button.on('mouseenter', function(event) {
+                    // Call the mouseenter function, setting "this" to the clicked element
+                    item.onMouseEnter.call(this, event);
+                });
+            }
+            if (item.onMouseLeave) {
+                $button.on('mouseleave', function(event) {
+                    // Call the mouseleave function, setting "this" to the clicked element
+                    item.onMouseLeave.call(this, event);
                 });
             }
 
@@ -2715,6 +2801,145 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
 
         /**
+         * Create a poupup if the enhancement has sizes to choose from.
+         * If the popup has been previously created, returns the previously created popup.
+         *
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         *
+         * @returns {jQuery}
+         * jQuery element for the popup.
+         */
+        enhancementPopupSizesCreate: function(el) {
+            
+            var $el, $popup, self, sizes;
+
+            self = this;
+            $el = $(el);
+            
+            sizes = self.enhancementGetSizes();
+
+            $popup = $el.data('enhancementSizesPopup');
+            if (!$popup) {
+                
+                $popup = $('<ul/>', {
+                    'class': 'rte2-enhancement-sizes-popup',
+                }).hover(function(event){
+                    self.enhancementPopupSizesShowDelayed($el);
+                }, function(event) {
+                    self.enhancementPopupSizesHideDelayed($el);
+                }).css('position', 'absolute').hide().appendTo(document.body);
+                
+                $(el).data('enhancementSizesPopup', $popup);
+
+                self.enhancementToolbarAddButton({
+                    text: 'None',
+                    className: 'rte2-enhancement-toolbar-size',
+                    onClick: function() {
+                        self.enhancementSetSize($el, '');
+                        self.enhancementPopupSizesHide(el);
+                    }
+                }, $popup);
+
+                $.each(sizes, function(internalName, displayName) {
+
+                    self.enhancementToolbarAddButton({
+                        text: displayName,
+                        className: 'rte2-enhancement-toolbar-size',
+                        onClick: function() {
+                            self.enhancementSetSize($el, internalName);
+                            self.enhancementPopupSizesHide(el);
+                        }
+                    }, $popup);
+
+                });
+
+            }
+            
+            return $popup;
+        },
+
+        
+        /**
+         * Show the enhancement sizes popup after a short delay.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesShowDelayed: function(el) {
+            
+            var timeout, self;
+
+            self = this;
+            
+            // Cancel any previous attempt to show the popup
+            clearTimeout( $(el).data('enhancementPopupSizesHideDelayed') );
+            
+            timeout = setTimeout(function(){
+                self.enhancementPopupSizesShow(el);
+            }, 100);
+            
+            $(el).data('enhancementPopupSizesShowDelayed', timeout);
+        },
+
+        
+        /**
+         * Show the enhancement sizes popup.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesShow: function(el) {
+
+            var $popup, offset, self;
+
+            self = this;
+
+            $popup = self.enhancementPopupSizesCreate(el);
+
+            // Position the popup under the button
+            offset = $(el).offset();
+
+            $popup.show().offset({ top: offset.top + $(el).height(), left: offset.left});
+
+            $(el).addClass('hovered');
+        },
+
+        
+        /**
+         * Hide the enhancement sizes popup after a short delay.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesHideDelayed: function(el) {
+            
+            var timeout, self;
+
+            self = this;
+            
+            // Cancel any previous attempt to show the popup
+            clearTimeout( $(el).data('enhancementPopupSizesShowDelayed') );
+            
+            timeout = setTimeout(function(){
+                self.enhancementPopupSizesHide(el);
+            }, 200);
+            $(el).data('enhancementPopupSizesHideDelayed', timeout);
+        },
+
+        
+        /**
+         * Hide the enhancement sizes popup.
+         * @param {Element} el
+         * The image sizes button inside the enhancement element.
+         */
+        enhancementPopupSizesHide: function(el) {
+            var $popup, self;
+            self = this;
+            $popup = self.enhancementPopupSizesCreate(el);
+            $popup.hide();
+            $(el).removeClass('hovered');
+        },
+
+        
+        /**
          * Get the reference object for the enhancement.
          * @returns {Object}
          */
@@ -2744,6 +2969,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             $enhancement = self.enhancementGetWrapper(el);
 
             $enhancement.data('reference', reference);
+
+            self.rte.triggerChange();
         },
 
 
@@ -2903,7 +3130,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
         inlineEnhancementHandleClick: function(event, mark) {
 
-            var enhancementEditUrl, $div, $divLink, frameName, html, offset, offsetContainer, range, self, styleObj;
+            var enhancementEditUrl, $div, $divForm, frameName, html, offset, offsetContainer, range, self, styleObj;
 
             self = this;
 
@@ -2935,8 +3162,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             enhancementEditUrl = $.addQueryParameters(
                 window.CONTEXT_PATH + '/content/enhancement.jsp',
                 'typeId', styleObj.enhancementType,
-                'attributes', JSON.stringify(mark.attributes),
-                'body', $(html).html()
+                'attributes', JSON.stringify(mark.attributes)
             );
 
             // Create a link for editing the enhancement and position it at the click event
@@ -2944,11 +3170,16 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             $div = $('<div/>', {
                 'class': 'rte2-frame-enhancement-inline',
                 'style': 'position:absolute;top:0;left:0;height:1px;overflow:hidden;',
-                html: $('<a/>', {
+                html: $('<form/>', {
                     target: frameName,
-                    href: enhancementEditUrl,
+                    action: enhancementEditUrl,
+                    method: 'post',
                     style: 'width:100%;display:block;',
-                    text: '.'
+                    html: $('<input/>', {
+                        type: 'hidden',
+                        name: 'body',
+                        value: $(html).html()
+                    })
                 })
                 
             }).appendTo(self.$container);
@@ -2960,12 +3191,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 'top': offset.top - offsetContainer.top,
                 'left': offset.left - offsetContainer.left
             });
-            $divLink = $div.find('a');
+            $divForm = $div.find('form');
 
             // Add data to the link with the rte and the mark,
             // so any popup form can access them
-            $divLink.data('rte', self);
-            $divLink.data('mark', mark);
+            $divForm.data('rte', self);
+            $divForm.data('mark', mark);
             
             // Listen for an 'enhancementUpdate' event that will be triggered on
             // the edit link, so we can tell when the enhancement is updated.
@@ -2976,7 +3207,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // that we created for table/tr/td elements. In that case we do not allow the 
                 // inline enhancement popup form to modify the html of the table.
                 
-                $divLink.on('enhancementUpdate', function(event, html){
+                $divForm.on('enhancementUpdate', function(event, html){
                     self.inlineEnhancementReplaceMark(mark, html);
                 });
             }
@@ -2985,7 +3216,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // the edit popup, so we can communicate the mark back to the popup form.
             // The enhancement edit form can trigger this event.
             // Alternately the popup form can get the rte and mark from the data on the source link.
-            $divLink.on('enhancementRead', function(event, callback){
+            $divForm.on('enhancementRead', function(event, callback){
                 // Call the callback, passing it the mark.
                 // Also within the callback ensure that "this" refers to this instance of the rte.
                 if (callback) {
@@ -2998,13 +3229,23 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // with any popups
             setTimeout(function(){
                 
-                $divLink.click();
+                $divForm.submit();
 
                 // When the popup is closed put focus back on the editor
-                $(document).one('closed', '[name=' + frameName + ']', function(){
+                $(document).on('closed.' + frameName, '[name=' + frameName + ']', function(event){
+                    
+                    // Make sure this 'closed' event was fired on the frame,
+                    // and not on some popup within the frame
+                    if (event.target !== event.currentTarget) {
+                        return;
+                    }
+                    
                     self.focus();
                     $div.remove();
                     self.rte.triggerChange();
+
+                    // Stop listening for this event
+                    $(document).off('closed.' + frameName);
                 });
 
             }, 100);
@@ -3137,6 +3378,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 col_right: {},
                 remove_row: {},
                 remove_col: {},
+                clear_cell: {name: 'Clear cells'},
                 undo: {},
                 redo: {}
             });
@@ -3149,6 +3391,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 stretchH: 'all',
                 contextMenu: {
                     callback: function (key, options) {
+                        self.rte.triggerChange();
                         switch (key) {
                         case 'edit':
                             self.tableEditSelection($placeholder);
@@ -3161,6 +3404,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                             break;
                         case 'attrCell':
                             self.tableEditAttrCell($placeholder);
+                            break;
+                        case 'clear_cell':
+                            self.tableClearSelection($placeholder);
                             break;
                         }
                     },
@@ -3363,7 +3609,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 // This is to let the user repeatedly click the Up/Down button to move the enhancement multiple lines.
                 topWindow = $(window).scrollTop();
                 $(window).scrollTop(topWindow + topNew - topOriginal);
-
             }
         },
 
@@ -3376,6 +3621,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self = this;
             $el = self.tableGetWrapper(el);
             $el.addClass('toBeRemoved');
+            self.rte.triggerChange();
         },
 
         
@@ -3400,6 +3646,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self = this;
             $el = self.tableGetWrapper(el);
             $el.removeClass('toBeRemoved');
+            self.rte.triggerChange();
         },
 
 
@@ -3640,7 +3887,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             self.$tableEditTextarea = $('<textarea>').appendTo(self.$tableEditDiv);
             self.tableEditRte = Object.create(Rte);
-            self.tableEditRte.init(self.$tableEditTextarea);
+            self.tableEditRte.init(self.$tableEditTextarea, {contextRoot:'td'});
 
             $controls = $('<div/>', {'class': 'rte2-table-editor-controls'}).appendTo(self.$tableEditDiv);
 
@@ -3663,8 +3910,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 }
             }).appendTo($controls);
 
-            self.$tableEditDiv.popup({parent:self.$container}).popup('close');
-            
+            self.$tableEditDiv.popup().popup('close');
+
             // Give the popup a name so we can control the width
             self.$tableEditDiv.popup('container').attr('name', 'rte2-frame-table-editor');
         },
@@ -3691,7 +3938,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.tableEditCancel = false;
             
             value = $el.handsontable('getValue') || '';
-            
+
+            self.$tableEditDiv.popup('source', $($el.handsontable('getCell', range[0], range[1])));
             self.$tableEditDiv.popup('open');
 
             self.tableEditRte.fromHTML(value);
@@ -3699,7 +3947,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Turn on or off track changes in the table editor, based on the track changes setting in the main editor
             self.tableEditRte.rte.trackSet( self.rte.trackIsOn() );
 
-            self.tableEditRte.focus();
+            // Not sure why the delay is necessary...
+            setTimeout(function () {
+                self.tableEditRte.focus();
+            }, 100);
+
             self.tableEditRte.refresh();
 
             // Due to a bug in handsontable, it steals the arrow keys even when it does not have focus.
@@ -3716,6 +3968,35 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                  }
 
             });
+        },
+
+
+        /**
+         * Clear the cell that is currently selected.
+         * @param {Element|jQuery} el
+         * The placeholder element where handsontable was instantiated.
+         */
+        tableClearSelection: function(el) {
+            
+            var $el, range, self, value, row, rowMin, rowMax, col, colMin, colMax;
+
+            self = this;
+            $el = $(el);
+            range = $el.handsontable('getSelected');
+
+            rowMin = Math.min(range[0], range[2]);
+            rowMax = Math.max(range[0], range[2]);
+            
+            colMin = Math.min(range[1], range[3]);
+            colMax = Math.max(range[1], range[3]);
+
+            for (row = rowMin; row <= rowMax; row++) {
+                for (col = colMin; col <= colMax; col++) {
+                    $el.handsontable('setDataAtCell', row, col, '');
+                }
+            }
+
+            self.rte.triggerChange();
         },
 
         
@@ -4065,6 +4346,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // Do not update if we are in read only mode
             if (self.rte.readOnlyGet()) {
+                return;
+            }
+            
+            // Do not update if the content in the editor has not been changed
+            if (!self.changed) {
                 return;
             }
 

@@ -39,7 +39,13 @@ ReferentialText fieldValue = (ReferentialText) state.getValue(fieldName);
 String inputName = (String) request.getAttribute("inputName");
 
 if ((Boolean) request.getAttribute("isFormPost")) {
-    fieldValue = new ReferentialText(wp.param(String.class, inputName), Boolean.TRUE.equals(request.getAttribute("finalDraft")));
+    ReferentialText refText = new ReferentialText();
+
+    refText.setResolveInvisible(state.isResolveInvisible());
+    refText.addHtml(wp.param(String.class, inputName));
+
+    fieldValue = refText;
+
     state.putValue(fieldName, fieldValue);
     return;
 }
