@@ -569,7 +569,6 @@ writer.start("div", "class", "searchForm");
                             "var $source = $(this).popup('source');" +
                             "if ($source) {" +
                                 "if ($source.is('a')) {" +
-                                    "console.log($source[0]);" +
                                     "$source.click();" +
                                 "} else if ($source.is('form')) {" +
                                     "$source[0].reset();" +
