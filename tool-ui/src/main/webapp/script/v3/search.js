@@ -1,11 +1,11 @@
 define([ 'jquery', 'bsp-utils' ], function ($, bsp_utils) {
     var SAVABLE_DATA = 'search-savable';
 
-    $(document).on('click', '.searchHistory a', function (event) {
-        var $popup = $(event.target).popup('container');
+    $(document).on('click', '.searchHistory .links > li > a', function (event) {
+        var $source = $(event.target).popup('source');
 
-        if ($popup) {
-            $popup.removeData(SAVABLE_DATA);
+        if ($source) {
+            $source.removeData(SAVABLE_DATA);
         }
     });
 
@@ -13,18 +13,16 @@ define([ 'jquery', 'bsp-utils' ], function ($, bsp_utils) {
         var $form = $(event.target);
 
         if ($form.length > 0) {
-            var $popup = $form.popup('container');
+            var $source = $form.popup('source');
 
-            if ($popup) {
-                var savable = $popup.data(SAVABLE_DATA);
+            if ($source) {
+                var savable = $source.data(SAVABLE_DATA);
 
                 if (savable) {
                     $form.find('input[name="cx"], input[name="si"]').prop('disabled', false);
 
                 } else {
-                    setTimeout(function () {
-                        $popup.data(SAVABLE_DATA, true);
-                    }, 0);
+                    $source.data(SAVABLE_DATA, true);
                 }
             }
         }
