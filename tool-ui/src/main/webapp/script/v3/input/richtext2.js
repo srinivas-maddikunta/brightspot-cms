@@ -4346,6 +4346,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.$container.on('rteChange', $.throttle(500, function(){
                 self.placeholderRefresh();
             }));
+
+            // If data-dynamic-placeholder is used on the textarea
+            // then it triggers a placeholderUpdate event to let us know
+            // when the placeholder changes.
+            // (refer to state.js for more information)
+            self.$el.on('placeholderUpdate', function() {
+                self.placeholderRefresh();
+            });
         },
 
 
@@ -4355,7 +4363,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
          */
         placeholderRefresh: function() {
             var self = this;
-            var placeholder = self.$el.attr('placeholder');
+            var placeholder = self.$el.prop('placeholder');
 
             if (!placeholder) {
                 return;
