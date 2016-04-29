@@ -767,6 +767,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 return false;
             });
             self.$editor.on('rteChange', function(){
+
+                // Don't pass through change events if we're showing the placeholder
+                if (self.placeholderIsShowing()) {
+                    return false;
+                }
+                
                 self.$el.trigger('rteChange', [self]);
                 return false;
             });
@@ -2106,7 +2112,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
 
             // If in read only mode do not create toolbar.
             // Note there is no way to switch from read only to editable at this time.
-            if (!self.rte.readOnlyGet()) {
+            if (!self.rte.readOnlyGet() && !self.placeholderIsShowing()) {
                 $enhancement.append( self.enhancementToolbarCreate(config) );
             }
 
@@ -3412,7 +3418,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             // Create wrapper element for the table and add the toolbar
             $div = $('<div/>', {
                 'class': 'rte2-table'
-            }).append( self.tableToolbarCreate() );
+            });
+            
+            if (!self.rte.readOnlyGet() && !self.placeholderIsShowing()) {
+                $div.append( self.tableToolbarCreate() );
+            }
 
             // Create the placeholder div that will hold the table.
             // Note it appears you must set the style directly on the element or table resizing doesn't work correctly.
@@ -4332,7 +4342,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         /*==================================================
          * Placeholder
          *==================================================*/
+        
+        /**
+         * Class added to the editor to style the placeholder when it is showing.
+         */
+        placeholderClass: 'rte2-placeholder-showing',
 
+        
         /**
          * Set the placeholder text for when the editor is empty,
          * and periodically check to see if the placeholder text
@@ -4341,11 +4357,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
         placeholderInit: function() {
             var self = this;
 
-            self.placeholderRefresh();
+            self.placeholderActive = false;
 
-            self.$container.on('rteChange', $.throttle(500, function(){
-                self.placeholderRefresh();
-            }));
+            // Check if RTE is empty and if so add the placeholder
+            self.placeholderRefresh();
 
             // If data-dynamic-placeholder is used on the textarea
             // then it triggers a placeholderUpdate event to let us know
@@ -4354,30 +4369,124 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             self.$el.on('placeholderUpdate', function() {
                 self.placeholderRefresh();
             });
+
+            // When RTE gains focus always remove the placeholder if it is active
+            self.$el.on('rteFocus', function(){
+                
+                self.placeholderRemove();
+                
+                // Note if the textarea is an "editable placeholder" then
+                // on focus the editable placeholder code will put content
+                // back into the RTE.
+            });
+
+            // When RTE loses focus, check if RTE is empty and if so add the placeholder
+            self.$el.on('rteBlur', function(){
+                
+                self.placeholderRefresh();
+                
+                // Note if the textarea is an "editable placeholder" then
+                // on blur the editable placeholder code will possibly examine
+                // the RTE and empty it again, then call placeholderRefresh again.
+            });
+
         },
 
 
         /**
          * Check to see if the textarea has a placeholder attribute, and
          * if so display it over the rich text editor when the editor is empty.
+         * If the placeholder is already showing, update the content.
          */
         placeholderRefresh: function() {
-            var self = this;
-            var placeholder = self.$el.prop('placeholder');
 
-            if (!placeholder) {
-                return;
+            var count, $editor, placeholder, placeholderIsShowing, self, showPlaceholder;
+            
+            self = this;
+            $editor = self.$editor;
+            
+            // Get placeholder content from the textarea
+            placeholder = self.$el.prop('placeholder');
+
+            placeholderIsShowing = self.placeholderIsShowing();
+            
+            // Determine if we should display the placeholder
+            if (placeholderIsShowing) {
+                // Placeholder is already showing; however, the placeholder attribute might have
+                // changed so we still need to set it in the editor.
+                showPlaceholder = true;
+            } else {
+                // Placeholder is not already showing.
+                // Determine if RTE is empty and if so show the placeholder
+                count = self.rte.getCount();
+                if (count === 0) {
+                    showPlaceholder = true;
+                }
             }
 
-            var count = self.rte.getCount();
-            var $editor = self.$editor;
-            var ATTR_NAME = 'rte2-placeholder';
+            if (showPlaceholder) {
+                self.placeholderShow();
+            } else {
+                self.placeholderRemove();
+            }
+        },
 
-            if (count === 0) {
-                $editor.attr(ATTR_NAME, placeholder);
-                
-            } else if ($editor.attr(ATTR_NAME)) {
-                $editor.removeAttr(ATTR_NAME);
+        
+        /**
+         * Determine if the placeholder is currently showing (based on the placeholderActive flag). 
+         * @returns {Boolean}
+         */
+        placeholderIsShowing: function() {
+            var self;
+            self = this;
+            return Boolean( self.placeholderActive );
+        },
+
+        
+        /**
+         * Replaces the content of the editor with the content in the textarea placeholder attribute (if any).
+         * Also sets the placeholderActive flag.
+         * If the placeholder attribute from the textarea is empty, then it removes the placeholder.
+         */
+        placeholderShow: function() {
+            
+            var placeholder, self;
+            
+            self = this;
+
+            // Get the placeholder content from the textarea
+            placeholder = self.$el.prop('placeholder') || '';
+
+            // If the placeholder content is empty, remove the placeholder
+            // (if it happens to be already showing)
+            if (!placeholder) {
+                self.placeholderRemove();
+                return;
+            }
+      
+            // Set placeholder active to true to other code like toHTML()
+            // and events like rteChange can modify their behavior
+            self.placeholderActive = true;
+
+            // Add a class so we can style the text in the RTE
+            self.$editor.addClass( self.placeholderClass );
+
+            // Set the content of the editor to the placeholder content.
+            // Note other code like toHTML() should not return this content.
+            self.fromHTML(placeholder);
+        },
+
+        
+        /**
+         * If the placeholder content is currently active, removes it from the editor and clears the editor content.
+         */
+        placeholderRemove: function() {
+            var self;
+            self = this;
+            if (self.placeholderActive) {
+                self.placeholderActive = false;
+                self.$editor.removeClass( self.placeholderClass );
+                self.rte.empty();
             }
         },
 
@@ -4454,7 +4563,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
             var html, self;
             self = this;
             if (self.rte.modeGet() === 'rich') {
-                html = self.rte.toHTML();
+                if (self.placeholderIsShowing()) {
+                    html = '';
+                } else {
+                    html = self.rte.toHTML();
+                }
             } else {
                 html = self.$el.val();
             }
