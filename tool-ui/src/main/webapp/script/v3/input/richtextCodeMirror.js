@@ -185,14 +185,52 @@ define([
         
         /**
          * Rules for cleaning up the clipboard data when content is pasted
-         * from outside the RTE.
+         * from outside the RTE, based on the type of content. These rules
+         * are applied before the general clipboardSanitizeRules.
+         *
+         * This is an object of key/value pairs, where the key is a type identifier,
+         * and value is an object which contains an isType() function and a set of rules.
+         * {
+         *   'typename': {
+         *     isType: function(content) { return Boolean },
+         *     rules: { } // same format as clipboardSanitizeRules
+         *   },
+         *   ...
+         * }
+         *
+         * @example
+         * {
+         *    'googledocs': {
+         *       isType: function(content) { return Boolean($(content).find('b[id^=docs-internal-guid]').length); }
+         *       rules: { }
+         *    },
+         *    'msword': {
+         *       isType: function(content) { return Boolean($(content).find('[class^=Mso]').length); },
+         *       rules: { }
+         *    }
+         */
+        clipboardSanitizeTypes: {},
+
+        
+        /**
+         * Rules for cleaning up the clipboard data when content is pasted
+         * from outside the RTE. These rules are *always* applied to the content.
+         * See clipboardSanitizeTypes to set up rules based on the type of content
+         * that is pasted in.
          *
          * This is an object of key/value pairs, where the key is a jQuery selector,
-         * and value is a style name from the styles object.
+         * and value is one of the following:
+         * - A string that is the style name from the styles object.
+         * - An empty string to indicate the matched elements should be removed.
+         * - A function that directly modifies the matched element content.
          *
          * @example
          * {'span[style*="font-style:italic"]': 'italic',
-         *  'span[style*="font-weight:700"]': 'bold'}
+         *  'span[style*="font-weight:700"]': 'bold',
+         *  'table', function($el) {
+         *    // Modify $el which is the table element
+         *  }
+         * }
          */
         clipboardSanitizeRules: {},
 
@@ -1697,6 +1735,17 @@ define([
          * This allows other functions to operate correctly.
          */
         inlineCleanup: function() {
+            var self;
+            
+            self = this;
+
+            // For performance, tell CodeMirror not to update the DOM
+            // until our inlineCleanup() has completed.
+            self.codeMirror.operation(function(){
+                self._inlineCleanup();
+            });
+        },
+        _inlineCleanup: function() {
 
             var doc, editor, marks, marksByClassName, self;
 
@@ -3734,28 +3783,23 @@ define([
             self = this;
             dom = self.htmlParse(html);
             $el = $(dom);
+            
+            // Check if the pasted content matches a particular content type from clipboardSanitizeTypes
+            $.each(self.clipboardSanitizeTypes, function(typeName, typeConf) {
+                var isType;
+                if (typeConf.isType && typeConf.rules) {
+                    isType = typeConf.isType($el);
+                    if (isType) {
+                        // The pasted content matches this type, so apply these rules
+                        self.clipboardSanitizeApplyRules($el, typeConf.rules);
+                    }
+                }
+            });
+            
+            self.clipboardSanitizeApplyRules($el, self.clipboardSanitizeRules);
 
-            // Apply the clipboard sanitize rules (if any)
-            if (self.clipboardSanitizeRules) {
-                $.each(self.clipboardSanitizeRules, function(selector, style) {
-                    $el.find(selector).each(function(){
-                        var $match, $replacement;
-
-                        $match = $(this);
-                        
-                        if ($.isFunction(style)) {
-                            style($match);
-                        } else {
-                            $replacement = $('<span>', {'data-rte2-sanitize': style});
-                            $replacement.append( $match.contents() );
-                            $match.replaceWith( $replacement );
-                        }
-                    });
-                });
-
-                // Anything we replaced with "linebreak" should get an extra blank line after
-                $el.find('[data-rte2-sanitize=linebreak]').after('<br/>');
-            }
+            // Anything we replaced with "linebreak" should get an extra blank line after
+            $el.find('[data-rte2-sanitize=linebreak]').after('<br/>');
 
             // Run it through the clipboard sanitize function (if it exists)
             if (self.clipboardSanitizeFunction) {
@@ -3765,6 +3809,34 @@ define([
             return $el[0];
         },
 
+        
+        /**
+         * Internal function to apply a set of sanitize rules to the content.
+         * @param {jQuery} $content
+         * @param {Object} rules
+         */
+        clipboardSanitizeApplyRules: function($content, rules) {
+            var self;
+            self = this;
+            
+            $.each(rules, function(selector, style) {
+                
+                $content.find(selector).each(function(){
+                    var $match, $replacement;
+
+                    $match = $(this);
+                    
+                    if ($.isFunction(style)) {
+                        style($match);
+                    } else {
+                        $replacement = $('<span>', {'data-rte2-sanitize': style});
+                        $replacement.append( $match.contents() );
+                        $match.replaceWith( $replacement );
+                    }
+                });
+            });
+        },
+        
         
         /**
          * @param {Event} e
@@ -5381,12 +5453,19 @@ define([
          */
         toHTMLSpanCompare: function(a, b) {
                 
-            var classA, classB, outsideB, outsideA, self, styleA, styleB;
+            var classA, classB, markerA, markerB, outsideB, outsideA, self, styleA, styleB;
 
             self = this;
+
+            markerA = a.marker;
+            markerB = b.marker;
+
+            if (!(markerA && markerB)) {
+                return 0;
+            }
             
-            classA = a.marker.className;
-            classB = b.marker.className;
+            classA = markerA.className;
+            classB = markerB.className;
             
             styleA = self.classes[classA];
             styleB = self.classes[classB];

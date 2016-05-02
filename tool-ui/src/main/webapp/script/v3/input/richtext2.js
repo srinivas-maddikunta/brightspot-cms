@@ -230,19 +230,110 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 clear: ['alignLeft', 'alignCenter', 'ol', 'ul']
             }
         },
+
         
         /**
          * Rules for cleaning up the clipboard data when content is pasted
-         * from outside the RTE.
+         * from outside the RTE, based on the type of content. These rules
+         * are applied before the general clipboardSanitizeRules.
+         *
+         * This is an object of key/value pairs, where the key is a type identifier,
+         * and value is an object which contains an isType() function and a set of rules.
+         * {
+         *   'typename': {
+         *     isType: function(content) { return Boolean },
+         *     rules: { } // same format as clipboardSanitizeRules
+         *   },
+         *   ...
+         * }
+         *
+         * @example
+         * {
+         *    'googledocs': {
+         *       isType: function(content) { return Boolean($(content).find('b[id^=docs-internal-guid]').length); }
+         *       rules: { }
+         *    },
+         *    'msword': {
+         *       isType: function(content) { return Boolean($(content).find('[class^=Mso]').length); },
+         *       rules: { }
+         *    }
+         */
+        clipboardSanitizeTypes: {
+            
+            'googledocs': {
+                isType: function(content) {
+                    return Boolean($(content).find('[id^=docs-internal-guid]').length);
+                },
+                rules: {
+            
+                    // Note: Google docs encloses the entire document in a 'b' element so we must exclude that one
+                    'b[id^=docs-internal-guid]': '',
+            
+                    // Google docs styles
+                    'span[style*="font-style:italic"]': 'italic',
+                    'span[style*="font-weight:700"]': 'bold',
+                    'span[style*="font-weight:bold"]': 'bold',
+                    'span[style*="font-weight: bold"]': 'bold',
+                    'span[style*="text-decoration:underline"]': 'underline',
+                    'span[style*="vertical-align:super"]': 'superscript',
+                    'span[style*="vertical-align:sub"]': 'subscript',
+
+                    // Google docs puts paragraph within list items, so eliminate it
+                    'li > p': '',
+
+                    // Google docs sometimes uses a paragraph followed by a line break,
+                    // but we're already putting an extra line break after paragraph,
+                    // so just remove the br.
+                    'p ~ br': ''
+                }
+            },
+
+            'msword': {
+                isType: function(content) {
+                    return Boolean($(content).find('[class^=Mso]').length);
+                },
+                rules: {
+
+                    // Since we need to modify the 'p' element,
+                    // we'll have to repeat some of the 'p' element
+                    // rules here to ensure proper ordering of the rules
+                    
+                    'p[style*="text-align: right"]': 'alignRight',
+                    'p[style*="text-align: center"]': 'alignCenter',
+            
+                    'p[style*="text-align:right"]': 'alignRight',
+                    'p[style*="text-align:center"]': 'alignCenter',
+
+                    // MSWord 'p' elements should be treated as a new line
+                    // Special case if 'p' element contains only whitespace remove the whitespace
+                    'p[class^=Mso]': function($el) {
+                        var $replacement, t;
+                        t = $el.text() || '';
+                        if (t.match(/^\s*$/)) {
+                            $el.text('');
+                        }
+                        $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
+                        $replacement.append( $el.contents() );
+                        $el.replaceWith( $replacement );
+                    }
+
+                }
+            }
+        },
+
+
+        /**
+         * Rules for cleaning up the clipboard data when content is pasted
+         * from outside the RTE. These rules are applied *after* the clipboardSanitizeTypes
+         * rules are applied.
          *
          * This is an object of key/value pairs, where the key is a jQuery selector,
          * and value is one of the following:
          * {String} a style name that defines how element should be styled (refer to the "styles" parameter)
+         * {Empty String} to remove the matching element
+         * {Function} to modify the matching element using a custom function
          */
         clipboardSanitizeRules: {
-            
-            // Note: Google docs encloses the entire document in a 'b' element so we must exclude that one
-            'b[id^=docs-internal-guid]': '',
             
             // Any <b> or '<strong>' element should be treated as bold even if it has extra attributes
             // Example MSWord:  <b style="mso-bidi-font-weight:normal">
@@ -254,18 +345,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             'i': 'italic',
             'em': 'italic',
 
-            // Google docs styles
-            'span[style*="font-style:italic"]': 'italic',
-            'span[style*="font-weight:700"]': 'bold',
-            'span[style*="font-weight:bold"]': 'bold',
-            'span[style*="font-weight: bold"]': 'bold',
-            'span[style*="text-decoration:underline"]': 'underline',
-            'span[style*="vertical-align:super"]': 'superscript',
-            'span[style*="vertical-align:sub"]': 'subscript',
-
-            // Google docs puts paragraph within list items, so eliminate it
-            'li > p': '',
-            
             'li[style*="list-style-type:disc"]': 'ul',
             'li[style*="list-style-type:decimal"]': 'ol',
 
@@ -275,31 +354,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             'p[style*="text-align:right"]': 'alignRight',
             'p[style*="text-align:center"]': 'alignCenter',
 
-            // MSWord 'p' elements should be treated as a new line
-            // Special case if 'p' element contains only whitespace remove the whitespace
-            'p[class^=Mso]': function($el) {
-                var $replacement, t;
-                t = $el.text() || '';
-                if (t.match(/^\s*$/)) {
-                    $el.text('');
-                }
-                $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
-                $replacement.append( $el.contents() );
-                $el.replaceWith( $replacement );
-            },
-
             // Remove attributes from table elements
             'table, tr, td, th': function($el) {
                 $el.replaceWith(function () {
                     return $('<' + this.nodeName + '>').append($(this).contents());
                 });
             },
-            
+
             // Any 'p' element should be treated as a new line with a blank line after
             'p': 'linebreak'
         },
 
-
+        
         /**
          * Which buttons are in the toolbar?
          * This is an array of toolbar config objects with the following properties:
@@ -674,6 +740,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             // Add our clipboard sanitize rules
             self.rte.clipboardSanitizeRules = $.extend(true, {}, self.rte.clipboardSanitizeRules, self.clipboardSanitizeRules);
+            self.rte.clipboardSanitizeTypes = $.extend(true, {}, self.rte.clipboardSanitizeTypes, self.clipboardSanitizeTypes);
 
             // Create a div under the text area to display the toolbar and the editor
             self.$container = $('<div/>', {
@@ -700,6 +767,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 return false;
             });
             self.$editor.on('rteChange', function(){
+
+                // Don't pass through change events if we're showing the placeholder
+                if (self.placeholderIsShowing()) {
+                    return false;
+                }
+                
                 self.$el.trigger('rteChange', [self]);
                 return false;
             });
@@ -801,9 +874,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             $('.toolHeader').toggle();
 
             // Add classname to change display
-            $('body').toggleClass('rte-fullscreen');
-            self.$container.toggleClass('rte-fullscreen');
-            
+            var $container = self.$container;
+            var fullscreen = $container.hasClass('rte-fullscreen');
+
+            while ($container.length > 0) {
+                $container.toggleClass('rte-fullscreen', !fullscreen);
+                $container = $container.parent();
+            }
+
             // Also kick the editor
             self.rte.refresh();
         },
@@ -2034,7 +2112,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             // If in read only mode do not create toolbar.
             // Note there is no way to switch from read only to editable at this time.
-            if (!self.rte.readOnlyGet()) {
+            if (!self.rte.readOnlyGet() && !self.placeholderIsShowing()) {
                 $enhancement.append( self.enhancementToolbarCreate(config) );
             }
 
@@ -3125,7 +3203,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
         inlineEnhancementHandleClick: function(event, mark) {
 
-            var enhancementEditUrl, $div, $divLink, frameName, html, offset, offsetContainer, range, self, styleObj;
+            var enhancementEditUrl, $div, $divForm, frameName, html, offset, offsetContainer, range, self, styleObj;
 
             self = this;
 
@@ -3157,8 +3235,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             enhancementEditUrl = $.addQueryParameters(
                 window.CONTEXT_PATH + '/content/enhancement.jsp',
                 'typeId', styleObj.enhancementType,
-                'attributes', JSON.stringify(mark.attributes),
-                'body', $(html).html()
+                'attributes', JSON.stringify(mark.attributes)
             );
 
             // Create a link for editing the enhancement and position it at the click event
@@ -3166,11 +3243,16 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             $div = $('<div/>', {
                 'class': 'rte2-frame-enhancement-inline',
                 'style': 'position:absolute;top:0;left:0;height:1px;overflow:hidden;',
-                html: $('<a/>', {
+                html: $('<form/>', {
                     target: frameName,
-                    href: enhancementEditUrl,
+                    action: enhancementEditUrl,
+                    method: 'post',
                     style: 'width:100%;display:block;',
-                    text: '.'
+                    html: $('<input/>', {
+                        type: 'hidden',
+                        name: 'body',
+                        value: $(html).html()
+                    })
                 })
                 
             }).appendTo(self.$container);
@@ -3182,12 +3264,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 'top': offset.top - offsetContainer.top,
                 'left': offset.left - offsetContainer.left
             });
-            $divLink = $div.find('a');
+            $divForm = $div.find('form');
 
             // Add data to the link with the rte and the mark,
             // so any popup form can access them
-            $divLink.data('rte', self);
-            $divLink.data('mark', mark);
+            $divForm.data('rte', self);
+            $divForm.data('mark', mark);
             
             // Listen for an 'enhancementUpdate' event that will be triggered on
             // the edit link, so we can tell when the enhancement is updated.
@@ -3198,7 +3280,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 // that we created for table/tr/td elements. In that case we do not allow the 
                 // inline enhancement popup form to modify the html of the table.
                 
-                $divLink.on('enhancementUpdate', function(event, html){
+                $divForm.on('enhancementUpdate', function(event, html){
                     self.inlineEnhancementReplaceMark(mark, html);
                 });
             }
@@ -3207,7 +3289,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // the edit popup, so we can communicate the mark back to the popup form.
             // The enhancement edit form can trigger this event.
             // Alternately the popup form can get the rte and mark from the data on the source link.
-            $divLink.on('enhancementRead', function(event, callback){
+            $divForm.on('enhancementRead', function(event, callback){
                 // Call the callback, passing it the mark.
                 // Also within the callback ensure that "this" refers to this instance of the rte.
                 if (callback) {
@@ -3220,7 +3302,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // with any popups
             setTimeout(function(){
                 
-                $divLink.click();
+                $divForm.submit();
 
                 // When the popup is closed put focus back on the editor
                 $(document).on('closed.' + frameName, '[name=' + frameName + ']', function(event){
@@ -3323,7 +3405,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Create wrapper element for the table and add the toolbar
             $div = $('<div/>', {
                 'class': 'rte2-table'
-            }).append( self.tableToolbarCreate() );
+            });
+            
+            if (!self.rte.readOnlyGet() && !self.placeholderIsShowing()) {
+                $div.append( self.tableToolbarCreate() );
+            }
 
             // Create the placeholder div that will hold the table.
             // Note it appears you must set the style directly on the element or table resizing doesn't work correctly.
@@ -3903,7 +3989,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
         /*==================================================
          * Placeholder
          *==================================================*/
+        
+        /**
+         * Class added to the editor to style the placeholder when it is showing.
+         */
+        placeholderClass: 'rte2-placeholder-showing',
 
+        
         /**
          * Set the placeholder text for when the editor is empty,
          * and periodically check to see if the placeholder text
@@ -3912,35 +4004,136 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
         placeholderInit: function() {
             var self = this;
 
+            self.placeholderActive = false;
+
+            // Check if RTE is empty and if so add the placeholder
             self.placeholderRefresh();
 
-            self.$container.on('rteChange', $.throttle(500, function(){
+            // If data-dynamic-placeholder is used on the textarea
+            // then it triggers a placeholderUpdate event to let us know
+            // when the placeholder changes.
+            // (refer to state.js for more information)
+            self.$el.on('placeholderUpdate', function() {
                 self.placeholderRefresh();
-            }));
+            });
+
+            // When RTE gains focus always remove the placeholder if it is active
+            self.$el.on('rteFocus', function(){
+                
+                self.placeholderRemove();
+                
+                // Note if the textarea is an "editable placeholder" then
+                // on focus the editable placeholder code will put content
+                // back into the RTE.
+            });
+
+            // When RTE loses focus, check if RTE is empty and if so add the placeholder
+            self.$el.on('rteBlur', function(){
+                
+                self.placeholderRefresh();
+                
+                // Note if the textarea is an "editable placeholder" then
+                // on blur the editable placeholder code will possibly examine
+                // the RTE and empty it again, then call placeholderRefresh again.
+            });
+
         },
 
 
         /**
          * Check to see if the textarea has a placeholder attribute, and
          * if so display it over the rich text editor when the editor is empty.
+         * If the placeholder is already showing, update the content.
          */
         placeholderRefresh: function() {
-            var self = this;
-            var placeholder = self.$el.attr('placeholder');
 
-            if (!placeholder) {
-                return;
+            var count, $editor, placeholder, placeholderIsShowing, self, showPlaceholder;
+            
+            self = this;
+            $editor = self.$editor;
+            
+            // Get placeholder content from the textarea
+            placeholder = self.$el.prop('placeholder');
+
+            placeholderIsShowing = self.placeholderIsShowing();
+            
+            // Determine if we should display the placeholder
+            if (placeholderIsShowing) {
+                // Placeholder is already showing; however, the placeholder attribute might have
+                // changed so we still need to set it in the editor.
+                showPlaceholder = true;
+            } else {
+                // Placeholder is not already showing.
+                // Determine if RTE is empty and if so show the placeholder
+                count = self.rte.getCount();
+                if (count === 0) {
+                    showPlaceholder = true;
+                }
             }
 
-            var count = self.rte.getCount();
-            var $editor = self.$editor;
-            var ATTR_NAME = 'rte2-placeholder';
+            if (showPlaceholder) {
+                self.placeholderShow();
+            } else {
+                self.placeholderRemove();
+            }
+        },
 
-            if (count === 0) {
-                $editor.attr(ATTR_NAME, placeholder);
-                
-            } else if ($editor.attr(ATTR_NAME)) {
-                $editor.removeAttr(ATTR_NAME);
+        
+        /**
+         * Determine if the placeholder is currently showing (based on the placeholderActive flag). 
+         * @returns {Boolean}
+         */
+        placeholderIsShowing: function() {
+            var self;
+            self = this;
+            return Boolean( self.placeholderActive );
+        },
+
+        
+        /**
+         * Replaces the content of the editor with the content in the textarea placeholder attribute (if any).
+         * Also sets the placeholderActive flag.
+         * If the placeholder attribute from the textarea is empty, then it removes the placeholder.
+         */
+        placeholderShow: function() {
+            
+            var placeholder, self;
+            
+            self = this;
+
+            // Get the placeholder content from the textarea
+            placeholder = self.$el.prop('placeholder') || '';
+
+            // If the placeholder content is empty, remove the placeholder
+            // (if it happens to be already showing)
+            if (!placeholder) {
+                self.placeholderRemove();
+                return;
+            }
+      
+            // Set placeholder active to true to other code like toHTML()
+            // and events like rteChange can modify their behavior
+            self.placeholderActive = true;
+
+            // Add a class so we can style the text in the RTE
+            self.$editor.addClass( self.placeholderClass );
+
+            // Set the content of the editor to the placeholder content.
+            // Note other code like toHTML() should not return this content.
+            self.fromHTML(placeholder);
+        },
+
+        
+        /**
+         * If the placeholder content is currently active, removes it from the editor and clears the editor content.
+         */
+        placeholderRemove: function() {
+            var self;
+            self = this;
+            if (self.placeholderActive) {
+                self.placeholderActive = false;
+                self.$editor.removeClass( self.placeholderClass );
+                self.rte.empty();
             }
         },
 
@@ -4017,7 +4210,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             var html, self;
             self = this;
             if (self.rte.modeGet() === 'rich') {
-                html = self.rte.toHTML();
+                if (self.placeholderIsShowing()) {
+                    html = '';
+                } else {
+                    html = self.rte.toHTML();
+                }
             } else {
                 html = self.$el.val();
             }
