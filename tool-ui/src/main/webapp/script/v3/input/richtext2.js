@@ -4617,7 +4617,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/plugin/popup', 'jquery.extr
                 enhancementName: rtElement.displayName,
                 element: tag,
                 elementAttrAny: true,
-
+                elementContainer: rtElement.elementContainer,
+                
                 // If the enhancement has a popup form, do not let it span more than one line
                 // or it will be split into multiple elements and the popup will not apply to
                 // all of them
