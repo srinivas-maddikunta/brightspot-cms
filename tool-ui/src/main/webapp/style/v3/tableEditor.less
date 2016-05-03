@@ -7,13 +7,14 @@
     
     width:100%;
     background-color: #fff;
+    margin: 0;
 
     // Nested tables
     table {
-      
+
       // http://stackoverflow.com/questions/8812757/html-table-full-width-with-margin
-      margin: 1em auto;
-      width: calc(100% - 0.5em);
+      margin: 5px auto;
+      width: ~'calc(100% - 10px)';
     }
   }
 
@@ -21,15 +22,12 @@
     min-width:200px;
     min-height:1em;
     border:1px solid @color-border;
-    padding:0.25em;
+    padding: 5px;
   }
 
   .bspTableEditActive {
-    border:1px solid @color-focus;
-    background-color: #eee;
-    & table {
-      background-color: #eee;
-    }
+    border:1px solid mix(@color-focus, white, 50%);
+    background-color: mix(@color-focus, white, 10%);
   }
 }
 
