@@ -46,13 +46,13 @@ define(['jquery'], function($) {
          * TODO what is passed in to the handler
          */
         contextMenu: {
+            cellClear: {},
             rowAddAbove: {},
             rowAddBelow: {},
+            rowDelete: {},
             colAddLeft: {},
             colAddRight: {},
-            rowDelete: {},
-            colDelete: {},
-            cellClear: {}
+            colDelete: {}
         },
 
         
