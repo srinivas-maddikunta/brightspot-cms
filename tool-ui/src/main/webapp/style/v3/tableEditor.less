@@ -26,8 +26,18 @@
   }
 
   .bspTableEditActive {
-    border:1px solid mix(@color-focus, white, 50%);
-    background-color: mix(@color-focus, white, 10%);
+    position: relative;
+
+    &:before {
+      border: 1px solid mix(@color-focus, white, 50%);
+      bottom: -1px;
+      content: '';
+      left: -1px;
+      pointer-events: none;
+      position: absolute;
+      right: -1px;
+      top: -1px;
+    }
   }
 }
 
@@ -41,13 +51,23 @@
   display:none;
   position:absolute;
   width:auto;
-  padding: 0.25em;
-  border:1px solid #aaa;
+  padding: 10px 0;
+  border:1px solid mix(@color-focus, white, 50%);
+  border-top-color: white;
+  margin-top: 1px;
   background-color: #fff;
   white-space:nowrap;
 
   a {
+    color: black;
     display:block;
-    margin: 0.2em;
+    height: 30px;
+    line-height: 30px;
+    padding: 0 15px;
+
+    &:hover {
+      background-color: fade(@color-focus, 10%);
+      text-decoration: none;
+    }
   }
 }
