@@ -3,7 +3,7 @@
 module.exports = function (grunt) {
     require('bsp-grunt')(grunt, {
         bsp: {
-            
+
             styles: {
                 dir: '',
                 less: [ '*.less' ],
@@ -14,15 +14,6 @@ module.exports = function (grunt) {
 
             scripts: {
                 dir: ''
-            },
-
-            bower: {
-                'normalize-css': [
-                    {
-                        src: 'normalize.css',
-                        dest: 'bower/normalize-css/normalize.css'
-                    }
-                ]
             }
         }
     });
