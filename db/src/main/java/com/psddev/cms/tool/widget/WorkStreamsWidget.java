@@ -248,15 +248,19 @@ public class WorkStreamsWidget extends DefaultDashboardWidget {
                 page.writeEnd();
 
                 // TODO: move somewhere reusable (duplicated in other widgets)
+                ObjectType toolEntityType;
                 Query<?> toolEntityQuery;
 
                 if (userType == ToolEntityType.ROLE) {
+                    toolEntityType = ObjectType.getInstance(ToolRole.class);
                     toolEntityQuery = Query.from(ToolRole.class).sortAscending("name");
 
                 } else if (userType == ToolEntityType.USER) {
+                    toolEntityType = ObjectType.getInstance(ToolUser.class);
                     toolEntityQuery = Query.from(ToolUser.class).sortAscending("name");
 
                 } else {
+                    toolEntityType = null;
                     toolEntityQuery = null;
                 }
 
@@ -271,7 +275,7 @@ public class WorkStreamsWidget extends DefaultDashboardWidget {
                                 "data-bsp-autosubmit", "",
                                 "data-editable", false,
                                 "data-label", toolEntityState != null ? toolEntityState.getLabel() : null,
-                                "data-typeIds", ObjectType.getInstance(ToolRole.class).getId(),
+                                "data-typeIds", toolEntityType != null ? toolEntityType.getId() : null,
                                 "name", TOOL_ENTITY_VALUE_PARAMETER,
                                 "value", toolEntityState != null ? toolEntityState.getId() : null);
 
