@@ -186,6 +186,7 @@ wp.writeStart("div", "class", "searchHistory");
     Map<String, Object> searchValues = search.getState().getSimpleValues();
 
     searchValues.remove("name");
+    searchValues.remove("parentId");
 
     for (Iterator<Map.Entry<String, Object>> i = searchValues.entrySet().iterator(); i.hasNext();) {
         Map.Entry<String, Object> entry = i.next();
@@ -218,6 +219,7 @@ wp.writeStart("div", "class", "searchHistory");
                     wp.writeStart("li");
                         wp.writeStart("a", "href", StringUtils.addQueryParameters(
                                 wp.url(null) + "?" + recentSearch.getSearch(),
+                                Search.PARENT_PARAMETER, search.getParentId(),
                                 Search.SESSION_ID_PARAMETER, UuidUtils.createSequentialUuid()));
                             wp.writeHtml(localizedLabel);
                         wp.writeEnd();
