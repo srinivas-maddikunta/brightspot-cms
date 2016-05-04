@@ -6,29 +6,23 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>com.psddev</groupId>
-        <artifactId>dari-parent</artifactId>
-        <version>${dari.version}</version>
-    </parent>
-
     <properties>
-
-        <!-- Dependency Versions -->
         <bsp.handlebars.version>1.2-SNAPSHOT</bsp.handlebars.version>
         <cms.version>${project.version}</cms.version>
         <dari.version>${dari.version}</dari.version>
         <slf4j.version>1.7.12</slf4j.version>
         <solr.version>4.8.1</solr.version>
-
-        <!-- Ports -->
         <mysql.port>4706</mysql.port>
         <tomcat.port>9480</tomcat.port>
-
-        <!-- View Generator -->
         <styleguide.viewgenerator.skip>false</styleguide.viewgenerator.skip>
         <styleguide.viewgenerator.watch>false</styleguide.viewgenerator.watch>
     </properties>
+
+    <parent>
+        <groupId>com.psddev</groupId>
+        <artifactId>dari-parent</artifactId>
+        <version>${dari.version}</version>
+    </parent>
 
     <groupId>\${groupId}</groupId>
     <artifactId>\${artifactId}</artifactId>
@@ -38,10 +32,6 @@
     <name>\${groupId}: \${artifactId}</name>
 
     <dependencies>
-
-        <!-- =============
-        Brightspot Modules
-        ============== -->
 
         <dependency>
             <groupId>com.psddev</groupId>
@@ -62,10 +52,6 @@
             <type>war</type>
         </dependency>
 
-        <!-- =======
-        Dari Modules
-        ======== -->
-
         <dependency>
             <groupId>com.psddev</groupId>
             <artifactId>dari-aws</artifactId>
@@ -84,20 +70,11 @@
             <version>${dari.version}</version>
         </dependency>
 
-        <!-- ================
-        Brightspot Handlebars
-        ================= -->
-
         <dependency>
             <groupId>com.psddev</groupId>
             <artifactId>handlebars</artifactId>
             <version>${bsp.handlebars.version}</version>
         </dependency>
-
-
-        <!-- ============
-        Java Servlet Spec
-        ============= -->
 
         <dependency>
             <groupId>javax.el</groupId>
@@ -126,29 +103,17 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- ==========
-        MySQL Connector
-        =========== -->
-
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>5.1.35</version>
         </dependency>
 
-        <!-- ======
-        Solr Client
-        ======= -->
-
         <dependency>
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
             <version>4.8.1</version>
         </dependency>
-
-        <!-- ========
-        SLF4J Logging
-        ========= -->
 
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -161,10 +126,6 @@
             <artifactId>slf4j-jdk14</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
-
-        <!-- ==
-        Taglibs
-        === -->
 
         <dependency>
             <groupId>taglibs</groupId>
