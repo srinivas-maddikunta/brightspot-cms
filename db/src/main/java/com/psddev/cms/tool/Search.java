@@ -32,6 +32,7 @@ import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
+import com.psddev.cms.db.ToolUserSearch;
 import com.psddev.cms.db.Workflow;
 import com.psddev.cms.db.WorkflowState;
 import com.psddev.cms.tool.search.ListSearchResultView;
@@ -60,6 +61,7 @@ public class Search extends Record {
 
     public static final String ADDITIONAL_PREDICATE_PARAMETER = "aq";
     public static final String ADVANCED_QUERY_PARAMETER = "av";
+    public static final String CONTEXT_PARAMETER = "cx";
     public static final String GLOBAL_FILTER_PARAMETER_PREFIX = "gf.";
     public static final String FIELD_FILTER_PARAMETER_PREFIX = "f.";
     public static final String LIMIT_PARAMETER = "l";
@@ -72,6 +74,7 @@ public class Search extends Record {
     public static final String PARENT_TYPE_PARAMETER = "py";
     public static final String QUERY_STRING_PARAMETER = "q";
     public static final String SELECTED_TYPE_PARAMETER = "st";
+    public static final String SESSION_ID_PARAMETER = "si";
     public static final String SHOW_DRAFTS_PARAMETER = "d";
     public static final String VISIBILITIES_PARAMETER = "v";
     public static final String SHOW_MISSING_PARAMETER = "m";
@@ -812,6 +815,7 @@ public class Search extends Record {
             query.and(advancedQuery);
         }
 
+        int filtersCount = 0;
         Map<String, String> globalFilters = getGlobalFilters();
 
         for (Map.Entry<String, String> entry : globalFilters.entrySet()) {
@@ -819,6 +823,8 @@ public class Search extends Record {
             String value = entry.getValue();
 
             if (ObjectUtils.to(UUID.class, key) != null && value != null) {
+                ++ filtersCount;
+
                 int count = ObjectUtils.to(int.class, globalFilters.get(key + "#"));
 
                 if (count > 0) {
@@ -847,6 +853,8 @@ public class Search extends Record {
             }
 
             if (ObjectUtils.to(boolean.class, value.get("m"))) {
+                ++ filtersCount;
+
                 query.and(fieldName + " = missing");
 
             } else {
@@ -856,6 +864,10 @@ public class Search extends Record {
                 if ("d".equals(queryType)) {
                     Date start = ObjectUtils.to(Date.class, fieldValue);
                     Date end = ObjectUtils.to(Date.class, value.get("x"));
+
+                    if (start != null || end != null) {
+                        ++ filtersCount;
+                    }
 
                     if (start != null) {
                         query.and(fieldName + " >= ?", start);
@@ -869,6 +881,10 @@ public class Search extends Record {
                     Double minimum = ObjectUtils.to(Double.class, fieldValue);
                     Double maximum = ObjectUtils.to(Double.class, value.get("x"));
 
+                    if (minimum != null && maximum != null) {
+                        ++ filtersCount;
+                    }
+
                     if (minimum != null) {
                         query.and(fieldName + " >= ?", fieldValue);
                     }
@@ -881,6 +897,8 @@ public class Search extends Record {
                     if (fieldValue == null) {
                         continue;
                     }
+
+                    ++ filtersCount;
 
                     if ("t".equals(queryType)) {
                         if (selectedType == null || Content.Static.isSearchableType(selectedType)) {
@@ -975,6 +993,8 @@ public class Search extends Record {
         String color = getColor();
 
         if (color != null && color.startsWith("#")) {
+            ++ filtersCount;
+
             int[] husl = HuslColorSpace.Static.toHUSL(new Color(Integer.parseInt(color.substring(1), 16)));
             int normalized0 = husl[0];
             int normalized1 = husl[1];
@@ -1033,6 +1053,58 @@ public class Search extends Record {
 
         if (page != null) {
             QueryRestriction.updateQueryUsingAll(query, page);
+
+            // Recent searches.
+            String context = page.param(String.class, CONTEXT_PARAMETER);
+            String sessionId = page.param(String.class, SESSION_ID_PARAMETER);
+
+            if (!ObjectUtils.isBlank(context) && !ObjectUtils.isBlank(sessionId)) {
+                ToolUser user = page.getUser();
+
+                if (user != null
+                        && (!ObjectUtils.isBlank(queryString)
+                        || (selectedType != null && validTypes.size() != 1)
+                        || filtersCount > 0)) {
+
+                    // Delete all searches from the current session.
+                    String keyPrefix = user.getId().toString() + context;
+                    String key = keyPrefix + sessionId;
+
+                    Query.from(ToolUserSearch.class).where("key = ?", key).deleteAll();
+
+                    // Remember search query string for later.
+                    String searchQueryString = page.url("", NAME_PARAMETER, null);
+                    int questionAt = searchQueryString.indexOf('?');
+
+                    if (questionAt > -1) {
+                        searchQueryString = searchQueryString.substring(questionAt + 1);
+                    }
+
+                    // Save the search for the recent searches list.
+                    ToolUserSearch recentSearch = new ToolUserSearch();
+
+                    recentSearch.setKey(key);
+                    recentSearch.setQueryString(queryString);
+                    recentSearch.setSelectedType(selectedType != null && validTypes.size() != 1 ? selectedType : null);
+                    recentSearch.setFiltersCount(filtersCount);
+                    recentSearch.setSearch(searchQueryString);
+                    recentSearch.save();
+
+                    // Only keep up to 5 recent searches.
+                    List<ToolUserSearch> recentSearches = Query.from(ToolUserSearch.class)
+                            .where("key startsWith ?", keyPrefix)
+                            .sortDescending("key")
+                            .select(5, 1)
+                            .getItems();
+
+                    if (!recentSearches.isEmpty()) {
+                        Query.from(ToolUserSearch.class)
+                                .where("key startsWith ?", keyPrefix)
+                                .and("key <= ?", recentSearches.get(0).getKey())
+                                .deleteAll();
+                    }
+                }
+            }
         }
 
         return query;

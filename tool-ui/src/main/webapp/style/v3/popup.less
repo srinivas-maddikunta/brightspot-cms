@@ -320,8 +320,17 @@
     padding: 20px 20px 20px (@length-toolTitle-width + 60);
   }
 
-  .searchSaved {
-    display: none;
+  .searchHistory {
+    .background-flat(@color-heading);
+    bottom: -15px;
+    box-sizing: border-box;
+    display: block;
+    left: (-60 - @length-toolTitle-width);
+    overflow: auto;
+    padding: 20px;
+    position: absolute;
+    top: -15px;
+    width: (@length-toolTitle-width + 40);
   }
 
   .searchFilters {

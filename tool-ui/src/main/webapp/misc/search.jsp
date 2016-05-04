@@ -17,17 +17,6 @@ if (wp.requireUser()) {
 
 ToolUser user = wp.getUser();
 
-wp.writeStart("div", "class", "toolSearchSaved");
-    wp.writeStart("h2");
-        wp.writeHtml("Saved Searches");
-    wp.writeEnd();
-
-    wp.writeStart("div", "class", "frame savedSearches", "name", "savedSearches");
-      wp.writeStart("a", "href", wp.cmsUrl("/misc/savedSearches.jsp"));
-      wp.writeEnd();
-    wp.writeEnd();
-wp.writeEnd();
-
 wp.include(
         "/WEB-INF/search.jsp",
         "name", "toolHeader",
