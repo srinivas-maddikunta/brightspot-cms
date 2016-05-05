@@ -2820,7 +2820,7 @@ define([
 
         dropdownInit: function() {
             
-            var editor, self;
+            var clicks, editor, self;
 
             self = this;
             
@@ -2846,9 +2846,43 @@ define([
                 }, 200);
             });
 
+            // CodeMirror's dblclick event doesn't work reliably,
+            // so have to provide our own double click detection
+            clicks = 0;
+            editor.on('mousedown', function(instance, event) {
+                clicks++;
+                if (clicks == 1) {
+                    setTimeout(function(){
+                        if (clicks > 1) {
+                            self.dropdownDoubleClick(event);
+                        }
+                        clicks = 0;
+                    }, 300);
+                }
+            });
         },
 
 
+        /**
+         * When user double clicks, check if there are any dropdown marks, and if so
+         * imediately popu up the edit form for the first mark located.
+         */
+        dropdownDoubleClick: function(event) {
+            var marks, self;
+            self = this;
+            
+            // Get all the marks within a range
+            marks = self.dropdownGetMarks(true);
+            
+            if (marks.length) {
+                event.preventDefault();
+                event.codemirrorIgnore = true;
+                self.onClickDoMark(event, marks[0]);
+                return false;
+            }
+        },
+
+        
         dropdownCheckCursor: function() {
 
             var marks, self;
