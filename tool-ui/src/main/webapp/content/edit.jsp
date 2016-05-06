@@ -1546,7 +1546,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 return color;
             };
 
-            $edit.delegate('.inputContainer', 'mouseenter', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'mouseenter', function() {
                 var $container = $(this),
                         $toggle = $.data($container[0], 'fieldPreview-$toggle');
 
@@ -1565,7 +1565,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 }
             });
 
-            $edit.delegate('.inputContainer .fieldPreviewToggle', 'click', function() {
+            $edit.delegate('.contentForm-main .inputContainer .fieldPreviewToggle', 'click', function() {
                 var $toggle = $(this),
                         $container = $toggle.closest('.inputContainer');
 
@@ -1573,15 +1573,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 $toggle.css('color', $container.is('.fieldPreview-displaying') ? getUniqueColor($container) : '');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-enable', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-enable', function() {
                 $(this).addClass('fieldPreview-enabled');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-disable', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-disable', function() {
                 $(this).trigger('fieldPreview-hide').removeClass('fieldPreview-enabled');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-hide', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-hide', function() {
                 var $container = $(this),
                         name = $container.attr('data-name');
 
@@ -1595,7 +1595,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 $('.fieldPreviewPaths[data-name="' + name + '"]').remove();
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-toggle', function(event, $source) {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-toggle', function(event, $source) {
                 var $container = $(this),
                         name = $container.attr('data-name'),
                         color,
@@ -1777,7 +1777,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 }
             });
 
-            $edit.delegate('.inputContainer', 'click', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'click', function() {
                 if ($previewWidget.is('.widget-expanded')) {
                     $(this).trigger('fieldPreview-toggle');
                     return false;
