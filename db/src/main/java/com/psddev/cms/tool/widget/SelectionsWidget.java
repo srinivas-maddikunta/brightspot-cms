@@ -131,11 +131,7 @@ public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResult
                         "href", page.cmsUrl("/searchAdvancedFull",
                                 "search", ObjectUtils.toJson(search.getState().getSimpleValues()),
                                 "view", MixedSearchResultView.class.getCanonicalName()));
-                    if (StringUtils.isBlank(selection.getName())) {
-                        page.writeStart("i").writeHtml("<untitiled>").writeEnd();
-                    } else {
-                        page.writeObjectLabel(selection);
-                    }
+                    page.writeObjectLabel(selection);
                 page.writeEnd();
 
             page.writeEnd();
