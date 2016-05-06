@@ -2,6 +2,8 @@
 
 com.psddev.cms.db.Content,
 com.psddev.cms.db.ContentLock,
+com.psddev.cms.db.Overlay,
+com.psddev.cms.db.OverlayProvider,
 com.psddev.cms.db.Directory,
 com.psddev.cms.db.Draft,
 com.psddev.cms.db.Guide,
@@ -25,6 +27,7 @@ com.psddev.cms.tool.CmsTool,
 com.psddev.cms.tool.ContentEditWidgetDisplay,
 com.psddev.cms.tool.ToolPageContext,
 com.psddev.cms.tool.Widget,
+com.psddev.cms.tool.page.content.Edit,
 com.psddev.dari.util.Settings,
 
 com.psddev.dari.db.ObjectField,
@@ -258,6 +261,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             wp.writeEnd();
         wp.writeEnd();
     }
+
+    Overlay overlay = Edit.getOverlay(editing);
+    OverlayProvider overlayProvider = overlay != null ? overlay.getOverlayProvider() : null;
+
+    Edit.writeOverlayProviderSelect(wp, overlayProvider);
 %>
     <form class="contentForm contentLock"
             method="post"
@@ -287,6 +295,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 <h1 class="breadcrumbs"><%
 
                     wp.writeStart("span", "class", "breadcrumbItem icon icon-object");
+                        if (overlayProvider != null) {
+                            wp.writeTypeObjectLabel(overlayProvider);
+                            wp.writeHtml(" - ");
+                        }
+
                         if (state.isNew()) {
                             wp.writeHtml("New");
 
@@ -974,7 +987,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 wp.writeStart("div", "class", "widget-publishingExtra");
                     wp.writeStart("ul", "class", "widget-publishingExtra-left");
-                        if ((!lockedOut || editAnyway) && isWritable) {
+                        if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
                             if (isDraft) {
                                 if (schedule == null) {
                                     wp.writeStart("li");
@@ -1032,7 +1045,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                    if ((!lockedOut || editAnyway) && isWritable) {
+                    if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
                         wp.writeStart("ul", "class", "widget-publishingExtra-right");
                             if (isWritable && isDraft) {
                                 if (schedule != null) {
