@@ -1,9 +1,11 @@
 package com.psddev.cms.tool.widget;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.Search;
@@ -136,8 +138,9 @@ public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResult
 
             page.writeEnd();
             page.writeStart("td");
-                page.writeHtml(!ObjectUtils.isBlank(selection.getEntities())
-                        ? selection.getEntities().stream().map(e -> e.getState().getLabel()).collect(Collectors.joining(", "))
+                Set<ToolEntity> entities = selection.getEntities();
+                page.writeHtml(!ObjectUtils.isBlank(entities)
+                        ? entities.stream().map(e -> e.getState().getLabel()).collect(Collectors.joining(", "))
                         : "");
             page.writeEnd();
             page.writeStart("td");
