@@ -121,11 +121,14 @@ if ((Boolean) request.getAttribute("isFormPost")) {
     return;
 }
 
-Map<ObjectType, Workflow> workflows = new HashMap<ObjectType, Workflow>();
+Map<ObjectType, Set<Workflow>> typeWorkflows = new HashMap<ObjectType, Set<Workflow>>();
 
 for (Workflow w : Query.from(Workflow.class).selectAll()) {
     for (ObjectType t : w.getContentTypes()) {
-        workflows.put(t, w);
+        if (!typeWorkflows.containsKey(t)) {
+            typeWorkflows.put(t, new TreeSet<>());
+        }
+        typeWorkflows.get(t).add(w);
     }
 }
 
@@ -363,22 +366,24 @@ wp.writeStart("div", "class", "inputSmall permissions");
                                 writeChild(wp, permissions, "Bulk Archive", typePermissionId + "/bulkArchive");
                             wp.writeEnd();
 
-                            Workflow workflow = workflows.get(type);
+                            Set<Workflow> workflows = typeWorkflows.get(type);
 
-                            if (workflow != null) {
-                                for (Map.Entry<String, WorkflowTransition> entry2 : workflow.getTransitions().entrySet()) {
-                                    String transition = entry2.getKey();
-                                    String transitionDisplay = entry2.getValue().getDisplayName();
+                            if (workflows != null) {
+                                for (Workflow workflow : workflows) {
+                                    for (Map.Entry<String, WorkflowTransition> entry2 : workflow.getTransitions().entrySet()) {
+                                        String transition = entry2.getKey();
+                                        String transitionDisplay = entry2.getValue().getDisplayName();
 
-                                    wp.writeStart("li");
-                                        writeChild(wp, permissions, "Workflow Transition: " + transitionDisplay, typePermissionId + "/" + transition);
-                                    wp.writeEnd();
-                                }
+                                        wp.writeStart("li");
+                                            writeChild(wp, permissions, "Workflow Transition: " + transitionDisplay, typePermissionId + "/" + transition);
+                                        wp.writeEnd();
+                                    }
 
-                                for (WorkflowState workflowState : workflow.getStates()) {
-                                    wp.writeStart("li");
-                                        writeChild(wp, permissions, "Workflow Save Allowed: " + workflowState.getDisplayName(), typePermissionId + "/workflow.saveAllowed." + workflowState.getName());
-                                    wp.writeEnd();
+                                    for (WorkflowState workflowState : workflow.getStates()) {
+                                        wp.writeStart("li");
+                                            writeChild(wp, permissions, "Workflow Save Allowed: " + workflowState.getDisplayName(), typePermissionId + "/workflow.saveAllowed." + workflowState.getName());
+                                        wp.writeEnd();
+                                    }
                                 }
                             }
 

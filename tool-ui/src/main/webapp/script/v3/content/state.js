@@ -112,7 +112,14 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                     $element.html(text);
 
                 } else if ($element.is('[data-dynamic-placeholder]')) {
+                    
                     $element.prop('placeholder', text);
+                    
+                    // Trigger a placeholderUpdate event so other code can listen for placeholder changes
+                    // (used by the rich text editor).
+                    // Note: originally called this event 'placeholder' but that caused a jquery error for some reason,
+                    // so using placeholderUpdate instead.
+                    $element.trigger('placeholderUpdate');
                 }
               }
 
