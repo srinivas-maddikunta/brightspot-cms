@@ -230,6 +230,7 @@ $.plugin2('sortable', {
                 findRelatedContainers($selected).removeClass('sortable-droppable');
 
                 // Trigger an event so other code can act after sortable is done
+                $selected.find('input, select, textarea').change();
                 $container.trigger('sortable.end', [this]);
             });
         });
