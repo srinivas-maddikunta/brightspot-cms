@@ -630,7 +630,6 @@ writer.start("div", "class", "searchForm");
         writer.end();
 
         if (!ObjectUtils.isBlank(newJsp)
-                && (selectedType == null || !selectedType.isAbstract())
                 && (!singleType || !selectedType.as(ToolUi.class).isReadOnly())) {
             writer.start("div", "class", "searchCreate");
                 writer.start("h2").html("Create").end();
@@ -659,7 +658,7 @@ writer.start("div", "class", "searchForm");
                             }
                         }
 
-                        wp.writeTypeSelect(
+                        wp.writeCreateTypeSelect(
                                 creatableTypes.stream()
                                     .filter(t -> !t.as(ToolUi.class).isReadOnly())
                                     .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("write", "read")))
