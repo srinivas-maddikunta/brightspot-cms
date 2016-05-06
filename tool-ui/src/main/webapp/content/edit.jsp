@@ -286,7 +286,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             data-o-preview="<%= wp.h(wp.getPreviewThumbnailUrl(selected)) %>"
             data-object-id="<%= State.getInstance(editing).getId() %>"
             data-content-locked-out="<%= lockedOut && !editAnyway %>"
-            data-content-id="<%= State.getInstance(editing).getId() %>">
+            data-content-id="<%= State.getInstance(editing).getId() %>"
+            <% if (overlay != null) { %>data-overlay-differences="<%= wp.h(ObjectUtils.toJson(overlay.getDifferences())) %>"<% } %>>
 
         <input type="hidden" name="<%= editingState.getId() %>/oldValues" value="<%= wp.h(ObjectUtils.toJson(editingOldValues)) %>">
 
