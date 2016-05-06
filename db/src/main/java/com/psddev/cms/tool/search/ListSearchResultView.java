@@ -303,7 +303,7 @@ public class ListSearchResultView extends AbstractSearchResultView {
                                     && !ObjectUtils.isBlank(rendererData.getEmbedPath())) {
 
                                 permalink = "/_preview?_embed=true&_cms.db.previewId=" + itemState.getId();
-                                embedWidth = 320;
+                                embedWidth = previewWidth;
                             }
                         }
                     }

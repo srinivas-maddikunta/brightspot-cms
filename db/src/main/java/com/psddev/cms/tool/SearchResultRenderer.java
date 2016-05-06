@@ -486,7 +486,7 @@ public class SearchResultRenderer {
                         || ViewCreator.findCreatorClass(item, null, PageFilter.EMBED_VIEW_TYPE, null) != null
                         || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, item) != null)) {
                     permalink = "/_preview?_embed=true&_cms.db.previewId=" + itemState.getId();
-                    embedWidth = 320;
+                    embedWidth = previewWidth;
                 }
             }
         }
