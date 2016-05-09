@@ -138,9 +138,9 @@ if (wp.isFormPost()) {
 
         AuthenticationFilter.Static.logIn(request, response, user);
 
-        if (!StringUtils.isBlank(returnPath)) {
+        if (!StringUtils.isBlank(returnPath) && returnPath.startsWith("/")) {
             try {
-                wp.redirect(new URL(JspUtils.getAbsoluteUrl(request, returnPath)).toString());
+                response.sendRedirect(returnPath);
             } catch (MalformedURLException e) {
                 wp.redirect("/");
             }

@@ -425,7 +425,7 @@ public class ContentTools extends PageServlet {
                                             page.writeElement("input",
                                                     "type", "text",
                                                     "id", page.getId(),
-                                                    "value", JspUtils.getAbsoluteUrl(page.getRequest(), page.cmsUrl("/content/edit.jsp", "id", state.getId())),
+                                                    "value", JspUtils.getHostUrl(page.getRequest()) + page.cmsUrl("/content/edit.jsp", "id", state.getId()),
                                                     "readonly", "readonly",
                                                     "style", "width:100%;",
                                                     "onclick", "this.select();");
