@@ -243,11 +243,7 @@ class ViewMap implements Map<String, Object> {
                 Object entryValue = entry.getValue();
 
                 if (entryKey instanceof String) {
-                    Object convertedEntryValue = convertValue(entryValue);
-
-                    if (convertedEntryValue != null) {
-                        convertedMap.put((String) entryKey, convertedEntryValue);
-                    }
+                    convertedMap.put((String) entryKey, convertValue(entryValue));
                 }
             }
 
