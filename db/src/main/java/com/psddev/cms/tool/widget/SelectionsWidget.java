@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUser;
@@ -144,7 +145,7 @@ public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResult
                         : "");
             page.writeEnd();
             page.writeStart("td");
-                page.writeHtml(selection.size() + " item" + (selection.size() != 1 ? "s" : ""));
+                page.writeHtml(page.localize(SelectionsWidget.class, ImmutableMap.of("count", selection.size()), "numItems"));
             page.writeEnd();
         page.writeEnd();
     }
