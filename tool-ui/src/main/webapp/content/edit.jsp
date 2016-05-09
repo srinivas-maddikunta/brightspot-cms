@@ -265,7 +265,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
     Overlay overlay = Edit.getOverlay(editing);
     OverlayProvider overlayProvider = overlay != null ? overlay.getOverlayProvider() : null;
 
-    Edit.writeOverlayProviderSelect(wp, overlayProvider);
+    Edit.writeOverlayProviderSelect(wp, editing, overlayProvider);
 %>
     <form class="contentForm contentLock"
             method="post"

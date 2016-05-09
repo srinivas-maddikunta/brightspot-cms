@@ -8,6 +8,7 @@ import com.psddev.dari.db.State;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 public class Edit {
 
@@ -17,19 +18,23 @@ public class Edit {
                 : null;
     }
 
-    public static void writeOverlayProviderSelect(ToolPageContext page, OverlayProvider selected) throws IOException {
+    public static void writeOverlayProviderSelect(ToolPageContext page, Object content, OverlayProvider selected) throws IOException {
         List<OverlayProvider> overlayProviders = Query.from(OverlayProvider.class).selectAll();
 
         if (overlayProviders.isEmpty()) {
             return;
         }
 
+        UUID contentId = State.getInstance(content).getId();
+
         page.writeStart("ul", "class", "piped");
         {
             page.writeStart("li", "class", selected == null ? "selected" : null);
             {
                 page.writeStart("a",
-                        "href", page.url("", "overlayId", null));
+                        "href", page.url("",
+                                "id", contentId,
+                                "overlayId", null));
                 page.writeHtml("Default");
                 page.writeEnd();
             }
@@ -39,7 +44,9 @@ public class Edit {
                 page.writeStart("li", "class", overlayProvider.equals(selected) ? "selected" : null);
                 {
                     page.writeStart("a",
-                            "href", page.url("", "overlayId", overlayProvider.getState().getId()));
+                            "href", page.url("",
+                                    "id", contentId,
+                                    "overlayId", overlayProvider.getState().getId()));
                     page.writeObjectLabel(overlayProvider);
                     page.writeEnd();
                 }
