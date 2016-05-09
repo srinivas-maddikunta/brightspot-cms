@@ -1266,6 +1266,34 @@ public class ToolPageContext extends WebPageContext {
         return predicate;
     }
 
+    public Predicate userTypesPredicate() {
+        Set<UUID> denied = new HashSet<>();
+        Set<UUID> allowed = new HashSet<>();
+
+        for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypes()) {
+            UUID typeId = type.getId();
+
+            if (hasPermission("type/" + typeId + "/read")) {
+                allowed.add(typeId);
+
+            } else {
+                denied.add(typeId);
+            }
+        }
+
+        int deniedSize = denied.size();
+
+        if (deniedSize > allowed.size()) {
+            return PredicateParser.Static.parse("_type = ?", allowed);
+
+        } else if (deniedSize > 0) {
+            return PredicateParser.Static.parse("_type != ?", denied);
+
+        } else {
+            return null;
+        }
+    }
+
     private String cmsResource(String path, Object... parameters) {
         ServletContext context = getServletContext();
         path = cmsUrl(path);

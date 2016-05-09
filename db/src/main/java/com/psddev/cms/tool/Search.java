@@ -30,6 +30,7 @@ import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
+import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.db.ToolUserSearch;
@@ -559,24 +560,6 @@ public class Search extends Record {
 
     }
 
-    public static void restrictQueryToUserAccessibleTypes(ToolPageContext page, Query query) {
-        Set<UUID> restrictedTypes = new HashSet<>();
-        Set<UUID> allowedTypes = new HashSet<>();
-        for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypesByGroup(Content.SEARCHABLE_GROUP)) {
-            if (page.hasPermission("type/" + type.getId() + "/write")) {
-                allowedTypes.add(type.getId());
-            } else {
-                restrictedTypes.add(type.getId());
-            }
-        }
-
-        if (restrictedTypes.size() > allowedTypes.size()) {
-            query.and("_type = ?", allowedTypes);
-        } else if (restrictedTypes.size() > 0) {
-            query.and("_type != ?", restrictedTypes);
-        }
-    }
-
     public Query<?> toQuery(Site site) {
         Query<?> query = null;
         Set<ObjectType> types = getTypes();
@@ -1005,9 +988,22 @@ public class Search extends Record {
         }
 
         if (validTypeIds != null) {
-            query.and("_type = ?", validTypeIds.stream().filter(typeId -> page.hasPermission("type/" + typeId + "/write")).collect(Collectors.toSet()));
-        } else if (page != null && page.getUser() != null && page.getUser().getRole() != null && page.getUser().getRole().getPermissions().contains("+type/")) {
-            restrictQueryToUserAccessibleTypes(page, query);
+            query.and("_type = ?", validTypeIds.stream()
+                    .filter(typeId -> page.hasPermission("type/" + typeId + "/read"))
+                    .collect(Collectors.toSet()));
+
+        } else if (page != null) {
+            ToolUser user = page.getUser();
+
+            if (user != null) {
+                ToolRole role = user.getRole();
+
+                if (role != null
+                        && role.getPermissions().contains("+type/")) {
+
+                    query.and(page.userTypesPredicate());
+                }
+            }
         }
 
         String color = getColor();

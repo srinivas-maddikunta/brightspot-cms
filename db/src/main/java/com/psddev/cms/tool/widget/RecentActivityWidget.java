@@ -96,7 +96,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
             }
 
             if (itemType == null) {
-                Search.restrictQueryToUserAccessibleTypes(page, contentQuery);
+                contentQuery.and(page.userTypesPredicate());
             }
 
             QueryRestriction.updateQueryUsingAll(contentQuery, page);
