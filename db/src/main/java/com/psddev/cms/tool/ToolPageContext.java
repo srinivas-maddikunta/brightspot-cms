@@ -510,6 +510,7 @@ public class ToolPageContext extends WebPageContext {
             try (CloseableHttpClient client = HttpClients.createDefault()) {
                 HttpUriRequest request = RequestBuilder.get()
                         .setUri("https://www.googleapis.com/language/translate/v2")
+                        .addParameter("format", "text")
                         .addParameter("key", googleServerApiKey)
                         .addParameter("q", pattern)
                         .addParameter("source", source.getLanguage())
