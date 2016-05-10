@@ -179,7 +179,7 @@ if (copy != null) {
     State editingState = State.getInstance(editing);
     editingState.setValues(State.getInstance(copy).getSimpleValues());
     editingState.setId(null);
-    editingState.setStatus(null);;
+    editingState.setStatus(null);
 
     Consumer<ObjectIndex> removeVisibilityIndexValues = index -> {
         if (index.isVisibility()) {
