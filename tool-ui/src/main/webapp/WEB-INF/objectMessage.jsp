@@ -98,7 +98,7 @@ Content.ObjectModification contentData = draft != null && !draft.isNewContent()
         ? draft.as(Content.ObjectModification.class)
         : state.as(Content.ObjectModification.class);
 
-if (wp.getUser().equals(contentData.getUpdateUser())) {
+if (!state.isNew() && wp.getUser().equals(contentData.getUpdateUser())) {
     Date tenSecondsAgo = new DateTime(Database.Static.getDefault().now()).minusSeconds(10).toDate();
     Date updateDate = contentData.getUpdateDate();
 
