@@ -348,7 +348,9 @@ writer.start("div", "class", "searchForm");
                             String filterId = filter.getId().toString();
 
                             if (search.getGlobalFilters().containsKey(filterId + "#")) {
-                                writer.start("div", "class", "searchFilter searchFilter-multiple");
+                                writer.start("div",
+                                        "class", "searchFilter searchFilter-multiple",
+                                        "data-type-name", filter.getInternalName());
 
                                     for (int i = 0; i < Integer.parseInt(search.getGlobalFilters().get(filterId + "#")); i++) {
                                         State filterState = State.getInstance(Query.from(Object.class).where("_id = ?", search.getGlobalFilters().get(filterId + i)).first());
@@ -370,7 +372,9 @@ writer.start("div", "class", "searchForm");
                             } else {
                             State filterState = State.getInstance(Query.from(Object.class).where("_id = ?", search.getGlobalFilters().get(filterId)).first());
 
-                            writer.start("div", "class", "searchFilter");
+                            writer.start("div",
+                                    "class", "searchFilter",
+                                    "data-type-name", filter.getInternalName());
                                 writer.writeStart("div", "class", "searchFilterItem");
                                 writer.writeElement("input",
                                         "type", "text",
@@ -398,7 +402,7 @@ writer.start("div", "class", "searchForm");
 
                     if (selectedType != null) {
                         if (selectedType.getGroups().contains(ColorImage.class.getName())) {
-                            writer.writeStart("div", "class", "searchFilter");
+                            writer.writeStart("div", "class", "searchFilter searchFilter-color");
                                 writer.writeElement("input",
                                         "type", "text",
                                         "class", "color",
@@ -431,8 +435,12 @@ writer.start("div", "class", "searchForm");
                         String fieldInternalItemType = field.getInternalItemType();
 
                         boolean searchFilterMultiple = filterValue != null && filterValue.containsKey("#");
+                        ObjectType fieldParentType = field.getParentType();
 
-                        writer.start("div", "class", "searchFilter searchFilter-" + fieldInternalItemType + (searchFilterMultiple ? " searchFilter-multiple" : ""));
+                        writer.start("div",
+                                "class", "searchFilter searchFilter-" + fieldInternalItemType + (searchFilterMultiple ? " searchFilter-multiple" : ""),
+                                "data-type-name", fieldParentType != null ? fieldParentType.getInternalName() : null,
+                                "data-field-name", field.getInternalName());
                             if (ObjectField.BOOLEAN_TYPE.equals(fieldInternalItemType)) {
                                 writer.writeStart("select", "name", inputName);
                                     writer.writeStart("option", "value", "").writeHtml(displayName).writeEnd();
@@ -575,7 +583,7 @@ writer.start("div", "class", "searchForm");
                     }
                 writer.end();
 
-                writer.writeStart("div", "class", "searchFilter");
+                writer.writeStart("div", "class", "searchFilter searchFilter-visibilities");
                     wp.writeMultipleVisibilitySelect(
                             selectedType,
                             search.getVisibilities(),
