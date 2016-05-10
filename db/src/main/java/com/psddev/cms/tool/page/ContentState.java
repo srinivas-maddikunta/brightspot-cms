@@ -65,6 +65,7 @@ public class ContentState extends PageServlet {
 
         // Pretend to update the object.
         State state = State.getInstance(object);
+        Map<String, Object> oldValues = state.getSimpleValues();
 
         if (state.isNew()
                 || object instanceof Draft
@@ -164,6 +165,12 @@ public class ContentState extends PageServlet {
         }
 
         Map<String, Object> jsonResponse = new CompactMap<String, Object>();
+
+        // Differences between existing and pending content.
+        jsonResponse.put("_differences", Draft.findDifferences(
+                state.getDatabase().getEnvironment(),
+                oldValues,
+                state.getSimpleValues()));
 
         // HTML display for the URL widget.
         @SuppressWarnings("unchecked")
