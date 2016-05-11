@@ -2,12 +2,13 @@ define([
     'jquery',
     'bsp-utils',
     'v3/spellcheck',
+    'undomanager',
     'codemirror/lib/codemirror',
     'codemirror/addon/hint/show-hint',
     'codemirror/addon/dialog/dialog',
     'codemirror/addon/search/searchcursor',
     'codemirror/addon/search/search'
-], function($, bsp_utils, spellcheckAPI, CodeMirror) {
+], function($, bsp_utils, spellcheckAPI, UndoManager, CodeMirror) {
     
     var CodeMirrorRte;
 
@@ -346,6 +347,7 @@ define([
             // Create a mapping from self.styles so we can perform quick lookups on the classname
             self.classes = self.getClassNameMap();
 
+            self.historyInit();
             self.enhancementInit();
             self.initListListeners();
             self.dropdownInit();
@@ -4463,7 +4465,340 @@ define([
         // caseToggle (toggle case of each character)
         // caseSentence (first word cap, others lower)
         // caseTitle (first letter of each word)
+
         
+        //==================================================
+        // Undo/Redo/History Functions
+        // See also: https://github.com/ArthurClemens/Javascript-Undo-Manager
+        //==================================================
+
+        /**
+         * Initialize the history system for undo/redo.
+         * This replaces the CodeMirror undo/redo with our own,
+         * since CodeMirror doesn't save marks when deleting text.
+         */
+        historyInit: function() {
+            
+            var self, undo;
+            self = this;
+
+            // Create the undo manager object
+            undo = self.undoManager = new UndoManager();
+
+            // Save a limited amount of undo data
+            undo.setLimit(1000);
+
+            // Replace the CodeMirror undo and redo functions with our own
+            self.codeMirror.undo = function(){
+                self.historyUndo();
+            };
+        
+            self.codeMirror.redo = function(){
+                self.historyRedo();
+            };
+
+            // Set up a history queue so multiple changes can be batched together into
+            // a single undo action
+            self.historyQueue = [];
+            
+            // Trigger an event to fire whenever an undo or redo event occurs,
+            // just in case someone wants to listen for it.
+            // Pass "this" as an argument to the event listeners.
+            undo.setCallback(function(){
+                self.$el.trigger('rteHistory', [self]);
+            });
+
+            // Listen for CodeMirror change events and add to our history.
+            self.codeMirror.on('beforeChange', function(instance, beforeChange) {
+
+                var change, marks;
+                
+                // Ignore changes where we set the origin containing "brightspot",
+                // because in those instances we will add directly to the history
+                if (beforeChange.origin.indexOf('brightspot') !== -1) {
+                    return;
+                }
+                
+                // Save a list of the marks that are defined in this range.
+                // We also need to get the position of each mark, because if CodeMirror
+                // removes the mark along with the removed text, then we won't
+                // be able to find the original position of the mark anymore.
+                marks = self.codeMirror.findMarks(beforeChange.from, beforeChange.to);
+                $.each(marks, function(i, mark) {
+                    if (mark.find) {
+                        mark.historyFind = mark.find();
+                    }
+                });
+
+                change = {
+                    origin: beforeChange.origin,
+                    from: beforeChange.from,
+                    to: beforeChange.to,
+                    text: beforeChange.text,
+                    removed: self.codeMirror.getRange(beforeChange.from, beforeChange.to).split('\n'),
+
+                    // save the marks as part of the change object so we can recreate them on undo
+                    marks: marks
+                };
+                
+                self.historyAdd({
+                    undo: function() {
+                        self.historyUndoCodeMirrorChange(change);
+                    },
+                    redo: function() {
+                        self.historyRedoCodeMirrorChange(change);
+                    }
+                });
+            });
+        },
+
+        
+        /**
+         * Add to the history.
+         *
+         * Note if the user has performed undo actions, adding to the history
+         * resets the "redo" counter, so you can no longer redo the actions that
+         * were undone.
+         *
+         * @param {Object} data
+         * @param {Function} data.undo
+         * @param {Function} data.redo
+         *
+         * @example
+         * rte.historyAdd({
+         *   undo: function(){
+         *     // do something to remove the edit
+         *   },
+         *   redo: function() {
+         *     // do something to add the edit back in
+         *   }
+         * });
+         */
+        historyAdd: function(data) {
+            var self;
+            self = this;
+
+            clearTimeout(self.historyQueueTimeout);
+            self.historyQueue.push(data);
+            self.historyQueueTimeout = setTimeout(function(){
+                self.historyProcessQueue();
+            }, 1250);
+        },
+
+        
+        /**
+         * Add all the queued events to the history immediately,
+         * then clear the queued events list.
+         */
+        historyProcessQueue: function() {
+            
+            var queue, self;
+            self = this;
+            
+            clearTimeout(self.historyQueueTimeout);
+
+            if (self.historyQueue.length === 0) {
+                return;
+            }
+            
+            // Clone the historyQueue
+            queue = self.historyQueue.slice(0);
+
+            // Clear the historyQueue
+            self.historyQueue = [];
+
+            // Add to the history so all the queued changes will get undo/redo
+            self.undoManager.add({
+                undo: function(){
+                    $.each(queue.reverse(), function(i,data) {
+                        data.undo();
+                    });
+                },
+                redo: function(){
+                    $.each(queue.reverse(), function(i,data) {
+                        data.redo();
+                    });
+                }
+            });
+        },
+
+        
+        /**
+         * Perform an undo.
+         */
+        historyUndo: function() {
+            var self;
+            self = this;
+
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            // Tell CodeMirror to avoid updating the DOM until we are done
+            self.codeMirror.operation(function(){
+                self.undoManager.undo();
+            });
+        },
+
+        
+        /**
+         * Perform a redo.
+         */
+        historyRedo: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+
+            // Make sure changes that are queued up are added to the history
+            self.codeMirror.operation(function(){
+                self.undoManager.redo();
+            });
+        },
+
+        
+        /**
+         * Clear the undo history.
+         */
+        historyClear: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            self.undoManager.clear();
+        },
+
+        
+        /**
+         * Determine if there are any entries in the undo history.
+         */
+        historyHasUndo: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            return self.undoManager.hasUndo();
+        },
+
+        
+        /**
+         * Determine if there are any entries in the undo history.
+         */
+        historyHasRedo: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            return self.undoManager.hasRedo();
+        },
+
+        
+        /**
+         * Perform an undo action based on a CodeMirror change event that was stored in the history.
+         *
+         * Change event looks like something like this:
+         * {
+         *   "from":{"line":1,"ch":2}, // Coordinates before the change
+         *   "to":{"line":1,"ch":5}, // Coordinates before the change
+         *   "text":["f"], // Text to be added
+         *   "removed":["sti"], // Text that will be removed
+         *   "origin":"+input"
+         * }
+         */
+        historyUndoCodeMirrorChange: function(change) {
+
+            var from, self, to;
+
+            self = this;
+            
+            // Reverse the change event so we put back what was previously there
+            from = change.from;
+            to = {
+                line: from.line + change.text.length - 1,
+                ch: from.ch + change.text[0].length
+            };
+            
+            if (change.text.length > 1) {
+                to.ch = change.text[ change.text.length - 1 ].length;
+            }
+
+            // TODO: if a mark to the left of the range has a style with inclusiveRight
+            // the inserted text might expand that mark...
+            
+            self.codeMirror.replaceRange(change.removed.join('\n'), from, to, 'brightspotHistoryUndoChange');
+
+            // Now re-add the marks that were possibly removed
+            if (change.marks && change.marks.length) {
+                $.each(change.marks, function(i, mark) {
+
+                    var markNew, options;
+                    
+                    if (mark.find()) {
+                        // Mark has not been removed from the document,
+                        // but text might have been changed within it.
+                        // Clear the mark because we're going to recreate it.
+                        mark.clear();
+                    }
+
+                    // Retain the options from the old mark
+                    options = {};
+                    $.each(mark, function(prop, value) {
+                        switch (prop) {
+                            // List of properties that should be copied/retained from the old mark
+                            // and passed as options on the new mark
+                        case 'attributes':
+                        case 'className':
+                        case 'endStyle':
+                        case 'startStyle':
+                        case 'historyFind':
+                        case 'inclusiveRight':
+                        case 'inclusiveLeft':
+                        case 'triggerChange':
+                            options[prop] = value;
+                        }
+                    });
+                    
+                    // Recreate a new mark at the previous position.
+                    // Pass in the saved mark as "options" in the hope that will recreate
+                    // all the same mark options.
+                    markNew = self.codeMirror.markText(mark.historyFind.from, mark.historyFind.to, options);
+                    
+                });
+            }
+        },
+
+        
+        /**
+         * Perform a "redo" action based on a CodeMirror change event that was stored in the history.
+         *
+         * Change event looks like something like this:
+         * {
+         *   "from":{"line":1,"ch":2}, // Coordinates before the change
+         *   "to":{"line":1,"ch":5}, // Coordinates before the change
+         *   "text":["f"], // Text to be added
+         *   "removed":["sti"], // Text that will be removed
+         *   "origin":"+input"
+         * }
+         */
+        historyRedoCodeMirrorChange: function(change) {
+
+            var self;
+
+            self = this;
+            
+            // TODO: if a mark to the left of the range has a style with inclusiveRight
+            // the inserted text might expand that mark...
+            
+            self.codeMirror.replaceRange(change.text.join('\n'), change.from, change.to, 'brightspotHistoryRedoCodeMirrorChange');
+        },
+
+
         //==================================================
         // Miscelaneous Functions
         //==================================================
