@@ -17,7 +17,6 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
-import com.psddev.dari.util.StringUtils;
 
 public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResultSelection> {
 
