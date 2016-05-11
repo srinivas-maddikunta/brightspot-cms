@@ -106,40 +106,50 @@ if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-a
             }
 
             if (!state.hasAnyErrors()) {
-                wp.writeStart("div", "id", pageId);
-                wp.writeEnd();
-                wp.writeStart("script", "type", "text/javascript");
-                wp.writeRaw("var $page = $('#" + pageId + "');");
-                wp.writeRaw("var $source = $page.popup('source');");
-                wp.writeRaw("var rte = $source.data('rte');");
-                wp.writeRaw("var mark = $source.data('mark');");
-
                 RichTextElement rte = (RichTextElement) object;
-                Map<String, String> attributes = rte.toAttributes();
+                Map<String, String> attributes = null;
+                String body = null;
+                boolean successful = false;
 
-                wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
+                try {
+                    attributes = rte.toAttributes();
+                    body = rte.toBody();
+                    successful = true;
 
-                String body = rte.toBody();
-
-                if (body != null) {
-                    wp.writeRaw("var oldMarkInclusiveLeft = mark.inclusiveLeft;");
-                    wp.writeRaw("var oldMarkInclusiveRight = mark.inclusiveRight;");
-                    wp.writeRaw("mark.inclusiveLeft = true;");
-                    wp.writeRaw("mark.inclusiveRight = true;");
-                    wp.writeRaw("rte.rte.fromHTML('");
-                    wp.writeRaw(StringUtils.escapeJavaScript(body));
-                    wp.writeRaw("', rte.rte.markGetRange(mark), true, true);");
-                    wp.writeRaw("mark.inclusiveLeft = oldMarkInclusiveLeft;");
-                    wp.writeRaw("mark.inclusiveRight = oldMarkInclusiveRight;");
+                } catch (RuntimeException error) {
+                    wp.getErrors().add(error);
                 }
 
-                if (wp.param(boolean.class, "action-save-and-close")) {
-                    wp.writeRaw("$page.popup('close');");
+                if (successful) {
+                    wp.writeStart("div", "id", pageId);
                     wp.writeEnd();
-                    return;
+                    wp.writeStart("script", "type", "text/javascript");
+                    wp.writeRaw("var $page = $('#" + pageId + "');");
+                    wp.writeRaw("var $source = $page.popup('source');");
+                    wp.writeRaw("var rte = $source.data('rte');");
+                    wp.writeRaw("var mark = $source.data('mark');");
+                    wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
 
-                } else {
-                    wp.writeEnd();
+                    if (body != null) {
+                        wp.writeRaw("var oldMarkInclusiveLeft = mark.inclusiveLeft;");
+                        wp.writeRaw("var oldMarkInclusiveRight = mark.inclusiveRight;");
+                        wp.writeRaw("mark.inclusiveLeft = true;");
+                        wp.writeRaw("mark.inclusiveRight = true;");
+                        wp.writeRaw("rte.rte.fromHTML('");
+                        wp.writeRaw(StringUtils.escapeJavaScript(body));
+                        wp.writeRaw("', rte.rte.markGetRange(mark), true, true);");
+                        wp.writeRaw("mark.inclusiveLeft = oldMarkInclusiveLeft;");
+                        wp.writeRaw("mark.inclusiveRight = oldMarkInclusiveRight;");
+                    }
+
+                    if (wp.param(boolean.class, "action-save-and-close")) {
+                        wp.writeRaw("$page.popup('close');");
+                        wp.writeEnd();
+                        return;
+
+                    } else {
+                        wp.writeEnd();
+                    }
                 }
             }
         }
