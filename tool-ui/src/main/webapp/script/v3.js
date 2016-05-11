@@ -51,6 +51,7 @@ require([
   'input/region',
   'v3/input/richtext',
   'v3/input/richtext2',
+  'v3/input/secret',
   'input/table',
   'input/workflow',
 
