@@ -2359,9 +2359,25 @@ public class ToolPageContext extends WebPageContext {
 
         writeTypeSelectReally(
                 true,
+                false,
                 types,
                 selectedTypes != null ? selectedTypes : Collections.<ObjectType>emptySet(),
                 null,
+                attributes);
+    }
+
+    public void writeCreateTypeSelect(
+            Iterable<ObjectType> types,
+            ObjectType selectedType,
+            String allLabel,
+            Object... attributes) throws IOException {
+
+        writeTypeSelectReally(
+                false,
+                true,
+                types,
+                selectedType != null ? Arrays.asList(selectedType) : Collections.<ObjectType>emptySet(),
+                allLabel,
                 attributes);
     }
 
@@ -2383,6 +2399,7 @@ public class ToolPageContext extends WebPageContext {
             Object... attributes) throws IOException {
 
         writeTypeSelectReally(
+                false,
                 false,
                 types,
                 selectedType != null ? Arrays.asList(selectedType) : Collections.<ObjectType>emptySet(),
@@ -2410,6 +2427,7 @@ public class ToolPageContext extends WebPageContext {
 
     private void writeTypeSelectReally(
             boolean multiple,
+            boolean create,
             Iterable<ObjectType> types,
             Collection<ObjectType> selectedTypes,
             String allLabel,
@@ -2421,10 +2439,12 @@ public class ToolPageContext extends WebPageContext {
 
         List<ObjectType> miscTypes = ObjectUtils.to(new TypeReference<List<ObjectType>>() { }, types);
 
-        for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypes()) {
-            if (Boolean.FALSE.equals(type.as(ToolUi.class).getHidden()) && !type.isConcrete()) {
-                if (miscTypes.containsAll(type.findConcreteTypes())) {
-                    miscTypes.add(type);
+        if (!create) {
+            for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypes()) {
+                if (Boolean.FALSE.equals(type.as(ToolUi.class).getHidden()) && !type.isConcrete()) {
+                    if (miscTypes.containsAll(type.findConcreteTypes())) {
+                        miscTypes.add(type);
+                    }
                 }
             }
         }
