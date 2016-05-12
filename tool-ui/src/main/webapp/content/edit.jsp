@@ -834,13 +834,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             }
 
                                             if (draft == null
-                                                    && (wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)
-                                                    || workflow.getTransitionsTo(currentState)
-                                                            .keySet()
-                                                            .stream()
-                                                            .filter(name -> wp.hasPermission("type/" + editingState.getTypeId() + "/" + name))
-                                                            .findFirst()
-                                                            .isPresent())) {
+                                                    && wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)) {
 
                                                 displayWorkflowSave = true;
                                             }
