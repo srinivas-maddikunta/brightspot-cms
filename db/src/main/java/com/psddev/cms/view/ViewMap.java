@@ -223,12 +223,9 @@ class ViewMap implements Map<String, Object> {
             List<Object> immutableViewList = new ArrayList<>();
 
             for (Object item : (Iterable<?>) value) {
-
-                Object convertedItem = convertValue(item);
-                if (convertedItem != null) {
-                    immutableViewList.add(convertedItem);
-                }
+                immutableViewList.add(convertValue(item));
             }
+
             return immutableViewList;
 
         } else if (value instanceof ViewMap) { // pass through
@@ -243,11 +240,7 @@ class ViewMap implements Map<String, Object> {
                 Object entryValue = entry.getValue();
 
                 if (entryKey instanceof String) {
-                    Object convertedEntryValue = convertValue(entryValue);
-
-                    if (convertedEntryValue != null) {
-                        convertedMap.put((String) entryKey, convertedEntryValue);
-                    }
+                    convertedMap.put((String) entryKey, convertValue(entryValue));
                 }
             }
 

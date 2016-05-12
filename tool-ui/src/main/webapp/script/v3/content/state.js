@@ -126,6 +126,21 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
               $element.attr('data-previous-text', text);
             });
 
+            // Highlight fields that have changed.
+            var diffs = data._differences;
+
+            if (diffs) {
+              $form.find('.inputContainer').removeClass('state-changed');
+
+              $.each(diffs, function (id, fields) {
+                var $inputs = $form.find('.objectInputs[data-object-id="' + id + '"]');
+
+                $.each(fields, function (name) {
+                  $inputs.find('> .inputContainer[data-field-name="' + name + '"]').addClass('state-changed');
+                });
+              });
+            }
+
             $form.resize();
           },
 
