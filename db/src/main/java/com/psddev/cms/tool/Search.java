@@ -988,9 +988,14 @@ public class Search extends Record {
         }
 
         if (validTypeIds != null) {
-            query.and("_type = ?", validTypeIds.stream()
-                    .filter(typeId -> page.hasPermission("type/" + typeId + "/read"))
-                    .collect(Collectors.toSet()));
+            if (page != null) {
+                query.and("_type = ?", validTypeIds.stream()
+                        .filter(typeId -> page.hasPermission("type/" + typeId + "/read"))
+                        .collect(Collectors.toSet()));
+
+            } else {
+                query.and("_type = ?", validTypeIds);
+            }
 
         } else if (page != null) {
             ToolUser user = page.getUser();
