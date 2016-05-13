@@ -61,12 +61,28 @@ public class ContentLock extends Record {
          * @return May be {@code null}.
          */
         public static ContentLock findLock(Object content, String aspect) {
-            return Query
+            ContentLock lock =  Query
                     .from(ContentLock.class)
                     .where("_id = ?", createLockId(content, aspect))
                     .master()
                     .noCache()
                     .first();
+
+            if (lock != null) {
+                Object owner = lock.getOwner();
+
+                // Owner is deleted.
+                if (owner == null) {
+                    unlock(content, null, null);
+                    return null;
+
+                // Owner is archived.
+                } else if (State.getInstance(owner).as(Content.ObjectModification.class).isTrash()) {
+                    return null;
+                }
+            }
+
+            return lock;
         }
 
         /**
