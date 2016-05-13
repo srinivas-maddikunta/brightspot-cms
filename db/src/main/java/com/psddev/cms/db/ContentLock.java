@@ -58,7 +58,8 @@ public class ContentLock extends Record {
          *
          * @param content Can't be {@code null}.
          * @param aspect If {@code null}, it's equivalent to an empty string.
-         * @return May be {@code null}.
+         * @return May be {@code null} if there is no lock associated, or if
+         * the lock's owner is either archived or deleted.
          */
         public static ContentLock findLock(Object content, String aspect) {
             ContentLock lock =  Query
