@@ -843,6 +843,26 @@ define([
          */
         inlineSetStyle: function(style, range, options) {
             
+            var self;
+            self = this;
+
+            // Create a history event so we can undo adding this style
+            self.historyAdd({
+                undo: function() {
+                    // Remove the style (but avoid creating a new history event)
+                    self._inlineRemoveStyle(style, range);
+                },
+                redo: function() {
+                    // Add the style back (but avoid creating a new history event)
+                    self._inlineSetStyle(style, range, options);
+                }
+            });
+
+            // Now actually add the style
+            return self._inlineSetStyle(style, range, options);
+        },
+        _inlineSetStyle: function(style, range, options) {
+            
             var className, editor, isEmpty, line, mark, markOptions, self, styleObj, $widget, widgetOptions;
 
             self = this;
@@ -893,7 +913,7 @@ define([
                 
                 // Add a space to represent the empty element because CodeMirror needs
                 // a character to display for the user to display the mark.
-                editor.replaceRange(' ', {line:range.from.line, ch:range.from.ch}, null, '+brightspotInlineSetStyle');
+                editor.replaceRange(' ', {line:range.from.line, ch:range.from.ch}, null);
                 
                 range.to.line = range.from.line;
                 range.to.ch = range.from.ch + 1;
@@ -969,6 +989,27 @@ define([
          * Set to false if you want to prevent a change event from being triggered.
          */
         inlineRemoveStyle: function(styleKey, range, options) {
+            
+            var self;
+            self = this;
+
+            // Create a history event so we can undo adding this style
+            self.historyAdd({
+                undo: function() {
+                    // Add the style back (but avoid creating a new history event)
+                    // TODO: are the options for inlineSetStyle the same as inlineRemoveStyle?
+                    self._inlineSetStyle(styleKey, range, options);
+                },
+                redo: function() {
+                    // Remove the style (but avoid creating a new history event)
+                    self._inlineRemoveStyle(styleKey, range, options);
+                }
+            });
+
+            // Now actually add the style
+            self._inlineRemoveStyle(styleKey, range, options);
+        },
+        _inlineRemoveStyle: function(styleKey, range, options) {
 
             var className, deleteText, editor, lineNumber, self, from, to, triggerChange;
 
@@ -976,7 +1017,9 @@ define([
 
             editor = self.codeMirror;
             
-            if (styleKey) {
+            if ($.type(styleKey) === 'object') {
+                className = styleKey.className;
+            } else if (styleKey && $.type(styleKey) === 'string') {
                 className = self.styles[styleKey].className;
             }
             
@@ -1203,7 +1246,7 @@ define([
                     
                     if (position && !(position.from.line === position.to.line && position.from.ch === position.to.ch)) {
 
-                        editor.replaceRange('', position.from, position.to, '+brightspotFormatRemoveClass');
+                        editor.replaceRange('', position.from, position.to);
                         
                         // Trigger a change event for the editor later
                         triggerChange = true;
@@ -1312,7 +1355,7 @@ define([
                 pos = mark.find();
             
                 // Delete the text within the mark
-                self.codeMirror.replaceRange('', pos.from, pos.to, 'brightspotRemoveStyledText');
+                self.codeMirror.replaceRange('', pos.from, pos.to);
 
                 // Delete the mark
                 mark.clear();
@@ -2061,6 +2104,25 @@ define([
          * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
          */
         blockSetStyle: function(style, range, options) {
+            
+            var self;
+            self = this;
+
+            // Create a history event so we can undo adding this style
+            if (!self.historyIsExecuting()) {
+                self.historyAdd({
+                    undo: function() {
+                        self._blockRemoveStyle(style, range, options);
+                    },
+                    redo: function() {
+                        self._blockSetStyle(style, range, options);
+                    }
+                });
+            }
+            // Now actually add the style
+            return self._blockSetStyle(style, range, options);
+        },
+        _blockSetStyle: function(style, range, options) {
 
             var className, editor, lineHandle, lineNumber, mark, self, styleObj;
 
@@ -2103,7 +2165,9 @@ define([
             // If this is a set of mutually exclusive styles, clear the other styles
             if (styleObj.clear) {
                 $.each(styleObj.clear, function(i, styleKey) {
-                    self.blockRemoveStyle(styleKey, range);
+                    if (self.blockIsStyle(styleKey, range)) {
+                        self.blockRemoveStyle(styleKey, range);
+                    }
                 });
             }
 
@@ -2240,12 +2304,37 @@ define([
          * The range of positions {from,to} 
          */
         blockRemoveStyle: function(styleKey, range) {
+            var self;
+            self = this;
 
-            var className, classNames, classes, editor, line, lineNumber, self;
+            // Create a history event so we can undo adding this style
+            if (!self.historyIsExecuting()) {
+                self.historyAdd({
+                    undo: function() {
+                        // TODO: what if the marks removed have attributes? Might need to maintain them
+                        self._blockSetStyle(styleKey, range);
+                    },
+                    redo: function() {
+                        self._blockRemoveStyle(styleKey, range);
+                    }
+                });
+            }
+
+            self._blockRemoveStyle(styleKey, range);
+        },
+        _blockRemoveStyle: function(styleKey, range) {
+
+            var className, classNames, classes, editor, line, lineNumber, self, styleObj;
 
             self = this;
             editor = self.codeMirror;
             range = range || self.getRange();
+
+            // styleKey can be an actual key (string) or it can be a style object,
+            // in which case we'll get the key from the object
+            if (typeof styleKey !== 'string') {
+                styleKey = styleKey.key;
+            }
 
             if (styleKey) {
                 if (self.styles[styleKey]) {
@@ -3025,7 +3114,7 @@ define([
 
                     mark.clear();
                     if (pos) {
-                        self.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch}, 'brightspotDropdown');
+                        self.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch});
                     }
                     self.focus();
                     self.dropdownCheckCursor();
@@ -3343,7 +3432,7 @@ define([
                             
                             // TODO: this seems to interfere with the undo history
                             
-                            editor.replaceRange(' ', changeObj.from, changeObj.to, 'brighspotTrackSpace');
+                            editor.replaceRange(' ', changeObj.from, changeObj.to);
                             changeObj.update(changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch + 1});
                         }
 
@@ -3485,7 +3574,7 @@ define([
                 if (mark.className === self.styles.trackDelete.className) {
                     // For a delete mark, remove the content
                     mark.clear();
-                    editor.replaceRange('', position.from, position.to, '+brightspotTrackAcceptMark');
+                    editor.replaceRange('', position.from, position.to);
                     self.triggerChange();
                 } else if (mark.className === self.styles.trackInsert.className) {
                     // For an insert mark, leave the content and remove the mark
@@ -3512,7 +3601,7 @@ define([
                 if (mark.className === self.styles.trackInsert.className) {
                     // For an insert mark, remove the content
                     mark.clear();
-                    editor.replaceRange('', position.from, position.to, '+brightspotTrackRejectMark');
+                    editor.replaceRange('', position.from, position.to);
                     self.triggerChange();
                 } else if (mark.className === self.styles.trackDelete.className) {
                     // For a delete mark, leave the content and remove the mark
@@ -3910,7 +3999,7 @@ define([
 
                 // Clear the cut area
                 if (e.type === 'cut') {
-                    editor.replaceRange('', range.from, range.to, 'brightspotCut');
+                    editor.replaceRange('', range.from, range.to);
                 }
 
                 // Don't let the actual cut/copy event occur
@@ -4246,6 +4335,8 @@ define([
             if (self.$el.is('textarea')) {
                 self.$el.show();
             }
+
+            self.historyClear();
             
             // Trigger an event on the textarea to notify other code that the mode has been changed
             self.modeTriggerEvent();
@@ -4263,6 +4354,7 @@ define([
                 self.$el.hide();
             }
             $wrapper.show();
+            self.historyClear();
             
             // Trigger an event on the textarea to notify other code that the mode has been changed
             self.modeTriggerEvent();
@@ -4515,7 +4607,7 @@ define([
                 
                 // Ignore changes where we set the origin containing "brightspot",
                 // because in those instances we will add directly to the history
-                if (beforeChange.origin.indexOf('brightspot') !== -1) {
+                if (beforeChange.origin && beforeChange.origin.indexOf('brightspot') !== -1 || beforeChange.origin === 'paste') {
                     return;
                 }
                 
@@ -4635,7 +4727,9 @@ define([
             
             // Tell CodeMirror to avoid updating the DOM until we are done
             self.codeMirror.operation(function(){
+                self.historyExecuting = true;
                 self.undoManager.undo();
+                self.historyExecuting = false;
             });
         },
 
@@ -4652,7 +4746,9 @@ define([
 
             // Make sure changes that are queued up are added to the history
             self.codeMirror.operation(function(){
+                self.historyExecuting = true;
                 self.undoManager.redo();
+                self.historyExecuting = false;
             });
         },
 
@@ -4696,6 +4792,19 @@ define([
             self.historyProcessQueue();
             
             return self.undoManager.hasRedo();
+        },
+
+
+        /**
+         * @returns Boolean
+         * Value to tell if a history undo or redo action is currently executing.
+         * Note this only works for synchronous code, if the undo/redo action causes
+         * async code, this will not be accurage.
+         */
+        historyIsExecuting: function() {
+            var self;
+            self = this;
+            return Boolean(self.historyExecuting);
         },
 
         
@@ -5095,9 +5204,9 @@ define([
 
             // Replacing the entire mark range will remove the mark so we need
             // to add text at the end of the mark, then remove the original text
-            self.codeMirror.replaceRange(text, pos.to, pos.to, 'brightspotReplaceMarkText');
+            self.codeMirror.replaceRange(text, pos.to, pos.to);
             if (!(pos.from.line === pos.to.line && pos.from.ch === pos.to.ch)) {
-                self.codeMirror.replaceRange('', pos.from, pos.to, 'brightspotReplaceMarkText');
+                self.codeMirror.replaceRange('', pos.from, pos.to);
             }
         },
         
@@ -6209,7 +6318,9 @@ define([
                 if (!retainStyles) {
                     if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
 
-                        editor.replaceRange(' ', range.from, range.to, 'brightspotRemoveStyles');
+                        // When adding the space so we can remove styles, prevent it from going in the undo history
+                        // by using an origin containing "brightspot"
+                        editor.replaceRange(' ', range.from, range.to, 'brightspotFromHTMLRemoveStyles');
 
                         // Remove styles from the single character
                         self.removeStyles({
@@ -6217,8 +6328,8 @@ define([
                             to: { line:range.from.line, ch:range.from.ch + 1}
                         });
 
-                        // Undo the insertion of the single character so it doesn't appear in the undo history
-                        editor.undo();
+                        // Remove the space that we added
+                        editor.replaceRange('', range.from, {line:range.to.line, ch:range.to.ch + 1}, 'brightspotFromHTMLRemoveStyles');
 
                     } else {
 
@@ -6240,9 +6351,10 @@ define([
                 };
             }
 
-            // Add the plain text into the selected range
-            editor.replaceRange(val, range.to, range.to, 'brightspotPaste');
-            editor.replaceRange('', range.from, range.to, 'brightspotPaste');
+            // Add the plain text to the end of the selected range
+            // Then remove the original text that was already there
+            editor.replaceRange(val, range.to, range.to);
+            editor.replaceRange('', range.from, range.to);
 
             // Before we start adding styles, save the current history.
             // After we add the styles we will restore the history.
@@ -6617,17 +6729,6 @@ define([
                 dom = html;
             }
             return dom;
-        },
-
-
-        /**
-         * Clear the undo history for the editor.
-         * For example, you can call this after setting the initial content in the editor.
-         */
-        historyClear: function(){
-            var self;
-            self = this;
-            self.codeMirror.clearHistory();
         },
 
 
