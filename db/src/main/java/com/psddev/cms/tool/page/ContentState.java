@@ -198,6 +198,20 @@ public class ContentState extends PageServlet {
             wip.setUpdateDate(new Date());
             wip.setDifferences(differences);
             wip.save();
+
+            List<WorkInProgress> more = Query.from(WorkInProgress.class)
+                    .where("owner = ?", user)
+                    .and("updateDate != missing")
+                    .sortDescending("updateDate")
+                    .select(50, 1)
+                    .getItems();
+
+            if (!more.isEmpty()) {
+                Query.from(WorkInProgress.class)
+                        .where("owner = ?", user)
+                        .and("updateDate < ?", more.get(0).getUpdateDate())
+                        .deleteAll();
+            }
         }
 
         // HTML display for the URL widget.
