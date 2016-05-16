@@ -4852,33 +4852,8 @@ define([
                 to.ch = change.text[ change.text.length - 1 ].length;
             }
 
-            // Replace the range with a single space so we can use it to split
-            // any styles around or next to that range
-            editor.replaceRange(' ', from, to, origin);
+            self.replaceRangeWithoutStyles(from, to, change.removed.join('\n'));
             
-            toSpace = {
-                line: from.line,
-                ch: from.ch + 1
-            };
-            
-            // Remove styles from the single character.
-            // This will split any marks that surround the range.
-            self.removeStyles({
-                from: from,
-                to: toSpace
-            });
-
-            // Insert the text for the undo action after the space so it does not extend any other marks
-            editor.replaceRange(change.removed.join('\n'), toSpace, null, origin);
-            
-            // Now remove the space that we added
-            editor.replaceRange('', from, toSpace, origin);
-
-            // TODO: if a mark to the left of the range has a style with inclusiveRight
-            // the inserted text might expand that mark...
-            
-            //self.codeMirror.replaceRange(change.removed.join('\n'), from, to, 'brightspotHistoryUndoChange');
-
             // Now re-add the marks that were possibly removed
             if (change.marks && change.marks.length) {
                 $.each(change.marks, function(i, mark) {
@@ -4933,37 +4908,9 @@ define([
          * }
          */
         historyRedoCodeMirrorChange: function(change) {
-
-            var editor, origin, self, toSpace;
-
+            var self;
             self = this;
-            editor = self.codeMirror;
-
-            // For changes use an origin containing 'brightspot' so chagnes won't be
-            // inserted into the history as an undo/redo event
-            origin = 'brightspotHistoryRedoCodeMirrorChange';
-            
-            // Replace the range with a single space so we can use it to split
-            // any styles around or next to that range
-            editor.replaceRange(' ', change.from, change.to, origin);
-
-            toSpace = {
-                line: change.from.line,
-                ch: change.from.ch + 1
-            };
-            
-            // Remove styles from the single character.
-            // This will split any marks that surround the range.
-            self.removeStyles({
-                from: { line:change.from.line, ch:change.from.ch },
-                to: toSpace
-            });
-
-            // Insert the text for the redo action after the space so it does not extend any other marks
-            self.codeMirror.replaceRange(change.text.join('\n'), toSpace, null, origin);
-            
-            // Now remove the space that we added
-            editor.replaceRange('', change.from, toSpace, origin);
+            self.replaceRangeWithoutStyles(change.from, change.to, change.text.join('\n'));
         },
 
 
@@ -5268,6 +5215,50 @@ define([
                 self.codeMirror.replaceRange('', pos.from, pos.to);
             }
         },
+
+
+        /**
+         * Replace a range of text without affecting the style marks
+         * next to or surrounding the range.
+         *
+         * When using the CodeMirror.replaceRange() function, if the
+         * range is next to another mark, adding text to the editor
+         * can have the unwanted side effect of expanding the mark.
+         *
+         * This function takes some steps to ensure that the marks
+         * are not extended.
+         */
+        replaceRangeWithoutStyles: function(from, to, text) {
+
+            var editor, origin, self;
+
+            self = this;
+            editor = self.codeMirror;
+            origin = 'brightspotReplaceRangeWithoutStyles';
+            
+            // Replace the range with a single space so we can use it to split
+            // any styles around or next to that range
+            editor.replaceRange(' ', from, to, origin);
+            
+            toSpace = {
+                line: from.line,
+                ch: from.ch + 1
+            };
+            
+            // Remove styles from the single character.
+            // This will split any marks that surround the range.
+            self.removeStyles({
+                from: from,
+                to: toSpace
+            });
+
+            // Insert the text for the undo action after the space so it does not extend any other marks
+            editor.replaceRange(text, toSpace, null, origin);
+            
+            // Now remove the space that we added
+            editor.replaceRange('', from, toSpace, origin);
+        },
+
         
         /**
          * Determine if an element is a "container" for another element.
