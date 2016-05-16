@@ -4605,6 +4605,11 @@ define([
 
                 var change, marks;
                 
+                // Ignore changes if we're currently performing an undo or redo operation
+                if (self.historyIsExecuting()) {
+                    return;
+                }
+                
                 // Ignore changes where we set the origin containing "brightspot",
                 // because in those instances we will add directly to the history
                 if (beforeChange.origin && beforeChange.origin.indexOf('brightspot') !== -1 || beforeChange.origin === 'paste') {
@@ -4669,6 +4674,11 @@ define([
         historyAdd: function(data) {
             var self;
             self = this;
+
+            // Don't add to history if we're in the middle of an undo or redo 
+            if (self.historyIsExecuting()) {
+                return;
+            }
 
             clearTimeout(self.historyQueueTimeout);
             self.historyQueue.push(data);
@@ -4897,14 +4907,31 @@ define([
          */
         historyRedoCodeMirrorChange: function(change) {
 
-            var self;
+            var editor, origin, self;
 
             self = this;
+            editor = self.codeMirror;
+
+            // For changes use an origin containing 'brightspot' so chagnes won't be
+            // inserted into the history as an undo/redo event
+            origin = 'brightspotHistoryRedoCodeMirrorChange';
             
-            // TODO: if a mark to the left of the range has a style with inclusiveRight
-            // the inserted text might expand that mark...
-            
-            self.codeMirror.replaceRange(change.text.join('\n'), change.from, change.to, 'brightspotHistoryRedoCodeMirrorChange');
+            // Replace the range with a single space so we can use it to split
+            // any styles around or next to that range
+            editor.replaceRange(' ', change.from, change.to, origin);
+
+            // Remove styles from the single character.
+            // This will split any marks that surround the range.
+            self.removeStyles({
+                from: { line:change.from.line, ch:change.from.ch },
+                to: { line:change.from.line, ch:change.from.ch + 1}
+            });
+
+            // Remove the space that we added
+            editor.replaceRange('', change.from, {line:change.to.line, ch:change.to.ch + 1}, origin);
+
+            // Add the text for the redo action
+            self.codeMirror.replaceRange(change.text.join('\n'), change.from, change.from, origin);
         },
 
 
