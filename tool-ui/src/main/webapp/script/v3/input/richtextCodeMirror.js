@@ -4832,9 +4832,14 @@ define([
          */
         historyUndoCodeMirrorChange: function(change) {
 
-            var from, self, to;
+            var editor, from, origin, self, to, toSpace;
 
             self = this;
+            editor = self.codeMirror;
+            
+            // For changes use an origin containing 'brightspot' so chagnes won't be
+            // inserted into the history as an undo/redo event
+            origin = 'brightspotHistoryUndoChange';
             
             // Reverse the change event so we put back what was previously there
             from = change.from;
@@ -4847,10 +4852,32 @@ define([
                 to.ch = change.text[ change.text.length - 1 ].length;
             }
 
+            // Replace the range with a single space so we can use it to split
+            // any styles around or next to that range
+            editor.replaceRange(' ', from, to, origin);
+            
+            toSpace = {
+                line: from.line,
+                ch: from.ch + 1
+            };
+            
+            // Remove styles from the single character.
+            // This will split any marks that surround the range.
+            self.removeStyles({
+                from: from,
+                to: toSpace
+            });
+
+            // Insert the text for the undo action after the space so it does not extend any other marks
+            editor.replaceRange(change.removed.join('\n'), toSpace, null, origin);
+            
+            // Now remove the space that we added
+            editor.replaceRange('', from, toSpace, origin);
+
             // TODO: if a mark to the left of the range has a style with inclusiveRight
             // the inserted text might expand that mark...
             
-            self.codeMirror.replaceRange(change.removed.join('\n'), from, to, 'brightspotHistoryUndoChange');
+            //self.codeMirror.replaceRange(change.removed.join('\n'), from, to, 'brightspotHistoryUndoChange');
 
             // Now re-add the marks that were possibly removed
             if (change.marks && change.marks.length) {
@@ -4886,7 +4913,7 @@ define([
                     // Recreate a new mark at the previous position.
                     // Pass in the saved mark as "options" in the hope that will recreate
                     // all the same mark options.
-                    markNew = self.codeMirror.markText(mark.historyFind.from, mark.historyFind.to, options);
+                    markNew = editor.markText(mark.historyFind.from, mark.historyFind.to, options);
                     
                 });
             }
@@ -4907,7 +4934,7 @@ define([
          */
         historyRedoCodeMirrorChange: function(change) {
 
-            var editor, origin, self;
+            var editor, origin, self, toSpace;
 
             self = this;
             editor = self.codeMirror;
@@ -4920,18 +4947,23 @@ define([
             // any styles around or next to that range
             editor.replaceRange(' ', change.from, change.to, origin);
 
+            toSpace = {
+                line: change.from.line,
+                ch: change.from.ch + 1
+            };
+            
             // Remove styles from the single character.
             // This will split any marks that surround the range.
             self.removeStyles({
                 from: { line:change.from.line, ch:change.from.ch },
-                to: { line:change.from.line, ch:change.from.ch + 1}
+                to: toSpace
             });
 
-            // Remove the space that we added
-            editor.replaceRange('', change.from, {line:change.to.line, ch:change.to.ch + 1}, origin);
-
-            // Add the text for the redo action
-            self.codeMirror.replaceRange(change.text.join('\n'), change.from, change.from, origin);
+            // Insert the text for the redo action after the space so it does not extend any other marks
+            self.codeMirror.replaceRange(change.text.join('\n'), toSpace, null, origin);
+            
+            // Now remove the space that we added
+            editor.replaceRange('', change.from, toSpace, origin);
         },
 
 
