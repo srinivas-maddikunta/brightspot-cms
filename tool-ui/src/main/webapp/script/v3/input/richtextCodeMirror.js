@@ -2451,7 +2451,7 @@ define([
             data.$preview = $preview;
             
             // Create a line widget to show the preview
-            data.previewMark = editor.addLineWidget(lineNumber, $preview[0], {above: true, rteBlockPreview:true});
+            data.previewMark = editor.addLineWidget(lineNumber, $preview[0], {rteBlockPreview:true});
         },
 
         
