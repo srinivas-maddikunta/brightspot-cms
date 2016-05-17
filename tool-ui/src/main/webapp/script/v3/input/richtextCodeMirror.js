@@ -4883,6 +4883,46 @@ define([
             self.replaceRangeWithoutStyles(from, to, change.removed.join('\n'));
             
             // Now re-add the marks that were possibly removed
+            self.historyCodeMirrorChangeMarks(change);
+        },
+
+        
+        /**
+         * Perform a "redo" action based on a CodeMirror change event that was stored in the history.
+         *
+         * Change event looks like something like this:
+         * {
+         *   "from":{"line":1,"ch":2}, // Coordinates before the change
+         *   "to":{"line":1,"ch":5}, // Coordinates before the change
+         *   "text":["f"], // Text to be added
+         *   "removed":["sti"], // Text that will be removed
+         *   "origin":"+input"
+         * }
+         */
+        historyRedoCodeMirrorChange: function(change) {
+            var editor, self;
+            self = this;
+            editor = self.codeMirror;
+
+            // First re-add the marks that might have been removed due to an undo action
+            self.historyCodeMirrorChangeMarks(change);
+
+            // Now replace the text
+            self.replaceRangeWithoutStyles(change.from, change.to, change.text.join('\n'));
+        },
+
+        
+        /**
+         * When doing an undo or redo, recreate marks in the changed area
+         * in case they were modified.
+         */
+        historyCodeMirrorChangeMarks: function(change) {
+            
+            var editor, self;
+            self = this;
+            editor = self.codeMirror;
+
+            // Re-add the marks that might have been removed due to an undo action
             if (change.marks && change.marks.length) {
                 $.each(change.marks, function(i, markAndMore) {
 
@@ -4903,31 +4943,11 @@ define([
                     // Pass in the saved mark as "options" in the hope that will recreate
                     // all the same mark options.
                     markNew = editor.markText(position.from, position.to, options);
-                    
                 });
             }
         },
 
         
-        /**
-         * Perform a "redo" action based on a CodeMirror change event that was stored in the history.
-         *
-         * Change event looks like something like this:
-         * {
-         *   "from":{"line":1,"ch":2}, // Coordinates before the change
-         *   "to":{"line":1,"ch":5}, // Coordinates before the change
-         *   "text":["f"], // Text to be added
-         *   "removed":["sti"], // Text that will be removed
-         *   "origin":"+input"
-         * }
-         */
-        historyRedoCodeMirrorChange: function(change) {
-            var self;
-            self = this;
-            self.replaceRangeWithoutStyles(change.from, change.to, change.text.join('\n'));
-        },
-
-
         //==================================================
         // Miscelaneous Functions
         //==================================================
