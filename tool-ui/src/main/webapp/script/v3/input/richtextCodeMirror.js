@@ -355,8 +355,20 @@ define([
             self.spellcheckInit();
             self.modeInit();
 
-            $(window).resize(bsp_utils.throttle(500, function () {
-                self.refresh();
+            var $window = $(window);
+            var windowWidth = $window.width();
+            var windowHeight = $window.height();
+
+            $window.resize(bsp_utils.throttle(500, function () {
+                var newWindowWidth = $window.width();
+                var newWindowHeight = $window.height();
+
+                if (windowWidth !== newWindowWidth || windowHeight !== newWindowHeight) {
+                    windowWidth = newWindowWidth;
+                    windowHeight = newWindowHeight;
+
+                    self.refresh();
+                }
             }));
         },
 
