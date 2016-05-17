@@ -370,18 +370,18 @@ define([
          * this will add a new line below, and the new line should always be a list item.
          */
         initListListeners: function() {
-
-            var editor, isFirstListItem, isLastListItem, isEmptyLine, listType, rangeFirstLine, self;
+            
+            var editor, isFirstListItem, isLastListItem, isEmptyLine, listType, rangeFirstLine, rangeBeforeChange, self;
 
             self = this;
-            
+
             editor = self.codeMirror;
 
             // Monitor the "beforeChange" event so we can save certain information
             // about lists, to later use in the "change" event
             editor.on('beforeChange', function(instance, changeObj) {
 
-                var listTypePrevious, listTypeNext, rangeBeforeChange;
+                var listTypePrevious, listTypeNext;
 
                 // Get the listType and set the closure variable for later use
                 listType = self.blockGetListType(changeObj.from.line);
@@ -400,17 +400,17 @@ define([
                 if (rangeBeforeChange.to.line < editor.lineCount() - 1) {
                     listTypeNext = self.blockGetListType(rangeBeforeChange.to.line + 1);
                 }
-                
+
                 isFirstListItem = Boolean(listTypePrevious === '');
                 isLastListItem = Boolean(listTypeNext === '');
 
                 isStartOfLine = Boolean(rangeBeforeChange.from.ch === 0);
-                
+
                 isEmptyLine = Boolean(editor.getLine(rangeBeforeChange.from.line) === '');
-                
+
                 // Loop through all the changes that have not yet been applied, and determine if more text will be added to the line
                 $.each(changeObj.text, function(i, textChange) {
-                    
+
                     // Check if this change has more text to add to the page
                     if (textChange.length > 0) {
                         isEmptyLine = false;
@@ -419,39 +419,49 @@ define([
                 });
 
             });
-            
+
             // Monitor the "change" event so we can adjust styles for list items
             // This will use the closure variables set in the "beforeChange" event.
             editor.on('change', function(instance, changeObj) {
 
-                var range;
-                
+                var range, indentTypePrevious;
+
                 // Check for a listType that was saved by the beforeChange event
                 if (listType) {
 
                     // Get the current range (after the change has been applied)
                     range = self.getRange();
-                    
+
+                    indentTypePrevious = self.blockGetIndentType(rangeBeforeChange.from.line);
+
                     // For the new line, if user pressed enter on a blank list item and it was the last item in the list,
                     // Then do not add a new line - instead change the list item to a non-list item
                     if (isLastListItem && isEmptyLine) {
 
+                        //remove the indent class on new line
+                        self.blockRemoveStyle(indentTypePrevious, range);
+
                         // Remove the list class on the new line
                         self.blockRemoveStyle(listType, range);
-                        
+
                     } else if (isFirstListItem && isStartOfLine) {
 
                         // If at the first character of the first list item and user presses enter,
                         // do not create a new list item above it, just move the entire list down
-                        
+
                     } else {
-                        
+
                         // Always keep the original starting line the list style.
                         // This is used in the case when you press enter and move the current
                         // line lower - so we need to add list style to the original starting point.
                         // TODO: not sure what happens when you insert multiple line
                         self.blockSetStyle(listType, rangeFirstLine);
 
+                        // return triggers an indent based off previous classes
+                        if (indentTypePrevious){
+                            self.blockSetStyle(indentTypePrevious, range);
+                        }
+                        
                         // Set list style for the new range
                         self.blockSetStyle(listType, range);
                     }
@@ -2367,8 +2377,38 @@ define([
 
             return styles;
         },
+        /**
+         * Returns an indentType used to look up indent type of previous line item
+         * so that next line inherits that baseline class
+         *
+         * @param lineNumber [range=current selection]
+         */
+        blockGetIndentType: function(lineNumber) {
 
-        
+            var classNames, editor, line, lineInfo, indentType, self;
+
+            self = this;
+            editor = self.codeMirror;
+
+            indentType = '';
+
+            line = editor.getLineHandle(lineNumber);
+            lineInfo = editor.lineInfo(line);
+            classNames = lineInfo.textClass || "";
+
+            $.each(classNames.split(' '), function(i, className) {
+
+                var styleObj;
+                styleObj = self.classes[className];
+                if (styleObj && styleObj.indentLevel) {
+                    indentType = styleObj.key;
+                    return false;
+                }
+            });
+
+            return indentType;
+        },
+
         /**
          * Returns the list type for a line.
          *
@@ -4803,8 +4843,15 @@ define([
 
             keymap = {};
 
-            keymap['Tab'] = false;
-            keymap['Shift-Tab'] = false;
+            keymap['Tab'] = function(){
+                //increase indent on an ul or ol
+                self.indentList('tab');
+            };
+
+            keymap['Shift-Tab'] = function(){
+                //decrease an ident on an ul or ol
+                self.indentList('shift-tab');
+            };
 
             keymap['Shift-Enter'] = function (cm) {
                 // Add a carriage-return symbol and style it as 'newline'
@@ -4847,6 +4894,72 @@ define([
             return keymap;
         },
 
+        /**
+         *  @param {String} [keymap]
+         *  accepts a keymap param to increase indent or decrease indent
+         */
+        indentList: function(keymap){
+                var self, range, listTypePrevious,  indentLevel;
+                self = this;
+                range = self.getRange();
+                styles = self.blockGetStyles(range);
+
+                // Get the list type of the previous line
+                listTypePrevious = '';
+                if (range.from.line > 0) {
+                    listTypePrevious = self.blockGetListType(range.from.line - 1);
+                }
+
+                if (listTypePrevious) {
+
+                    indentLevel = self.getListPreviousIndentLevel(range);
+
+                    // shift tab action
+                    if (keymap === 'shift-tab'){
+                        if (indentLevel && indentLevel >1){
+                            self.blockSetStyle('indentLevel' + (indentLevel -1), range);
+                            return;
+                        }else if (indentLevel === 1) {
+                            self.blockRemoveStyle('indentLevel' + (1), range);
+                        }
+
+                    }
+                    // tab action
+                    if (keymap === 'tab'){
+                        if (indentLevel && indentLevel <3){
+                            self.blockSetStyle('indentLevel' + (indentLevel +1), range);
+                            return;
+                        }else if (indentLevel === undefined) {
+                            self.blockSetStyle('indentLevel' + (1), range);
+                        }
+                    }
+                }
+        },
+        /**
+         *  @param {Object} [range]
+         *  accepts range object to determine indent Level of Previous line
+         *
+         * @returns {number} indent level
+         */
+        getListPreviousIndentLevel: function(range) {
+
+            var self, editor, indentLevel;
+            self = this,
+            editor = self.codeMirror,
+            line = editor.getLineHandle(range.from.line - 1),
+            lineInfo = editor.lineInfo(line),
+            classNames = lineInfo.textClass || "";
+
+            $.each(classNames.split(' '), function(i, className) {
+                var styleObj;
+                styleObj = self.classes[className];
+                if (styleObj && styleObj.indentLevel) {
+                    indentLevel = styleObj.indentLevel;
+                    return;
+                }
+            });
+            return indentLevel;
+        },
 
         /**
          * Get plain text from codemirror.
@@ -5038,15 +5151,18 @@ define([
                                 }
                             }
 
-                            // Get any attributes that might be defined for this line style
-                            lineStyleData = self.blockGetLineData(styleObj.key, lineNo) || {};
-                            
-                            // Now determine which element to create for the line.
-                            // For example, if it is a list then we would create an 'LI' element.
-                            htmlStartOfLine += openElement(styleObj, lineStyleData.attributes);
+                            if (styleObj.indentLevel){
+                        
+                            }else {
+                                // Get any attributes that might be defined for this line style
+                                lineStyleData = self.blockGetLineData(styleObj.key, lineNo) || {};   
+                                // Now determine which element to create for the line.
+                                // For example, if it is a list then we would create an 'LI' element.
+                                htmlStartOfLine += openElement(styleObj, lineStyleData.attributes);
 
-                            // Also push this style onto a stack so when we reach the end of the line we can close the element
-                            blockElementsToClose.push(styleObj);
+                                // Also push this style onto a stack so when we reach the end of the line we can close the element
+                                blockElementsToClose.push(styleObj);
+                            }
                             
                         }); // .each
                     }// if line.textClass
