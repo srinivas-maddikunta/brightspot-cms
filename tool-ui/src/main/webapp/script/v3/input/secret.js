@@ -7,9 +7,15 @@ define([ 'jquery', 'bsp-utils' ], function ($, bsp_utils) {
             var hidden = true;
 
             var $secret = $('<div/>', {
-                'class': 'SecretInputPlaceholder',
-                'text': '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'
+                'class': 'SecretInputPlaceholder'
             });
+
+            function updatePlaceholder() {
+                $secret.text($input.val() ? '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' : '');
+            }
+
+            updatePlaceholder();
+            $input.on('change input', updatePlaceholder);
 
             $input.before($secret);
             $secret.before($('<div/>', {
