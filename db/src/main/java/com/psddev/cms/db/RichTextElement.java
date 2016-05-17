@@ -1,9 +1,11 @@
 package com.psddev.cms.db;
 
+import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Record;
 
+import java.io.IOException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -29,6 +31,10 @@ public abstract class RichTextElement extends Record {
 
     public boolean shouldCloseOnSave() {
         return true;
+    }
+
+    public void writePreviewHtml(ToolPageContext page) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Documented

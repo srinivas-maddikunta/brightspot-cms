@@ -4326,6 +4326,44 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             rte = Object.create(Rte);
             rte.init(input, options);
 
+            function updatePreview() {
+                rte.rte.codeMirror.eachLine(function (line) {
+                    var marks = line.rteMarks;
+
+                    if (!marks) {
+                        return;
+                    }
+
+                    $.each(marks, function (name, mark) {
+                        var className = mark.className;
+                        var attributesJson = JSON.stringify(mark.attributes);
+                        var newPreviewKey = className + attributesJson;
+
+                        if (mark.rtePreviewKey !== newPreviewKey) {
+                            mark.rtePreviewKey = newPreviewKey;
+                            console.log('change!');
+
+                            $.ajax({
+                                type: 'get',
+                                url: CONTEXT_PATH + '/content/rte-preview',
+
+                                data: {
+                                    className: className,
+                                    attributes: attributesJson
+                                },
+
+                                success: function (html) {
+                                    rte.rte.blockSetPreviewForMark(mark, html);
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+
+            updatePreview();
+            rte.rte.$el.on('rteChange', updatePreview);
+
             return;
         },
 
