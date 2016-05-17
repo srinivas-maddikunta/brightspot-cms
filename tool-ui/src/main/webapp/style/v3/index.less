@@ -43,6 +43,7 @@
 @import 'repeatable.less';
 @import 'rte.less';
 @import 'rte2.less';
+@import 'tableEditor.less';
 @import 'scheduled-events.less';
 @import 'search.less';
 @import 'taxonomy.less';
@@ -51,6 +52,8 @@
 @import 'tool-user-profile.less';
 @import 'work-streams.less';
 @import 'workflow.less';
+
+@import 'OverlayProviderSelect.less';
 
 // From Bower.
 @import '../handsontable.full.css';
@@ -683,6 +686,7 @@
   .icon-only;
   .link;
 
+  box-sizing: content-box;
   color: fade(@color-text, 30%);
   display: none;
   padding: 5px;

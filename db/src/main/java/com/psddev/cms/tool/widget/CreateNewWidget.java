@@ -11,7 +11,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
@@ -84,7 +83,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
         }
 
         Set<ObjectType> createNewTypes = settings.getCreateNewTypes();
-        Set<Content> editExistingContents = new TreeSet<Content>(settings.getEditExistingContents());
+        Set<Content> editExistingContents = new HashSet<>(settings.getEditExistingContents());
         List<TypeTemplate> typeTemplates = new ArrayList<TypeTemplate>();
         Map<ObjectType, Integer> typeCounts = new HashMap<ObjectType, Integer>();
 
@@ -381,7 +380,9 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                         page.writeEnd();
 
                         page.writeStart("ul", "class", "links pageThumbnails");
-                            for (Object content : editExistingContents) {
+                            for (Iterator<Content> i = editExistingContents.stream().sorted().iterator(); i.hasNext();) {
+                                Content content = i.next();
+
                                 page.writeStart("li");
                                     page.writeStart("a",
                                             "target", "_top",

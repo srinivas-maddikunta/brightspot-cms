@@ -60,6 +60,10 @@
     display: block;
     margin: 0;
   }
+
+  .infiniteScroll & {
+    display: none;
+  }
 }
 
 .searchResultImages,
@@ -78,6 +82,7 @@
 .searchResult-actions {
   border-left: @-actions-borderWidth solid @color-separator;
   box-sizing: border-box;
+  height: 100%;
   overflow: auto;
   padding-left: (@-actions-padding - (@-actions-borderWidth / 2));
   position: absolute;
@@ -172,10 +177,6 @@
   }
 }
 
-.searchSaved {
-  display: none;
-}
-
 .searchFilters {
   @-length-top: @input-height + 20px;
 
@@ -205,18 +206,26 @@
   }
 }
 
+.searchHistory {
+  display: none;
+}
+
+.searchRecentSelect {
+  position: relative;
+  padding-bottom: 40px;
+
+  &:after {
+    bottom: 19px;
+    border-top: 2px solid @color-separator;
+    content: '';
+    left: 0;
+    position: absolute;
+    right: 0;
+  }
+}
+
 .savedSearches {
-  position: absolute;
-  top: 50px;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
-
   .links {
-    max-height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-
     li {
       position: relative;
 

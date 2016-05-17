@@ -36,7 +36,6 @@ require([
   'velocity',
 
   'v3/input/carousel',
-  'v3/input/change',
   'input/code',
   'input/color',
   'v3/color-utils',
@@ -82,6 +81,7 @@ require([
   'content/layout-element',
   'v3/content/state',
   'v3/csrf',
+  'v3/search',
   'v3/search-fields',
   'v3/search-filters',
   'v3/search-result-check',
@@ -122,7 +122,9 @@ function() {
     '.searchResultTaxonomyColumn ul',
     '.popup[name="miscSearch"] .searchFiltersRest',
     '.popup[data-popup-source-class~="objectId-select"] .searchFiltersRest',
-    '.popup[data-popup-source-class~="objectId-select"] .searchResultList'
+    '.popup[data-popup-source-class~="objectId-select"] .searchResultList',
+    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchFiltersRest',
+    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList'
   ].join(','));
 
   $doc.frame({

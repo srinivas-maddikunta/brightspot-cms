@@ -112,12 +112,34 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                     $element.html(text);
 
                 } else if ($element.is('[data-dynamic-placeholder]')) {
+                    
                     $element.prop('placeholder', text);
+                    
+                    // Trigger a placeholderUpdate event so other code can listen for placeholder changes
+                    // (used by the rich text editor).
+                    // Note: originally called this event 'placeholder' but that caused a jquery error for some reason,
+                    // so using placeholderUpdate instead.
+                    $element.trigger('placeholderUpdate');
                 }
               }
 
               $element.attr('data-previous-text', text);
             });
+
+            // Highlight fields that have changed.
+            var diffs = data._differences;
+
+            if (diffs) {
+              $form.find('.inputContainer').removeClass('state-changed');
+
+              $.each(diffs, function (id, fields) {
+                var $inputs = $form.find('.objectInputs[data-object-id="' + id + '"]');
+
+                $.each(fields, function (name) {
+                  $inputs.find('> .inputContainer[data-field-name="' + name + '"]').addClass('state-changed');
+                });
+              });
+            }
 
             $form.resize();
           },

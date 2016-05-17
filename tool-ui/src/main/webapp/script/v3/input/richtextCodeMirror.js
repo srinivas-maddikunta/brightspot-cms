@@ -185,14 +185,52 @@ define([
         
         /**
          * Rules for cleaning up the clipboard data when content is pasted
-         * from outside the RTE.
+         * from outside the RTE, based on the type of content. These rules
+         * are applied before the general clipboardSanitizeRules.
+         *
+         * This is an object of key/value pairs, where the key is a type identifier,
+         * and value is an object which contains an isType() function and a set of rules.
+         * {
+         *   'typename': {
+         *     isType: function(content) { return Boolean },
+         *     rules: { } // same format as clipboardSanitizeRules
+         *   },
+         *   ...
+         * }
+         *
+         * @example
+         * {
+         *    'googledocs': {
+         *       isType: function(content) { return Boolean($(content).find('b[id^=docs-internal-guid]').length); }
+         *       rules: { }
+         *    },
+         *    'msword': {
+         *       isType: function(content) { return Boolean($(content).find('[class^=Mso]').length); },
+         *       rules: { }
+         *    }
+         */
+        clipboardSanitizeTypes: {},
+
+        
+        /**
+         * Rules for cleaning up the clipboard data when content is pasted
+         * from outside the RTE. These rules are *always* applied to the content.
+         * See clipboardSanitizeTypes to set up rules based on the type of content
+         * that is pasted in.
          *
          * This is an object of key/value pairs, where the key is a jQuery selector,
-         * and value is a style name from the styles object.
+         * and value is one of the following:
+         * - A string that is the style name from the styles object.
+         * - An empty string to indicate the matched elements should be removed.
+         * - A function that directly modifies the matched element content.
          *
          * @example
          * {'span[style*="font-style:italic"]': 'italic',
-         *  'span[style*="font-weight:700"]': 'bold'}
+         *  'span[style*="font-weight:700"]': 'bold',
+         *  'table', function($el) {
+         *    // Modify $el which is the table element
+         *  }
+         * }
          */
         clipboardSanitizeRules: {},
 
@@ -1697,6 +1735,17 @@ define([
          * This allows other functions to operate correctly.
          */
         inlineCleanup: function() {
+            var self;
+            
+            self = this;
+
+            // For performance, tell CodeMirror not to update the DOM
+            // until our inlineCleanup() has completed.
+            self.codeMirror.operation(function(){
+                self._inlineCleanup();
+            });
+        },
+        _inlineCleanup: function() {
 
             var doc, editor, marks, marksByClassName, self;
 
@@ -2604,12 +2653,13 @@ define([
             // Save the mark in an internal cache so we can use it later to output content.
             mark.options.id = self.enhancementId++;
             self.enhancementCache[ mark.options.id ] = mark;
+
+            self.triggerChange();
             
             // Small delay before refreshing the editor to prevent cursor problems
             setTimeout(function(){
                 self.refresh();
                 mark.changed();
-                self.triggerChange();
             }, 100);
             
             return mark;
@@ -2901,7 +2951,7 @@ define([
 
         dropdownInit: function() {
             
-            var editor, self;
+            var clicks, editor, self;
 
             self = this;
             
@@ -2927,9 +2977,43 @@ define([
                 }, 200);
             });
 
+            // CodeMirror's dblclick event doesn't work reliably,
+            // so have to provide our own double click detection
+            clicks = 0;
+            editor.on('mousedown', function(instance, event) {
+                clicks++;
+                if (clicks == 1) {
+                    setTimeout(function(){
+                        if (clicks > 1) {
+                            self.dropdownDoubleClick(event);
+                        }
+                        clicks = 0;
+                    }, 300);
+                }
+            });
         },
 
 
+        /**
+         * When user double clicks, check if there are any dropdown marks, and if so
+         * imediately popu up the edit form for the first mark located.
+         */
+        dropdownDoubleClick: function(event) {
+            var marks, self;
+            self = this;
+            
+            // Get all the marks within a range
+            marks = self.dropdownGetMarks(true);
+            
+            if (marks.length) {
+                event.preventDefault();
+                event.codemirrorIgnore = true;
+                self.onClickDoMark(event, marks[0]);
+                return false;
+            }
+        },
+
+        
         dropdownCheckCursor: function() {
 
             var marks, self;
@@ -3864,37 +3948,67 @@ define([
             self = this;
             dom = self.htmlParse(html);
             $el = $(dom);
-
-            // Apply the clipboard sanitize rules (if any)
-            if (self.clipboardSanitizeRules) {
-                $.each(self.clipboardSanitizeRules, function(selector, style) {
-                    $el.find(selector).each(function(){
-                        var $match, $replacement;
-
-                        $match = $(this);
                         
-                        if ($.isFunction(style)) {
-                            style($match);
-                        } else {
-                            $replacement = $('<span>', {'data-rte2-sanitize': style});
-                            $replacement.append( $match.contents() );
-                            $match.replaceWith( $replacement );
-                        }
-                    });
-                });
+            // Check if the pasted content matches a particular content type from clipboardSanitizeTypes
+            $.each(self.clipboardSanitizeTypes, function(typeName, typeConf) {
+                var isType;
+                if (typeConf.isType && typeConf.rules) {
+                    isType = typeConf.isType($el);
+                    if (isType) {
+                        // The pasted content matches this type, so apply these rules
+                        self.clipboardSanitizeApplyRules($el, typeConf.rules);
+                    }
+                }
+            });
+            
+            self.clipboardSanitizeApplyRules($el, self.clipboardSanitizeRules);
 
-                // Anything we replaced with "linebreak" should get an extra blank line after
-                $el.find('[data-rte2-sanitize=linebreak]').after('<br/>');
-            }
+            // Anything we replaced with "linebreak" should get an extra blank line after
+            // unless it's the last child element within the parent (to prevent
+            // extra line breaks within table cells for example).
+            $el.find('[data-rte2-sanitize=linebreak]').not(':last-child').after('<br/>');
 
             // Run it through the clipboard sanitize function (if it exists)
             if (self.clipboardSanitizeFunction) {
                 $el = self.clipboardSanitizeFunction($el);
             }
 
-            return $el[0];
+            // Now parse the DOM and convert it to it only contains the HTML we allow.
+            // This will also go inside table cells to leave us with what we consider
+            // valid HTML.
+            html = self.limitHTML($el[0]);
+            
+            return html;
         },
 
+        
+        /**
+         * Internal function to apply a set of sanitize rules to the content.
+         * @param {jQuery} $content
+         * @param {Object} rules
+         */
+        clipboardSanitizeApplyRules: function($content, rules) {
+            var self;
+            self = this;
+            
+            $.each(rules, function(selector, style) {
+                
+                $content.find(selector).each(function(){
+                    var $match, $replacement;
+
+                    $match = $(this);
+                    
+                    if ($.isFunction(style)) {
+                        style($match);
+                    } else {
+                        $replacement = $('<span>', {'data-rte2-sanitize': style});
+                        $replacement.append( $match.contents() );
+                        $match.replaceWith( $replacement );
+                    }
+                });
+            });
+        },
+        
         
         /**
          * @param {Event} e
@@ -5123,8 +5237,8 @@ define([
                 annotationEnd = {};
                 
                 if (line.markedSpans) {
-                    
-                    $.each(line.markedSpans.slice(0).reverse(), function(key, markedSpan) {
+
+                    $.each(self.toHTMLSortSpans(line), function(key, markedSpan) {
 
                         var className, endArray, endCh, mark, startArray, startCh, styleObj;
 
@@ -5433,6 +5547,138 @@ define([
             
         }, // toHTML
 
+
+        /**
+         * Sort CodeMirror spans in the order that elements should appear in the HTML output.
+         *
+         * The general logic goes like this:
+         * Output elements in the order they are found.
+         * If two elements start on the same character:
+         * Check for context rules to see if a certain order is required
+         * (like element A is allowed to be inside element B).
+         * If no context rules apply, then apply the style in the reverse order
+         * in which it was added to the content (like if bold was applied, then italic,
+         * the output would be <i><b></b></i>.
+         *
+         * @param {Object] line
+         * A CodeMirror line object.
+         */
+        toHTMLSortSpans: function(line) {
+            
+            var self, spans, spansSorted, spansByChar;
+            
+            self = this;
+
+            // First reverse the order of the marks so the last applied will "wrap" any previous marks
+            spans = line.markedSpans.slice(0).reverse();
+
+            // Group the marks by starting character so we can tell if multiple marks start on the same character
+            spansByChar = [];
+            $.each(spans, function() {
+                var char, span;
+                span = this;
+                char = span.from;
+                spansByChar[char] = spansByChar[char] || [];
+                spansByChar[char].push(span);
+            });
+
+            // Bubble sort the marks for each character based on the context
+            $.each(spansByChar, function() {
+                
+                var compare, spans, swapped, temp;
+                spans = this;
+                if (spans.length > 1) {
+                    do {
+                        swapped = false;
+                        for (var i=0; i < spans.length-1; i++) {
+                            compare = self.toHTMLSpanCompare(spans[i], spans[i+1]);
+                            if (compare === 1) {
+                                temp = spans[i];
+                                spans[i] = spans[i+1];
+                                spans[i+1] = temp;
+                                swapped = true;
+                            }
+                        }
+                    } while (swapped);
+                }
+            });
+
+            // Merge spansByChar back into a single ordered array
+            spans = [];
+            $.each(spansByChar, function(char, charSpans){
+                if (charSpans) {
+                    $.each(charSpans, function(i, span){
+                        spans.push(span);
+                    });
+                }
+            });
+
+            return spans;
+        },
+
+        /**
+         * Function that compares the context of two spans.
+         * @returns {Boolean}
+         * 0 if the order should not be changed
+         * -1 if a should come first
+         * 1 if b should come first
+         */
+        toHTMLSpanCompare: function(a, b) {
+                
+            var classA, classB, markerA, markerB, outsideB, outsideA, self, styleA, styleB;
+
+            self = this;
+
+            markerA = a.marker;
+            markerB = b.marker;
+
+            if (!(markerA && markerB)) {
+                return 0;
+            }
+            
+            classA = markerA.className;
+            classB = markerB.className;
+            
+            styleA = self.classes[classA];
+            styleB = self.classes[classB];
+
+            if (!(styleA && styleB)) {
+                return 0;
+            }
+
+            // Check if styleA is allowed to be inside styleB
+            if (styleA.context) {
+                if ($.inArray(styleB.element, styleA.context) !== -1) {
+                    // a is allowed inside b
+                    outsideB = true;
+                }
+            }
+
+            // Check if styleB is allowed to be inside styleA
+            if (styleB.context) {
+                if ($.inArray(styleA.element, styleB.context) !== -1) {
+                    // b is allowed inside a
+                    outsideA = true;
+                }
+            }
+
+            // Determine which style should be first
+            if (outsideA && outsideB) {
+                // Both are allowed inside the other, so do not change order
+                return 0;
+            } else if (outsideA) {
+                // B is allowed inside A
+                return -1;
+            } else if (outsideB) {
+                // A is allowed inside B
+                return 1;
+            } else {
+                // No context or neither allowed inside the other, so do not change order
+                return 0;
+            }
+                
+        },
+
         
         /**
          * Import HTML content into the editor.
@@ -5472,12 +5718,6 @@ define([
 
             allowRaw = (allowRaw === false ? false : true);
             
-            // Convert the styles object to an object that is indexed by element,
-            // so we can quickly map an element to a style.
-            // Note there might be more than one style for an element, in which
-            // case we will use attributes to determine if we have a match.
-            map = self.getElementMap();
-
             // Convert HTML into a DOM element so we can parse it using the browser node functions
             el = self.htmlParse(html);
 
@@ -5580,94 +5820,7 @@ define([
                         if (!raw) {
 
                             // Determine if the element maps to one of our defined styles
-                            matchStyleObj = false;
-
-                            // If a data-rte2-sanitize attribute is found on the element, then we are getting this
-                            // html as pasted data from another source. Our sanitize rules have marked this element
-                            // as being a particular style, so we should force that style to be used.
-                            matchStyleObj = self.styles[ $(next).attr('data-rte2-sanitize') ];
-                            
-                            // Multiple styles might map to a particular element name (like <b> vs <b class=foo>)
-                            // so first we get a list of styles that map just to this element name
-                            matchArray = map[elementName];
-                            if (matchArray && !matchStyleObj) {
-
-                                $.each(matchArray, function(i, styleObj) {
-
-                                    var attributesFound;
-
-                                    // Detect blocks that have containers (like "li" must be contained by "ul")
-                                    if (styleObj.elementContainer && styleObj.elementContainer.toLowerCase() !== next.parentElement.tagName.toLowerCase()) {
-                                        return;
-                                    }
-
-                                    attributesFound = {};
-
-                                    // If the style has attributes listed we must check to see if they match this element
-                                    if (styleObj.elementAttr) {
-
-                                        // Loop through all the attributes in the style definition,
-                                        // and see if we get a match
-                                        $.each(styleObj.elementAttr, function(attr, expectedValue) {
-
-                                            var attributeValue;
-
-                                            attributeValue = $(next).attr(attr);
-
-                                            // Check if the element's attribute value matches what we are looking for,
-                                            // or if we're just expecting the attribute to exist (no matter the value)
-                                            if ((attributeValue === expectedValue) ||
-                                                (expectedValue === true && attributeValue !== undefined)) {
-                                                
-                                                // We got a match!
-                                                // But if there is more than one attribute listed,
-                                                // we keep looping and all of them must match!
-                                                attributesFound[attr] = true;
-                                                matchStyleObj = styleObj;
-                                                
-                                            } else {
-                                                
-                                                // The attribute did not match so we do not have a match.
-                                                matchStyleObj = false;
-                                                
-                                                // Stop looping through the rest of the attributes.
-                                                return false;
-                                            }
-                                        });
-
-
-                                    } else {
-                                        
-                                        // There were no attributes specified for this style so we might have a match just on the element
-                                        matchStyleObj = styleObj;
-                                    }
-
-                                    /***
-
-                                        // Not needed anymore (?) since we assume that rules are set up to match elements with specified
-                                        // attribues. You can match <span myattr1> and <span myattr2> but if you tried to match
-                                        // just <span> then that might match in a different order so it might cause problems.
-
-                                    // Check if the element has other attributes that are unexpected
-                                    if (matchStyleObj && !styleObj.elementAttrAny) {
-                                        $.each(elementAttributes, function(attr, value) {
-                                            if (!attributesFound[attr]) {
-                                                // Oops, this element has an extra attribute that is not in our style object,
-                                                // so it should not be considered a match
-                                                matchStyleObj = false;
-                                                return false;
-                                            }
-                                        });
-                                    }
-                                    ***/
-
-
-                                    // Stop after the first style that matches
-                                    if (matchStyleObj) {
-                                        return false;
-                                    }
-                                });
-                            }
+                            matchStyleObj = self.getStyleForElement(next);
 
                         }
 
@@ -5948,6 +6101,259 @@ define([
             self.triggerChange();
             
         }, // fromHTML()
+
+
+        /**
+         * Given a DOM element, determine which style it matches.
+         *
+         * @param {DOM} el
+         * @returns {Object|undefined}
+         * The style object that matches the element, or undefined.
+         */
+        getStyleForElement: function(el) {
+
+            var elementName, elementAttributes, map, matchStyleObj, self;
+            self = this;
+
+            // Convert the styles object to an object that is indexed by element,
+            // so we can quickly map an element to a style.
+            // Note there might be more than one style for an element, in which
+            // case we will use attributes to determine if we have a match.
+            // Cache it so we only create the map once.
+            self.stylesMap = self.stylesMap || self.getElementMap();
+            map = self.stylesMap;
+            
+            // We got an element
+            elementName = el.tagName.toLowerCase();
+            elementAttributes = self.getAttributes(el);
+
+            // Determine if the element maps to one of our defined styles
+            matchStyleObj = undefined;
+
+            // If a data-rte2-sanitize attribute is found on the element, then we are getting this
+            // html as pasted data from another source. Our sanitize rules have marked this element
+            // as being a particular style, so we should force that style to be used.
+            matchStyleObj = self.styles[ $(el).attr('data-rte2-sanitize') ];
+            $(el).removeAttr('data-rte2-sanitize');
+            if (matchStyleObj) {
+                return matchStyleObj;
+            }
+
+            // Multiple styles might map to a particular element name (like <b> vs <b class=foo>)
+            // so first we get a list of styles that map just to this element name
+            matchArray = map[elementName];
+            if (matchArray) {
+
+                $.each(matchArray, function(i, styleObj) {
+
+                    var attributesFound;
+
+                    // Detect blocks that have containers (like "li" must be contained by "ul")
+                    if (styleObj.elementContainer && styleObj.elementContainer.toLowerCase() !== el.parentElement.tagName.toLowerCase()) {
+                        return;
+                    }
+
+                    attributesFound = {};
+
+                    // If the style has attributes listed we must check to see if they match this element
+                    if (styleObj.elementAttr) {
+
+                        // Loop through all the attributes in the style definition,
+                        // and see if we get a match
+                        $.each(styleObj.elementAttr, function(attr, expectedValue) {
+
+                            var attributeValue;
+
+                            attributeValue = $(el).attr(attr);
+
+                            // Check if the element's attribute value matches what we are looking for,
+                            // or if we're just expecting the attribute to exist (no matter the value)
+                            if ((attributeValue === expectedValue) ||
+                                (expectedValue === true && attributeValue !== undefined)) {
+                                
+                                // We got a match!
+                                // But if there is more than one attribute listed,
+                                // we keep looping and all of them must match!
+                                attributesFound[attr] = true;
+                                matchStyleObj = styleObj;
+                                
+                            } else {
+                                
+                                // The attribute did not match so we do not have a match.
+                                matchStyleObj = false;
+                                
+                                // Stop looping through the rest of the attributes.
+                                return false; // break out of $.each()
+                            }
+                        });
+
+
+                    } else {
+                        
+                        // There were no attributes specified for this style so we might have a match just on the element
+                        matchStyleObj = styleObj;
+                    }
+
+                    // Stop after the first style that matches
+                    if (matchStyleObj) {
+                        return false; // break out of $.each()
+                    }
+
+                }); // each matchArray...
+                
+            } // if (matchArray)
+
+            return matchStyleObj;
+        },
+
+        
+        /**
+         * Fix the HTML from a paste operation so it only contains elements from our style definitions.
+         *
+         * @param {String|DOM} html
+         * An HTML string or a DOM structure.
+         *
+         * @returns {String)
+         */
+        limitHTML: function(html) {
+
+            var el, map, self, val;
+
+            self = this;
+            
+            // Convert the styles object to an object that is indexed by element,
+            // so we can quickly map an element to a style.
+            // Note there might be more than one style for an element, in which
+            // case we will use attributes to determine if we have a match.
+            map = self.getElementMap();
+
+            // Convert HTML into a DOM element so we can parse it using the browser node functions
+            el = self.htmlParse(html);
+                
+            // Output HTML after fixing
+            val = '';
+            
+            function processNode(n) {
+                
+                var elementAttributes, elementClose, elementName, matchStyleObj, next, split, to, text;
+
+                next = n.childNodes[0];
+
+                while (next) {
+
+                    elementAttributes = {};
+                    elementClose = '';
+
+                    // Check if we got a text node or an element
+                    if (next.nodeType === 3) {
+
+                        // We got a text node, just add it to the value
+                        text = next.textContent;
+
+                        // Convert multiple white space to single space
+                        text = text.replace(/[\n\r]/g, ' ').replace(/\s+/g, ' ');
+                            
+                        // If text node is not within an element remove leading and trailing spaces.
+                        // For example, pasting content from Word has text nodes with whitespace
+                        // between elements.
+                        if ($(next.parentElement).is('body,td,th')) {
+                            text = text.replace(/^\s*|\s*$/g, '');
+                        }
+
+                        val += text;
+                        
+                    } else if (next.nodeType === 1) {
+
+                        // We got an element
+                        elementName = next.tagName.toLowerCase();
+                        elementAttributes = self.getAttributes(next);
+
+                        // Determine if the element maps to one of our defined styles
+                        matchStyleObj = self.getStyleForElement(next);
+
+                        // For table elements and enhancements we should keep the elements as they are
+                        switch (elementName) {
+                        case 'table':
+                        case 'tbody':
+                        case 'tr':
+                        case 'td':
+                        case 'th':
+                            matchStyleObj = true;
+                            break;
+
+                        case 'span':
+                        case 'button':
+                            if ($(next).hasClass('enhancement')) {
+                                matchStyleObj = true;
+                            }
+                            break;
+
+                        case 'br':
+                            matchStyleObj = true;
+                            break;
+                        }
+
+                        // If we got a matching element output the start of the element as HTML
+                        if (matchStyleObj) {
+
+                            elementName = matchStyleObj === true ? elementName : matchStyleObj.element;
+
+                            if (elementName) {
+
+                                val += '<' + elementName;
+
+                                $.each(next.attributes, function(i, attrib){
+                                
+                                    var attributeName = attrib.name;
+                                    var attributeValue = attrib.value;
+
+                                    val += ' ' + attributeName + '="' + self.htmlEncode(attributeValue) + '"';
+                                });
+                                
+                                if (matchStyleObj !== true && matchStyleObj.elementAttr) {
+                                    $.each(matchStyleObj.elementAttr, function(attr, value){
+                                        val += ' ' + attr + '="' + self.htmlEncode(value) + '"';
+                                    });
+                                }
+
+                                // Close void elements like <input/>
+                                if (self.voidElements[ elementName ]) {
+                                    val += '/';
+                                }
+                            
+                                val += '>';
+
+                                if (!self.voidElements[ elementName ]) {
+                                    elementClose = '</' + elementName + '>';
+                                }
+                                
+                            } else if (matchStyleObj.line) {
+
+                                // The style doesn't have an element to output, but it indicates there should be a line break
+                                elementClose = '<br/>';
+
+                            }
+                        }
+
+                        // Recursively go into the node to get text or other children 
+                        processNode(next);
+
+                        if (elementClose) {
+                            val += elementClose;
+                        }
+
+                    } // else if this is an element...
+                    
+                    next = next.nextSibling;
+                    
+                } // while there is a next sibling...
+                
+            } // function processNode
+
+            processNode(el);
+
+            return '<div>' + val + '</div>';
+        },
 
 
         /**

@@ -1,5 +1,6 @@
 <%@ page session="false" import="
     com.psddev.dari.util.StringUtils,
+    com.psddev.cms.tool.Search,
     com.psddev.cms.tool.ToolPageContext,
     com.psddev.cms.db.ToolUser,
 
@@ -21,6 +22,8 @@
         user.save();
     }
 
+    String context = wp.param(String.class, Search.CONTEXT_PARAMETER);
+
     if (savedSearches.isEmpty()) {
         wp.writeStart("div", "class", "message");
             wp.writeHtml("No saved searches yet.");
@@ -37,19 +40,19 @@
 
                     wp.writeStart("li");
                         wp.writeStart("a",
-                              "href", wp.cmsUrl("/misc/search.jsp") + "?" + savedSearch,
+                              "href", StringUtils.addQueryParameters(wp.cmsUrl("/misc/search.jsp") + "?" + savedSearch, Search.CONTEXT_PARAMETER, context),
                               "target", "miscSearch");
                             wp.writeHtml(savedSearchName);
                         wp.writeEnd();
                         wp.writeStart("a",
                               "class", "savedSearches-remove",
-                              "href", wp.cmsUrl("/misc/savedSearches.jsp", "remove", savedSearchName),
+                              "href", wp.cmsUrl("/misc/savedSearches.jsp", "remove", savedSearchName, Search.CONTEXT_PARAMETER, context),
                               "target", "savedSearches");
                     wp.writeEnd();
             }
         wp.writeEnd();
     }
-    wp.writeStart("form", "action", wp.cmsUrl("/misc/savedSearches.jsp"), "name", "refreshSavedSearches");
+    wp.writeStart("form", "action", wp.cmsUrl("/misc/savedSearches.jsp", Search.CONTEXT_PARAMETER, context), "name", "refreshSavedSearches");
     wp.writeEnd();
 
 %>

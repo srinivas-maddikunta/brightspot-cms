@@ -1,3 +1,25 @@
+.rte2-submenu() {
+  display:none;
+  margin:0;
+  position:absolute;
+  padding:0.5em;
+  background-color: fade(white, 93%);
+  border:1px solid @color-separator;
+  z-index:4;
+  &:hover {
+    z-index: 5;
+  }
+      
+  li {
+    display:block;
+
+    a {
+          // Prevent submenu from shrinking and cutting off text when on right side
+      white-space: nowrap;
+    }
+  }
+}
+
 .rte2-toolbar {
   background: white;
   border-color: transparent;
@@ -25,12 +47,12 @@
   .rte2-wrapper > & {
 
     // Give a higher z-index than the rich text editor.
-    z-index: 3;
+    z-index: 4;
 
     // When hovering the toolbar, give it a higher z-index than other toolbars
     // below so that the submenu will be on top of other toolbars.
     &:hover {
-      z-index: 4;
+      z-index: 5;
     }
   }
 
@@ -48,22 +70,7 @@
     height: 25px;
 
     > ul {  // Submenu
-      display:none;
-      margin:0;
-      position:absolute;
-      padding:0.5em;
-      background-color: fade(white, 93%);
-      border:1px solid @color-separator;
-      z-index:1;
-      
-      li {
-        display:block;
-
-        a {
-          // Prevent submenu from shrinking and cutting off text when on right side
-          white-space: nowrap;
-        }
-      }
+      .rte2-submenu;
     }
 
     &:hover {
@@ -196,6 +203,10 @@
   background-color: transparent;
   border-style: none;
   padding: 0;
+  > li:last-of-type {
+    // Remove the extra space normally reserved for the word count
+      margin-right: 0;
+  }
 
   .rte2-enhancement-toolbar-up { .icon; .icon-arrow-up; }
   .rte2-enhancement-toolbar-down { .icon; .icon-arrow-down; }
@@ -208,7 +219,28 @@
   .rte2-enhancement-toolbar-change { .icon; .icon-random; width:auto; padding-right:0.5em; }
   .rte2-enhancement-toolbar-options { .icon; .icon-cog; width:auto; padding-right:0.5em; }
   .rte2-enhancement-toolbar-edit { .icon; .icon-pencil; width:auto; padding-right:0.5em; }
-  .rte2-enhancement-toolbar-size { width:auto; }
+  .rte2-enhancement-toolbar-size {
+    .icon;
+    .icon-caret-right;
+    &.hovered, &:hover {
+      .icon-caret-down;
+    }
+    width:auto;
+    padding-right:0.5em;
+    &:before { padding: 0 0 1px 3px; }
+  }
+}
+
+.rte2-enhancement-sizes-popup:extend(.rte2-toolbar all) {
+  .rte2-submenu;
+  width:auto;
+  a { width:auto; display:block; }
+  > li {
+    &:last-of-type {
+      // Remove the extra space normally reserved for the word count
+      margin-right: 0;
+    }
+  }
 }
 
 .rte2-enhancement.toBeRemoved, .rte2-table.toBeRemoved {
@@ -217,9 +249,9 @@
   .rte2-enhancement-toolbar-remove-completely { display:inline-block; }
 }
 .rte2-table-placeholder {
-  overflow:hidden;
   height:auto;
   width:100%;
+  position:relative;
 }
 .rte2-style-html {
   font-family: @fontFamily-code;
@@ -305,15 +337,21 @@
   width:100%;
   margin:1em 0;
 }
+.rte2-style-enhancement-float() {
+  width:auto;
+  .rte2-enhancement-toolbar {
+    white-space:nowrap;
+  }
+}
 .rte2-style-enhancement-left {
+  .rte2-style-enhancement-float;
   float:left;
   margin:0 1em 0 0;
-  width:400px;
 }
 .rte2-style-enhancement-right {
+  .rte2-style-enhancement-float;
   float:right;
   margin:0 0 0 1em;
-  width:400px;
 }
 .rte2-style-track-delete, .rte2-table-placeholder del {
   background-color: rgba(255, 0, 0, 0.3);
@@ -415,6 +453,15 @@ li.CodeMirror-hint-active {
   .CodeMirror-linewidget {
     overflow: visible;
     z-index: inherit;
+  }
+}
+
+.rte-fullscreen {
+  position: relative;
+  z-index: 999;
+
+  &.contentForm {
+    overflow: visible;
   }
 }
 
@@ -561,7 +608,7 @@ li.CodeMirror-hint-active {
       padding:0.25em;
     }
 
-    a {
+    .rte2-enhancement-toolbar a {
       color: @color-placeholder;
 
       &:hover {
@@ -632,14 +679,12 @@ li.CodeMirror-hint-active {
   .closeButton {
     display:none;
   }
-  
-}
 
-.rte2-table-editor {
-  .rte2-wrapper {
+  .rte2-codemirror {
     overflow: hidden;
   }
 }
+
 .rte2-table-editor-save {
   margin-right: 0.5em;
 }
@@ -652,7 +697,9 @@ li.CodeMirror-hint-active {
   strike { text-decoration:line-through;}
   
   // Within the table do not let users click link or button elements
-  a, button { pointer-events:none; }
+  table {
+    a, button { pointer-events:none; }
+  }
 
   .rte-comment {
     &:extend(.rte2-style-comment);
@@ -705,4 +752,22 @@ li.CodeMirror-hint-active {
     display:table-cell;
     padding-left:0.25em;
   }
+}
+
+.rte2-table-placeholder {
+
+  .wtHolder::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 5px;
+    height:5px;
+  }
+  .wtHolder::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background-color: rgba(0,0,0,.25);
+    -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
+  }
+}
+
+.rte2-placeholder-showing .CodeMirror pre {
+  color: @color-placeholder;
 }

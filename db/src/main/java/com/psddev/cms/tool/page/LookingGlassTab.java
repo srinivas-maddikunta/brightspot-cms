@@ -81,7 +81,7 @@ public class LookingGlassTab extends ProfilePanelTab {
 
             for (ToolUserDevice device : recentDevices) {
                 List<ToolUserAction> actions = actionsByDevice.get(device);
-                String lookingGlassUrl = JspUtils.getAbsoluteUrl(page.getRequest(), page.cmsUrl("/lookingGlass", "id", device.getOrCreateLookingGlassId()));
+                String lookingGlassUrl = JspUtils.getHostUrl(page.getRequest()) + page.cmsUrl("/lookingGlass", "id", device.getOrCreateLookingGlassId());
 
                 page.writeStart("div", "data-tab", device.getUserAgentDisplay());
                     page.writeStart("div", "class", "p-tud-lg-url");

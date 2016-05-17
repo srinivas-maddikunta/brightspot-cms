@@ -3,6 +3,7 @@
 com.psddev.cms.db.Content,
 com.psddev.cms.db.Draft,
 com.psddev.cms.db.History,
+com.psddev.cms.db.Site,
 com.psddev.cms.db.Schedule,
 com.psddev.cms.db.Template,
 com.psddev.cms.db.Trash,
@@ -97,7 +98,7 @@ Content.ObjectModification contentData = draft != null && !draft.isNewContent()
         ? draft.as(Content.ObjectModification.class)
         : state.as(Content.ObjectModification.class);
 
-if (wp.getUser().equals(contentData.getUpdateUser())) {
+if (!state.isNew() && wp.getUser().equals(contentData.getUpdateUser())) {
     Date tenSecondsAgo = new DateTime(Database.Static.getDefault().now()).minusSeconds(10).toDate();
     Date updateDate = contentData.getUpdateDate();
 
@@ -110,10 +111,12 @@ if (wp.getUser().equals(contentData.getUpdateUser())) {
 
         wp.write("<div class=\"message message-success\"><p>");
             if (log != null && !ObjectUtils.isBlank(log.getNewWorkflowState())) {
+                Workflow workflow = Workflow.findWorkflow(state.as(Site.ObjectModification.class).getOwner(), state);
+                String workflowStateDisplayName = workflow == null ? log.getNewWorkflowState() : workflow.getStateDisplayName(log.getNewWorkflowState());
                 wp.writeHtml(wp.localize(
                         "com.psddev.cms.tool.page.content.ObjectMessage",
                         ImmutableMap.of(
-                                "state", log.getNewWorkflowState(),
+                                "state", workflowStateDisplayName,
                                 "date", wp.formatUserDateTime(log.getDate())),
                         "message.transition"));
 

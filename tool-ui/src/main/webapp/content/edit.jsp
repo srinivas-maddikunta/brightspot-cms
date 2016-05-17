@@ -2,6 +2,8 @@
 
 com.psddev.cms.db.Content,
 com.psddev.cms.db.ContentLock,
+com.psddev.cms.db.Overlay,
+com.psddev.cms.db.OverlayProvider,
 com.psddev.cms.db.Directory,
 com.psddev.cms.db.Draft,
 com.psddev.cms.db.Guide,
@@ -25,6 +27,7 @@ com.psddev.cms.tool.CmsTool,
 com.psddev.cms.tool.ContentEditWidgetDisplay,
 com.psddev.cms.tool.ToolPageContext,
 com.psddev.cms.tool.Widget,
+com.psddev.cms.tool.page.content.Edit,
 com.psddev.dari.util.Settings,
 
 com.psddev.dari.db.ObjectField,
@@ -179,6 +182,7 @@ if (copy != null) {
     State editingState = State.getInstance(editing);
     editingState.setValues(State.getInstance(copy).getSimpleValues());
     editingState.setId(null);
+    editingState.setStatus(null);
 
     Consumer<ObjectIndex> removeVisibilityIndexValues = index -> {
         if (index.isVisibility()) {
@@ -258,6 +262,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             wp.writeEnd();
         wp.writeEnd();
     }
+
+    Overlay overlay = Edit.getOverlay(editing);
+    OverlayProvider overlayProvider = overlay != null ? overlay.getOverlayProvider() : null;
+
+    Edit.writeOverlayProviderSelect(wp, editing, overlayProvider);
 %>
     <form class="contentForm contentLock"
             method="post"
@@ -278,7 +287,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             data-o-preview="<%= wp.h(wp.getPreviewThumbnailUrl(selected)) %>"
             data-object-id="<%= State.getInstance(editing).getId() %>"
             data-content-locked-out="<%= lockedOut && !editAnyway %>"
-            data-content-id="<%= State.getInstance(editing).getId() %>">
+            data-content-id="<%= State.getInstance(editing).getId() %>"
+            <% if (overlay != null) { %>data-overlay-differences="<%= wp.h(ObjectUtils.toJson(overlay.getDifferences())) %>"<% } %>>
 
         <input type="hidden" name="<%= editingState.getId() %>/oldValues" value="<%= wp.h(ObjectUtils.toJson(editingOldValues)) %>">
 
@@ -287,6 +297,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 <h1 class="breadcrumbs"><%
 
                     wp.writeStart("span", "class", "breadcrumbItem icon icon-object");
+                        if (overlayProvider != null) {
+                            wp.writeTypeObjectLabel(overlayProvider);
+                            wp.writeHtml(" - ");
+                        }
+
                         if (state.isNew()) {
                             wp.writeHtml("New");
 
@@ -833,13 +848,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             }
 
                                             if (draft == null
-                                                    && (wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)
-                                                    || workflow.getTransitionsTo(currentState)
-                                                            .keySet()
-                                                            .stream()
-                                                            .filter(name -> wp.hasPermission("type/" + editingState.getTypeId() + "/" + name))
-                                                            .findFirst()
-                                                            .isPresent())) {
+                                                    && wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)) {
 
                                                 displayWorkflowSave = true;
                                             }
@@ -974,7 +983,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 wp.writeStart("div", "class", "widget-publishingExtra");
                     wp.writeStart("ul", "class", "widget-publishingExtra-left");
-                        if ((!lockedOut || editAnyway) && isWritable) {
+                        if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
                             if (isDraft) {
                                 if (schedule == null) {
                                     wp.writeStart("li");
@@ -1032,7 +1041,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                    if ((!lockedOut || editAnyway) && isWritable) {
+                    if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
                         wp.writeStart("ul", "class", "widget-publishingExtra-right");
                             if (isWritable && isDraft) {
                                 if (schedule != null) {
@@ -1546,7 +1555,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 return color;
             };
 
-            $edit.delegate('.inputContainer', 'mouseenter', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'mouseenter', function() {
                 var $container = $(this),
                         $toggle = $.data($container[0], 'fieldPreview-$toggle');
 
@@ -1565,7 +1574,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 }
             });
 
-            $edit.delegate('.inputContainer .fieldPreviewToggle', 'click', function() {
+            $edit.delegate('.contentForm-main .inputContainer .fieldPreviewToggle', 'click', function() {
                 var $toggle = $(this),
                         $container = $toggle.closest('.inputContainer');
 
@@ -1573,15 +1582,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 $toggle.css('color', $container.is('.fieldPreview-displaying') ? getUniqueColor($container) : '');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-enable', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-enable', function() {
                 $(this).addClass('fieldPreview-enabled');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-disable', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-disable', function() {
                 $(this).trigger('fieldPreview-hide').removeClass('fieldPreview-enabled');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-hide', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-hide', function() {
                 var $container = $(this),
                         name = $container.attr('data-name');
 
@@ -1595,7 +1604,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 $('.fieldPreviewPaths[data-name="' + name + '"]').remove();
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-toggle', function(event, $source) {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-toggle', function(event, $source) {
                 var $container = $(this),
                         name = $container.attr('data-name'),
                         color,
@@ -1777,7 +1786,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 }
             });
 
-            $edit.delegate('.inputContainer', 'click', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'click', function() {
                 if ($previewWidget.is('.widget-expanded')) {
                     $(this).trigger('fieldPreview-toggle');
                     return false;
