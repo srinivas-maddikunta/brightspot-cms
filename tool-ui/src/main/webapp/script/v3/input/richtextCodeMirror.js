@@ -4603,7 +4603,7 @@ define([
             // Listen for CodeMirror change events and add to our history.
             self.codeMirror.on('beforeChange', function(instance, beforeChange) {
 
-                var change, marks;
+                var change, marks, marksAndMore;
                 
                 // Ignore changes if we're currently performing an undo or redo operation
                 if (self.historyIsExecuting()) {
@@ -4621,10 +4621,38 @@ define([
                 // removes the mark along with the removed text, then we won't
                 // be able to find the original position of the mark anymore.
                 marks = self.codeMirror.findMarks(beforeChange.from, beforeChange.to);
+                marksAndMore = [];
                 $.each(marks, function(i, mark) {
+                    
+                    var markAndMore, options;
+                    
+                    markAndMore = {
+                        mark:mark
+                    };
+                    
                     if (mark.find) {
-                        mark.historyFind = mark.find();
+                        markAndMore.position = mark.find();
                     }
+
+                    // Retain the options from the old mark
+                    options = {};
+                    $.each(mark, function(prop, value) {
+                        switch (prop) {
+                            // List of properties that should be copied/retained from the old mark
+                            // and passed as options on the new mark
+                        case 'attributes':
+                        case 'className':
+                        case 'endStyle':
+                        case 'startStyle':
+                        case 'historyFind':
+                        case 'inclusiveRight':
+                        case 'inclusiveLeft':
+                        case 'triggerChange':
+                            options[prop] = value;
+                        }
+                    });
+                    markAndMore.options = options;
+                    marksAndMore.push(markAndMore);
                 });
 
                 change = {
@@ -4634,8 +4662,8 @@ define([
                     text: beforeChange.text,
                     removed: self.codeMirror.getRange(beforeChange.from, beforeChange.to).split('\n'),
 
-                    // save the marks as part of the change object so we can recreate them on undo
-                    marks: marks
+                    // Save the marks as part of the change object so we can recreate them on undo
+                    marks: marksAndMore
                 };
                 
                 self.historyAdd({
@@ -4856,9 +4884,13 @@ define([
             
             // Now re-add the marks that were possibly removed
             if (change.marks && change.marks.length) {
-                $.each(change.marks, function(i, mark) {
+                $.each(change.marks, function(i, markAndMore) {
 
-                    var markNew, options;
+                    var mark, markNew, options, position;
+
+                    mark = markAndMore.mark;
+                    position = markAndMore.position;
+                    options = markAndMore.options;
                     
                     if (mark.find()) {
                         // Mark has not been removed from the document,
@@ -4866,29 +4898,11 @@ define([
                         // Clear the mark because we're going to recreate it.
                         mark.clear();
                     }
-
-                    // Retain the options from the old mark
-                    options = {};
-                    $.each(mark, function(prop, value) {
-                        switch (prop) {
-                            // List of properties that should be copied/retained from the old mark
-                            // and passed as options on the new mark
-                        case 'attributes':
-                        case 'className':
-                        case 'endStyle':
-                        case 'startStyle':
-                        case 'historyFind':
-                        case 'inclusiveRight':
-                        case 'inclusiveLeft':
-                        case 'triggerChange':
-                            options[prop] = value;
-                        }
-                    });
                     
                     // Recreate a new mark at the previous position.
                     // Pass in the saved mark as "options" in the hope that will recreate
                     // all the same mark options.
-                    markNew = editor.markText(mark.historyFind.from, mark.historyFind.to, options);
+                    markNew = editor.markText(position.from, position.to, options);
                     
                 });
             }
