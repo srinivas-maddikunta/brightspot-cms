@@ -4602,78 +4602,7 @@ define([
 
             // Listen for CodeMirror change events and add to our history.
             self.codeMirror.on('beforeChange', function(instance, beforeChange) {
-
-                var change, marks, marksAndMore;
-                
-                // Ignore changes if we're currently performing an undo or redo operation
-                if (self.historyIsExecuting()) {
-                    return;
-                }
-                
-                // Ignore changes where we set the origin containing "brightspot",
-                // because in those instances we will add directly to the history
-                if (beforeChange.origin && beforeChange.origin.indexOf('brightspot') !== -1 || beforeChange.origin === 'paste') {
-                    return;
-                }
-                
-                // Save a list of the marks that are defined in this range.
-                // We also need to get the position of each mark, because if CodeMirror
-                // removes the mark along with the removed text, then we won't
-                // be able to find the original position of the mark anymore.
-                marks = self.codeMirror.findMarks(beforeChange.from, beforeChange.to);
-                marksAndMore = [];
-                $.each(marks, function(i, mark) {
-                    
-                    var markAndMore, options;
-                    
-                    markAndMore = {
-                        mark:mark
-                    };
-                    
-                    if (mark.find) {
-                        markAndMore.position = mark.find();
-                    }
-
-                    // Retain the options from the old mark
-                    options = {};
-                    $.each(mark, function(prop, value) {
-                        switch (prop) {
-                            // List of properties that should be copied/retained from the old mark
-                            // and passed as options on the new mark
-                        case 'attributes':
-                        case 'className':
-                        case 'endStyle':
-                        case 'startStyle':
-                        case 'historyFind':
-                        case 'inclusiveRight':
-                        case 'inclusiveLeft':
-                        case 'triggerChange':
-                            options[prop] = value;
-                        }
-                    });
-                    markAndMore.options = options;
-                    marksAndMore.push(markAndMore);
-                });
-
-                change = {
-                    origin: beforeChange.origin,
-                    from: beforeChange.from,
-                    to: beforeChange.to,
-                    text: beforeChange.text,
-                    removed: self.codeMirror.getRange(beforeChange.from, beforeChange.to).split('\n'),
-
-                    // Save the marks as part of the change object so we can recreate them on undo
-                    marks: marksAndMore
-                };
-                
-                self.historyAdd({
-                    undo: function() {
-                        self.historyUndoCodeMirrorChange(change);
-                    },
-                    redo: function() {
-                        self.historyRedoCodeMirrorChange(change);
-                    }
-                });
+                self.historyHandleCodeMirrorEvent(beforeChange);
             });
         },
 
@@ -4843,6 +4772,89 @@ define([
             var self;
             self = this;
             return Boolean(self.historyExecuting);
+        },
+
+
+        /**
+         * Handle the beforeChange event from CodeMirror to add to the undo history.
+         * @param {Object} beforeChange
+         * The beforeChange event from CodeMirror.
+         */
+        historyHandleCodeMirrorEvent: function(beforeChange) {
+            
+            var change, marks, marksAndMore, self;
+
+            self = this;
+            
+            // Ignore changes if we're currently performing an undo or redo operation
+            if (self.historyIsExecuting()) {
+                return;
+            }
+                
+            // Ignore changes where we set the origin containing "brightspot",
+            // because in those instances we will add directly to the history
+            if (beforeChange.origin && beforeChange.origin.indexOf('brightspot') !== -1 || beforeChange.origin === 'paste') {
+                return;
+            }
+                
+            // Save a list of the marks that are defined in this range.
+            // We also need to get the position of each mark, because if CodeMirror
+            // removes the mark along with the removed text, then we won't
+            // be able to find the original position of the mark anymore.
+            marks = self.codeMirror.findMarks(beforeChange.from, beforeChange.to);
+            marksAndMore = [];
+            $.each(marks, function(i, mark) {
+                    
+                var markAndMore, options;
+                    
+                markAndMore = {
+                    mark:mark
+                };
+                    
+                if (mark.find) {
+                    markAndMore.position = mark.find();
+                }
+
+                // Retain the options from the old mark
+                options = {};
+                $.each(mark, function(prop, value) {
+                    switch (prop) {
+                        // List of properties that should be copied/retained from the old mark
+                        // and passed as options on the new mark
+                    case 'attributes':
+                    case 'className':
+                    case 'endStyle':
+                    case 'startStyle':
+                    case 'historyFind':
+                    case 'inclusiveRight':
+                    case 'inclusiveLeft':
+                    case 'triggerChange':
+                        options[prop] = value;
+                    }
+                });
+                markAndMore.options = options;
+                marksAndMore.push(markAndMore);
+            });
+
+            change = {
+                origin: beforeChange.origin,
+                from: beforeChange.from,
+                to: beforeChange.to,
+                text: beforeChange.text,
+                removed: self.codeMirror.getRange(beforeChange.from, beforeChange.to).split('\n'),
+
+                // Save the marks as part of the change object so we can recreate them on undo
+                marks: marksAndMore
+            };
+                
+            self.historyAdd({
+                undo: function() {
+                    self.historyUndoCodeMirrorChange(change);
+                },
+                redo: function() {
+                    self.historyRedoCodeMirrorChange(change);
+                }
+            });
         },
 
         
