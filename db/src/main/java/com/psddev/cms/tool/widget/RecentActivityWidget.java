@@ -300,7 +300,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                                 page.writeTypeLabel(content);
                             page.writeEnd();
 
-                            page.writeStart("td", "data-preview-anchor", "");
+                            page.writeStart("td");
                                 page.writeStart("a",
                                         "href", page.objectUrl("/content/edit.jsp", content),
                                         "target", "_top");
