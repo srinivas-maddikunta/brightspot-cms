@@ -119,7 +119,6 @@ function() {
 
   bsp_utils.onDomInsert(document, '.ExternalPreviewFrame', {
     insert: function (frame) {
-      console.log(frame);
       $(frame).iFrameResize();
     }
   });

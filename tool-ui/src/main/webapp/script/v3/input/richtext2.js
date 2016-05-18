@@ -4341,7 +4341,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
                         if (mark.rtePreviewKey !== newPreviewKey) {
                             mark.rtePreviewKey = newPreviewKey;
-                            console.log('change!');
 
                             $.ajax({
                                 type: 'get',
