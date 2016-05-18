@@ -32,6 +32,12 @@ public class RichTextElementPreview extends PageServlet {
         RichTextElement rte = (RichTextElement) TypeDefinition.getInstance(rteClass).newInstance();
 
         rte.fromAttributes((Map<String, String>) ObjectUtils.fromJson(page.param(String.class, "attributes")));
-        rte.writePreviewHtml(page);
+
+        try {
+            rte.writePreviewHtml(page);
+
+        } catch (RuntimeException error) {
+            // No preview.
+        }
     }
 }

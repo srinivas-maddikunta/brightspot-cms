@@ -4352,7 +4352,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                                 },
 
                                 success: function (html) {
-                                    rte.rte.blockSetPreviewForMark(mark, html);
+                                    if (html) {
+                                        rte.rte.blockSetPreviewForMark(mark, html);
+                                    }
                                 }
                             });
                         }
