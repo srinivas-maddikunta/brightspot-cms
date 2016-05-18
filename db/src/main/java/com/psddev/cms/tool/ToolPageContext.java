@@ -1823,13 +1823,18 @@ public class ToolPageContext extends WebPageContext {
 
                                 writeStart("div", "class", "toolUserControls");
                                     writeStart("ul", "class", "piped");
-                                        writeStart("li");
-                                            writeStart("a",
-                                                    "href", cmsUrl("/user/wips"),
-                                                    "target", "wip");
-                                                writeHtml(localize(ToolUser.class, "action.wip"));
+
+                                        if (!user.isDisableWorkInProgress()
+                                                && !cms.isDisableWorkInProgress()) {
+
+                                            writeStart("li");
+                                                writeStart("a",
+                                                        "href", cmsUrl("/user/wips"),
+                                                        "target", "wip");
+                                                    writeHtml(localize(ToolUser.class, "action.wip"));
+                                                writeEnd();
                                             writeEnd();
-                                        writeEnd();
+                                        }
 
                                         writeStart("li");
                                             writeStart("a",

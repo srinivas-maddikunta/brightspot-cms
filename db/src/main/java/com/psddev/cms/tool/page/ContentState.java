@@ -27,6 +27,7 @@ import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.db.Workflow;
 import com.psddev.cms.db.WorkflowLog;
 import com.psddev.cms.tool.AuthenticationFilter;
+import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
@@ -176,7 +177,10 @@ public class ContentState extends PageServlet {
 
         jsonResponse.put("_differences", differences);
 
-        if (page.param(boolean.class, "changed")) {
+        if (page.param(boolean.class, "changed")
+                && !user.isDisableWorkInProgress()
+                && !Query.from(CmsTool.class).first().isDisableWorkInProgress()) {
+
             ObjectType contentType = state.getType();
             UUID contentId = state.getId();
 

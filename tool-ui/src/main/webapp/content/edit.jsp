@@ -409,35 +409,39 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 <%
                 wp.include("/WEB-INF/objectMessage.jsp", "object", editing);
 
-                WorkInProgress wip = Query.from(WorkInProgress.class)
-                        .where("owner = ?", user)
-                        .and("contentId = ?", editingState.getId())
-                        .first();
+                if (!user.isDisableWorkInProgress()
+                        && !wp.getCmsTool().isDisableWorkInProgress()) {
 
-                if (wip != null) {
-                    editingState.setValues(Draft.mergeDifferences(
-                            editingState.getDatabase().getEnvironment(),
-                            editingState.getSimpleValues(),
-                            wip.getDifferences()));
-                }
+                    WorkInProgress wip = Query.from(WorkInProgress.class)
+                            .where("owner = ?", user)
+                            .and("contentId = ?", editingState.getId())
+                            .first();
 
-                if (wip != null) {
-                    wp.writeStart("div", "class", "message message-warning WorkInProgressRestoredMessage");
-                        wp.writeStart("div", "class", "WorkInProgressRestoredMessage-actions");
-                            wp.writeStart("a",
-                                    "class", "icon icon-action-remove",
-                                    "href", wp.cmsUrl("/user/wips",
-                                            "action-delete", true,
-                                            "wip", wip.getId(),
-                                            "returnUrl", wp.url("")));
-                                wp.writeHtml(wp.localize(wip, "action.clearChanges"));
+                    if (wip != null) {
+                        editingState.setValues(Draft.mergeDifferences(
+                                editingState.getDatabase().getEnvironment(),
+                                editingState.getSimpleValues(),
+                                wip.getDifferences()));
+                    }
+
+                    if (wip != null) {
+                        wp.writeStart("div", "class", "message message-warning WorkInProgressRestoredMessage");
+                            wp.writeStart("div", "class", "WorkInProgressRestoredMessage-actions");
+                                wp.writeStart("a",
+                                        "class", "icon icon-action-remove",
+                                        "href", wp.cmsUrl("/user/wips",
+                                                "action-delete", true,
+                                                "wip", wip.getId(),
+                                                "returnUrl", wp.url("")));
+                                    wp.writeHtml(wp.localize(wip, "action.clearChanges"));
+                                wp.writeEnd();
+                            wp.writeEnd();
+
+                            wp.writeStart("p");
+                                wp.writeHtml(wp.localize(wip, "message.restored"));
                             wp.writeEnd();
                         wp.writeEnd();
-
-                        wp.writeStart("p");
-                            wp.writeHtml(wp.localize(wip, "message.restored"));
-                        wp.writeEnd();
-                    wp.writeEnd();
+                    }
                 }
 
                 Object compareObject = null;
