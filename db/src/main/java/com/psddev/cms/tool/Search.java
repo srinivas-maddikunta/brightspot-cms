@@ -70,6 +70,7 @@ public class Search extends Record {
     public static final String ADVANCED_QUERY_PARAMETER = "av";
     public static final String CONTEXT_PARAMETER = "cx";
     public static final String GLOBAL_FILTER_PARAMETER_PREFIX = "gf.";
+    public static final String IGNORE_SITE_PARAMETER = "is";
     public static final String FIELD_FILTER_PARAMETER_PREFIX = "f.";
     public static final String LIMIT_PARAMETER = "l";
     public static final String MISSING_FILTER_PARAMETER_SUFFIX = ".m";
@@ -117,6 +118,7 @@ public class Search extends Record {
     private long offset;
     private int limit;
     private Set<UUID> newItemIds;
+    private boolean ignoreSitePredicate;
 
     public Search() {
     }
@@ -199,6 +201,7 @@ public class Search extends Record {
         setOffset(page.param(long.class, OFFSET_PARAMETER));
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
         setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
+        setIgnoreSitePredicate(page.param(boolean.class, IGNORE_SITE_PARAMETER));
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.initializeSearch(this, page);
@@ -404,6 +407,14 @@ public class Search extends Record {
 
     public void setNewItemIds(Set<UUID> newItemIds) {
         this.newItemIds = newItemIds;
+    }
+
+    public boolean isIgnoreSitePredicate() {
+        return ignoreSitePredicate;
+    }
+
+    public void setIgnoreSitePredicate(boolean ignoreSitePredicate) {
+        this.ignoreSitePredicate = ignoreSitePredicate;
     }
 
     public Set<ObjectType> findValidTypes() {
@@ -939,7 +950,8 @@ public class Search extends Record {
             }
         }
 
-        if (site != null
+        if (!ignoreSitePredicate
+                && site != null
                 && !site.isAllSitesAccessible()) {
             Set<ObjectType> globalTypes = new HashSet<ObjectType>();
 
