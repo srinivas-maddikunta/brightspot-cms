@@ -2,6 +2,7 @@
 
 com.psddev.cms.db.Content,
 com.psddev.cms.db.ContentLock,
+com.psddev.cms.db.Copyable,
 com.psddev.cms.db.Overlay,
 com.psddev.cms.db.OverlayProvider,
 com.psddev.cms.db.Directory,
@@ -28,10 +29,8 @@ com.psddev.cms.tool.ContentEditWidgetDisplay,
 com.psddev.cms.tool.ToolPageContext,
 com.psddev.cms.tool.Widget,
 com.psddev.cms.tool.page.content.Edit,
-com.psddev.dari.util.Settings,
 
 com.psddev.dari.db.ObjectField,
-com.psddev.dari.db.ObjectIndex,
 com.psddev.dari.db.ObjectType,
 com.psddev.dari.db.Query,
 com.psddev.dari.db.Singleton,
@@ -50,7 +49,6 @@ java.util.List,
 java.util.Map,
 java.util.Set,
 java.util.UUID,
-java.util.function.Consumer,
 
 org.joda.time.DateTime,
 com.google.common.collect.ImmutableMap" %><%
@@ -165,6 +163,41 @@ if (workStream != null) {
     State.getInstance(workstreamObject).as(WorkStream.Data.class).complete(workStream, wp.getUser());
 }
 
+// Only permit copy if the copy source object is accessible to the current Site
+Object copy = Query.findById(Object.class, wp.uuidParam("copyId"));
+if (copy != null) {
+
+    if (site != null && !Site.Static.isObjectAccessible(site, copy)) {
+        wp.writeHeader();
+        wp.writeStart("div", "class", "message message-warning");
+        wp.writeHtml(wp.localize(
+                "com.psddev.cms.tool.page.content.Edit",
+                ImmutableMap.of(
+                        "typeLabel", wp.getTypeLabel(copy),
+                        "objectLabel", wp.getObjectLabel(copy),
+                        "siteName", site.getName()
+                ),
+                "message.notAccessible"));
+        wp.writeEnd();
+        wp.writeFooter();
+        return;
+    }
+}
+
+// When a copy is specified as part of a POST, overlay the editingState on top of
+// the copyState to retain non-displaying State values from the original copy.
+if (wp.isFormPost() && copy != null) {
+
+    State editingState = State.getInstance(editing);
+    State copyState = Copyable.copy(copy, site, null);
+    copyState.putAll(editingState.getRawValues());
+    copyState.setId(editingState.getId());
+    copyState.setStatus(editingState.getStatus());
+    state = copyState;
+    editing = state.getOriginalObject();
+    selected = editing;
+}
+
 if (wp.tryDelete(editing) ||
         wp.tryNewDraft(editing) ||
         wp.tryDraft(editing) ||
@@ -177,36 +210,13 @@ if (wp.tryDelete(editing) ||
     return;
 }
 
-Object copy = Query.findById(Object.class, wp.uuidParam("copyId"));
-if (copy != null) {
-    State editingState = State.getInstance(editing);
-    editingState.setValues(State.getInstance(copy).getSimpleValues());
-    editingState.setId(null);
-    editingState.setStatus(null);
+// Only copy on a GET request to the page.  Subsequent POSTs should not overwrite
+// the editing state with the copy source state again.
+if (!wp.isFormPost() && copy != null) {
 
-    Consumer<ObjectIndex> removeVisibilityIndexValues = index -> {
-        if (index.isVisibility()) {
-            index.getFields().forEach(editingState::remove);
-        }
-    };
-
-    editingState.getDatabase().getEnvironment().getIndexes().forEach(removeVisibilityIndexValues);
-
-    ObjectType editingType = editingState.getType();
-
-    if (editingType != null) {
-        editingType.getIndexes().forEach(removeVisibilityIndexValues);
-    }
-
-    editingState.as(Directory.ObjectModification.class).clearPaths();
-    for (Site consumer : editingState.as(Site.ObjectModification.class).getConsumers()) {
-        editingState.as(Directory.ObjectModification.class).clearSitePaths(consumer);
-    }
-    if (site != null && 
-            !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
-        // Only set the owner to current site if not on global and no setting to dictate otherwise.
-        editingState.as(Site.ObjectModification.class).setOwner(site);
-    }    
+    state = Copyable.copy(copy, site, null);
+    editing = state.getOriginalObject();
+    selected = editing;
 }
 
 // Directory directory = Query.findById(Directory.class, wp.uuidParam("directoryId"));
