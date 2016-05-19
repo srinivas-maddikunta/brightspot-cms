@@ -3,6 +3,7 @@ package com.psddev.cms.tool.page;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
+
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.Search;
@@ -10,7 +11,6 @@ import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StringUtils;
-
 
 @RoutingFilter.Path(application = "cms", value = "searchAdvancedFull")
 public class SearchAdvancedFull extends PageServlet {
