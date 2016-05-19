@@ -843,20 +843,26 @@ define([
          */
         inlineSetStyle: function(style, range, options) {
             
-            var self;
+            var range, self;
             self = this;
 
-            // Create a history event so we can undo adding this style
-            self.historyAdd({
-                undo: function() {
-                    // Remove the style (but avoid creating a new history event)
-                    self._inlineRemoveStyle(style, range);
-                },
-                redo: function() {
-                    // Add the style back (but avoid creating a new history event)
-                    self._inlineSetStyle(style, range, options);
-                }
-            });
+            range = range || self.getRange();
+
+            // Create a history event only if the style is being applied to a range
+            if (range.to.line !== range.from.line || range.to.ch !== range.from.ch) {
+
+                // Create a history event so we can undo adding this style
+                self.historyAdd({
+                    undo: function() {
+                        // Remove the style (but avoid creating a new history event)
+                        self._inlineRemoveStyle(style, range, options);
+                    },
+                    redo: function() {
+                        // Add the style back (but avoid creating a new history event)
+                        self._inlineSetStyle(style, range, options);
+                    }
+                });
+            }
 
             // Now actually add the style
             return self._inlineSetStyle(style, range, options);
@@ -4637,11 +4643,14 @@ define([
                 return;
             }
 
+            // Set a timeout to add this entry to the history,
+            // so it can be combined with other entries
             clearTimeout(self.historyQueueTimeout);
             self.historyQueue.push(data);
             self.historyQueueTimeout = setTimeout(function(){
                 self.historyProcessQueue();
             }, 1250);
+
         },
 
         
