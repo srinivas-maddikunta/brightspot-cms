@@ -47,6 +47,7 @@ import javax.servlet.jsp.PageContext;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.tool.page.content.Edit;
+import com.psddev.dari.db.Modification;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
@@ -2492,6 +2493,7 @@ public class ToolPageContext extends WebPageContext {
 
         return (ObjectType type) ->
             type.isConcrete()
+                && !Modification.class.isAssignableFrom(type.getObjectClass())
                 && (ObjectUtils.isBlank(permissions) || permissions.stream().allMatch((String permission) -> hasPermission("type/" + type.getId() + "/" + permission)))
                 && (getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses() || type.getObjectClass() != null)
                 && !(Draft.class.equals(type.getObjectClass()))
