@@ -201,27 +201,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 element: 'li',
                 elementContainer: 'ul',
                 clear: ['ol', 'alignLeft', 'alignCenter', 'alignRight']
-            },
-            indentLevel1: {
-                className: 'rte2-style-indent-level-1',
-                line: true,
-                element: 'li',
-                indentLevel: 1,
-                clear: ['indentLevel2', 'indentLevel3', 'indentLevel4', 'alignLeft', 'alignCenter', 'alignRight']
-            },
-            indentLevel2: {
-                className: 'rte2-style-indent-level-2',
-                line: true,
-                element: 'li',
-                indentLevel: 2,
-                clear: ['indentLevel1', 'indentLevel3', 'indentLevel4', 'alignLeft', 'alignCenter', 'alignRight']
-            },
-            indentLevel3: {
-                className: 'rte2-style-indent-level-3',
-                line: true,
-                element: 'li',
-                indentLevel: 3,
-                clear: ['indentLevel1', 'indentLevel2', 'indentLevel4', 'alignLeft', 'alignCenter', 'alignRight']
             },            
             alignLeft: {
                 className: 'rte2-style-align-left',
@@ -252,7 +231,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             }
         },
 
-        
         /**
          * Rules for cleaning up the clipboard data when content is pasted
          * from outside the RTE, based on the type of content. These rules
