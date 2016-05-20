@@ -2,6 +2,7 @@ package com.psddev.cms.db;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,14 +89,19 @@ public class Draft extends Content {
         Map<String, Map<String, Object>> oldIdMaps = findIdMaps(oldValues);
         Map<String, Map<String, Object>> differences = new CompactMap<>();
 
-        oldIdMaps.keySet().stream().filter(newIdMaps::containsKey).forEach(id -> {
+        newIdMaps.keySet().stream().forEach(id -> {
             Map<String, Object> oldIdMap = oldIdMaps.get(id);
             Map<String, Object> newIdMap = newIdMaps.get(id);
             Map<String, Object> changes = new CompactMap<>();
             ObjectType type = environment.getTypeById(ObjectUtils.to(UUID.class, newIdMap.get(State.TYPE_KEY)));
+            Set<String> keys = new LinkedHashSet<>(newIdMap.keySet());
 
-            Stream.concat(oldIdMap.keySet().stream(), newIdMap.keySet().stream()).forEach(key -> {
-                Object oldValue = oldIdMap.get(key);
+            if (oldIdMap != null) {
+                keys.addAll(oldIdMap.keySet());
+            }
+
+            keys.forEach(key -> {
+                Object oldValue = oldIdMap != null ? oldIdMap.get(key) : null;
                 Object newValue = newIdMap.get(key);
 
                 if (ObjectUtils.equals(oldValue, newValue)) {
@@ -138,12 +144,6 @@ public class Draft extends Content {
 
             if (!changes.isEmpty()) {
                 differences.put(id, changes);
-            }
-        });
-
-        newIdMaps.forEach((id, newIdMap) -> {
-            if (!oldIdMaps.containsKey(id)) {
-                differences.put(id, newIdMap);
             }
         });
 
