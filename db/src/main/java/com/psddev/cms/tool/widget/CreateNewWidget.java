@@ -53,15 +53,6 @@ public class CreateNewWidget extends DefaultDashboardWidget {
         ToolUser user = page.getUser();
         List<String> includeFields = Arrays.asList("toolUserCreateNewSettings.editExistingContents");
 
-        if (page.isFormPost()) {
-            try {
-                page.include("/WEB-INF/objectPost.jsp", "object", user, "includeFields", includeFields);
-
-            } catch (Exception ex) {
-                page.getErrors().add(ex);
-            }
-        }
-
         if (user != null) {
             ToolRole role = user.getRole();
 
@@ -82,8 +73,26 @@ public class CreateNewWidget extends DefaultDashboardWidget {
             settings = page.getCmsTool().getCommonContentSettings();
         }
 
+        if (page.isFormPost()) {
+            try {
+                Set<Content> defaultEditExistingContents = findCascadedEditExistingContents(null, settings);
+
+                page.include("/WEB-INF/objectPost.jsp", "object", user, "includeFields", includeFields);
+
+                List<String> selectedExistingContentUuids = page.params(String.class, user.getId().toString() + "/toolUserCreateNewSettings.editExistingContents");
+                if (!ObjectUtils.isBlank(selectedExistingContentUuids)) {
+                    Set<Content> selectedExistingContent = new HashSet<>(Query.from(Content.class).where("_id = ?", selectedExistingContentUuids).selectAll());
+                    if (selectedExistingContent.equals(defaultEditExistingContents)) {
+                        user.as(ToolUserCreateNewSettings.class).setEditExistingContents(null);
+                    }
+                }
+
+            } catch (Exception ex) {
+                page.getErrors().add(ex);
+            }
+        }
+
         Set<ObjectType> createNewTypes = settings.getCreateNewTypes();
-        Set<Content> editExistingContents = new HashSet<>(settings.getEditExistingContents());
         List<TypeTemplate> typeTemplates = new ArrayList<TypeTemplate>();
         Map<ObjectType, Integer> typeCounts = new HashMap<ObjectType, Integer>();
 
@@ -229,6 +238,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                     page.writeEnd();
 
                     page.include("/WEB-INF/errors.jsp");
+                    user.as(ToolUserCreateNewSettings.class).setEditExistingContents(findCascadedEditExistingContents(user, settings));
                     page.writeSomeFormFields(user, false, includeFields, null);
 
                     page.writeStart("div", "class", "actions");
@@ -354,18 +364,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                     }
                 page.writeEnd();
 
-                if (editExistingContents.isEmpty()) {
-                    for (Object item : Query
-                            .from(Object.class)
-                            .where("_type = ?", Database.Static.getDefault().getEnvironment().getTypesByGroup(Singleton.class.getName()))
-                            .selectAll()) {
-                        if (item instanceof Content) {
-                            editExistingContents.add((Content) item);
-                        }
-                    }
-                }
-
-                editExistingContents.addAll(user.as(ToolUserCreateNewSettings.class).getEditExistingContents());
+                Set<Content> editExistingContents = findCascadedEditExistingContents(user, settings);
 
                 if (!editExistingContents.isEmpty()) {
                     page.writeStart("div", "class", "p-commonContent-existing", "style", page.cssString(
@@ -400,6 +399,31 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                 page.writeEnd();
             }
         page.writeEnd();
+    }
+
+    private Set<Content> findCascadedEditExistingContents(ToolUser user, CmsTool.CommonContentSettings settings) {
+        Set<Content> editExistingContents = new HashSet<>();
+
+        if (user != null) {
+            editExistingContents.addAll(user.as(ToolUserCreateNewSettings.class).getEditExistingContents());
+        }
+
+        if (editExistingContents.isEmpty()) {
+            editExistingContents.addAll(settings.getEditExistingContents());
+        }
+
+        if (editExistingContents.isEmpty()) {
+            for (Object item : Query
+                    .from(Object.class)
+                    .where("_type = ?", Database.Static.getDefault().getEnvironment().getTypesByGroup(Singleton.class.getName()))
+                    .selectAll()) {
+                if (item instanceof Content) {
+                    editExistingContents.add((Content) item);
+                }
+            }
+        }
+
+        return editExistingContents;
     }
 
     @FieldInternalNamePrefix("toolUserCreateNewSettings.")
