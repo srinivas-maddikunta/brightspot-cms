@@ -4355,7 +4355,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             }
 
             updatePreview();
-            rte.rte.$el.on('rteChange', updatePreview);
+            rte.rte.$el.on('rteChange', $.debounce(1000, updatePreview));
 
             return;
         },
