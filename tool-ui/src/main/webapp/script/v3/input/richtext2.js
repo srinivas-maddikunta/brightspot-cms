@@ -4283,7 +4283,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 context: rtElement.context,
                 keymap: rtElement.keymap,
                 clear: rtElement.clear,
-                toggle: rtElement.toggle
+                toggle: rtElement.toggle,
+                previewable: Boolean(rtElement.previewable)
             };
         });
     }
@@ -4325,13 +4326,20 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             rte = Object.create(Rte);
             rte.init(input, options);
-
+            
             function updatePreview() {
                 rte.rte.blockEachLineMark(function (name, mark) {
                     var className = mark.className;
+                    var styleObj = rte.rte.classes[className];
                     var attributesJson = JSON.stringify(mark.attributes);
                     var newPreviewKey = className + attributesJson;
 
+                    // Skip this mark if it doesn't match one of our styles,
+                    // or if the style does not have the previewable flag
+                    if (!styleObj || !styleObj.previewable) {
+                        return;
+                    }
+                    
                     if (mark.rtePreviewKey !== newPreviewKey) {
                         mark.rtePreviewKey = newPreviewKey;
 
