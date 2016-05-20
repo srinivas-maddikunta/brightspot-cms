@@ -94,9 +94,11 @@ public class CmsTool extends Tool {
     @Embedded
     private Template modulePreviewTemplate;
 
+    @ToolUi.Secret
     @ToolUi.Tab("Integrations")
     private String dropboxApplicationKey;
 
+    @ToolUi.Secret
     @ToolUi.Tab("Integrations")
     private String googleServerApiKey;
 

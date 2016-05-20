@@ -95,7 +95,8 @@ if (validValues != null) {
 
 } else if (ui.isSecret()) {
     wp.writeElement("input",
-            "type", "password",
+            "type", "text",
+            "class", "secret",
             "id", wp.getId(),
             "name", inputName,
             "placeholder", placeholder,
