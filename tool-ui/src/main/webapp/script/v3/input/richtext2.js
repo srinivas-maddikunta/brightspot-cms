@@ -4327,38 +4327,30 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             rte.init(input, options);
 
             function updatePreview() {
-                rte.rte.codeMirror.eachLine(function (line) {
-                    var marks = line.rteMarks;
+                rte.rte.blockEachLineMark(function (name, mark) {
+                    var className = mark.className;
+                    var attributesJson = JSON.stringify(mark.attributes);
+                    var newPreviewKey = className + attributesJson;
 
-                    if (!marks) {
-                        return;
-                    }
+                    if (mark.rtePreviewKey !== newPreviewKey) {
+                        mark.rtePreviewKey = newPreviewKey;
 
-                    $.each(marks, function (name, mark) {
-                        var className = mark.className;
-                        var attributesJson = JSON.stringify(mark.attributes);
-                        var newPreviewKey = className + attributesJson;
+                        $.ajax({
+                            type: 'get',
+                            url: CONTEXT_PATH + '/content/rte-preview',
 
-                        if (mark.rtePreviewKey !== newPreviewKey) {
-                            mark.rtePreviewKey = newPreviewKey;
+                            data: {
+                                className: className,
+                                attributes: attributesJson
+                            },
 
-                            $.ajax({
-                                type: 'get',
-                                url: CONTEXT_PATH + '/content/rte-preview',
-
-                                data: {
-                                    className: className,
-                                    attributes: attributesJson
-                                },
-
-                                success: function (html) {
-                                    if (html) {
-                                        rte.rte.blockSetPreviewForMark(mark, html);
-                                    }
+                            success: function (html) {
+                                if (html) {
+                                    rte.rte.blockSetPreviewForMark(mark, html);
                                 }
-                            });
-                        }
-                    });
+                            }
+                        });
+                    }
                 });
             }
 

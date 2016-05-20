@@ -2550,6 +2550,17 @@ define([
             }
         },
 
+
+        blockEachLineMark: function (callback) {
+            this.codeMirror.eachLine(function (line) {
+                var marks = line.rteMarks;
+
+                if (marks) {
+                    $.each(marks, callback);
+                }
+            });
+        },
+
         
         //--------------------------------------------------
         // Enhancements
