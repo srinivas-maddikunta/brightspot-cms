@@ -46,6 +46,7 @@ import javax.servlet.jsp.PageContext;
 
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
+import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.tool.page.content.Edit;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -1822,6 +1823,19 @@ public class ToolPageContext extends WebPageContext {
 
                                 writeStart("div", "class", "toolUserControls");
                                     writeStart("ul", "class", "piped");
+
+                                        if (!user.isDisableWorkInProgress()
+                                                && !cms.isDisableWorkInProgress()) {
+
+                                            writeStart("li");
+                                                writeStart("a",
+                                                        "href", cmsUrl("/user/wips"),
+                                                        "target", "wip");
+                                                    writeHtml(localize(ToolUser.class, "action.wip"));
+                                                writeEnd();
+                                            writeEnd();
+                                        }
+
                                         writeStart("li");
                                             writeStart("a",
                                                     "href", cmsUrl("/profilePanel"),
@@ -4341,11 +4355,23 @@ public class ToolPageContext extends WebPageContext {
         return history;
     }
 
+    private void deleteWorksInProgress(Object object) {
+        UUID contentId = object instanceof Draft
+                ? ((Draft) object).getObjectId()
+                : State.getInstance(object).getId();
+
+        Query.from(WorkInProgress.class)
+                .where("owner = ?", getUser())
+                .and("contentId = ?", contentId)
+                .deleteAll();
+    }
+
     /**
      * @see Content.Static#publish(Object, Site, ToolUser)
      */
     public History publish(Object object) {
         PublishModification.setBroadcast(object, true);
+        deleteWorksInProgress(object);
 
         ToolUser user = getUser();
         History history = updateLockIgnored(Content.Static.publish(object, getSite(), user));
@@ -4358,6 +4384,7 @@ public class ToolPageContext extends WebPageContext {
      */
     public History publishDifferences(Object object, Map<String, Map<String, Object>> differences) {
         PublishModification.setBroadcast(object, true);
+        deleteWorksInProgress(object);
 
         ToolUser user = getUser();
         History history = updateLockIgnored(Content.Static.publishDifferences(object, differences, getSite(), user));
@@ -4369,6 +4396,8 @@ public class ToolPageContext extends WebPageContext {
      * @see {@link com.psddev.cms.db.Content.Static#trash(Object, com.psddev.cms.db.Site, com.psddev.cms.db.ToolUser)}
      */
     public void trash(Object object) {
+        deleteWorksInProgress(object);
+
         Content.Static.trash(object, getSite(), getUser());
     }
 
@@ -4381,6 +4410,8 @@ public class ToolPageContext extends WebPageContext {
 
     /** @see Content.Static#purge */
     public void purge(Object object) {
+        deleteWorksInProgress(object);
+
         Content.Static.purge(object, getSite(), getUser());
     }
 

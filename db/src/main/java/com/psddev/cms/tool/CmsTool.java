@@ -183,6 +183,9 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("Debug")
     private boolean disableInvisibleContentPreview;
 
+    @ToolUi.Tab("Debug")
+    private boolean disableWorkInProgress;
+
     @Embedded
     public static class CommonTime extends Record {
 
@@ -806,6 +809,14 @@ public class CmsTool extends Tool {
 
     public void setDisableInvisibleContentPreview(boolean disableInvisibleContentPreview) {
         this.disableInvisibleContentPreview = disableInvisibleContentPreview;
+    }
+
+    public boolean isDisableWorkInProgress() {
+        return disableWorkInProgress;
+    }
+
+    public void setDisableWorkInProgress(boolean disableWorkInProgress) {
+        this.disableWorkInProgress = disableWorkInProgress;
     }
 
     public String createManualContentLockingNoteText() {

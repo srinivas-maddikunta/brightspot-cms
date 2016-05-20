@@ -23,6 +23,7 @@ com.psddev.cms.db.Workflow,
 com.psddev.cms.db.WorkflowLog,
 com.psddev.cms.db.WorkflowState,
 com.psddev.cms.db.WorkflowTransition,
+com.psddev.cms.db.WorkInProgress,
 com.psddev.cms.db.WorkStream,
 com.psddev.cms.tool.CmsTool,
 com.psddev.cms.tool.ContentEditWidgetDisplay,
@@ -418,6 +419,41 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 <%
                 wp.include("/WEB-INF/objectMessage.jsp", "object", editing);
+
+                if (!user.isDisableWorkInProgress()
+                        && !wp.getCmsTool().isDisableWorkInProgress()) {
+
+                    WorkInProgress wip = Query.from(WorkInProgress.class)
+                            .where("owner = ?", user)
+                            .and("contentId = ?", editingState.getId())
+                            .first();
+
+                    if (wip != null) {
+                        editingState.setValues(Draft.mergeDifferences(
+                                editingState.getDatabase().getEnvironment(),
+                                editingState.getSimpleValues(),
+                                wip.getDifferences()));
+                    }
+
+                    if (wip != null) {
+                        wp.writeStart("div", "class", "message message-warning WorkInProgressRestoredMessage");
+                            wp.writeStart("div", "class", "WorkInProgressRestoredMessage-actions");
+                                wp.writeStart("a",
+                                        "class", "icon icon-action-remove",
+                                        "href", wp.cmsUrl("/user/wips",
+                                                "action-delete", true,
+                                                "wip", wip.getId(),
+                                                "returnUrl", wp.url("")));
+                                    wp.writeHtml(wp.localize(wip, "action.clearChanges"));
+                                wp.writeEnd();
+                            wp.writeEnd();
+
+                            wp.writeStart("p");
+                                wp.writeHtml(wp.localize(wip, "message.restored"));
+                            wp.writeEnd();
+                        wp.writeEnd();
+                    }
+                }
 
                 Object compareObject = null;
 

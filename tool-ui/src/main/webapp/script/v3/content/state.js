@@ -13,6 +13,12 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
   bsp_utils.onDomInsert(document, '.contentForm, .enhancementForm, .standardForm', {
     'insert': function(form) {
       var $form = $(form);
+      var changed = false;
+
+      $form.one('change input', function () {
+        changed = true;
+      });
+
       var running;
       var rerun;
       var idleTimeout;
@@ -59,9 +65,24 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           });
         }
 
+        var $publishingHeading = $form.find('.widget-publishing > h1');
+        var $wipSaveStatus = $publishingHeading.find('> .WorkInProgressSaveStatus');
+
+        if (changed) {
+          if ($wipSaveStatus.length === 0) {
+            $wipSaveStatus = $('<span/>', {
+              'class': 'WorkInProgressSaveStatus'
+            });
+
+            $publishingHeading.append($wipSaveStatus);
+          }
+
+          $wipSaveStatus.text('(Saving WIP)').attr('data-status', 'saving');
+        }
+
         $.ajax({
           'type': 'post',
-          'url': CONTEXT_PATH + 'contentState?idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
+          'url': CONTEXT_PATH + 'contentState?changed=' + changed + '&idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
           'cache': false,
           'dataType': 'json',
 
@@ -80,6 +101,10 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           }).get().join(''),
 
           'success': function(data) {
+            if (changed && $wipSaveStatus) {
+              $wipSaveStatus.text('(Saved WIP)').attr('data-status', 'saved');
+            }
+
             $form.trigger('cms-updateContentState', [ data ]);
 
             $dynamicTexts.each(function(index) {
