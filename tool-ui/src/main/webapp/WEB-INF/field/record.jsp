@@ -97,6 +97,8 @@ if ((Boolean) request.getAttribute("isFormPost")) {
             State fieldValueState = State.getInstance(fieldValue);
             String data = wp.param(String.class, dataName);
 
+            fieldValueState.setId(id);
+
             if (ObjectUtils.isBlank(data)) {
                 wp.updateUsingParameters(fieldValue);
 
@@ -104,7 +106,6 @@ if ((Boolean) request.getAttribute("isFormPost")) {
                 fieldValueState.setValues((Map<String, Object>) ObjectUtils.fromJson(data));
             }
 
-            fieldValueState.setId(id);
             fieldValueState.remove(Content.PUBLISH_DATE_FIELD);
             fieldValueState.remove(Content.UPDATE_DATE_FIELD);
 
