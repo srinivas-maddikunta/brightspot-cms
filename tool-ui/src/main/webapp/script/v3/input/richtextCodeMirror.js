@@ -848,21 +848,18 @@ define([
 
             range = range || self.getRange();
 
-            // Create a history event only if the style is being applied to a range
-            if (range.to.line !== range.from.line || range.to.ch !== range.from.ch) {
 
-                // Create a history event so we can undo adding this style
-                self.historyAdd({
-                    undo: function() {
-                        // Remove the style (but avoid creating a new history event)
-                        self._inlineRemoveStyle(style, range, options);
-                    },
-                    redo: function() {
-                        // Add the style back (but avoid creating a new history event)
-                        self._inlineSetStyle(style, range, options);
-                    }
-                });
-            }
+            // Create a history event so we can undo adding this style
+            self.historyAdd({
+                undo: function() {
+                    // Remove the style (but avoid creating a new history event)
+                    self._inlineRemoveStyle(style, range, options);
+                },
+                redo: function() {
+                    // Add the style back (but avoid creating a new history event)
+                    self._inlineSetStyle(style, range, options);
+                }
+            });
 
             // Now actually add the style
             return self._inlineSetStyle(style, range, options);
@@ -4814,14 +4811,18 @@ define([
             marksAndMore = [];
             $.each(marks, function(i, mark) {
                     
-                var markAndMore, options;
+                var markAndMore, options, pos;
                     
                 markAndMore = {
                     mark:mark
                 };
                     
                 if (mark.find) {
-                    markAndMore.position = mark.find();
+                    pos = mark.find();
+                    markAndMore.position = {
+                        from: { line: pos.from.line, ch: pos.from.ch },
+                        to: { line: pos.to.line, ch: pos.to.ch }
+                    };
                 }
 
                 // Retain the options from the old mark
@@ -4830,6 +4831,7 @@ define([
                     switch (prop) {
                         // List of properties that should be copied/retained from the old mark
                         // and passed as options on the new mark
+                    case 'atomic':
                     case 'attributes':
                     case 'className':
                     case 'endStyle':
@@ -4925,11 +4927,8 @@ define([
             self = this;
             editor = self.codeMirror;
 
-            // First re-add the marks that might have been removed due to an undo action
-            self.historyCodeMirrorChangeMarks(change);
-
-            // Now replace the text
-            self.replaceRangeWithoutStyles(change.from, change.to, change.text.join('\n'));
+            // Replace the text
+            editor.replaceRange(change.text.join('\n'), change.from, change.to, 'brightspotRedo');
         },
 
         
