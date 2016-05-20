@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
@@ -75,15 +76,19 @@ public class CreateNewWidget extends DefaultDashboardWidget {
 
         if (page.isFormPost()) {
             try {
-                Set<Content> defaultEditExistingContents = findCascadedEditExistingContents(null, settings);
+                Set<Content> defaultContents = findCascadedEditExistingContents(page.getSite(), null, settings);
+                Set<Content> oldUserContents = user.as(ToolUserCreateNewSettings.class).getEditExistingContents();
 
-                page.include("/WEB-INF/objectPost.jsp", "object", user, "includeFields", includeFields);
+                oldUserContents.removeAll(defaultContents);
 
-                List<String> selectedExistingContentUuids = page.params(String.class, user.getId().toString() + "/toolUserCreateNewSettings.editExistingContents");
-                if (!ObjectUtils.isBlank(selectedExistingContentUuids)) {
-                    Set<Content> selectedExistingContent = new HashSet<>(Query.from(Content.class).where("_id = ?", selectedExistingContentUuids).selectAll());
-                    if (selectedExistingContent.equals(defaultEditExistingContents)) {
-                        user.as(ToolUserCreateNewSettings.class).setEditExistingContents(null);
+                List<String> selectedContentIds = page.params(String.class, user.getId().toString() + "/toolUserCreateNewSettings.editExistingContents");
+                if (!ObjectUtils.isBlank(selectedContentIds)) {
+                    Set<Content> selectedContents = new HashSet<>(
+                            Query.from(Content.class).where("_id = ?", selectedContentIds).and(page.siteItemsPredicate()).selectAll());
+
+                    if (!selectedContents.equals(defaultContents)) {
+                        oldUserContents.removeIf(content -> page.getSite() == null || (page.getSite() != null && Site.Static.isObjectAccessible(page.getSite(), content)));
+                        oldUserContents.addAll(selectedContents);
                     }
                 }
 
@@ -238,7 +243,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                     page.writeEnd();
 
                     page.include("/WEB-INF/errors.jsp");
-                    user.as(ToolUserCreateNewSettings.class).setEditExistingContents(findCascadedEditExistingContents(user, settings));
+                    user.as(ToolUserCreateNewSettings.class).setEditExistingContents(findCascadedEditExistingContents(page.getSite(), user, settings));
                     page.writeSomeFormFields(user, false, includeFields, null);
 
                     page.writeStart("div", "class", "actions");
@@ -364,7 +369,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                     }
                 page.writeEnd();
 
-                Set<Content> editExistingContents = findCascadedEditExistingContents(user, settings);
+                Set<Content> editExistingContents = findCascadedEditExistingContents(page.getSite(), user, settings);
 
                 if (!editExistingContents.isEmpty()) {
                     page.writeStart("div", "class", "p-commonContent-existing", "style", page.cssString(
@@ -401,11 +406,17 @@ public class CreateNewWidget extends DefaultDashboardWidget {
         page.writeEnd();
     }
 
-    private Set<Content> findCascadedEditExistingContents(ToolUser user, CmsTool.CommonContentSettings settings) {
+    private Set<Content> findCascadedEditExistingContents(Site site, ToolUser user, CmsTool.CommonContentSettings settings) {
         Set<Content> editExistingContents = new HashSet<>();
 
         if (user != null) {
-            editExistingContents.addAll(user.as(ToolUserCreateNewSettings.class).getEditExistingContents());
+            Set<Content> existingContentList = user.as(ToolUserCreateNewSettings.class).getEditExistingContents();
+            if (site != null) {
+                existingContentList = existingContentList.stream()
+                        .filter(content -> Site.Static.isObjectAccessible(site, content))
+                        .collect(Collectors.toSet());
+            }
+            editExistingContents.addAll(existingContentList);
         }
 
         if (editExistingContents.isEmpty()) {
