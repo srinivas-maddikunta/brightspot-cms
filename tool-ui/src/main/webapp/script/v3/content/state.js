@@ -98,6 +98,12 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                   $element.attr('data-old-clear-key', newClearKey);
 
                   if ($element.is('input, select, textarea')) {
+                    var rte = $element.data('rte2');
+
+                    if (rte) {
+                      rte.fromHTML('');
+                    }
+
                     $element.val('');
                     $element.change();
                   }
