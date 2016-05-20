@@ -112,6 +112,29 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                   text = data._dynamicTexts[index],
                   dynamicPredicate = data._dynamicPredicates[index];
 
+              if ($element.attr('data-placeholder-clear-on-change') === 'true') {
+                var oldClearKey = $element.attr('data-old-clear-key');
+                var newClearKey = text || 'null';
+
+                if (!oldClearKey) {
+                  $element.attr('data-old-clear-key', newClearKey)
+
+                } else if (oldClearKey !== newClearKey) {
+                  $element.attr('data-old-clear-key', newClearKey);
+
+                  if ($element.is('input, select, textarea')) {
+                    var rte = $element.data('rte2');
+
+                    if (rte) {
+                      rte.fromHTML('');
+                    }
+
+                    $element.val('');
+                    $element.change();
+                  }
+                }
+              }
+
               if ($element.is('[data-dynamic-predicate]')) {
 
                 $element.attr('data-additional-query', dynamicPredicate);
