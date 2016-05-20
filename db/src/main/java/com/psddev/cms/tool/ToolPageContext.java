@@ -3231,7 +3231,8 @@ public class ToolPageContext extends WebPageContext {
 
         if (displayCopyAction
                 && !State.getInstance(object).isNew()
-                && !(object instanceof com.psddev.dari.db.Singleton)) {
+                && !(object instanceof com.psddev.dari.db.Singleton)
+                && !State.getInstance(object).getType().as(ToolUi.class).isReadOnly()) {
 
             writeStart("div", "class", "widget-contentCreate");
                 writeStart("div", "class", "action action-create");

@@ -381,7 +381,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 </div>
 
                 <% if (!State.getInstance(editing).isNew() &&
-                        !(editing instanceof com.psddev.dari.db.Singleton)) { %>
+                        !(editing instanceof com.psddev.dari.db.Singleton)
+                        && !State.getInstance(editing).getType().as(ToolUi.class).isReadOnly()) { %>
                     <div class="widget-contentCreate">
                         <div class="action action-create">
                             <%= wp.h(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.new"))%>
