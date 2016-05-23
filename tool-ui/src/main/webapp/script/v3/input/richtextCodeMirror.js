@@ -4675,11 +4675,15 @@ define([
             // Add to the history so all the queued changes will get undo/redo
             self.undoManager.add({
                 undo: function(){
+                    // Note: in javascript array reverse is in-place.
+                    // So when we redo we'll have to reverse it again
+                    // to get back the original order.
                     $.each(queue.reverse(), function(i,data) {
                         data.undo();
                     });
                 },
                 redo: function(){
+                    // Note: in javascript array reverse is in-place
                     $.each(queue.reverse(), function(i,data) {
                         data.redo();
                     });
@@ -4951,18 +4955,26 @@ define([
                     mark = markAndMore.mark;
                     position = markAndMore.position;
                     options = markAndMore.options;
-                    
-                    if (mark.find()) {
-                        // Mark has not been removed from the document,
-                        // but text might have been changed within it.
-                        // Clear the mark because we're going to recreate it.
-                        mark.clear();
+
+                    // There is a chance that the mark that was saved in this
+                    // change event was cleared and re-created in another change event.
+                    // In that case, a pointer to the new mark was saved on the old mark.
+                    // If we find that pointer, update this to the new one.
+                    while (mark.markNew) {
+                        mark = markAndMore.mark = mark.markNew;
                     }
+
+                    // Clear the mark because we're going to recreate it.
+                    mark.clear();
                     
                     // Recreate a new mark at the previous position.
                     // Pass in the saved mark as "options" in the hope that will recreate
                     // all the same mark options.
                     markNew = editor.markText(position.from, position.to, options);
+                    
+                    // Save a pointer to the new mark on the old mark,
+                    // in case other history events are still pointing to the old mark
+                    mark.markNew = markNew;
                 });
             }
         },
