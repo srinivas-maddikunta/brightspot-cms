@@ -7,9 +7,9 @@ import com.psddev.cms.tool.ToolPageContext;
 import java.io.IOException;
 import java.util.Map;
 
-@OEmbedRichTextElement.DisplayName("oEmbed")
-@RichTextElement.Tag(value = "cms.oembed", block = true, readOnly = true)
-public class OEmbedRichTextElement extends RichTextElement {
+@ExternalContentRichTextElement.DisplayName("External Content")
+@RichTextElement.Tag(value = "brightspot-cms-external-content", block = true, readOnly = true)
+public class ExternalContentRichTextElement extends RichTextElement {
 
     private String url;
 
