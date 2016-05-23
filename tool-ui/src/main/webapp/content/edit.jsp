@@ -550,8 +550,13 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
         </div>
 
         <div class="contentForm-aside">
-            <div class="widget widget-publishing">
-                <h1 class="icon icon-action-publish"><%= wp.h(wp.localize(editingState.getType(), "action.publish")) %></h1>
+            <%
+                ObjectType editingType = editingState.getType();
+                boolean publishable = editingType != null && editingType.as(ToolUi.class).isPublishable();
+            %>
+
+            <div class="widget widget-publishing"<%= publishable ? " data-publishable" : "" %>>
+                <h1 class="icon icon-action-publish"><%= wp.h(wp.localize(editingState.getType(), publishable ? "action.publish" : "action.save")) %></h1>
 
                 <%
                 wp.writeStart("div", "class", "widget-controls");
@@ -964,7 +969,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                         } else if (!isTrash) {
                             wp.writeStart("div", "class", "widget-publishingPublish");
-                                if (wp.getUser().getCurrentSchedule() == null) {
+                                if (publishable && wp.getUser().getCurrentSchedule() == null) {
                                     if (!contentData.isDraft() && schedule != null) {
                                         boolean newSchedule = wp.param(boolean.class, "newSchedule");
 
@@ -1018,9 +1023,9 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                         "value", "true");
                                     ObjectType type = editingState.getType();
                                     if (type != null) {
-                                        wp.writeHtml(ObjectUtils.firstNonBlank(type.as(ToolUi.class).getPublishButtonText(), wp.localize(type, "action.publish")));
+                                        wp.writeHtml(ObjectUtils.firstNonBlank(type.as(ToolUi.class).getPublishButtonText(), wp.localize(type, publishable ? "action.publish" : "action.save")));
                                     } else {
-                                        wp.writeHtml(wp.localize(type, "action.publish"));
+                                        wp.writeHtml(wp.localize(type, publishable ? "action.publish" : "action.save"));
                                     }
                                 wp.writeEnd();
                             wp.writeEnd();
@@ -1030,7 +1035,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 wp.writeStart("div", "class", "widget-publishingExtra");
                     wp.writeStart("ul", "class", "widget-publishingExtra-left");
-                        if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
+                        if (publishable && (overlay == null && (!lockedOut || editAnyway) && isWritable)) {
                             if (isDraft) {
                                 if (schedule == null) {
                                     wp.writeStart("li");
@@ -1223,8 +1228,6 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                             wp.writeEnd();
                         }
                     wp.writeEnd();
-
-                    ObjectType editingType = editingState.getType();
 
                     if (editingType != null) {
                         Renderer.TypeModification rendererData = editingType.as(Renderer.TypeModification.class);
@@ -1852,6 +1855,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 private static void renderWidgets(ToolPageContext wp, Object object, String position) throws Exception {
 
     State state = State.getInstance(object);
+    ObjectType type = state.getType();
     List<Widget> widgets = null;
     for (List<Widget> item : wp.getTool().findWidgets(position)) {
         widgets = item;
@@ -1864,6 +1868,10 @@ private static void renderWidgets(ToolPageContext wp, Object object, String posi
         wp.write("\">");
 
         for (Widget widget : widgets) {
+            if ((type == null || !type.as(ToolUi.class).isPublishable()) && !widget.shouldDisplayInNonPublishable()) {
+                continue;
+            }
+
             if (!wp.hasPermission(widget.getPermissionId())) {
                 continue;
             }
