@@ -151,6 +151,8 @@ if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-a
 
                     } else {
                         wp.writeEnd();
+
+                        stateOldValues = state.getSimpleValues();
                     }
                 }
             }
