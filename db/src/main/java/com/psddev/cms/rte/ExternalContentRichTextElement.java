@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @ExternalContentRichTextElement.DisplayName("External Content")
-@RichTextElement.Tag(value = "brightspot-cms-external-content", block = true, readOnly = true)
+@RichTextElement.Tag(value = "brightspot-cms-external-content", block = true, preview = true, readOnly = true)
 public class ExternalContentRichTextElement extends RichTextElement {
 
     private String url;

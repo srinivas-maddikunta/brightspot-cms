@@ -46,6 +46,7 @@ public abstract class RichTextElement extends Record {
         String value();
         String initialBody() default "";
         boolean block() default false;
+        boolean preview() default false;
         boolean readOnly() default false;
         boolean root() default false;
         Class<?>[] children() default { };
