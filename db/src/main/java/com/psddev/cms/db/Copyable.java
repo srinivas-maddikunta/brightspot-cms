@@ -30,17 +30,20 @@ public interface Copyable extends Recordable {
     void onCopy(Object source);
 
     /**
-     * Copies a source object.
+     * Copies the given {@code source} object into an instance of the given
+     * {@code targetType}.
      * <p>
      * If a target {@link ObjectType} is specified, the copied object will be converted
      * to the specified type, otherwise it will be of the same type as the object identified
      * by {@code source}.
      *
+     * @param targetClass the class to which the copy should be converted
      * @param source     the source object to be copied
-     * @param targetType the {@link ObjectType} to which the copy should be converted
      * @return the copy {@link State} after application of {@link #onCopy}
      */
-    static Object copy(Object source, ObjectType targetType) {
+    @SuppressWarnings("unchecked")
+    static <T> T copy(Class<T> targetClass, Object source) {
+        Preconditions.checkNotNull(targetClass, "targetClass");
         Preconditions.checkNotNull(source, "source");
 
         // Query source object including invisible references.  Cache is prevented which insures both that invisibles
@@ -49,10 +52,7 @@ public interface Copyable extends Recordable {
         source = Query.fromAll().where("id = ?", source).resolveInvisible().noCache().first();
 
         State sourceState = State.getInstance(source);
-
-        if (targetType == null) {
-            targetType = sourceState.getType();
-        }
+        ObjectType targetType = sourceState.getDatabase().getEnvironment().getTypeByClass(targetClass);
 
         Preconditions.checkState(targetType != null, "Copy failed! Could not determine copy target type!");
 
@@ -92,7 +92,15 @@ public interface Copyable extends Recordable {
         // If it or any of its modifications are copyable, fire onCopy()
         destinationState.fireTrigger(new CopyTrigger(source));
 
-        return destination;
+        return (T) destination;
+    }
+
+    /**
+     * Copies the given {@code source} object.
+     */
+    @SuppressWarnings("unchecked")
+    static <T> T copy(T source) {
+        return (T) copy(source.getClass(), source);
     }
 }
 
