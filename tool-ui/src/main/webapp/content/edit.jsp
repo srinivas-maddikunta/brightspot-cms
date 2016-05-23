@@ -191,7 +191,7 @@ if (copy != null) {
 if (wp.isFormPost() && copy != null) {
 
     State editingState = State.getInstance(editing);
-    State copyState = State.getInstance(Copyable.copy(copy, null));
+    State copyState = State.getInstance(Copyable.copy(copy));
 
     if (site != null
             && !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
@@ -223,7 +223,7 @@ if (wp.tryDelete(editing) ||
 // the editing state with the copy source state again.
 if (!wp.isFormPost() && copy != null) {
 
-    state = State.getInstance(Copyable.copy(copy, null));
+    state = State.getInstance(Copyable.copy(copy));
 
     if (site != null
             && !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
