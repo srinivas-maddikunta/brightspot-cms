@@ -10,7 +10,6 @@ import com.psddev.dari.db.Trigger;
 import com.psddev.dari.util.Settings;
 
 import java.util.Collection;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -46,15 +45,12 @@ public interface Copyable extends Recordable {
      * @return the copy {@link State} after application of {@link #onCopy}
      */
     static Object copy(Object source, Site site, ObjectType targetType) {
-
-        UUID sourceId = State.getInstance(source).getId();
-
-        Preconditions.checkNotNull(sourceId, "Can't copy without a source! No source object was supplied!");
+        Preconditions.checkNotNull(source, "source");
 
         // Query source object including invisible references.  Cache is prevented which insures both that invisibles
         // are properly resolved and no existing instance of the source object becomes linked to the copy.
         // This prevents mutations to the new copy from affecting the original source object if it is subsequently saved.
-        source = Query.fromAll().where("id = ?", sourceId).resolveInvisible().noCache().first();
+        source = Query.fromAll().where("id = ?", source).resolveInvisible().noCache().first();
 
         State sourceState = State.getInstance(source);
 
