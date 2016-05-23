@@ -39,6 +39,7 @@ com.psddev.dari.db.State,
 com.psddev.dari.util.HtmlWriter,
 com.psddev.dari.util.JspUtils,
 com.psddev.dari.util.ObjectUtils,
+com.psddev.dari.util.Settings,
 com.psddev.dari.util.StringUtils,
 com.psddev.cms.tool.ContentEditable,
 
@@ -190,7 +191,14 @@ if (copy != null) {
 if (wp.isFormPost() && copy != null) {
 
     State editingState = State.getInstance(editing);
-    State copyState = State.getInstance(Copyable.copy(copy, site, null));
+    State copyState = State.getInstance(Copyable.copy(copy, null));
+
+    if (site != null
+            && !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
+        // Only set the owner to current site if not on global and no setting to dictate otherwise.
+        copyState.as(Site.ObjectModification.class).setOwner(site);
+    }
+
     copyState.putAll(editingState.getRawValues());
     copyState.setId(editingState.getId());
     copyState.setStatus(editingState.getStatus());
@@ -215,7 +223,14 @@ if (wp.tryDelete(editing) ||
 // the editing state with the copy source state again.
 if (!wp.isFormPost() && copy != null) {
 
-    state = State.getInstance(Copyable.copy(copy, site, null));
+    state = State.getInstance(Copyable.copy(copy, null));
+
+    if (site != null
+            && !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
+        // Only set the owner to current site if not on global and no setting to dictate otherwise.
+        state.as(Site.ObjectModification.class).setOwner(site);
+    }
+
     editing = state.getOriginalObject();
     selected = editing;
 }
