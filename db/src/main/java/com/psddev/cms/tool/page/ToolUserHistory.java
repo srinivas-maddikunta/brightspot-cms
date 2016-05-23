@@ -119,7 +119,7 @@ public class ToolUserHistory extends PageServlet {
                                         "width", 150,
                                         "height", 150,
                                         "src", page.cmsUrl("qrCode",
-                                                "data", JspUtils.getAbsoluteUrl(page.getRequest(), lookingGlassUrl),
+                                                "data", JspUtils.getHostUrl(page.getRequest()) + lookingGlassUrl,
                                                 "size", 150));
                             page.writeEnd();
 

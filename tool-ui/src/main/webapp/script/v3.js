@@ -36,7 +36,6 @@ require([
   'velocity',
 
   'v3/input/carousel',
-  'v3/input/change',
   'input/code',
   'input/color',
   'v3/color-utils',
@@ -52,6 +51,7 @@ require([
   'input/region',
   'v3/input/richtext',
   'v3/input/richtext2',
+  'v3/input/secret',
   'input/table',
   'input/workflow',
 
@@ -125,7 +125,8 @@ function() {
     '.popup[data-popup-source-class~="objectId-select"] .searchFiltersRest',
     '.popup[data-popup-source-class~="objectId-select"] .searchResultList',
     '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchFiltersRest',
-    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList'
+    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList',
+    '.ToolUserWorksInProgress > ul'
   ].join(','));
 
   $doc.frame({

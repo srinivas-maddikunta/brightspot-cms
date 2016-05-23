@@ -3236,8 +3236,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             
             enhancementEditUrl = $.addQueryParameters(
                 window.CONTEXT_PATH + '/content/enhancement.jsp',
-                'typeId', styleObj.enhancementType,
-                'attributes', JSON.stringify(mark.attributes)
+                'typeId', styleObj.enhancementType
             );
 
             // Create a link for editing the enhancement and position it at the click event
@@ -3250,11 +3249,18 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     action: enhancementEditUrl,
                     method: 'post',
                     style: 'width:100%;display:block;',
-                    html: $('<input/>', {
-                        type: 'hidden',
-                        name: 'body',
-                        value: $(html).html()
-                    })
+                    html: [
+                        $('<input/>', {
+                            type: 'hidden',
+                            name: 'attributes',
+                            value: JSON.stringify(mark.attributes)
+                        }),
+                        $('<input/>', {
+                            type: 'hidden',
+                            name: 'body',
+                            value: $(html).html()
+                        })
+                    ]
                 })
                 
             }).appendTo(self.$container);

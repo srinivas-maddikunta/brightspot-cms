@@ -2,11 +2,10 @@ package com.psddev.cms.tool;
 
 import java.awt.Color;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Modifier;
-import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,6 +29,7 @@ import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
+import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.db.ToolUserSearch;
@@ -56,6 +56,13 @@ import com.psddev.dari.util.PaginatedResult;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UuidUtils;
+import org.apache.http.Header;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 public class Search extends Record {
 
@@ -621,38 +628,43 @@ public class Search extends Record {
 
         if (!ObjectUtils.isBlank(queryString)) {
             try {
-                URL qsUrl = new URL(queryString.trim());
-                URLConnection qsConnection = qsUrl.openConnection();
+                URI qsUri = new URL(queryString.trim()).toURI();
+                String qsHost = qsUri.getHost();
+                qsUri = new URI(qsUri.getScheme(), qsUri.getUserInfo(), "localhost", qsUri.getPort(), qsUri.getPath(), qsUri.getQuery(), qsUri.getFragment());
 
-                if (qsConnection instanceof HttpURLConnection) {
-                    HttpURLConnection qsHttp = (HttpURLConnection) qsConnection;
+                try (CloseableHttpClient client = HttpClients.createDefault()) {
+                    HttpHead request = new HttpHead(qsUri);
 
-                    qsHttp.setConnectTimeout(1000);
-                    qsHttp.setReadTimeout(1000);
-                    qsHttp.setRequestMethod("HEAD");
-                    qsHttp.setRequestProperty("Brightspot-Main-Object-Id-Query", "true");
+                    request.setHeader("Host", qsHost);
+                    request.setHeader("Brightspot-Main-Object-Id-Query", "true");
+                    request.setConfig(RequestConfig.custom()
+                            .setConnectionRequestTimeout(1000)
+                            .setConnectTimeout(1000)
+                            .setSocketTimeout(1000)
+                            .build());
 
-                    InputStream qsInput = qsHttp.getInputStream();
+                    try (CloseableHttpResponse response = client.execute(request)) {
+                        EntityUtils.consume(response.getEntity());
 
-                    try {
-                        UUID mainObjectId = ObjectUtils.to(UUID.class, qsHttp.getHeaderField("Brightspot-Main-Object-Id"));
+                        Header mainObjectIdHeader = response.getFirstHeader("Brightspot-Main-Object-Id");
 
-                        if (mainObjectId != null) {
-                            if (query.isFromAll() && !validTypeIds.isEmpty()) {
-                                query.and("_type = ?", validTypeIds);
+                        if (mainObjectIdHeader != null) {
+                            UUID mainObjectId = ObjectUtils.to(UUID.class, mainObjectIdHeader.getValue());
+
+                            if (mainObjectId != null) {
+                                if (query.isFromAll() && !validTypeIds.isEmpty()) {
+                                    query.and("_type = ?", validTypeIds);
+                                }
+
+                                return query
+                                        .and("_id = ? or * matches ?", mainObjectId, mainObjectId)
+                                        .sortRelevant(100.0, "_id = ?", mainObjectId);
                             }
-
-                            return query
-                                    .and("_id = ? or * matches ?", mainObjectId, mainObjectId)
-                                    .sortRelevant(100.0, "_id = ?", mainObjectId);
                         }
-
-                    } finally {
-                        qsInput.close();
                     }
                 }
 
-            } catch (IOException error) {
+            } catch (IOException | URISyntaxException error) {
                 // Can't connect to the URL in the query string to get the main
                 // object ID, but that's OK to ignore and move on.
             }
@@ -987,7 +999,27 @@ public class Search extends Record {
         }
 
         if (validTypeIds != null) {
-            query.and("_type = ?", validTypeIds);
+            if (page != null) {
+                query.and("_type = ?", validTypeIds.stream()
+                        .filter(typeId -> page.hasPermission("type/" + typeId + "/read"))
+                        .collect(Collectors.toSet()));
+
+            } else {
+                query.and("_type = ?", validTypeIds);
+            }
+
+        } else if (page != null) {
+            ToolUser user = page.getUser();
+
+            if (user != null) {
+                ToolRole role = user.getRole();
+
+                if (role != null
+                        && role.getPermissions().contains("+type/")) {
+
+                    query.and(page.userTypesPredicate());
+                }
+            }
         }
 
         String color = getColor();

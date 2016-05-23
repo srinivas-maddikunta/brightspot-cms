@@ -68,9 +68,15 @@ if (user != null) {
 
             AuthenticationFilter.Static.logIn(request, response, user);
 
-            try {
-                wp.redirect(new URL(JspUtils.getAbsoluteUrl(request, wp.param(AuthenticationFilter.RETURN_PATH_PARAMETER, wp.url("/")))).toString());
-            } catch (MalformedURLException e) {
+            String returnPath = wp.param(String.class, AuthenticationFilter.RETURN_PATH_PARAMETER);
+
+            if (!StringUtils.isBlank(returnPath) && returnPath.startsWith("/")) {
+                try {
+                    response.sendRedirect(returnPath);
+                } catch (MalformedURLException e) {
+                    wp.redirect("/");
+                }
+            } else {
                 wp.redirect("/");
             }
 
