@@ -45,7 +45,7 @@ public interface Copyable extends Recordable {
      * @param targetType the {@link ObjectType} to which the copy should be converted
      * @return the copy {@link State} after application of {@link #onCopy}
      */
-    static State copy(Object source, Site site, ObjectType targetType) {
+    static Object copy(Object source, Site site, ObjectType targetType) {
 
         UUID sourceId = State.getInstance(source).getId();
 
@@ -64,7 +64,8 @@ public interface Copyable extends Recordable {
 
         Preconditions.checkState(targetType != null, "Copy failed! Could not determine copy target type!");
 
-        State destinationState = State.getInstance(targetType.createObject(null));
+        Object destination = targetType.createObject(null);
+        State destinationState = State.getInstance(destination);
         Content.ObjectModification destinationContent = destinationState.as(Content.ObjectModification.class);
 
         // State#getRawValues must be used or invisible objects will not be included.
@@ -104,7 +105,7 @@ public interface Copyable extends Recordable {
         // If it or any of its modifications are copyable, fire onCopy()
         destinationState.fireTrigger(new CopyTrigger(source));
 
-        return destinationState;
+        return destination;
     }
 }
 
