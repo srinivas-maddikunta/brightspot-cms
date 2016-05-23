@@ -16,7 +16,8 @@ define([ 'jquery', 'bsp-utils', 'v3/input/carousel' ], function($, bsp_utils, ca
       var $container = $(container);
       carousel = Object.create(carouselUtility);
       carousel.init($container, {numbered:false});
-
+      // to get a vertical carousel pass vertical: true as an option to the init
+      
       addTiles($container.children(settings.itemsSelector), false);
       carousel.update();
 
