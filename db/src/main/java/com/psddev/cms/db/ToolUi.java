@@ -72,6 +72,7 @@ public class ToolUi extends Modification<Object> {
     private String placeholder;
     private String placeholderDynamicText;
     private Boolean placeholderEditable;
+    private Boolean publishable;
     private String publishButtonText;
     private Boolean referenceable;
     private String referenceableViaClassName;
@@ -487,6 +488,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setPlaceholder(String placeholder) {
         this.placeholder = placeholder;
+    }
+
+    public boolean isPublishable() {
+        return Boolean.TRUE.equals(publishable);
+    }
+
+    public void setPublishable(boolean publishable) {
+        this.publishable = publishable ? Boolean.TRUE : null;
     }
 
     public String getPublishButtonText() {
@@ -1498,6 +1507,24 @@ public class ToolUi extends Modification<Object> {
                 ui.setPlaceholderDynamicText(placeholder.dynamicText());
                 ui.setPlaceholderEditable(placeholder.editable());
             }
+        }
+    }
+
+    @Documented
+    @Inherited
+    @ObjectType.AnnotationProcessorClass(PublishableProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Publishable {
+
+        boolean value() default true;
+    }
+
+    private static class PublishableProcessor implements ObjectType.AnnotationProcessor<Publishable> {
+
+        @Override
+        public void process(ObjectType type, Publishable annotation) {
+            type.as(ToolUi.class).setPublishable(annotation.value());
         }
     }
 
