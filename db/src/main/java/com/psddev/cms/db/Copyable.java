@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 /**
  * Interface for defining custom behavior when copying objects through {@link #onCopy}.
  */
-public interface Copyable<T> extends Recordable {
+public interface Copyable extends Recordable {
 
     String PRESERVE_OWNING_SITE_SETTING = "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner";
 
@@ -31,7 +31,7 @@ public interface Copyable<T> extends Recordable {
      *
      * @param source the Object to copy
      */
-    void onCopy(T source);
+    void onCopy(Object source);
 
     /**
      * Copies a source object and sets the copy to be owned by the specified {@link Site}.
@@ -123,7 +123,7 @@ class CopyTrigger implements Trigger {
     @Override
     public void execute(Object object) {
         if (object instanceof Copyable) {
-            ((Copyable<Object>) object).onCopy(source);
+            ((Copyable) object).onCopy(source);
         }
     }
 }
