@@ -4240,7 +4240,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             if (self.rte.modeGet() === 'rich') {
                 self.rte.focus();
                 self.toolbarUpdate();
-                self.rte.refresh();
             } else {
                 self.$el.focus();
             }
