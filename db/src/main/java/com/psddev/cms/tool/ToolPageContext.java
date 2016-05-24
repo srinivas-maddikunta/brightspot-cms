@@ -2164,6 +2164,7 @@ public class ToolPageContext extends WebPageContext {
                 }
 
                 richTextElement.put("line", tag.block());
+                richTextElement.put("previewable", tag.preview());
                 richTextElement.put("readOnly", tag.readOnly());
                 richTextElement.put("position", tag.position());
 
