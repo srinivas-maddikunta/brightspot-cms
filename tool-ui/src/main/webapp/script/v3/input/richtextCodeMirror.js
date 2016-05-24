@@ -2464,6 +2464,10 @@ define([
             
             // Create a line widget to show the preview
             data.previewMark = editor.addLineWidget(lineNumber, $preview[0], {rteBlockPreview:true});
+
+            $preview.on('resize', function () {
+                data.previewMark.changed();
+            });
         },
 
         
