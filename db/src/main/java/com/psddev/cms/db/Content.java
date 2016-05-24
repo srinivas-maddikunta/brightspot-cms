@@ -30,6 +30,7 @@ import com.psddev.dari.util.PageContextFilter;
 
 /** Represents a generic content. */
 @Content.Searchable
+@ToolUi.Publishable
 public abstract class Content extends Record {
 
     private static final String PREFIX = "cms.content.";

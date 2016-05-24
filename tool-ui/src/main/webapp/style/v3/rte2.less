@@ -780,3 +780,34 @@ li.CodeMirror-hint-active {
 .rte2-placeholder-showing .CodeMirror pre {
   color: @color-placeholder;
 }
+
+.rte2-wrapper .CodeMirror {
+  .rte2-block-preview {
+    .background-striped(@color-heading);
+    border-radius: 5px;
+    margin-top: 10px;
+    position: relative;
+
+    &:before {
+      border-color: transparent transparent @color-heading transparent;
+      border-style: solid;
+      border-width: 10px;
+      content: '';
+      left: 10px;
+      position: absolute;
+      top: -20px;
+    }
+  }
+
+  .rte2-style-com-psddev-cms-rte-ExternalContentRichTextElement {
+    color: @color-link-dark;
+    text-decoration: underline;
+
+    &:before {
+      .visibilityLabel;
+
+      content: 'External Content';
+      margin-right: 5px;
+    }
+  }
+}

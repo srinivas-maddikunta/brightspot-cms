@@ -320,6 +320,21 @@
   > textarea {
     display: block;
     width: 100%;
+
+    &.secret {
+      display: none;
+    }
+  }
+
+  .SecretInputToggle {
+    margin-bottom: 5px;
+  }
+
+  .SecretInputPlaceholder {
+    &:extend(.input all);
+
+    opacity: 0.6;
+    width: 100%;
   }
 
   .objectInputs[max-width^='350px'] & {

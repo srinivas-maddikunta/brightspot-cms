@@ -359,8 +359,20 @@ define([
             self.spellcheckInit();
             self.modeInit();
 
-            $(window).resize(bsp_utils.throttle(500, function () {
-                self.refresh();
+            var $window = $(window);
+            var windowWidth = $window.width();
+            var windowHeight = $window.height();
+
+            $window.resize(bsp_utils.throttle(500, function () {
+                var newWindowWidth = $window.width();
+                var newWindowHeight = $window.height();
+
+                if (windowWidth !== newWindowWidth || windowHeight !== newWindowHeight) {
+                    windowWidth = newWindowWidth;
+                    windowHeight = newWindowHeight;
+
+                    self.refresh();
+                }
             }));
         },
 
@@ -2113,7 +2125,6 @@ define([
 
                 // Store the mark data (and attributes) for the block style
                 self.blockSetLineData(styleObj.key, lineNumber, mark);
-                
             }
 
             // If this is a set of mutually exclusive styles, clear the other styles
@@ -2364,6 +2375,9 @@ define([
                 // the line around, and can be found again by looking
                 // up via the class name of the style.
                 lineHandle.rteMarks[className] = data;
+
+                // Return the mark
+                return data;
             }
         },
         
@@ -2399,6 +2413,7 @@ define([
                 if (className) {
                     
                     // Remove a single class from the line
+                    self.blockRemovePreviewForClass(className, lineNumber);
                     editor.removeLineClass(lineNumber, 'text', className);
                     
                 } else {
@@ -2406,6 +2421,7 @@ define([
                     // Remove all classes from the line
                     line = editor.getLineHandle(lineNumber);
                     $.each((line.textClass || '').split(' '), function(i, className) {
+                        self.blockRemovePreviewForClass(className, lineNumber);
                         editor.removeLineClass(lineNumber, 'text', className);
                     });
                 }
@@ -2552,6 +2568,143 @@ define([
         },
 
 
+        /**
+         * Create a lineWidget to display a preview (presumably an image) for a block style.
+         * This lineWidget will be displayed above the line, and will move with the line.
+         * If the style is removed (or the line is removed) the lineWidget will also be removed.
+         * 
+         * @param {String} styleKey
+         * @param {Number} lineNumber
+         * @param {String} previewHTML
+         */
+        blockSetPreview: function(styleKey, lineNumber, previewHTML) {
+            
+            var data, editor, $preview, self, styleObj;
+            self = this;
+
+            editor = self.codeMirror;
+            styleObj = self.styles[styleKey] || {};
+            
+            // Make sure this style is defined on the line,
+            // and get the data object attached to the lineHandle
+            data = self.blockGetLineData(styleKey, lineNumber);
+            if (!data) { return; }
+
+            // If there is already a preview remove it
+            self.blockRemovePreview(styleKey, lineNumber);
+
+            // Create DOM for the preview HTML
+            $preview = $('<div>', {
+                'class': 'rte2-block-preview'
+            }).html(previewHTML);
+
+            // Save the DOM node in the line data
+            data.$preview = $preview;
+            
+            // Create a line widget to show the preview
+            data.previewMark = editor.addLineWidget(lineNumber, $preview[0], {rteBlockPreview:true});
+
+            $preview.on('resize', function () {
+                data.previewMark.changed();
+            });
+        },
+
+        
+        /**
+         * Same as blockSetPreview() but instead of a style and line number,
+         * you start with a mark.
+         *
+         * Note for line styles, the mark is not actually a CodeMirror mark,
+         * but an object we created to mimic a CodeMirror mark.
+         * But it should have a find() function that returns the location of the
+         * mark even if the line has shifted.
+         * Refer to blockSetLineData() for more info.
+         *
+         * @param {Object} mark
+         * The mark created for a line style.
+         *
+         * @param {String} previewHTML
+         */
+        blockSetPreviewForMark: function(mark, previewHTML) {
+            
+            var lineNumber, range, self, styleKey, styleObj;
+            
+            self = this;
+
+            // Get the style from the mark
+            styleObj = self.classes[mark.className];
+            styleKey = styleObj.key;
+            
+            // Get the line number from the mark
+            range = mark.find();
+            lineNumber = range.from.line;
+            
+            return self.blockSetPreview(styleKey, lineNumber, previewHTML);
+        },
+
+
+        /**
+         * Remove the preview lineWidget for a block style
+         * (if it exists).
+         *
+         * @param {String} styleKey
+         * @param {Number} lineNumber
+         */
+        blockRemovePreview: function(styleKey, lineNumber) {
+            
+            var className, data, editor, $preview, self, styleObj;
+            self = this;
+
+            editor = self.codeMirror;
+            styleObj = self.styles[styleKey] || {};
+            className = styleObj.className;
+            
+            // Make sure this style is defined on the line,
+            // and get the data object attached to the lineHandle
+            data = self.blockGetLineData(styleKey, lineNumber);
+            if (!data) { return; }
+            if (!data.$preview) { return; }
+            if (!data.previewMark) { return; }
+
+            // Delete the preview dom
+            data.$preview.remove();
+            delete data.$preview;
+
+            // Delete the line widget
+            data.previewMark.clear();
+            editor.removeLineWidget(data.previewMark);
+            delete data.previewMark;
+        },
+
+        
+        /**
+         * Remove the preview lineWidget for a block style (if it exists).
+         * Same as blockRemovePreview(), but starting from a className instead of the style key.
+         *
+         * @param {String} className
+         * @param {Number} lineNumber
+         */
+        blockRemovePreviewForClass: function(className, lineNumber) {
+            var self, styleObj;
+            self = this;
+            styleObj = self.classes[className];
+            if (styleObj) {
+                self.blockRemovePreview(styleObj.key, lineNumber);
+            }
+        },
+
+
+        blockEachLineMark: function (callback) {
+            this.codeMirror.eachLine(function (line) {
+                var marks = line.rteMarks;
+
+                if (marks) {
+                    $.each(marks, callback);
+                }
+            });
+        },
+
+        
         //--------------------------------------------------
         // Enhancements
         // An enhancement is a block of external content that can be added to the editor.
@@ -2626,8 +2779,11 @@ define([
             };
 
             if (options.block) {
-                
-                mark = editor.addLineWidget(lineNumber, content, {above: true});
+
+                // Create the line widget.
+                // We set a flag rteEnhancement on the line widget, so we can distinguish
+                // it from other line widgets later
+                mark = editor.addLineWidget(lineNumber, content, {above: true, rteEnhancement:true});
 
                 mark.deleteLineFunction = function(){
 
@@ -2795,7 +2951,9 @@ define([
 
                 if (lineInfo && lineInfo.widgets) {
                     $.each(lineInfo.widgets, function(i,mark) {
-                        self.enhancementMoveToLine(mark, lineNumber);
+                        if (mark.rteEnhancement) {
+                            self.enhancementMoveToLine(mark, lineNumber);
+                        }
                     });
                 }
             }

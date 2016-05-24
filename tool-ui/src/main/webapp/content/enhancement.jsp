@@ -88,6 +88,8 @@ if (isRichTextElement) {
     ((RichTextElement) object).fromBody(wp.param(String.class, "body"));
 }
 
+Map<String, Object> stateOldValues = state.getSimpleValues();
+
 if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-and-close") || wp.param(boolean.class, "action-save"))) {
     try {
         request.setAttribute("excludeFields", Arrays.asList("record"));
@@ -149,6 +151,8 @@ if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-a
 
                     } else {
                         wp.writeEnd();
+
+                        stateOldValues = state.getSimpleValues();
                     }
                 }
             }
@@ -201,6 +205,7 @@ if (object == null) {
     %>
 
     <form class="enhancementForm" action="<%= wp.url("", "typeId", state.getTypeId(), "id", state.getId()) %>" enctype="multipart/form-data" id="<%= pageId %>" method="post">
+        <input type="hidden" name="<%= state.getId() %>/oldValues" value="<%= wp.h(ObjectUtils.toJson(stateOldValues)) %>">
         <% wp.include("/WEB-INF/errors.jsp"); %>
 
         <%
