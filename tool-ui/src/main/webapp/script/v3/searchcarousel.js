@@ -6,7 +6,7 @@ define([ 'jquery', 'bsp-utils', 'v3/input/carousel' ], function($, bsp_utils, ca
     prevAttr                  : 'prev-page',
     itemsSelector             : 'a',
     parentContainerSelector   : '.content-edit',
-    verticalCarouselAttr      : 'vertical-carousel'
+    verticalCarouselAttr      : 'data-vertical-carousel'
   };
 
   bsp_utils.onDomInsert(document, settings.containerSelector, {
@@ -22,8 +22,8 @@ define([ 'jquery', 'bsp-utils', 'v3/input/carousel' ], function($, bsp_utils, ca
       carousel = Object.create(carouselUtility);
       
       // check if data-vertical-carousel attr is set on content-edit class
-      verticalCarousel = $container.parents(settings.parentContainerSelector).data(settings.verticalCarouselAttr);
-      if (verticalCarousel){
+      verticalCarousel = $container.parents(settings.parentContainerSelector).attr(settings.verticalCarouselAttr);
+      if (verticalCarousel !== undefined){
           $.extend(carouselOptions, {vertical:true});
       }
 
