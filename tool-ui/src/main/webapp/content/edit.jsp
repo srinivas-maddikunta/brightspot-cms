@@ -1883,16 +1883,17 @@ private static void renderWidgets(ToolPageContext wp, Object object, String posi
         wp.write("\">");
 
         for (Widget widget : widgets) {
-            if ((type == null || !type.as(ToolUi.class).isPublishable()) && !widget.shouldDisplayInNonPublishable()) {
+
+            if (object instanceof ContentEditWidgetDisplay) {
+                if (!((ContentEditWidgetDisplay) object).shouldDisplayContentEditWidget(widget.getInternalName())) {
+                    continue;
+                }
+
+            } else if((type == null || !type.as(ToolUi.class).isPublishable()) && !widget.shouldDisplayInNonPublishable()) {
                 continue;
             }
 
             if (!wp.hasPermission(widget.getPermissionId())) {
-                continue;
-            }
-
-            if (object instanceof ContentEditWidgetDisplay
-                    && !((ContentEditWidgetDisplay) object).shouldDisplayContentEditWidget(widget.getInternalName())) {
                 continue;
             }
 
