@@ -82,7 +82,8 @@
   white-space: nowrap;
   width: 100%;
   .carousel-vertical & {
-      height: 525px;
+    height: 525px;
+    overflow-y: hidden;      
   }
   
 }
@@ -272,6 +273,15 @@
         height: 80vh;
       }
   }
+  [data-vertical-carousel='true'] & {
+      position: absolute;
+      left: -170px;
+      top: 0;
+  }
+}
+
+[data-vertical-carousel='true'].content-edit {
+    padding-left: 170px;  
 }
 
 // Temporarily turn off transition for the carousel.

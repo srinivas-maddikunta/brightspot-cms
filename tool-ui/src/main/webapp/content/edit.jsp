@@ -262,6 +262,7 @@ if (oldObject != null) {
 <%
 wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null);
 %>
+<%-- TODO BACKEND: add  data-vertical-carousel="true" to content-edit if carousel is set to vertical --%>
 <div class="content-edit">
 <%
 
