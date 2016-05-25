@@ -13,6 +13,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SearchWidget extends DashboardWidget {
 
@@ -48,11 +49,10 @@ public class SearchWidget extends DashboardWidget {
             page.writeHtml(getHeading());
             page.writeEnd();
 
-            String searchPath = page.toolPath(CmsTool.class, "/WEB-INF/search.jsp");
-
-            for (ObjectType type : getTypes()) {
-                searchPath = StringUtils.addQueryParameters(searchPath, Search.TYPES_PARAMETER, type.getId());
-            }
+            String searchPath = StringUtils.addQueryParameters(
+                    page.toolPath(CmsTool.class, "/WEB-INF/search.jsp"),
+                    Search.TYPES_PARAMETER,
+                    getTypes().stream().map(ObjectType::getId).collect(Collectors.toList()));
 
             JspUtils.include(
                     page.getRequest(),
