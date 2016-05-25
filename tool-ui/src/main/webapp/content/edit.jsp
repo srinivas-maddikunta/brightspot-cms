@@ -263,7 +263,7 @@ if (oldObject != null) {
 wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null);
 %>
 <%-- TODO BACKEND: add  data-vertical-carousel to content-edit if carousel is set to vertical --%>
-<div class="content-edit" data-vertical-carousel>
+<div class="content-edit">
 <%
 
     String search = wp.param(String.class, "search");
