@@ -181,11 +181,8 @@ define([
             }
             
         }, // styles
-        indentLevel: 
-            ['rte2-indent-level-1',
-             'rte2-indent-level-2',
-             'rte2-indent-level-3']
-        ,
+
+        indentClassPrefix: 'rte2-indent-level-',
         
         /**
          * Rules for cleaning up the clipboard data when content is pasted
@@ -405,11 +402,11 @@ define([
                 rangeFirstLine = {from:changeObj.from, to:changeObj.from};
                 rangeBeforeChange = {from:changeObj.from, to:changeObj.to};
           
-                indentTypePrevious ='';
+                indentTypePrevious = '';
                 if (rangeBeforeChange.from.line > 0) {
-                    indentTypePrevious = self.getListIndentLevel(rangeBeforeChange.from.line);
+                    indentTypePrevious = self.blockGetIndent(rangeBeforeChange.from.line - 1);
                 }
-                    
+
                 // Get the list type of the previous line
                 listTypePrevious = '';
                 if (rangeBeforeChange.from.line > 0) {
@@ -457,8 +454,8 @@ define([
                     // Then do not add a new line - instead change the list item to a non-list item
                     if (isLastListItem && isEmptyLine) {
 
-                        //remove the indent class on new line
-                        self.blockRemoveStyle(indentTypePrevious, range);
+                        // Remove the indent on new line
+                        self.blockRemoveIndent(range.from.line);
 
                         // Remove the list class on the new line
                         self.blockRemoveStyle(listType, range);
@@ -481,7 +478,7 @@ define([
                         
                         // return triggers an indent based off previous classes
                         if (indentTypePrevious !== undefined){
-                            self.blockSetIndent(indentTypePrevious, range);
+                            self.blockSetIndent(range.from.line, indentTypePrevious);
                         }
                     
                     }
@@ -2145,73 +2142,42 @@ define([
             //return mark;
             return self.blockGetLineData(styleObj.key, range.from.line) || {};
         },
-        
+
         /**
-         * @param Number level
+         * Set the indent level for a line.
          *
-         * @param {String|Object} style
-         * The line style to set.
+         * @param {Number} lineNumber
+         * The line number on which to set indent.
          *
-         * @param Object [range=current selection]
-         * The range of positions {from,to}.
+         * @param {Number} indentLevel
+         * The indent level (number from 1..n)
          *
          * @param Object [options]
          * Set of key/value pairs to specify options.
          * These options will be passed as mark options when the mark is created.
          *
-         * @param Object [options.attributes]
-         * An object with key/value pairs for the attributes that should be saved for this block style.
-         *
          * @param Object [options.triggerChange=true]
          * Set this to false if you do not want to trigger the rteChange event after setting the style.
          * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
          */
-        blockSetIndent: function(level, range, options) {
+        blockSetIndent: function(lineNumber, level, options) {
 
             var className, editor, lineHandle, lineNumber, mark, self, indentClass, previousIndentLevel;
 
             self = this;
             editor = self.codeMirror;
-            range = range || self.getRange();
             options = options || {};
             
-            if (level >= 0){
-                indentClass = self.indentLevel[level];
+            // Remove any existing indent level
+            self.blockRemoveIndent(lineNumber);
+            
+            if (level < 1) {
+                return;
             }
 
-            className = indentClass;
+            indentClass = self.indentClassPrefix + level;
 
-            // Create a fake "mark" object for the line
-            mark = {
-                
-                // just in case we need to distinguish this is our fake mark...
-                rteLineStyle: true,
-                
-                // other code checks for className on the mark so we'll save it here too
-                className: className 
-            };
-
-            // Save attributes on the mark
-            if (options.attributes) {
-                mark.attributes = options.attributes;
-            }
-
-            // look up previous indent level remove it before adding the new class
-            previousIndentLevel = self.getListIndentLevel(range.from.line);
-            if (previousIndentLevel !== undefined){
-                self.blockRemoveIndent(previousIndentLevel, range);              
-            }       
-
-            for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
-                
-                editor.addLineClass(lineNumber, 'text', indentClass);
-
-                // Store the mark data (and attributes) for the block style
-                self.blockSetLineData(indentClass, lineNumber, mark);
-                
-            }
-
-
+            editor.addLineClass(lineNumber, 'text', indentClass);
 
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
@@ -2220,55 +2186,99 @@ define([
             if (options.triggerChange !== false) {
                 self.triggerChange();
             }
-
-            //return mark;
-            return self.blockGetLineData(indentClass, range.from.line) || {};
         },
-       /**
-         * Remove the indent class for a line.
-         *
-         * @param String [level]
-         * The line style to remove. Set to empty string to remove all line styles.
-         *
-         * @param Object [range=current selection]
-         * The range of positions {from,to} 
-         */
-        blockRemoveIndent: function(level, range) {
 
-            var indentClass, classNames, classes, editor, line, lineNumber, self;
+
+        /**
+         * Change the indent level up or down.
+         *
+         * @param {Number} lineNumber
+         * @param {Number} delta
+         * Amount by which to change the indent level. +1 or -1.
+         *
+         * @returns {Number}
+         * The new indent level.
+         */
+        blockDeltaIndent: function(lineNumber, delta, options) {
+            var indentLevel, self;
+            self = this;
+            indentLevel = self.blockGetIndent(lineNumber);
+            indentLevel = indentLevel + delta;
+            if (indentLevel < 1) {
+                indentLevel = 1;
+            }
+            self.blockSetIndent(lineNumber, indentLevel, options)
+            return indentLevel;
+        },
+
+        
+       /**
+         * Remove all indent from a line.
+         *
+         * @param Number lineNumber
+         * The line number where indent should be removed.
+         *
+         */
+        blockRemoveIndent: function(lineNumber, options) {
+
+            var indentClass, classNames, classes, editor, line, lineInfo, lineNumber, self;
 
             self = this;
             editor = self.codeMirror;
-            range = range || self.getRange();
+            options = options || {};
 
-            if (level >= 0){
-                indentClass = self.indentLevel[level];
-            }
-            
-            for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
-                
-                if (indentClass) {
-                    
-                    // Remove a single class from the line
-                    editor.removeLineClass(lineNumber, 'text', indentClass);
-                    
-                } else {
-                    
-                    // Remove all classes from the line
-                    line = editor.getLineHandle(lineNumber);
-                    $.each((line.textClass || '').split(' '), function(i, indentClass) {
-                        editor.removeLineClass(lineNumber, 'text', indentClass);
-                    });
-                }
+            lineInfo = editor.lineInfo(lineNumber);
+            if (lineInfo && lineInfo.textClass) {
+                $.each(lineInfo.textClass.split(' '), function(i, className) {
+                    if (className.indexOf(self.indentClassPrefix) === 0) {
+                        editor.removeLineClass(lineNumber, 'text', className);
+                    }
+                });
             }
             
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
             editor.refresh();
-            
-            self.triggerChange();
+
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
         },
+        
+       /**
+         * Returns the indent level for a line.
+         *
+         * @param Number lineNumber
+         * The line number where indent should be retrieved.
+         *
+         * @returns Number
+         * Indent level, a number from 1..n
+         *
+         */
+        blockGetIndent: function(lineNumber) {
+
+            var editor, indentLevel, lineInfo, self;
+
+            self = this;
+            editor = self.codeMirror;
+
+            indentLevel = 1;
             
+            lineInfo = editor.lineInfo(lineNumber);
+            if (lineInfo && lineInfo.textClass) {
+                $.each(lineInfo.textClass.split(' '), function(i, className) {
+                    if (className.indexOf(self.indentClassPrefix) === 0) {
+                        indentLevel = className.slice( self.indentClassPrefix.length );
+                        indentLevel = parseInt( indentLevel, 10 );
+                        return;
+                    }
+                });
+            }
+
+            return indentLevel;
+        },
+
+        
         /**
          * Return the data stored on the line, for a particular style.
          *
@@ -5102,12 +5112,16 @@ define([
 
             keymap['Tab'] = function(){
                 //increase indent on an ul or ol
-                self.indentList(1);
+                var range;
+                range = self.getRange();
+                self.blockDeltaIndent(range.from.line, 1);
             };
 
             keymap['Shift-Tab'] = function(){
                 //decrease an ident on an ul or ol
-                self.indentList(-1);
+                var range;
+                range = self.getRange();
+                self.blockDeltaIndent(range.from.line, -1);
             };
 
             keymap['Shift-Enter'] = function (cm) {
@@ -5149,73 +5163,6 @@ define([
             });
 
             return keymap;
-        },
-
-        /**
-         *  @param {String} [keymap]
-         *  accepts a keymap param to increase indent or decrease indent
-         */
-        indentList: function(keymap){
-                var self, range, listTypePrevious,  indentLevelPrevious;
-                self = this;
-                range = self.getRange();
-
-                // Get the list type of the previous line
-                listTypePrevious = '';
-                if (range.from.line > 0) {
-                    listTypePrevious = self.blockGetListType(range.from.line - 1);
-                }
-
-                if (listTypePrevious) {
-                
-
-                    indentLevelPrevious = self.getListIndentLevel(range.from.line - 1);
-                    // shift tab action
-                    if (keymap === -1){
-                        if (indentLevelPrevious >0){
-                            self.blockSetIndent((indentLevelPrevious -1), range);
-                            return;
-                        }else if (indentLevelPrevious === 0) {
-                            self.blockRemoveIndent(0, range);
-                        }
-
-                    }
-                    // tab action
-                    if (keymap === 1){
-                        if (indentLevelPrevious <self.indentLevel.length-1){
-                            self.blockSetIndent((indentLevelPrevious+1), range);
-                            return;
-                        }else if (indentLevelPrevious === undefined) {
-                            self.blockSetIndent(0, range);
-                        }
-                    }
-                }
-        },
-        /**
-         *  @param {Object} [range]
-         *  accepts range object to determine indent Level of Previous line
-         *
-         * @returns {number} indent level
-         */
-        getListIndentLevel: function(lineNumber) {
-
-            var self, editor, indentLevel;
-            self = this,
-            editor = self.codeMirror,
-            line = editor.getLineHandle(lineNumber),
-            lineInfo = editor.lineInfo(line),
-            classNames = lineInfo.textClass || "";
-    
-            $.each(classNames.split(' '), function(i, className) {
-                var styleObj;
-                styleObj = self.indentLevel;
-                if (styleObj.indexOf(className) > -1){
-                   indentLevel = styleObj.indexOf(className);;
-                   return;
-                }
-            });
-
-            return indentLevel;
         },
 
         /**
@@ -5285,7 +5232,7 @@ define([
                 return html;
             }
 
-            var blockElementsToClose, blockActive, indentActive, indentLevelPrevious, doc, enhancementsByLine, html,listContainer, rangeWasSpecified, self;
+            var blockElementsToClose, containerActive, indentActive, indentLevelPrevious, doc, enhancementsByLine, html,listContainer, rangeWasSpecified, self;
 
             self = this;
 
@@ -5307,9 +5254,7 @@ define([
 
             // List of block styles that are currently open.
             // We need this so we can continue a list on the next line.
-            blockActive = {};
-            indentActive = {};
-            indentLevelPrevious = {};
+            containerActive = [];
             
              // List of block elements that are currently open
             // We need this so we can close them all at the end of the line.
@@ -5347,7 +5292,7 @@ define([
             // Loop through the content one line at a time
             doc.eachLine(function(line) {
 
-                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, indentLevel, indentOnThisLine, inlineActiveIndex, inlineActiveIndexLast, inlineElementsToClose, isVoid, lineNo, lineInRange, outputChar, raw, rawLastChar;
+                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, indentLevel, inlineActiveIndex, inlineActiveIndexLast, inlineElementsToClose, isVoid, lineNo, lineInRange, outputChar, raw, rawLastChar;
 
                 lineNo = line.lineNo();
                 
@@ -5362,8 +5307,7 @@ define([
                 // (in the order they were opened so they can be closed in reverse order)
                 inlineElementsToClose = [];
                 
-                indentLevel = self.getListIndentLevel(lineNo);
-                indentOnThisLine = {};
+                indentLevel = self.blockGetIndent(lineNo);
                 
                 // Keep track of the block styles we find only on this line,
                 // so we know when to end a list.
@@ -5383,7 +5327,7 @@ define([
                         
                         $.each(line.textClass.split(' '), function() {
                             
-                            var container, lineStyleData, styleObj;
+                            var container, containerPrevious, lineStyleData, styleObj, styleObjToClose;
 
                             // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
                             styleObj = self.classes[this];
@@ -5398,36 +5342,49 @@ define([
                                 // Mark that we found this container, so later we can close off any containers that are not active any more.
                                 // For example this will set blockOnThisLine.ul to true.
                                 blockOnThisLine[container] = true;
+
+                                // There are several possibilities at this point:
+                                // We are not inside another list and we need to create a new list.
+                                // We are inside a list already and add the same indent level.
+                                // We are inside a list already, but the indent level is greater so we need to create a new nested list.
+                                // We are inside a list already, but the indent level is less, so we need to close previous lists until we get to the correct indent.
                                 
                                 // Check to see if we are already inside this container element
-                                if (blockActive[container]) {
+                                containerPrevious = containerActive[ containerActive.length - 1 ];
+                                if (containerPrevious && containerPrevious.element === container && indentLevel === containerPrevious.indentLevel) {
 
                                     // We are currently inside this style so we don't need to open the container element
-                                    
+                                    // TODO: close any existing block elements from the previous line
+                                    styleObjToClose = blockElementsToClose.pop();
+                                    if (styleObjToClose.element) {
+                                        html += '</' + styleObjToClose.element + '>';
+                                    }
+
                                 } else {
+                                    
+                                    // TODO:
+                                    // Check if we are inside a list already, but the indent level is less,
+                                    // so we need to close previous lists until we get to the correct indent.
+                                    
+                                    // Save the indent level of this line so we can compare it to subsequent lines
                                     listContainer = container;
                                     // We are not already inside this style, so create the container element
                                     // and remember that we created it
-                                    blockActive[container] = true;
+                                    containerActive.push({
+                                        element:container,
+                                        indentLevel:indentLevel
+                                    });
                                     htmlStartOfLine += '<' + container + '>';
                                 }
+                                
+                            } else {
+                                // We are no longer inside a container, so we should close all open containers
+                                // TODO
                             }
-//                        // if indent level is defined and doesn't equal the indent level from the previous line add
-//                        // an opening ol or ul tag
-//                            if (indentLevel !== undefined && indentLevel !== indentLevelPrevious) {
-//                                // dont know which line is the last item of the indent till you get to the next line
-//                                // so must close the container before the new one opens
-
-//
-//                                indentLevelPrevious = indentLevel;
-//                                indentOnThisLine[listContainer] = true;                                
-//
-//                                indentActive[listContainer] = true;
-//                                htmlStartOfLine += '<' + listContainer + '>';                                
-//                            }
-//                            
+                            
                             // Get any attributes that might be defined for this line style
-                            lineStyleData = self.blockGetLineData(styleObj.key, lineNo) || {};   
+                            lineStyleData = self.blockGetLineData(styleObj.key, lineNo) || {};
+                            
                             // Now determine which element to create for the line.
                             // For example, if it is a list then we would create an 'LI' element.
                             htmlStartOfLine += openElement(styleObj, lineStyleData.attributes);
@@ -5444,16 +5401,16 @@ define([
                 // from a previous line, or actually close the list.
                 // Loop through all the blocks that are currently active (from this line and previous lines)
                 // and find the ones that are not active on this line.
-                $.each(blockActive, function(container) {
-
-                    if (!blockOnThisLine[container]) {
-                        delete blockActive[container];
-                        if (container) {
-                            html += '</' + container + '>';
+                /***
+                $.each(containerActive, function(i, container) {
+                    if (container) {
+                        if (!blockOnThisLine[container.element]) {
+                            html += '</' + container.element + '>';
+                            delete containerActive[i];
                         }
                     }
                 });
-
+                ***/
                 // Determine if there are any enhancements on this line
                 if (enhancementsByLine[lineNo] && options.enhancements !== false) {
                     
@@ -5757,7 +5714,7 @@ define([
 
                     // If we reached end of line, close all the open block elements
                     if (blockElementsToClose.length) {
-                    
+                    /***
                         $.each(blockElementsToClose.reverse(), function() {
                             var element;
                             element = this.element;
@@ -5766,7 +5723,7 @@ define([
                             }
                         });
                         blockElementsToClose = [];
-
+                    ***/
                     } else if (charInRange && rawLastChar && !self.rawBr) {
                         html += '\n';
                     } else if (charInRange) {
@@ -5784,10 +5741,20 @@ define([
             });
 
             // When we finish with the final line close any block elements that are still open
-            $.each(blockActive, function(container) {
-                delete blockActive[container];
+            if (blockElementsToClose.length) {
+                $.each(blockElementsToClose.reverse(), function() {
+                    var element;
+                    element = this.element;
+                    if (element) {
+                        html += '</' + element + '>';
+                    }
+                });
+                blockElementsToClose = [];
+            }
+            $.each(containerActive, function(i, container) {
                 if (container) {
-                    html += '</' + container + '>';
+                    html += '</' + container.element + '>';
+                    delete containerActive[i];
                 }
             });
 

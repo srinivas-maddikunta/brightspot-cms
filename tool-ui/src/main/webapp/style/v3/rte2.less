@@ -566,14 +566,27 @@ li.CodeMirror-hint-active {
       margin-left: -1em;
       padding-right:0.25em;
     }
+    // Any indent level not specifically set should have this padding
+    *[class*=rte2-indent-level-] {
+        padding-left: 14em;
+    }
     .rte2-indent-level-1 {
-        padding-left: 4em;
+        padding-left: 2em;
     }
     .rte2-indent-level-2 {
-        padding-left: 6em;
+        padding-left: 4em;
     }
     .rte2-indent-level-3 {
+        padding-left: 6em;
+    }    
+    .rte2-indent-level-4 {
         padding-left: 8em;
+    }    
+    .rte2-indent-level-5 {
+        padding-left: 10em;
+    }    
+    .rte2-indent-level-6 {
+        padding-left: 12em;
     }    
   }
 
