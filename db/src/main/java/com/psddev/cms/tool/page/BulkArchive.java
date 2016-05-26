@@ -2,6 +2,7 @@ package com.psddev.cms.tool.page;
 
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.Content;
+import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.SearchResultSelection;
 import com.psddev.cms.tool.ToolPageContext;
@@ -122,14 +123,21 @@ public class BulkArchive extends PageServlet {
                     try {
                         while (queryIterator.hasNext()) {
 
+                            Object item = queryIterator.next();
+
                             try {
                                 if (Action.RESTORE.equals(action)) {
-                                    page.restore(queryIterator.next());
+                                    if (page.isItemActionable(item, false)) {
+                                        page.restore(item);
+                                        successCount ++;
+                                    }
                                 } else if (Action.ARCHIVE.equals(action)) {
-                                    page.trash(queryIterator.next());
+                                    if (page.isItemActionable(item, true)) {
+                                        page.trash(item);
+                                        successCount ++;
+                                    }
                                 }
 
-                                successCount ++;
                             } catch (Exception e) {
                                 page.getErrors().add(e);
                             }
@@ -369,6 +377,17 @@ public class BulkArchive extends PageServlet {
             throw new IllegalStateException("No Search or SearchResultsSelection populated.  Cannot create items Query.");
         }
 
+        public boolean isItemActionable(Object item, boolean archive) {
+
+            State itemState = State.getInstance(item);
+            String typePermissionId = "type/" + itemState.getTypeId();
+
+            return !itemState.getType().as(ToolUi.class).isReadOnly()
+                && archive ^ itemState.as(Content.ObjectModification.class).isTrash()
+                && hasPermission(typePermissionId + "/write")
+                && hasPermission(typePermissionId + "/bulkArchive");
+        }
+
         private long getAvailableActionCount(boolean archive) {
 
             if (getSelection() != null) {
@@ -380,13 +399,7 @@ public class BulkArchive extends PageServlet {
                 do {
                     for (Object item : result.getItems()) {
 
-                        State itemState = State.getInstance(item);
-                        String typePermissionId = "type/" + itemState.getTypeId();
-
-                        if (archive ^ itemState.as(Content.ObjectModification.class).isTrash()
-                                && hasPermission(typePermissionId + "/write")
-                                && hasPermission(typePermissionId + "/bulkArchive")) {
-
+                        if (isItemActionable(item, archive)) {
                             count ++;
                         }
                     }
@@ -397,7 +410,7 @@ public class BulkArchive extends PageServlet {
 
                 ObjectType selectedType = getSearch().getSelectedType();
 
-                if (selectedType == null) {
+                if (selectedType == null || selectedType.as(ToolUi.class).isReadOnly()) {
                     return 0;
                 }
 
