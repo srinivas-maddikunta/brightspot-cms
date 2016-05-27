@@ -82,7 +82,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
         $.ajax({
           'type': 'post',
-          'url': CONTEXT_PATH + 'contentState?changed=' + changed + '&idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
+          'url': CONTEXT_PATH + 'contentState?changed=' + ($form.is('[data-enhancement-rte]') ? false : changed) + '&idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
           'cache': false,
           'dataType': 'json',
 
