@@ -187,6 +187,8 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                   $inputs.find('> .inputContainer[data-field-name="' + name + '"]').addClass('state-changed');
                 });
               });
+
+              $form.trigger('content-state-differences');
             }
 
             $form.resize();
