@@ -1,5 +1,5 @@
 /* jshint undef: true, unused: true, browser: true, jquery: true, devel: true */
-/* global define */
+/* global define document */
 
 define(['jquery'], function($) {
 
@@ -490,10 +490,9 @@ define(['jquery'], function($) {
             $table = $cell.closest('table');
             $table.find('> * > tr').each(function() {
                 
-                var $td, $tds, $tr;
+                var $td, $tr;
 
                 $tr = $(this);
-                $tds = $tr.find('> td, > th');
 
                 // Now add a new cell at the insertion point
                 $td = self.cellCreate();
