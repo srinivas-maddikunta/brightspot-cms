@@ -1868,6 +1868,7 @@ public class PageFilter extends AbstractFilter {
                                             Object object = type.createObject(ObjectUtils.to(UUID.class, objectMap.remove("_id")));
                                             State objectState = State.getInstance(object);
 
+                                            objectState.setResolveInvisible(true);
                                             objectState.setValues(objectMap);
                                             substitutions.put(objectState.getId(), object);
                                         }
