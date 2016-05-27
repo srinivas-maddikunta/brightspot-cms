@@ -589,6 +589,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             self.inlineEnhancementInit();
             self.tableInit();
             self.initRte();
+            self.tableInitChangeEvent(); // must be after initRte
             self.toolbarInit();
             self.linkInit();
             self.trackChangesInit();
@@ -3396,6 +3397,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
 
         /**
+         * Initialize a listener for table editor changes, so we
+         * can in turn trigger an RTE change (to ensure the html gets updated).
+         * Note this must be called after initRte because the container element
+         * must exist before we can attach the event listener.
+         */
+        tableInitChangeEvent: function() {
+            var self = this;
+            // Add a listener for table changes so we know when the content changes
+            self.$container.on('tableEditorChange', function() {
+                // Trigger a content change so the final html gets updated
+                self.rte.triggerChange();
+            });
+        },
+
+
+        /**
          * 
          */
         tableCreate: function($content, line) {
@@ -3810,6 +3827,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                  } else {
                      value = self.tableEditRte.toHTML();
                      $el.html(value);
+                     self.rte.triggerChange();
                  }
 
             });

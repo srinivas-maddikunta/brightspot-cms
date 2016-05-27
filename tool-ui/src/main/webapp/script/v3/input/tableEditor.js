@@ -401,6 +401,8 @@ define(['jquery'], function($) {
             } else {
                 $rowNew.insertAfter($row);
             }
+            
+            self.triggerChange();
         },
 
         
@@ -431,6 +433,8 @@ define(['jquery'], function($) {
             
             $row = $cell.closest('tr');
             $row.remove();
+            
+            self.triggerChange();
         },
 
 
@@ -503,6 +507,8 @@ define(['jquery'], function($) {
                     $td.insertBefore( $tr.find('> td, > th').eq(colNumber) );
                 }
             });
+            
+            self.triggerChange();
         },
 
         
@@ -548,6 +554,8 @@ define(['jquery'], function($) {
                 // Delete the cell for the column
                 $tds.eq(colNumber).remove();
             });
+            
+            self.triggerChange();
         },
 
         
@@ -672,6 +680,8 @@ define(['jquery'], function($) {
             $cell = options.cell ? $(options.cell) : self.selectedGet();
 
             $cell.html(content);
+            
+            self.triggerChange();
         },
 
         
@@ -732,6 +742,16 @@ define(['jquery'], function($) {
             // Remove any empty 'class' attributes because jquery leaves those around after setting and removing the active classes
             $cloned.find('[class=""]').removeAttr('class');
             return options.html ? $cloned.html() : self.$table;
+        },
+        
+        
+        /**
+         * Trigger a change event. To be used whenever the table is modified.
+         */  
+        triggerChange: function() {
+            var self;
+            self = this;
+            self.$table.trigger('tableEditorChange', [self]);
         }
     };
     
