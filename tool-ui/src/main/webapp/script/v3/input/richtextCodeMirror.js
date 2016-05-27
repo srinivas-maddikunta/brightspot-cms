@@ -4226,8 +4226,6 @@ define([
          * @param {Object} rules
          */
         clipboardSanitizeApplyRules: function($content, rules) {
-            var self;
-            self = this;
             
             $.each(rules, function(selector, style) {
                 
@@ -5142,9 +5140,7 @@ define([
          */
         markGetRange: function(mark) {
             var pos;
-            var self;
-            
-            self = this;
+
             pos = {};
             if (mark.find) {
                 pos = mark.find() || {};
@@ -6768,9 +6764,6 @@ define([
          */
         htmlParse: function(html) {
             var dom;
-            var self;
-            
-            self = this;
 
             if ($.type(html) === 'string') {
                 dom = new DOMParser().parseFromString(html, "text/html").body;     
@@ -6819,9 +6812,7 @@ define([
             
             var attr;
             var $el;
-            var self;
-            
-            self = this;
+
 
             attr = {};
 
