@@ -3528,7 +3528,7 @@ public class ToolPageContext extends WebPageContext {
                         .deleteAll();
             }
 
-            redirectOnSave("");
+            getResponse().sendRedirect(cmsUrl("/"));
             return true;
 
         } catch (Exception error) {
