@@ -1,3 +1,5 @@
+/* global define DOMParser navigator setTimeout window */
+
 define([
     'jquery',
     'bsp-utils',
@@ -320,6 +322,7 @@ define([
          */
         init: function(element, options) {
 
+            var codeMirrorOptions;
             var self;
 
             self = this;
@@ -383,8 +386,16 @@ define([
          * this will add a new line below, and the new line should always be a list item.
          */
         initListListeners: function() {
-            
-            var editor, isFirstListItem, isLastListItem, isEmptyLine, indentTypePrevious, listType, rangeFirstLine, rangeBeforeChange, self;
+
+            var editor;
+            var indentTypePrevious;
+            var isEmptyLine;
+            var isFirstListItem;
+            var isLastListItem;
+            var isStartOfLine;
+            var listType;
+            var rangeFirstLine;
+            var self;
 
             self = this;
 
@@ -394,7 +405,9 @@ define([
             // about lists, to later use in the "change" event
             editor.on('beforeChange', function(instance, changeObj) {
 
-                var listTypePrevious, listTypeNext;
+                var listTypePrevious;
+                var listTypeNext;
+                var rangeBeforeChange;
 
                 // Get the listType and set the closure variable for later use
                 listType = self.blockGetListType(changeObj.from.line);
@@ -499,7 +512,8 @@ define([
          */
         initEvents: function() {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             
@@ -568,7 +582,9 @@ define([
          */
         toggleStyle: function(style, range) {
             
-            var mark, self, styleObj;
+            var mark;
+            var self;
+            var styleObj;
 
             self = this;
             
@@ -599,7 +615,9 @@ define([
          */
         setStyle: function(style, range) {
             
-            var mark, self, styleObj;
+            var mark;
+            var self;
+            var styleObj;
 
             self = this;
             
@@ -676,7 +694,13 @@ define([
             // Example: what if you have xxx<B>xxx<I>RRR</I>xxx</B>xxx
             // Then the context should be considered to be [I]
             
-            var blockStyles, context, contextArray, contextMarks, contextNull, editor, foundBlockStyle, lineNumber, self;
+            var blockStyles;
+            var context;
+            var contextNull;
+            var editor;
+            var foundBlockStyle;
+            var lineNumber;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -689,12 +713,16 @@ define([
             // Loop through all lines in the range
             editor.eachLine(range.from.line, range.to.line + 1, function(line) {
 
-                var charFrom, charTo, isRange, marks, rightmostMark, rightmostPos, styleObj;
+                var charFrom;
+                var charNumber;
+                var charTo;
+                var marks;
+                var rightmostMark;
+                var rightmostPos;
+                var styleObj;
                 
                 charFrom = (lineNumber === range.from.line) ? range.from.ch : 0;
                 charTo = (lineNumber === range.to.line) ? range.to.ch : line.text.length;
-
-                isRange = Boolean(charFrom !== charTo);
                 
                 // Loop through each character in the line
                 for (charNumber = charFrom; charNumber <= charTo; charNumber++) {
@@ -708,7 +736,9 @@ define([
                     // Find the mark with the rightmost starting character
                     marks.forEach(function(mark){
                         
-                        var isRightmost, markPosition, pos, styleObj;
+                        var isRightmost;
+                        var pos;
+                        var styleObj;
                         
                         if (!mark.className) {
                             return;
@@ -833,7 +863,8 @@ define([
          */
         inlineToggleStyle: function(styleKey, range) {
 
-            var mark, self;
+            var mark;
+            var self;
 
             self = this;
 
@@ -868,7 +899,14 @@ define([
          */
         inlineSetStyle: function(style, range, options) {
             
-            var className, editor, isEmpty, line, mark, markOptions, self, styleObj, $widget, widgetOptions;
+            var className;
+            var editor;
+            var isEmpty;
+            var line;
+            var mark;
+            var markOptions;
+            var self;
+            var styleObj;
 
             self = this;
 
@@ -995,7 +1033,14 @@ define([
          */
         inlineRemoveStyle: function(styleKey, range, options) {
 
-            var className, deleteText, editor, lineNumber, self, from, to, triggerChange;
+            var className;
+            var deleteText;
+            var editor;
+            var from;
+            var lineNumber;
+            var self;
+            var to;
+            var triggerChange;
 
             self = this;
 
@@ -1021,7 +1066,10 @@ define([
 
             editor.eachLine(from.line, to.line + 1, function(line) {
 
-                var fromCh, toCh, marks, newMark;
+                var fromCh;
+                var marks;
+                var newMark;
+                var toCh;
 
                 // Get the character ranges to search within this line.
                 // If we're not on the first line, start at the beginning of the line.
@@ -1033,7 +1081,15 @@ define([
                 marks = line.markedSpans || [];
                 marks.slice(0).reverse().forEach(function(mark) {
 
-                    var from, markerOpts, markerOptsNotInclusive, matchesClass, outsideOfSelection, selectionStartsBefore, selectionEndsAfter, styleObj, to;
+                    var from;
+                    var markerOpts;
+                    var markerOptsNotInclusive;
+                    var matchesClass;
+                    var outsideOfSelection;
+                    var selectionEndsAfter;
+                    var selectionStartsBefore;
+                    var styleObj;
+                    var to;
                     
                     // Check if we should remove the class
                     matchesClass = false;
@@ -1270,7 +1326,8 @@ define([
          */
         inlineMakeInclusive: function() {
 
-            var marks, self;
+            var marks;
+            var self;
 
             self = this;
 
@@ -1327,7 +1384,9 @@ define([
          */
         inlineRemoveStyledText: function(styleKey, range) {
             
-            var mark, pos, self, styles;
+            var mark;
+            var pos;
+            var self;
 
             self = this;
             
@@ -1361,13 +1420,11 @@ define([
          */
         inlineIsStyle: function(styleKey, range) {
             
-            var classes, className, self, styles;
+            var self;
+            var styles;
 
             self = this;
-
-            // Check if className is a key into our styles object
-            className = self.styles[styleKey].className;
-            
+        
             range = range || self.getRange();
 
             styles = self.inlineGetStyles(range);
@@ -1385,7 +1442,10 @@ define([
          */
         inlineGetMark: function(styleKey, range) {
 
-            var className, editor, matchingMark, self;
+            var className;
+            var editor;
+            var matchingMark;
+            var self;
 
             self = this;
 
@@ -1421,7 +1481,9 @@ define([
          */
         inlineHasStyle: function(styleKey, range) {
             
-            var self, styles, value;
+            var self;
+            var styles;
+            var value;
 
             self = this;
 
@@ -1454,7 +1516,11 @@ define([
          */
         inlineGetStyles: function(range) {
             
-            var classes, classMap, isClass, editor, lineNumber, self, styles, lineStarting;
+            var classes;
+            var editor;
+            var lineNumber;
+            var self;
+            var styles;
 
             self = this;
             editor = self.codeMirror;
@@ -1464,11 +1530,12 @@ define([
             styles = {};
             classes = {};
             
-            isClass = true;
-
             editor.eachLine(range.from.line, range.to.line + 1, function(line) {
 
-                var charTo, charNumber, charFrom, once, isRange;
+                var charTo;
+                var charNumber;
+                var charFrom;
+                var isRange;
                 
                 charFrom = (lineNumber === range.from.line) ? range.from.ch : 0;
                 charTo = (lineNumber === range.to.line) ? range.to.ch : line.text.length;
@@ -1478,7 +1545,8 @@ define([
                 // Loop through each character in the range
                 for (charNumber = charFrom; charNumber <= charTo; charNumber++) {
 
-                    var classesForChar, marks;
+                    var classesForChar;
+                    var marks;
                     
                     classesForChar = {};
 
@@ -1487,7 +1555,8 @@ define([
 
                     marks.forEach(function(mark) {
                         
-                        var isSingleChar, markPosition;
+                        var isSingleChar;
+                        var markPosition;
                         
                         if (mark.className) {
 
@@ -1572,7 +1641,7 @@ define([
             // but we really want the abstracted style names (like 'bold').
             // Convert the class name into the style name.
             $.each(classes, function(className, value) {
-                var styleKey, styleObj;
+                var styleObj;
                 styleObj = self.classes[className];
                 if (styleObj) {
                     styles[styleObj.key] = value;
@@ -1589,7 +1658,11 @@ define([
          */
         inlineCollapse: function(styleKey, range) {
 
-            var className, editor, marks, marksCollapsed, self;
+            var className;
+            var editor;
+            var marks;
+            var marksCollapsed;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -1621,7 +1694,10 @@ define([
 
             $.each(marks, function(i, mark) {
 
-                var markCollapsed, markPosition, $widget, widgetOptions;
+                var markCollapsed;
+                var markPosition;
+                var $widget;
+                var widgetOptions;
                 
                 // Check if this mark was previously collapsed
                 // (because we saved the collapse mark as a parameter on the original mark)
@@ -1673,13 +1749,11 @@ define([
          */
         inlineUncollapse: function(styleKey, range) {
 
-            var className, editor, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
-
-            // Check if className is a key into our styles object
-            className = self.styles[styleKey].className;
             
             range = range || self.getRange();
 
@@ -1698,7 +1772,12 @@ define([
          */
         inlineToggleCollapse: function(styleKey, range) {
 
-            var className, editor, foundUncollapsed, marks, marksCollapsed, self;
+            var className;
+            var editor;
+            var foundUncollapsed;
+            var marks;
+            var marksCollapsed;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -1730,7 +1809,7 @@ define([
 
             $.each(marks, function(i, mark) {
 
-                var markCollapsed, markPosition, $widget, widgetOptions;
+                var markCollapsed;
                 
                 // Check if this mark was previously collapsed
                 // (because we saved the collapse mark as a parameter on the original mark)
@@ -1774,11 +1853,11 @@ define([
         },
         _inlineCleanup: function() {
 
-            var doc, editor, marks, marksByClassName, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
-            doc = editor.getDoc();
 
             // Loop through all the marks in the document,
             // find the ones that span across lines and split them
@@ -1795,14 +1874,19 @@ define([
          */
         rawCleanup: function() {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
             
             $.each(editor.getAllMarks(), function(i, mark) {
 
-                var pos, styleObj, from, to, marks;
+                var from;
+                var marks;
+                var pos;
+                var styleObj;
+                var to;
                 
                 // Is this a "raw" mark?
                 styleObj = self.classes[mark.className] || {};
@@ -1863,7 +1947,14 @@ define([
          */
         inlineSplitMarkAcrossLines: function(mark) {
 
-            var editor, to, lineNumber, pos, self, singleLine, styleObj, from;
+            var editor;
+            var from;
+            var lineNumber;
+            var pos;
+            var self;
+            var singleLine;
+            var styleObj;
+            var to;
 
             self = this;
             editor = self.codeMirror;
@@ -1889,7 +1980,9 @@ define([
                 // Loop through the lines that this marker spans and create a marker for each line
                 for (lineNumber = from.line; lineNumber <= to.line; lineNumber++) {
 
-                    var fromCh, newMark, toCh;
+                    var fromCh;
+                    var newMark;
+                    var toCh;
                     
                     fromCh = (lineNumber === from.line) ? from.ch : 0;
                     toCh = (lineNumber === to.line) ? to.ch : editor.getLine(lineNumber).length;
@@ -1923,7 +2016,10 @@ define([
          */
         inlineCombineAdjacentMarks: function() {
 
-            var editor, marks, self;
+            var editor;
+            var marks;
+            var marksByClassName;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -1947,7 +2043,8 @@ define([
             // Sort the marks in order of position
             marks = marks.sort(function(a, b){
                 
-                var posA, posB;
+                var posA;
+                var posB;
 
                 posA = a.find();
                 posB = b.find();
@@ -1989,7 +2086,12 @@ define([
             // Next go through all the classes, and combine the marks
             $.each(marksByClassName, function(className, marks) {
 
-                var i, mark, markNext, markNew, pos, posNext;
+                var i;
+                var mark;
+                var markNext;
+                var markNew;
+                var pos;
+                var posNext;
 
                 i = 0;
                 while (marks[i]) {
@@ -2049,7 +2151,8 @@ define([
          */
         blockToggleStyle: function(styleKey, range) {
             
-            var mark, self;
+            var mark;
+            var self;
 
             self = this;
 
@@ -2087,7 +2190,12 @@ define([
          */
         blockSetStyle: function(style, range, options) {
 
-            var className, editor, lineHandle, lineNumber, mark, self, styleObj;
+            var className;
+            var editor;
+            var lineNumber;
+            var mark;
+            var self;
+            var styleObj;
 
             self = this;
             editor = self.codeMirror;
@@ -2162,7 +2270,9 @@ define([
          */
         blockSetIndent: function(lineNumber, level, options) {
 
-            var className, editor, lineHandle, lineNumber, mark, self, indentClass, previousIndentLevel;
+            var editor;
+            var indentClass;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -2221,7 +2331,9 @@ define([
          */
         blockRemoveIndent: function(lineNumber, options) {
 
-            var indentClass, classNames, classes, editor, line, lineInfo, lineNumber, self;
+            var editor;
+            var lineInfo;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -2295,7 +2407,13 @@ define([
          */
         blockGetLineData: function(styleKey, lineNumber) {
 
-            var data, editor, lineHandle, self, styleObj;
+            var className;
+            var data;
+            var editor;
+            var lineHandle;
+            var self;
+            var styleObj;
+            
             self = this;
             editor = self.codeMirror;
 
@@ -2328,7 +2446,12 @@ define([
          */
         blockSetLineData: function(styleKey, lineNumber, data) {
             
-            var editor, lineHandle, self, styleObj, className;
+            var editor;
+            var lineHandle;
+            var self;
+            var styleObj;
+            var className;
+            
             self = this;
             editor = self.codeMirror;
             
@@ -2403,7 +2526,11 @@ define([
          */
         blockRemoveStyle: function(styleKey, range) {
 
-            var className, classNames, classes, editor, line, lineNumber, self;
+            var className;
+            var editor;
+            var line;
+            var lineNumber;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -2451,10 +2578,10 @@ define([
          */
         blockIsStyle: function(styleKey, range) {
 
-            var classes, editor, self, styles;
+            var self;
+            var styles;
 
             self = this;
-            editor = self.codeMirror;
 
             styles = self.blockGetStyles(range);
             return Boolean(styles[styleKey]);
@@ -2469,7 +2596,10 @@ define([
          */
         blockGetStyles: function(range) {
             
-            var classes, editor, self, styles;
+            var classes;
+            var editor;
+            var self;
+            var styles;
 
             self = this;
             editor = self.codeMirror;
@@ -2479,7 +2609,8 @@ define([
             // Loop through all lines in the range
             editor.eachLine(range.from.line, range.to.line + 1, function(line) {
 
-                var classNames, classesLine;
+                var classNames;
+                var classesLine;
 
                 // There is at least one classname on this line
                 // Split the class string into an array of individual class names and store in an object for easy lookup
@@ -2523,7 +2654,7 @@ define([
             styles = {};
             if (classes) {
                 $.each(classes, function(className, value) {
-                    var styleKey, styleObj;
+                    var styleObj;
                     styleObj = self.classes[className];
                     if (styleObj) {
                         styles[styleObj.key] = value;
@@ -2552,7 +2683,12 @@ define([
          */
         blockGetListType: function(lineNumber) {
 
-            var classNames, editor, line, lineInfo, listType, self;
+            var classNames;
+            var editor;
+            var line;
+            var lineInfo;
+            var listType;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -2589,11 +2725,14 @@ define([
          */
         blockSetPreview: function(styleKey, lineNumber, previewHTML) {
             
-            var data, editor, $preview, self, styleObj;
+            var data;
+            var editor;
+            var $preview;
+            var self;
+            
             self = this;
 
             editor = self.codeMirror;
-            styleObj = self.styles[styleKey] || {};
             
             // Make sure this style is defined on the line,
             // and get the data object attached to the lineHandle
@@ -2637,7 +2776,11 @@ define([
          */
         blockSetPreviewForMark: function(mark, previewHTML) {
             
-            var lineNumber, range, self, styleKey, styleObj;
+            var lineNumber;
+            var range;
+            var self;
+            var styleKey;
+            var styleObj;
             
             self = this;
 
@@ -2662,12 +2805,13 @@ define([
          */
         blockRemovePreview: function(styleKey, lineNumber) {
             
-            var className, data, editor, $preview, self, styleObj;
+            var data;
+            var editor;
+            var self;
+            
             self = this;
 
             editor = self.codeMirror;
-            styleObj = self.styles[styleKey] || {};
-            className = styleObj.className;
             
             // Make sure this style is defined on the line,
             // and get the data object attached to the lineHandle
@@ -2695,7 +2839,9 @@ define([
          * @param {Number} lineNumber
          */
         blockRemovePreviewForClass: function(className, lineNumber) {
-            var self, styleObj;
+            var self;
+            var styleObj;
+            
             self = this;
             styleObj = self.classes[className];
             if (styleObj) {
@@ -2768,7 +2914,11 @@ define([
          */
         enhancementAdd: function(content, lineNumber, options) {
 
-            var editor, mark, range, self, widgetOptions;
+            var editor;
+            var mark;
+            var range;
+            var self;
+            var widgetOptions;
 
             self = this;
             editor = self.codeMirror;
@@ -2797,7 +2947,8 @@ define([
 
                 mark.deleteLineFunction = function(){
 
-                    var content, $content;
+                    var content;
+                    var $content;
 
                     content = self.enhancementGetContent(mark);
                     $content = $(content).detach();
@@ -2858,7 +3009,11 @@ define([
          */
         enhancementMove: function(mark, lineDelta) {
 
-            var content, $content, editor, lineLength, lineNumber, lineMax, position, self;
+            var editor;
+            var lineLength;
+            var lineNumber;
+            var lineMax;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -2904,7 +3059,10 @@ define([
          */
         enhancementMoveToLine: function(mark, lineNumber) {
             
-            var options, self;
+            var content;
+            var $content;
+            var options;
+            var self;
 
             self = this;
 
@@ -2939,7 +3097,9 @@ define([
          */
         enhancementNewlineAdjust: function(changeObj) {
             
-            var lineInfo, lineNumber, self;
+            var lineInfo;
+            var lineNumber;
+            var self;
 
             self = this;
 
@@ -3013,7 +3173,8 @@ define([
          */
         enhancementGetLineNumber: function(mark) {
             
-            var lineNumber, position;
+            var lineNumber;
+            var position;
 
             lineNumber = undefined;
             if (mark.line) {
@@ -3038,7 +3199,10 @@ define([
          */
         enhancementSetInline: function(mark, options) {
             
-            var content, $content, lineNumber, self;
+            var content;
+            var $content;
+            var lineNumber;
+            var self;
 
             self = this;
 
@@ -3066,7 +3230,10 @@ define([
          */
         enhancementSetBlock: function(mark, options) {
 
-            var content, $content, lineNumber, self;
+            var content;
+            var $content;
+            var lineNumber;
+            var self;
 
             self = this;
 
@@ -3127,7 +3294,9 @@ define([
 
         dropdownInit: function() {
             
-            var clicks, editor, self;
+            var clicks;
+            var editor;
+            var self;
 
             self = this;
             
@@ -3175,7 +3344,9 @@ define([
          * imediately popu up the edit form for the first mark located.
          */
         dropdownDoubleClick: function(event) {
-            var marks, self;
+            var marks;
+            var self;
+            
             self = this;
             
             // Get all the marks within a range
@@ -3192,7 +3363,9 @@ define([
         
         dropdownCheckCursor: function() {
 
-            var marks, self;
+            var marks;
+            var self;
+            
             self = this;
 
             if (self.readOnlyGet() || !self.codeMirror.hasFocus()) {
@@ -3219,7 +3392,11 @@ define([
          * Defaults to false, which means it will only return marks if the selection range is a cursor position.
          */
         dropdownGetMarks: function(allowRange) {
-            var editor, lineStyles, marks, range, self;
+            var editor;
+            var lineStyles;
+            var marks;
+            var range;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -3273,7 +3450,9 @@ define([
             
             $.each(marks, function(i, mark) {
                 
-                var $div, label, $li, styleObj;
+                var $div;
+                var label;
+                var styleObj;
 
                 // Get the label to display for this mark.
                 // It defaults to the className of the style.
@@ -3348,7 +3527,12 @@ define([
 
         dropdownSetPosition: function(marks) {
 
-            var ch, chMin, editor, left, line, self, top;
+            var ch;
+            var editor;
+            var line;
+            var pos;
+            var self;
+            
             self = this;
 
             editor = self.codeMirror;
@@ -3412,7 +3596,9 @@ define([
          */
         onClickDoMark: function(event, mark) {
             
-            var range, self, styleObj;
+            var range;
+            var self;
+            var styleObj;
 
             self = this;
 
@@ -3436,7 +3622,8 @@ define([
          */
         trackInit: function() {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             
@@ -3497,7 +3684,12 @@ define([
          */
         trackBeforeChange: function(changeObj) {
             
-            var classes, editor, charPosition, cursorPosition, isEmpty, self, textOriginal, textNew;
+            var classes;
+            var editor;
+            var cursorPosition;
+            var isEmpty;
+            var self;
+            var textOriginal;
             
             self = this;
             editor = self.codeMirror;
@@ -3672,7 +3864,8 @@ define([
          */
         trackAfterPaste: function(from, to, textArray) {
 
-            var self, toNew;
+            var self;
+            var toNew;
 
             self = this;
             
@@ -3704,7 +3897,9 @@ define([
          */
         trackMarkDeleted: function(range) {
             
-            var editor, self;
+            var editor;
+            var self;
+            var textOriginal;
 
             self = this;
             editor = self.codeMirror;
@@ -3736,7 +3931,8 @@ define([
          */ 
         trackAcceptRange: function(range) {
             
-            var editor, marks, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -3758,7 +3954,8 @@ define([
          */ 
         trackRejectRange: function(range) {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -3779,7 +3976,9 @@ define([
          */
         trackAcceptMark: function(mark) {
 
-            var editor, position, self;
+            var editor;
+            var position;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -3806,7 +4005,9 @@ define([
          */
         trackRejectMark: function(mark) {
 
-            var editor, position, self;
+            var editor;
+            var position;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -3885,7 +4086,10 @@ define([
          */
         trackDisplayUpdate: function() {
             
-            var editor, pos, self, $wrapper;
+            var editor;
+            var pos;
+            var self;
+            var $wrapper;
 
             self = this;
             editor = self.codeMirror;
@@ -3933,7 +4137,12 @@ define([
         
         clipboardInit: function() {
             
-            var editor, isFirefox, isWindows, self, $wrapper;
+            var editor;
+            var isFirefox;
+            var isWindows;
+            var self;
+            var $wrapper;
+            
             self = this;
 
             editor = self.codeMirror;
@@ -3980,8 +4189,6 @@ define([
                 // the content that is pasted in from Microsoft Word
                 // while the clipboard API does not have access to the text/html.
                 $wrapper.on('keydown', function(e) {
-
-                    var x, y;
                     
                     if ((e.ctrlKey || e.metaKey) && e.keyCode == 86) {
 
@@ -4007,7 +4214,14 @@ define([
          */
         clipboardPaste: function(e) {
             
-            var allowRaw, isWorkaround, self, value, valueHTML, valueRTE, valueText;
+            var allowRaw;
+            var isWorkaround;
+            var self;
+            var value;
+            var valueHTML;
+            var valueRTE;
+            var valueText;
+            
             self = this;
 
             // If we are using the workaround:
@@ -4119,7 +4333,9 @@ define([
          */
         clipboardSanitize: function(html) {
             
-            var dom, $el, self;
+            var dom;
+            var $el;
+            var self;
             
             self = this;
             dom = self.htmlParse(html);
@@ -4164,13 +4380,12 @@ define([
          * @param {Object} rules
          */
         clipboardSanitizeApplyRules: function($content, rules) {
-            var self;
-            self = this;
             
             $.each(rules, function(selector, style) {
                 
                 $content.find(selector).each(function(){
-                    var $match, $replacement;
+                    var $match;
+                    var $replacement;
 
                     $match = $(this);
                     
@@ -4195,7 +4410,12 @@ define([
          */
         clipboardCopy: function(e) {
             
-            var editor, html, range, self, text;
+            var editor;
+            var html;
+            var range;
+            var self;
+            var text;
+            
             self = this;
             editor = self.codeMirror;
             
@@ -4272,7 +4492,12 @@ define([
          */
         spellcheckUpdate: function() {
 
-            var self, text, wordsArray, wordsArrayUnique, wordsRegexp, wordsUnique;
+            var self;
+            var text;
+            var wordsArray;
+            var wordsArrayUnique;
+            var wordsRegexp;
+            var wordsUnique;
 
             self = this;
             
@@ -4308,7 +4533,15 @@ define([
                     
                     $.each(wordsArrayUnique, function(i,word) {
                         
-                        var adjacent, range, result, index, indexStart, indexWord, range, split, wordLength;
+                        var adjacent;
+                        var ch;
+                        var index;
+                        var indexStart;
+                        var line;
+                        var range;
+                        var result;
+                        var split;
+                        var wordLength;
 
                         wordLength = word.length;
                         
@@ -4381,7 +4614,10 @@ define([
          */
         spellcheckMarkText: function(range, result) {
 
-            var editor, markOptions, self;
+            var editor;
+            var mark;
+            var markOptions;
+            var self;
 
             self = this;
             
@@ -4407,7 +4643,8 @@ define([
          */
         spellcheckClear: function() {
 
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
 
@@ -4440,7 +4677,11 @@ define([
          */
         spellcheckShow: function(range) {
 
-            var editor, marks, pos, range, self, suggestions;
+            var editor;
+            var marks;
+            var pos;
+            var self;
+            var suggestions;
 
             self = this;
 
@@ -4600,7 +4841,10 @@ define([
          */
         caseToggleSmart: function(range) {
             
-            var editor, self, text, textUpper;
+            var editor;
+            var self;
+            var text;
+            var textUpper;
 
             self = this;
             
@@ -4640,7 +4884,7 @@ define([
          */
         caseToUpper: function(range) {
             
-            var html, node, self;
+            var self;
 
             self = this;
 
@@ -4658,7 +4902,16 @@ define([
          */
         caseChange: function(range, direction) {
             
-            var chEnd, chStart, editor, html, line, lineRange, lineText, node, self;
+            var chEnd;
+            var chMax;
+            var chStart;
+            var editor;
+            var html;
+            var line;
+            var lineRange;
+            var lineText;
+            var node;
+            var self;
             
             self = this;
             editor = self.codeMirror;
@@ -4731,7 +4984,8 @@ define([
          * @param {String|DOM} html
          */
         htmlChangeCase: function(html, upper) {
-            var node, self;
+            var node;
+            var self;
             
             self = this;
             
@@ -4750,7 +5004,11 @@ define([
          * Set to true for upper case, or false for lower case.
          */
         htmlChangeCaseProcessNode: function(node, upper) {
-            var childNodes, i, length, self;
+            var childNodes;
+            var i;
+            var length;
+            var self;
+            
             self = this;
             
             if (node.nodeType === 3) {
@@ -4790,7 +5048,10 @@ define([
 
 
         isLineBlank: function(lineNumber) {
-            var editor, self, text;
+            var editor;
+            var self;
+            var text;
+
             self = this;
             editor = self.codeMirror;
 
@@ -4806,7 +5067,10 @@ define([
          */
         moveToNonBlank: function() {
             
-            var editor, line, max, self;
+            var editor;
+            var line;
+            var max;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -4830,7 +5094,7 @@ define([
          * @returns Number
          */
         getCount: function() {
-            var count, self;
+            var self;
             self = this;
             return self.toText().length;
         },
@@ -4845,7 +5109,9 @@ define([
          */
         getRange: function(){
 
-            var from, self, to;
+            var from;
+            var self;
+            var to;
 
             self = this;
 
@@ -4863,7 +5129,8 @@ define([
          */
         setSelection: function(range){
 
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
 
@@ -4881,7 +5148,8 @@ define([
          */
         getRangeAll: function(){
 
-            var self, totalLines;
+            var self;
+            var totalLines;
 
             self = this;
 
@@ -4911,7 +5179,8 @@ define([
          */
         getClassNameMap: function() {
             
-            var self, map;
+            var map;
+            var self;
 
             self = this;
 
@@ -4949,7 +5218,8 @@ define([
          */
         getElementMap: function() {
             
-            var self, map;
+            var map;
+            var self;
 
             self = this;
 
@@ -4985,7 +5255,7 @@ define([
          * Empty the editor and clear all marks and enhancements.
          */
         empty: function() {
-            var editor, self;
+            var self;
             self = this;
             
             // Destroy all enhancements
@@ -5023,8 +5293,8 @@ define([
          * or an empty object if the mark has been cleared.
          */
         markGetRange: function(mark) {
-            var pos, self;
-            self = this;
+            var pos;
+
             pos = {};
             if (mark.find) {
                 pos = mark.find() || {};
@@ -5056,7 +5326,8 @@ define([
          * the mark would be destroyed.
          */
         replaceMarkText: function(mark, text) {
-            var pos, self;
+            var pos;
+            var self;
 
             self = this;
 
@@ -5083,7 +5354,9 @@ define([
          * @return {Boolean}
          */
         elementIsContainer: function(elementName) {
-            var isContainer, self;
+            var isContainer;
+            var self;
+
             self = this;
             isContainer = false;
             $.each(self.styles, function(styleKey, styleObj){
@@ -5104,7 +5377,8 @@ define([
          */
         getKeys: function() {
             
-            var keymap, self;
+            var keymap;
+            var self;
 
             self = this;
 
@@ -5170,7 +5444,7 @@ define([
          * @returns String
          */
         toText: function() {
-            var count, self;
+            var self;
             self = this;
             return self.codeMirror.getValue();
         },
@@ -5232,7 +5506,13 @@ define([
                 return html;
             }
 
-            var blockElementsToClose, containerActive, indentActive, indentLevelPrevious, doc, enhancementsByLine, html,listContainer, rangeWasSpecified, self;
+            var blockElementsToClose;
+            var containerActive;
+            var doc;
+            var enhancementsByLine;
+            var html;
+            var rangeWasSpecified;
+            var self;
 
             self = this;
 
@@ -5292,7 +5572,24 @@ define([
             // Loop through the content one line at a time
             doc.eachLine(function(line) {
 
-                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, indentLevel, inlineActiveIndex, inlineActiveIndexLast, inlineElementsToClose, isVoid, lineNo, lineInRange, outputChar, raw, rawLastChar;
+                var annotationEnd;
+                var annotationStart;
+                var blockOnThisLine;
+                var charInRange;
+                var charNum;
+                var htmlEndOfLine;
+                var htmlStartOfLine;
+                var indentLevel;
+                var inlineActive;
+                var inlineActiveIndex;
+                var inlineActiveIndexLast;
+                var inlineElementsToClose;
+                var isVoid;
+                var lineNo;
+                var listContainer;
+                var outputChar;
+                var raw;
+                var rawLastChar;
 
                 lineNo = line.lineNo();
                 
@@ -5327,7 +5624,11 @@ define([
                         
                         $.each(line.textClass.split(' '), function() {
                             
-                            var container, containerPrevious, lineStyleData, styleObj, styleObjToClose;
+                            var container;
+                            var containerPrevious;
+                            var lineStyleData;
+                            var styleObj;
+                            var styleObjToClose;
 
                             // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
                             styleObj = self.classes[this];
@@ -5416,7 +5717,7 @@ define([
                     
                     $.each(enhancementsByLine[lineNo], function(i,mark) {
 
-                        var enhancmentHTML;
+                        var enhancementHTML;
 
                         // Only include the enhancement if the first character of this line is within the selected range
                         charInRange = (lineNo >= range.from.line) && (lineNo <= range.to.line);
@@ -5453,7 +5754,11 @@ define([
 
                     $.each(self.toHTMLSortSpans(line), function(key, markedSpan) {
 
-                        var className, endArray, endCh, mark, startArray, startCh, styleObj;
+                        var className;
+                        var endCh;
+                        var mark;
+                        var startCh;
+                        var styleObj;
 
                         startCh = markedSpan.from;
                         endCh = markedSpan.to;
@@ -5541,7 +5846,6 @@ define([
                     if (lineNo === range.from.line && charNum === range.from.ch) {
 
                             $.each(inlineActive, function(i, styleObj) {
-                                var element;
                                 if (!self.voidElements[ styleObj.element ]) {
                                     inlineElementsToClose.push(styleObj);
                                     html += openElement(styleObj);
@@ -5558,7 +5862,8 @@ define([
                         // Find out which elements are no longer active
                         $.each(annotationEnd[charNum] || [], function(i, styleObj) {
 
-                            var element, styleToClose;
+                            var element;
+                            var styleToClose;
                             
                             // If any of the styles is "raw" mode, clear the raw flag
                             if (styleObj.raw) {
@@ -5592,7 +5897,7 @@ define([
                                 
                                 // Close all the active elements in the reverse order they were created
                                 // Only close the style that needs to be closed plus anything after it in the active list
-                                while (styleToClose = inlineElementsToClose.pop()) {
+                                while ((styleToClose = inlineElementsToClose.pop())) {
                                     
                                     element = styleToClose.element;
                                     if (element && !self.voidElements[element]) {
@@ -5612,8 +5917,6 @@ define([
 
                             $.each(inlineActive, function(i, styleObj) {
                                 
-                                var element;
-
                                 // Only re-open elements after the last element closed
                                 if (i <= inlineActiveIndexLast) {
                                     return;
@@ -5788,7 +6091,9 @@ define([
          */
         toHTMLSortSpans: function(line) {
             
-            var self, spans, spansSorted, spansByChar;
+            var self;
+            var spans;
+            var spansByChar;
             
             self = this;
 
@@ -5798,7 +6103,8 @@ define([
             // Group the marks by starting character so we can tell if multiple marks start on the same character
             spansByChar = [];
             $.each(spans, function() {
-                var char, span;
+                var char;
+                var span;
                 span = this;
                 char = span.from;
                 spansByChar[char] = spansByChar[char] || [];
@@ -5808,7 +6114,11 @@ define([
             // Bubble sort the marks for each character based on the context
             $.each(spansByChar, function() {
                 
-                var compare, spans, swapped, temp;
+                var compare;
+                var spans;
+                var swapped;
+                var temp;
+                
                 spans = this;
                 if (spans.length > 1) {
                     do {
@@ -5848,7 +6158,15 @@ define([
          */
         toHTMLSpanCompare: function(a, b) {
                 
-            var classA, classB, markerA, markerB, outsideB, outsideA, self, styleA, styleB;
+            var classA;
+            var classB;
+            var markerA;
+            var markerB;
+            var outsideA;
+            var outsideB;
+            var self;
+            var styleA;
+            var styleB;
 
             self = this;
 
@@ -5933,7 +6251,13 @@ define([
         },
         _fromHTML: function(html, range, allowRaw, retainStyles) {
 
-            var annotations, editor, enhancements, el, history, map, self, val;
+            var annotations;
+            var editor;
+            var enhancements;
+            var el;
+            var history;
+            var self;
+            var val;
 
             self = this;
             
@@ -5953,7 +6277,18 @@ define([
             
             function processNode(n, rawParent) {
                 
-                var elementAttributes, elementName, elementClose, from, isContainer, matchStyleObj, next, raw, rawChildren, split, to, text;
+                var elementAttributes;
+                var elementClose;
+                var elementName;
+                var from;
+                var isContainer;
+                var matchStyleObj;
+                var next;
+                var raw;
+                var rawChildren;
+                var split;
+                var text;
+                var to;
 
                 next = n.childNodes[0];
 
@@ -5975,7 +6310,9 @@ define([
                             // Convert newlines to a carriage return character and annotate it
                             text = text.replace(/[\n\r]/g, function(match, offset, string){
 
-                                var from, split, to;
+                                var from;
+                                var split;
+                                var to;
                                 
                                 // Create an annotation to mark the newline so we can distinguish it
                                 // from any other user of the carriage return character
@@ -6335,7 +6672,12 @@ define([
          */
         getStyleForElement: function(el) {
 
-            var elementName, elementAttributes, map, matchStyleObj, self;
+            var elementName;
+            var map;
+            var matchArray;
+            var matchStyleObj;
+            var self;
+
             self = this;
 
             // Convert the styles object to an object that is indexed by element,
@@ -6348,7 +6690,6 @@ define([
             
             // We got an element
             elementName = el.tagName.toLowerCase();
-            elementAttributes = self.getAttributes(el);
 
             // Determine if the element maps to one of our defined styles
             matchStyleObj = undefined;
@@ -6440,16 +6781,12 @@ define([
          */
         limitHTML: function(html) {
 
-            var el, map, self, val;
+            var el;
+            var self;
+            var val;
 
             self = this;
             
-            // Convert the styles object to an object that is indexed by element,
-            // so we can quickly map an element to a style.
-            // Note there might be more than one style for an element, in which
-            // case we will use attributes to determine if we have a match.
-            map = self.getElementMap();
-
             // Convert HTML into a DOM element so we can parse it using the browser node functions
             el = self.htmlParse(html);
                 
@@ -6458,13 +6795,16 @@ define([
             
             function processNode(n) {
                 
-                var elementAttributes, elementClose, elementName, matchStyleObj, next, split, to, text;
+                var elementClose;
+                var elementName;
+                var matchStyleObj;
+                var next;
+                var text;
 
                 next = n.childNodes[0];
 
                 while (next) {
 
-                    elementAttributes = {};
                     elementClose = '';
 
                     // Check if we got a text node or an element
@@ -6489,7 +6829,6 @@ define([
 
                         // We got an element
                         elementName = next.tagName.toLowerCase();
-                        elementAttributes = self.getAttributes(next);
 
                         // Determine if the element maps to one of our defined styles
                         matchStyleObj = self.getStyleForElement(next);
@@ -6584,7 +6923,9 @@ define([
          */
         insert: function(value, styleKey) {
             
-            var range, self, mark;
+            var range;
+            var self;
+            var mark;
 
             self = this;
 
@@ -6627,8 +6968,7 @@ define([
          * @returns {DOM}
          */
         htmlParse: function(html) {
-            var dom, self;
-            self = this;
+            var dom;
 
             if ($.type(html) === 'string') {
                 dom = new DOMParser().parseFromString(html, "text/html").body;     
@@ -6675,9 +7015,9 @@ define([
          */
         getAttributes: function(el) {
             
-            var attr, $el, self;
-            
-            self = this;
+            var attr;
+            var $el;
+
 
             attr = {};
 
