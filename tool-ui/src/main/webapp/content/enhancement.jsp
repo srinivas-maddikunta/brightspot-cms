@@ -204,7 +204,7 @@ if (object == null) {
     }
     %>
 
-    <form class="enhancementForm" action="<%= wp.url("", "typeId", state.getTypeId(), "id", state.getId()) %>" enctype="multipart/form-data" id="<%= pageId %>" method="post">
+    <form class="enhancementForm" data-enhancement-rte action="<%= wp.url("", "typeId", state.getTypeId(), "id", state.getId()) %>" enctype="multipart/form-data" id="<%= pageId %>" method="post">
         <input type="hidden" name="<%= state.getId() %>/oldValues" value="<%= wp.h(ObjectUtils.toJson(stateOldValues)) %>">
         <% wp.include("/WEB-INF/errors.jsp"); %>
 
