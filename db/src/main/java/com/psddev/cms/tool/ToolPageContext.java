@@ -2164,6 +2164,7 @@ public class ToolPageContext extends WebPageContext {
                 }
 
                 richTextElement.put("line", tag.block());
+                richTextElement.put("previewable", tag.preview());
                 richTextElement.put("readOnly", tag.readOnly());
                 richTextElement.put("position", tag.position());
 
@@ -3859,7 +3860,17 @@ public class ToolPageContext extends WebPageContext {
                     throw new ValidationException(Arrays.asList(state));
                 }
 
-                if (draft == null || param(boolean.class, "newSchedule")) {
+                boolean newSchedule = param(boolean.class, "newSchedule");
+                Map<String, Object> oldValues = findOldValuesInForm(state);
+
+                if (draft != null && newSchedule) {
+                    oldValues = Draft.mergeDifferences(
+                            state.getDatabase().getEnvironment(),
+                            oldValues,
+                            draft.getDifferences());
+                }
+
+                if (draft == null || newSchedule) {
                     draft = new Draft();
                     draft.setOwner(user);
 
@@ -3868,7 +3879,7 @@ public class ToolPageContext extends WebPageContext {
                     }
                 }
 
-                draft.update(findOldValuesInForm(state), object);
+                draft.update(oldValues, object);
 
                 if (state.isNew()) {
                     contentData.setDraft(true);

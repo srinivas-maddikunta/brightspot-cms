@@ -59,6 +59,7 @@ public class ContentState extends PageServlet {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void doService(ToolPageContext page) throws IOException, ServletException {
         Object object = page.findOrReserve();
 
@@ -68,7 +69,10 @@ public class ContentState extends PageServlet {
 
         // Pretend to update the object.
         State state = State.getInstance(object);
-        Map<String, Object> oldValues = state.getSimpleValues();
+        String oldValuesString = page.param(String.class, state.getId() + "/oldValues");
+        Map<String, Object> oldValues = !ObjectUtils.isBlank(oldValuesString)
+                ? (Map<String, Object>) ObjectUtils.fromJson(oldValuesString)
+                : Draft.findOldValues(object);
 
         if (state.isNew()
                 || object instanceof Draft

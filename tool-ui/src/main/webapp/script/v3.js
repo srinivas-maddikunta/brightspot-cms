@@ -32,6 +32,7 @@ require([
   'bsp-autosubmit',
   'bsp-uploader',
   'bsp-utils',
+  'iframeResizer',
   'jquery.mousewheel',
   'velocity',
 
@@ -116,6 +117,18 @@ function() {
   $doc.calendar('live', ':text.date');
   $doc.dropDown('live', 'select[multiple], select[data-searchable="true"]');
   $doc.editablePlaceholder('live', ':input[data-editable-placeholder]');
+
+  bsp_utils.onDomInsert(document, '.ExternalPreviewFrame', {
+    insert: function (frame) {
+      var $frame = $(frame);
+
+      $frame.iFrameResize({
+        resizedCallback: function () {
+          $frame.resize();
+        }
+      });
+    }
+  });
 
   bsp_fixedScrollable.live(document, [
     '.fixedScrollable',

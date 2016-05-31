@@ -165,8 +165,9 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
       }, update);
 
       var updateTimeout;
+      var $document = $(document);
 
-      $(document).on('blur focus change', '.contentForm :input', function() {
+      function throttledUpdate() {
         if (updateTimeout) {
           clearTimeout(updateTimeout);
         }
@@ -175,10 +176,13 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
           updateTimeout = null;
           update();
         }, 50);
-      });
+      }
+
+      $document.on('blur focus change', '.contentForm :input', throttledUpdate);
+      $document.on('content-state-differences', '.contentForm', throttledUpdate);
 
       // Tab navigation from textarea or record input to RTE.
-      $(document).on('keydown', '.contentForm :text, .contentForm textarea, .objectId-select', function (event) {
+      $document.on('keydown', '.contentForm :text, .contentForm textarea, .objectId-select', function (event) {
         if (event.which === 9) {
           var $container = $(this).closest('.inputContainer');
           var rte2 = $container.next('.inputContainer').find('> .inputSmall > .rte2-wrapper').data('rte2');
