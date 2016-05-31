@@ -45,6 +45,9 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
     @Override
     public void writeHtml(ToolPageContext page, Dashboard dashboard) throws IOException, ServletException {
         Query<Workflow> workflowQuery = Query.from(Workflow.class);
+        if (page.getSite() != null) {
+            workflowQuery.where("sites is missing or sites = ?", page.getSite());
+        }
         Map<String, String> workflowStateLabels = new TreeMap<>();
 
         workflowStateLabels.put("draft", "Initial Draft");
