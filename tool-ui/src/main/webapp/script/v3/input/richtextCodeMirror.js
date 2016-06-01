@@ -5574,9 +5574,9 @@ define([
 
                 var annotationEnd;
                 var annotationStart;
-                var blockOnThisLine;
                 var charInRange;
                 var charNum;
+                var containerOnLine;
                 var htmlEndOfLine;
                 var htmlStartOfLine;
                 var indentLevel;
@@ -5585,8 +5585,8 @@ define([
                 var inlineActiveIndexLast;
                 var inlineElementsToClose;
                 var isVoid;
+                var lineClasses;
                 var lineNo;
-                var listContainer;
                 var outputChar;
                 var raw;
                 var rawLastChar;
@@ -5605,113 +5605,142 @@ define([
                 inlineElementsToClose = [];
                 
                 indentLevel = self.blockGetIndent(lineNo);
-                
-                // Keep track of the block styles we find only on this line,
-                // so we know when to end a list.
-                // For example, if the previous line was in a list,
-                // and the current line contains a list item, then we keep the list open.
-                // But if the current line does not contain a list item then we close the list.
-                blockOnThisLine = {};
+                containerOnLine = false;
 
                 // If lineNo is in range
                 if (range.from.line <= lineNo && range.to.line >= lineNo) {
 
                     // Get any line classes and determine which kind of line we are on (bullet, etc)
-                    // Note this does not support nesting line elements (like a list within a list)
                     // From CodeMirror, the textClass property will contain multiple line styles separated by space
                     // like 'rte2-style-ol rte2-style-align-left'
-                    if (line.textClass) {
+                    lineClasses = (line.textClass || '').split(' ').filter(function(value){
+                        return value !== '';
+                    });
+                    $.each(lineClasses, function() {
                         
-                        $.each(line.textClass.split(' '), function() {
+                        var container;
+                        var containerData;
+                        var containerPrevious;
+                        var i;
+                        var lineStyleData;
+                        var styleObj;
+                        
+                        // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
+                        styleObj = self.classes[this] || {};
+                        
+                        // Get the "container" element for this style (for example: ul or ol)
+                        container = styleObj.elementContainer;
+                        if (container) {
                             
-                            var container;
-                            var containerPrevious;
-                            var lineStyleData;
-                            var styleObj;
-                            var styleObjToClose;
-
-                            // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
-                            styleObj = self.classes[this];
-                            if (!styleObj) {
-                                return;
-                            }
-
-                            // Get the "container" element for this style (for example: ul or ol)
-                            container = styleObj.elementContainer;
-                            if (container) {
-
-                                // Mark that we found this container, so later we can close off any containers that are not active any more.
-                                // For example this will set blockOnThisLine.ul to true.
-                                blockOnThisLine[container] = true;
-
-                                // There are several possibilities at this point:
-                                // We are not inside another list and we need to create a new list.
-                                // We are inside a list already and add the same indent level.
-                                // We are inside a list already, but the indent level is greater so we need to create a new nested list.
-                                // We are inside a list already, but the indent level is less, so we need to close previous lists until we get to the correct indent.
+                            containerOnLine = true;
+                            
+                            // There are several possibilities at this point:
+                            // * We are not inside another list and we need to create a new list.
+                            // * We are inside a list already and at the same indent level.
+                            // * We are inside a list already, but the indent level is greater,
+                            //   so we need to create a new nested list.
+                            // * We are inside a list already, but the indent level is less,
+                            //   so we need to close previous lists until we get to the correct indent.
+                            
+                            // Check if we are inside a list already, but the indent level is less,
+                            // so we need to close previous lists until we get to the correct indent.
+                            for (i = containerActive.length; i--; ) {
                                 
-                                // Check to see if we are already inside this container element
-                                containerPrevious = containerActive[ containerActive.length - 1 ];
-                                if (containerPrevious && containerPrevious.element === container && indentLevel === containerPrevious.indentLevel) {
-
-                                    // We are currently inside this style so we don't need to open the container element
-                                    // TODO: close any existing block elements from the previous line
-                                    styleObjToClose = blockElementsToClose.pop();
-                                    if (styleObjToClose.element) {
-                                        html += '</' + styleObjToClose.element + '>';
-                                    }
-
+                                containerData = containerActive[i];
+                                
+                                if (indentLevel < containerData.indentLevel) {
+                                    
+                                    // Now close the previous list that was at a higher indent
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    containerActive.splice(i,1); // remove this container from the array
+                                    
+                                } else if (indentLevel === containerData.indentLevel &&
+                                    container !== containerData.styleObj.elementContainer) {
+                                        
+                                    // Special case:
+                                    // We're at the same indent level, but a different container
+                                    // element (like a UL followed by an OL list).
+                                    // In that case we must close the previous list, and open
+                                    // a new list.
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    
+                                    // Remove this container from the array
+                                    containerActive.splice(i,1);
+                                    
+                                     // Do not continue up the list of active containers
+                                    break;
+                                        
                                 } else {
                                     
-                                    // TODO:
-                                    // Check if we are inside a list already, but the indent level is less,
-                                    // so we need to close previous lists until we get to the correct indent.
-                                    
-                                    // Save the indent level of this line so we can compare it to subsequent lines
-                                    listContainer = container;
-                                    // We are not already inside this style, so create the container element
-                                    // and remember that we created it
-                                    containerActive.push({
-                                        element:container,
-                                        indentLevel:indentLevel
-                                    });
-                                    htmlStartOfLine += '<' + container + '>';
+                                    // We're either at the same indent level with the same container,
+                                    // or at a greater indent level.
+                                    // Do not continue up the list of active containers.
+                                    break;
                                 }
-                                
-                            } else {
-                                // We are no longer inside a container, so we should close all open containers
-                                // TODO
                             }
+                                
+                            // Check to see if we are already inside this container element and at the same indent level
+                            containerPrevious = containerActive[ containerActive.length - 1 ];
+                            if (containerPrevious &&
+                                container === containerPrevious.styleObj.elementContainer  &&
+                                indentLevel === containerPrevious.indentLevel) {
+                                        
+                                // We are continuting the container from the previous line
+                                // so we don't need to open the container element.
+                                // But we must close any existing block elements from the previous line,
+                                // such as the <LI> element from the last list item,
+                                // because we will be opening up a new <LI> element for this line.
+                                html += '</' + containerPrevious.styleObj.element + '>';
+                                        
+                            } else {
+                                    
+                                // We are not inside the same container element,
+                                // or we are at a different indent level
+                                    
+                                // We are not already inside this style, so create the container element
+                                // and remember that we created it
+                                containerActive.push({
+                                    styleObj: styleObj,
+                                    indentLevel:indentLevel
+                                });
+                                htmlStartOfLine += '<' + container + '>';
+                            }
+                                
+                        } else { // this style does not have a container
+                                                            
+                            // Push this style onto a stack so when we reach the end of the line we can close the element.
+                            // Note the element will be opened later.
+                            if (styleObj.element) {
+                                blockElementsToClose.push(styleObj);
+                            }
+                        }
                             
+                        if (styleObj.element) {
+                                
                             // Get any attributes that might be defined for this line style
                             lineStyleData = self.blockGetLineData(styleObj.key, lineNo) || {};
-                            
+                                
                             // Now determine which element to create for the line.
                             // For example, if it is a list then we would create an 'LI' element.
                             htmlStartOfLine += openElement(styleObj, lineStyleData.attributes);
+                        }
+                    }); // .each(lineClasses)
 
-                            // Also push this style onto a stack so when we reach the end of the line we can close the element
-                            blockElementsToClose.push(styleObj);
-
-                        }); // .each
-                    }// if line.textClass
-             
+                    // Now that we have gone through all the line classes,
+                    // we should know if we are in a container on this line
+                    if (!containerOnLine) {
+                        
+                        // We are not inside a container, so we should close all open containers
+                        $.each(containerActive.reverse(), function(i, containerData) {
+                            html += '</' + containerData.styleObj.element + '>';
+                            html += '</' + containerData.styleObj.elementContainer + '>';
+                        });
+                        containerActive = []; // clear the active array
+                    }
                 } // if lineNo is in range
  
-                // Now that we know which line styles are on this line, we can tell if we need to continue a list
-                // from a previous line, or actually close the list.
-                // Loop through all the blocks that are currently active (from this line and previous lines)
-                // and find the ones that are not active on this line.
-                /***
-                $.each(containerActive, function(i, container) {
-                    if (container) {
-                        if (!blockOnThisLine[container.element]) {
-                            html += '</' + container.element + '>';
-                            delete containerActive[i];
-                        }
-                    }
-                });
-                ***/
                 // Determine if there are any enhancements on this line
                 if (enhancementsByLine[lineNo] && options.enhancements !== false) {
                     
@@ -6017,7 +6046,7 @@ define([
 
                     // If we reached end of line, close all the open block elements
                     if (blockElementsToClose.length) {
-                    /***
+                        
                         $.each(blockElementsToClose.reverse(), function() {
                             var element;
                             element = this.element;
@@ -6026,10 +6055,10 @@ define([
                             }
                         });
                         blockElementsToClose = [];
-                    ***/
+                        
                     } else if (charInRange && rawLastChar && !self.rawBr) {
                         html += '\n';
-                    } else if (charInRange) {
+                    } else if (charInRange && containerActive.length === 0) {
                         // No block elements so add a line break
                         html += '<br/>';
                     }
@@ -6054,12 +6083,13 @@ define([
                 });
                 blockElementsToClose = [];
             }
-            $.each(containerActive, function(i, container) {
-                if (container) {
-                    html += '</' + container.element + '>';
-                    delete containerActive[i];
+            $.each(containerActive, function(i, containerData) {
+                if (containerData) {
+                    html += '</' + containerData.styleObj.element + '>';
+                    html += '</' + containerData.styleObj.elementContainer + '>';
                 }
             });
+            containerActive = [];
 
             // Find the raw "<" characters (which we previosly replaced with &raw_lt;)
             // and add a data-rte2-raw attribute to each HTML element.
