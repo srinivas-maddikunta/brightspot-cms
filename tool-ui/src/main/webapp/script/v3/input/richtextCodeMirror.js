@@ -388,7 +388,7 @@ define([
         initListListeners: function() {
 
             var editor;
-            var indentTypePrevious;
+            var indent;
             var isEmptyLine;
             var isFirstListItem;
             var isLastListItem;
@@ -411,15 +411,11 @@ define([
 
                 // Get the listType and set the closure variable for later use
                 listType = self.blockGetListType(changeObj.from.line);
-
+                indent = self.blockGetIndent(changeObj.from.line)
+                
                 rangeFirstLine = {from:changeObj.from, to:changeObj.from};
                 rangeBeforeChange = {from:changeObj.from, to:changeObj.to};
           
-                indentTypePrevious = '';
-                if (rangeBeforeChange.from.line > 0) {
-                    indentTypePrevious = self.blockGetIndent(rangeBeforeChange.from.line - 1);
-                }
-
                 // Get the list type of the previous line
                 listTypePrevious = '';
                 if (rangeBeforeChange.from.line > 0) {
@@ -435,8 +431,14 @@ define([
                 isFirstListItem = Boolean(listTypePrevious === '');
                 isLastListItem = Boolean(listTypeNext === '');
 
+                // Remember if this change is taking palce at the start of the line,
+                // so we can tell if the user presses Enter at the first list item
+                // and we should move the whole list down instead of adding a new list item.
                 isStartOfLine = Boolean(rangeBeforeChange.from.ch === 0);
 
+                // Check if the list item started out as an empty line,
+                // so if user presses Enter on the last list item
+                // the list style should be removed.
                 isEmptyLine = Boolean(editor.getLine(rangeBeforeChange.from.line) === '');
 
                 // Loop through all the changes that have not yet been applied, and determine if more text will be added to the line
@@ -468,7 +470,7 @@ define([
                     if (isLastListItem && isEmptyLine) {
 
                         // Remove the indent on new line
-                        self.blockRemoveIndent(range.from.line);
+                        self.blockRemoveIndent(range.to.line);
 
                         // Remove the list class on the new line
                         self.blockRemoveStyle(listType, range);
@@ -485,15 +487,13 @@ define([
                         // line lower - so we need to add list style to the original starting point.
                         // TODO: not sure what happens when you insert multiple line
                         self.blockSetStyle(listType, rangeFirstLine);
+                        self.blockSetIndent(rangeFirstLine.from.line, indent);
                        
                         // Set list style for the new range
                         self.blockSetStyle(listType, range);
                         
-                        // return triggers an indent based off previous classes
-                        if (indentTypePrevious !== undefined){
-                            self.blockSetIndent(range.from.line, indentTypePrevious);
-                        }
-                    
+                        // Indent the new list item the proper amount
+                        self.blockSetIndent(range.from.line, indent);
                     }
                 }
 
@@ -2314,8 +2314,8 @@ define([
             self = this;
             indentLevel = self.blockGetIndent(lineNumber);
             indentLevel = indentLevel + delta;
-            if (indentLevel < 1) {
-                indentLevel = 1;
+            if (indentLevel < 0) {
+                indentLevel = 0;
             }
             self.blockSetIndent(lineNumber, indentLevel, options)
             return indentLevel;
@@ -2359,12 +2359,15 @@ define([
         
        /**
          * Returns the indent level for a line.
+         * If a line does not have a specified indent but it is a list style,
+         * then the indent defaults to 1.
+         * Otherwise the indent defaults to 0.
          *
          * @param Number lineNumber
          * The line number where indent should be retrieved.
          *
          * @returns Number
-         * Indent level, a number from 1..n
+         * Indent level, a number from 0..n
          *
          */
         blockGetIndent: function(lineNumber) {
@@ -2374,15 +2377,30 @@ define([
             self = this;
             editor = self.codeMirror;
 
-            indentLevel = 1;
+            indentLevel = 0;
             
             lineInfo = editor.lineInfo(lineNumber);
             if (lineInfo && lineInfo.textClass) {
                 $.each(lineInfo.textClass.split(' '), function(i, className) {
+                    
+                    var styleObj;
+                    
+                    // Check if the line has a specified indent level
                     if (className.indexOf(self.indentClassPrefix) === 0) {
+                        // Classname looks like "prefix-#"
+                        // So lets get the number part of the classname.
                         indentLevel = className.slice( self.indentClassPrefix.length );
-                        indentLevel = parseInt( indentLevel, 10 );
+                        indentLevel = parseInt( indentLevel, 10 ) || 0;
+                        // Since we found a specified indent level, stop looping
                         return;
+                    }
+                    
+                    // Check if this is a style that has a container.
+                    // If so it is a list and should default to indent level one (instead of zero)
+                    styleObj = self.classes[className];
+                    if (styleObj && styleObj.elementContainer) {
+                        indentLevel = 1;
+                        // Continue looping to check for a specified indent level
                     }
                 });
             }
@@ -2552,7 +2570,7 @@ define([
                     // Remove a single class from the line
                     self.blockRemovePreviewForClass(className, lineNumber);
                     editor.removeLineClass(lineNumber, 'text', className);
-                    
+                                        
                 } else {
                     
                     // Remove all classes from the line
