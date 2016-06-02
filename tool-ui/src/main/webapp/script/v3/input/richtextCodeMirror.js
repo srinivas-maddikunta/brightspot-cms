@@ -5594,9 +5594,12 @@ define([
                 var annotationStart;
                 var charInRange;
                 var charNum;
+                var containerClosed;
+                var containerData;
                 var containerOnLine;
                 var htmlEndOfLine;
                 var htmlStartOfLine;
+                var i;
                 var indentLevel;
                 var inlineActive;
                 var inlineActiveIndex;
@@ -5751,11 +5754,26 @@ define([
                     if (!containerOnLine) {
                         
                         // We are not inside a container, so we should close all open containers
-                        $.each(containerActive.reverse(), function(i, containerData) {
-                            html += '</' + containerData.styleObj.element + '>';
-                            html += '</' + containerData.styleObj.elementContainer + '>';
-                        });
-                        containerActive = []; // clear the active array
+                        // that are greater than the current indent level
+                        if (containerActive.length) {
+                            for (i = containerActive.length; i--; ) {
+                                containerData = containerActive[i];
+                                if (indentLevel < containerData.indentLevel) {
+                                    containerClosed = true;
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    containerActive.splice(i,1); // remove this container from the array
+                                } else {
+                                    break;
+                                }
+                            }
+                            // If we didn't close one of the containing block elements,
+                            // then we need to put a line break before this text, to separate it from the
+                            // list text: <li>previous_text<br/>this_text
+                            if (!containerClosed) {
+                                html += '<br/>';
+                            }
+                        }
                     }
                 } // if lineNo is in range
  
