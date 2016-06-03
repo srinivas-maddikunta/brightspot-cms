@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -179,10 +180,31 @@ public class ContentState extends PageServlet {
                 oldValues,
                 state.getSimpleValues());
 
+        // Remove differences that weren't initiated by the user.
+        Map<String, List<String>> fieldNamesById = (Map<String, List<String>>) ObjectUtils.fromJson(page.param(String.class, "_fns"));
+
+        for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
+            Map.Entry<String, Map<String, Object>> entry = i.next();
+            String id = entry.getKey();
+            List<String> fieldNames = fieldNamesById.get(id);
+
+            if (fieldNames == null) {
+                i.remove();
+
+            } else {
+                Map<String, Object> values = entry.getValue();
+
+                values.keySet().removeIf(n -> !fieldNames.contains(n));
+
+                if (values.isEmpty()) {
+                    i.remove();
+                }
+            }
+        }
+
         jsonResponse.put("_differences", differences);
 
-        if (page.param(boolean.class, "changed")
-                && !user.isDisableWorkInProgress()
+        if (!user.isDisableWorkInProgress()
                 && !Query.from(CmsTool.class).first().isDisableWorkInProgress()) {
 
             ObjectType contentType = state.getType();
@@ -194,31 +216,38 @@ public class ContentState extends PageServlet {
                     .and("contentId = ?", contentId)
                     .first();
 
-            if (wip == null) {
-                wip = new WorkInProgress();
+            if (differences.isEmpty()) {
+                if (wip != null) {
+                    wip.delete();
+                }
 
-                wip.setOwner(user);
-                wip.setContentType(contentType);
-                wip.setContentId(contentId);
-            }
+            } else {
+                if (wip == null) {
+                    wip = new WorkInProgress();
 
-            wip.setContentLabel(state.getLabel());
-            wip.setUpdateDate(new Date());
-            wip.setDifferences(differences);
-            wip.save();
+                    wip.setOwner(user);
+                    wip.setContentType(contentType);
+                    wip.setContentId(contentId);
+                }
 
-            List<WorkInProgress> more = Query.from(WorkInProgress.class)
-                    .where("owner = ?", user)
-                    .and("updateDate != missing")
-                    .sortDescending("updateDate")
-                    .select(50, 1)
-                    .getItems();
+                wip.setContentLabel(state.getLabel());
+                wip.setUpdateDate(new Date());
+                wip.setDifferences(differences);
+                wip.save();
 
-            if (!more.isEmpty()) {
-                Query.from(WorkInProgress.class)
+                List<WorkInProgress> more = Query.from(WorkInProgress.class)
                         .where("owner = ?", user)
-                        .and("updateDate < ?", more.get(0).getUpdateDate())
-                        .deleteAll();
+                        .and("updateDate != missing")
+                        .sortDescending("updateDate")
+                        .select(50, 1)
+                        .getItems();
+
+                if (!more.isEmpty()) {
+                    Query.from(WorkInProgress.class)
+                            .where("owner = ?", user)
+                            .and("updateDate < ?", more.get(0).getUpdateDate())
+                            .deleteAll();
+                }
             }
         }
 
