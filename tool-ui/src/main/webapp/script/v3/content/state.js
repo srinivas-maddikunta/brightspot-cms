@@ -13,12 +13,6 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
   bsp_utils.onDomInsert(document, '.contentForm, .enhancementForm, .standardForm', {
     'insert': function(form) {
       var $form = $(form);
-      var changed = false;
-
-      $form.one('change input', function () {
-        changed = true;
-      });
-
       var running;
       var rerun;
       var idleTimeout;
@@ -68,21 +62,19 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         var $publishingHeading = $form.find('.widget-publishing > h1');
         var $wipSaveStatus = $publishingHeading.find('> .WorkInProgressSaveStatus');
 
-        if (changed) {
-          if ($wipSaveStatus.length === 0) {
-            $wipSaveStatus = $('<span/>', {
-              'class': 'WorkInProgressSaveStatus'
-            });
+        if ($wipSaveStatus.length === 0) {
+          $wipSaveStatus = $('<span/>', {
+            'class': 'WorkInProgressSaveStatus'
+          });
 
-            $publishingHeading.append($wipSaveStatus);
-          }
-
-          $wipSaveStatus.text('(Saving WIP)').attr('data-status', 'saving');
+          $publishingHeading.append($wipSaveStatus);
         }
+
+        $wipSaveStatus.text('(Saving WIP)').attr('data-status', 'saving');
 
         $.ajax({
           'type': 'post',
-          'url': CONTEXT_PATH + 'contentState?changed=' + ($form.is('[data-enhancement-rte]') ? false : changed) + '&idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
+          'url': CONTEXT_PATH + 'contentState?idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
           'cache': false,
           'dataType': 'json',
 
@@ -90,8 +82,18 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           // as well. We need to remove that from the form post or it messes up the dynamic values that return.
           'data': $form.find('[name]').not($form.find('.contentDiffCurrent [name]')).serialize() + $dynamicTexts.map(function() {
             var $element = $(this);
+            var fieldNames = { };
 
-            return '&_dti=' + encodeURIComponent($element.closest('[data-object-id]').attr('data-object-id') || '') +
+            $form.find('.objectInputs').each(function () {
+              var $inputs = $(this);
+
+              fieldNames[$inputs.attr('data-object-id')] = $.makeArray($inputs.find('> .inputContainer').map(function () {
+                return $(this).attr('data-field-name');
+              }));
+            });
+
+            return '&_fns=' + encodeURIComponent(JSON.stringify(fieldNames)) +
+                '&_dti=' + encodeURIComponent($element.closest('[data-object-id]').attr('data-object-id') || '') +
                 '&_dtt=' + encodeURIComponent(($element.attr('data-dynamic-text') ||
                 $element.attr('data-dynamic-html') ||
                 $element.attr('data-dynamic-placeholder') ||
@@ -101,7 +103,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           }).get().join(''),
 
           'success': function(data) {
-            if (changed && $wipSaveStatus) {
+            if ($wipSaveStatus) {
               $wipSaveStatus.text('(Saved WIP)').attr('data-status', 'saved');
             }
 
