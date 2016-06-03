@@ -17,13 +17,25 @@ define(['string'], function (S) {
     'className': function(name) {
       return this.option('classPrefix') + name;
     },
-
+// for testing purposes    
+//    '_init':function(){
+//        var $dropdown = $('<input/>', {
+//          'class': 'dropdown',
+//          'type': 'text',
+//          'data-searchable':'true',
+//          'data-dropdown-options-url': '/options',
+//          'data-dropdown-options-parameter': 'q',
+//          'data-dropdown-options-offset': 0,
+//          'data-dropdown-options-limit': 20
+//        }); $('.dashboard-columns').before($dropdown);
+//    },
     '_create': function(original) {
       var plugin = this,
           $original = $(original),
           isFixedPosition = $original.isFixedPosition(),
           isMultiple = $original.is('[multiple]'),
           isSearchable = $original.is('[data-searchable="true"]'),
+          isInput = $original.is('input'),
           placeholder = $original.attr('placeholder'),
           dynamicPlaceholderText = $original.attr('data-dynamic-placeholder'),
           dynamicPlaceholderHtml = dynamicPlaceholderText && '<span data-dynamic-text=' + dynamicPlaceholderText + '>',
@@ -35,6 +47,7 @@ define(['string'], function (S) {
           $marker,
           $listContainer,
           $list,
+          $dataList,
           addItem;
 
       if (!isMultiple &&
@@ -90,6 +103,11 @@ define(['string'], function (S) {
           return false;
         }
       });
+      
+      $dataList = $('<datalist/>', {
+        'class': plugin.className('dataList'),
+        'css': {'display': 'none'}
+      });
 
       function resize() {
         var inputOffset = $input.offset();
@@ -138,8 +156,107 @@ define(['string'], function (S) {
         $markerContainer.css('width', $input.outerWidth());
       }
 
+    /**
+     * function checks to see if scroll has reached the bottom of an ellement
+     * @param {type} scrollableElement
+     * @returns {Boolean}
+     */
+    function isScrollatBottom(scrollableElement) {
+        var height = scrollableElement.outerHeight(),
+            scrollHeight = scrollableElement[0].scrollHeight,
+            scrollTop = scrollableElement.scrollTop();
+        if (scrollTop >= scrollHeight - height) {
+            return true;
+        }
+        return false;
+    };
+
+    /**
+     *  Retrieves json options to populate a datalist from attribures on input element
+     * @param {type} $element
+     * @returns {undefined}
+     */
+    function getDataList($element, callback) {
+        var requestParams = {},
+            requestUrl = $element.attr('data-dropdown-options-url');
+
+        if ($element.query) {
+           requestParams[$element.attr('data-dropdown-options-parameter')] = $element.query;            
+        }
+
+        if ($element.pageOffset === undefined) {
+            $element.pageOffset = $element.attr('data-dropdown-options-offset') || 0;
+        }
+        requestParams.offset = $element.pageOffset;
+
+        if ($element.pageLimit === undefined) {
+            $element.pageLimit = $element.attr('data-dropdown-options-limit') || 50;
+        }
+        requestParams.limit = $element.pageLimit; 
+
+        if ($element.pageNumber === undefined){
+            $element.pageNumber = 1;
+        }
+
+        if (requestParams){
+            requestUrl += "?" + $.param(requestParams);
+        }
+
+        $.getJSON(requestUrl, function(data){
+            $.each(data, function(index, item){
+                $original.next().append($('<option/>', {'value': item.value,'text': item.text}));
+                addItem($original.next().find('option:last'));
+            });
+            // calculate pagination offset
+            $element.pageOffset = (($element.pageNumber + 1) - 1) * $element.pageLimit;
+            //incrementing pagination
+            $element.pageNumber = $element.pageNumber + 1;
+            $element.dataComplete = true;
+
+            if (data.length < $element.pageLimit) {
+                //setting this to false because there are no more results prevent
+                //making requests on scroll
+                $element.dataComplete = false;
+                return false;
+//                addItem( $('<option/>', {'text': 'No More Results'}) );
+            }
+            if (typeof(callback) == "function"){
+                callback();
+            }
+        });
+    }
+
+    function filterList() {
+        var re = new RegExp(S($search.val().replace(/\s/, '').split('').join('(?:.*\\W)?')).latinise().s, 'i'),
+              $first;
+
+          $list.find('.' + plugin.className('listItem')).each(function() {
+            var $item = $(this);
+
+            if (re.test(S($item.text()).latinise().s)) {
+              $item.show();
+
+              if (!$first) {
+                $first = $item;
+              }
+
+            } else {
+              $item.hide();
+            }
+          });
+
+          $list.trigger('dropDown-hover', [ $first ]);
+    }
+
       $label.bind('dropDown-update', function() {
-        var newLabel = $.map($original.find('option:selected'), function(option) {
+        var newLabel, 
+            mapArray;
+         if (isInput){
+             mapArray = $original.next().find('option:selected')
+         }else{
+            mapArray = $original.find('option:selected');
+         }
+        newLabel= $.map(mapArray, function(option) {
           return $(option).attr("data-drop-down-html") || $(option).text();
         }).join(', ');
 
@@ -173,9 +290,21 @@ define(['string'], function (S) {
         'class': plugin.className('list')
       });
 
+      $list.scroll( function(){
+        if (isScrollatBottom($list) && $original.dataComplete){
+            if ($original.attr('data-dropdown-options-url')) {
+                getDataList($original, true);
+                $original.dataComplete = false;
+            }
+        }
+      });
+
       $list.bind('dropDown-open', function() {
         resize();
-
+        if ($original.attr('data-dropdown-options-url') && $original.data('loaded') !== true){
+            getDataList($original);
+            $original.attr('data-loaded','true');
+        }
         $input.addClass(plugin.className('list-open'));
 
         $list.find('.' + plugin.className('listItem')).removeClass('state-hover');
@@ -216,10 +345,8 @@ define(['string'], function (S) {
         var $list = $(this),
             maxScrollTop = $.data(this, 'dropDown-maxScrollTop');
 
-        if (typeof maxScrollTop === 'undefined') {
           maxScrollTop = $list.prop('scrollHeight') - $list.innerHeight();
           $.data(this, 'dropDown-maxScrollTop', maxScrollTop);
-        }
 
         if ((deltaY > 0 && $list.scrollTop() === 0) ||
             (deltaY < 0 && $list.scrollTop() >= maxScrollTop)) {
@@ -286,6 +413,13 @@ define(['string'], function (S) {
             $list.find(':radio').prop('checked', false);
             $list.find('.' + plugin.className('listItem')).removeClass(plugin.className('listItem-selected'));
 
+            if (isInput) {
+                // turns all options in datalist to false before selected true below
+                $original.next().find('option').prop('selected', false);
+                //set the option value to the hidden input box
+                $original.val($option.val()); 
+            }
+
             $option.prop('selected', true);
             $check.prop('checked', true);
             $item.addClass(plugin.className('listItem-selected'));
@@ -327,6 +461,7 @@ define(['string'], function (S) {
       $input.append($label);
       $original.before($input);
       $original.hide();
+      if (isInput) {$original.after($dataList); }
 
       $listContainer.append($list);
       $(doc.body).append($listContainer);
@@ -341,27 +476,20 @@ define(['string'], function (S) {
           'type': 'text'
         });
 
-        $search.bind('input', function() {
-          var re = new RegExp(S($search.val().replace(/\s/, '').split('').join('(?:.*\\W)?')).latinise().s, 'i'),
-              $first;
-
-          $list.find('.' + plugin.className('listItem')).each(function() {
-            var $item = $(this);
-
-            if (re.test(S($item.text()).latinise().s)) {
-              $item.show();
-
-              if (!$first) {
-                $first = $item;
-              }
-
-            } else {
-              $item.hide();
+        $search.bind('input', $.debounce(200, function() {
+            // if $original is an input field
+            if (isInput) {
+              $list.children().remove();
+              $original.pageOffset = 0;
+              $original.pageNumber = 1;
+              $original.query = $search.val();
+              getDataList($original, function(){
+                  filterList();
+              });
+            }else {
+                filterList();
             }
-          });
-
-          $list.trigger('dropDown-hover', [ $first ]);
-        });
+        }));
 
         $search.click(function() {
           return false;
