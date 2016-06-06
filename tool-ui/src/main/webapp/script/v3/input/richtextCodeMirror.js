@@ -2287,16 +2287,18 @@ define([
                 range = {from:{line:lineNumber, ch:0}, to:{line:lineNumber, ch:0}};
             }
                 
-            if (level < 1) {
+            if (level < 0) {
                 return;
             }
-
+            
             indentClass = self.indentClassPrefix + level;
 
             for (i = range.from.line; i <= range.to.line; i++) {
                 // Remove any existing indent level
                 self.blockRemoveIndent(i);
-                editor.addLineClass(i, 'text', indentClass);
+                if (level > 0) {
+                    editor.addLineClass(i, 'text', indentClass);
+                }
             }
 
             // Refresh the editor display since our line classes
