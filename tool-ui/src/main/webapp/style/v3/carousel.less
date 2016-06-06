@@ -155,6 +155,14 @@
       width: @-arrowWidth;
       z-index: 1;
       pointer-events: none;
+
+      [data-vertical-carousel] & {
+        border-color: transparent transparent transparent @color-focus;
+        bottom: auto;
+        left: auto;
+        top: ((@carousel-tile-height - @-arrowWidth) / 2);
+        right: (0 - @-arrowWidth);
+      }
     }
   }
 
@@ -267,21 +275,25 @@
   }
   .carousel-vertical {
       &.carousel-wrapper {
+          height: 100%;
           width: 160px;
       }
       .carousel-viewport {
-        height: 80vh;
+        height: 100%;
+        padding-right: 20px;
+        width: 180px;
       }
   }
   [data-vertical-carousel] & {
-      position: absolute;
-      left: -170px;
-      top: 0;
+      bottom: 20px;
+      left: 20px;
+      position: fixed;
+      top: (@toolHeader-height + 20px);
   }
 }
 
 [data-vertical-carousel].content-edit {
-    padding-left: 170px;  
+    padding-left: 180px;
 }
 
 // Temporarily turn off transition for the carousel.
