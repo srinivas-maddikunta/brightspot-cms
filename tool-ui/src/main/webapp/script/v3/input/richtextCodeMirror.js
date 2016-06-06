@@ -2254,8 +2254,9 @@ define([
         /**
          * Set the indent level for a line.
          *
-         * @param {Number} lineNumber
+         * @param {Number|Object} lineNumber
          * The line number on which to set indent.
+         * Or an object that contains a range, like {from:{line:0,ch:0}, to:{line:1,ch:5}}
          *
          * @param {Number} indentLevel
          * The indent level (number from 1..n)
@@ -2271,23 +2272,32 @@ define([
         blockSetIndent: function(lineNumber, level, options) {
 
             var editor;
+            var i;
             var indentClass;
+            var range;
             var self;
 
             self = this;
             editor = self.codeMirror;
             options = options || {};
             
-            // Remove any existing indent level
-            self.blockRemoveIndent(lineNumber);
-            
+            // Change into an object for consistency
+            range = lineNumber;
+            if (typeof lineNumber === 'number') {
+                range = {from:{line:lineNumber, ch:0}, to:{line:lineNumber, ch:0}};
+            }
+                
             if (level < 1) {
                 return;
             }
 
             indentClass = self.indentClassPrefix + level;
 
-            editor.addLineClass(lineNumber, 'text', indentClass);
+            for (i = range.from.line; i <= range.to.line; i++) {
+                // Remove any existing indent level
+                self.blockRemoveIndent(i);
+                editor.addLineClass(i, 'text', indentClass);
+            }
 
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
@@ -6341,7 +6351,7 @@ define([
             annotations = [];
             enhancements = [];
             
-            function processNode(n, rawParent) {
+            function processNode(n, rawParent, indentLevel) {
                 
                 var elementAttributes;
                 var elementClose;
@@ -6356,6 +6366,8 @@ define([
                 var text;
                 var to;
 
+                indentLevel = indentLevel || 0;
+                
                 next = n.childNodes[0];
 
                 while (next) {
@@ -6416,6 +6428,16 @@ define([
                         
                         val += text;
 
+                        // Set indent level for this line.
+                        if (indentLevel) {
+                            split = val.split("\n");
+                            from =  {
+                                line: split.length - 1,
+                                ch: split[split.length - 1].length
+                            };
+                            annotations.push({from:from, indent:indentLevel});
+                        }
+                        
                     } else if (next.nodeType === 1) {
 
                         // We got an element
@@ -6471,17 +6493,20 @@ define([
                             continue;
                         }
                         
-                        // For container elements such as "ul" or "ol", do not allow nested lists within.
-                        // If we find a nested list treat the whole thing as raw html
+                        // For container elements such as "ul" or "ol", we allow nesting,
+                        // so increment the indent level, and start a new line.
                         isContainer = self.elementIsContainer(elementName);
                         if (isContainer) {
-                            
-                            // If there are any nested list items, then we treat this element as raw html
-                            if ($(next).find('li li').length) {
-                                raw = true;
-                                rawChildren = true;
+                            if (indentLevel) {
+                                val += '\n';
                             }
-                            
+                            indentLevel++;
+                        }
+                        
+                        // If we are inside a container element, start a new line if we encounter
+                        // a line style (that is not the actual list element)
+                        if (indentLevel && matchStyleObj && matchStyleObj.line && !matchStyleObj.elementContainer) {
+                            val += '\n';
                         }
                         
                         // Do we need to keep this element as raw HTML?
@@ -6532,7 +6557,8 @@ define([
                             annotations.push({
                                 styleObj:matchStyleObj,
                                 from:from,
-                                to:to
+                                to:to,
+                                indent: indentLevel
                             });
                             
                             // Remember we need to close the element later
@@ -6542,7 +6568,7 @@ define([
                         }
 
                         // Recursively go into our element and add more text to the value
-                        processNode(next, rawChildren);
+                        processNode(next, rawChildren, indentLevel);
 
                         if (elementClose) {
 
@@ -6566,13 +6592,12 @@ define([
                         };
 
                         if (matchStyleObj) {
-
                             // Check to see if there is a fromHTML function for this style
                             if (matchStyleObj.fromHTML) {
-
+                                
                                 // Yes, there is a fromHTML function, so as part of this annotation we will create
                                 // a function that reads information from the element and saves it on the mark.
-
+                                
                                 // Since we're in a loop we can't rely on closure variables to maintain the
                                 // current values, so we're using a special javascript trick to get around that.
                                 // The with statement will create a new closure for each loop.
@@ -6585,24 +6610,32 @@ define([
                                             }
                                         }),
                                         from:from,
-                                        to:to
+                                        to:to,
+                                        indent: indentLevel
                                     });
                                 }
                                 
                             } else {
+                                
                                 annotations.push({
                                     styleObj:matchStyleObj,
                                     from:from,
                                     to:to,
-                                    attributes: elementAttributes
+                                    attributes: elementAttributes,
+                                    indent: indentLevel
                                 });
                             }
                         }
-
                         // Add a new line for certain elements
                         // Add a new line for custom elements
                         if (self.newLineRegExp.test(elementName) || (matchStyleObj && matchStyleObj.line)) {
-                            val += '\n';
+                            
+                            // Special case:
+                            // If this is a list item, and there is already a newline at the end,
+                            // then do not add another newline
+                            if (!(matchStyleObj && matchStyleObj.elementContainer && val.match(/\n$/))) {
+                                val += '\n';
+                            }
                         }
 
                     } // else if this is an element...
@@ -6678,6 +6711,7 @@ define([
             // the marks for child elements (so elements can later be created in the same order)
             $.each(annotations, function(i, annotation) {
 
+                var annotationRange;
                 var styleObj;
 
                 styleObj = annotation.styleObj;
@@ -6708,11 +6742,30 @@ define([
                     annotation.to.line += range.from.line;
 
                 }
-                
-                if (styleObj.line) {
-                    self.blockSetStyle(styleObj, annotation, {triggerChange:false, attributes:annotation.attributes});
-                } else {
-                    self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false, attributes:annotation.attributes});
+                if (styleObj) {
+                    if (styleObj.line) {
+                        
+                        // If this is a list item, then only set the style on the first line
+                        annotationRange = {
+                            from: annotation.from,
+                            to: annotation.to
+                        };
+                        if (styleObj.elementContainer) {
+                            annotationRange.to = annotation.from;
+                        }
+                        self.blockSetStyle(styleObj, annotationRange, {triggerChange:false, attributes:annotation.attributes});
+                        
+                        if (annotation.indent) {
+                            self.blockSetIndent(annotationRange, annotation.indent);
+                        }
+                        
+                    } else {
+                        self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false, attributes:annotation.attributes});
+                    }
+                } else if (annotation.indent) {
+                    // Special case for extra lines within a list item,
+                    // we save an annotation that contains only the line and indent.
+                    self.blockSetIndent(annotation.from.line, annotation.indent);
                 }
             });
 
