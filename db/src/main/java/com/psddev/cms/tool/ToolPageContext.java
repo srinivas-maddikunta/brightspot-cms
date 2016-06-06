@@ -1813,6 +1813,18 @@ public class ToolPageContext extends WebPageContext {
                                     if (avatar != null) {
                                         writeElement("img",
                                                 "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
+                                    } else {
+                                        String email = user.getEmail();
+
+                                        if (!ObjectUtils.isBlank(email)) {
+                                            String hash = StringUtils.hex(StringUtils.md5(email.trim().toLowerCase(Locale.ENGLISH)));
+
+                                            writeElement("img",
+                                                    "src", StringUtils.addQueryParameters(
+                                                            "https://www.gravatar.com/avatar/" + hash,
+                                                            "s", 50,
+                                                            "d", "blank"));
+                                        }
                                     }
                                 writeEnd();
                             writeEnd();
@@ -3516,7 +3528,7 @@ public class ToolPageContext extends WebPageContext {
                         .deleteAll();
             }
 
-            redirectOnSave("");
+            getResponse().sendRedirect(cmsUrl("/"));
             return true;
 
         } catch (Exception error) {

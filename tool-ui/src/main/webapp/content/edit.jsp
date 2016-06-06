@@ -435,7 +435,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 <%
                 wp.include("/WEB-INF/objectMessage.jsp", "object", editing);
 
-                if (!user.isDisableWorkInProgress()
+                if (history == null
+                        && !user.isDisableWorkInProgress()
                         && !wp.getCmsTool().isDisableWorkInProgress()) {
 
                     WorkInProgress wip = Query.from(WorkInProgress.class)
