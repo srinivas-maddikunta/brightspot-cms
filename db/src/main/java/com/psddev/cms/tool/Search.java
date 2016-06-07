@@ -118,7 +118,7 @@ public class Search extends Record {
     private long offset;
     private int limit;
     private Set<UUID> newItemIds;
-    private boolean ignoreSitePredicate;
+    private boolean ignoreSite;
 
     public Search() {
     }
@@ -201,7 +201,7 @@ public class Search extends Record {
         setOffset(page.param(long.class, OFFSET_PARAMETER));
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
         setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
-        setIgnoreSitePredicate(page.param(boolean.class, IGNORE_SITE_PARAMETER));
+        setIgnoreSite(page.param(boolean.class, IGNORE_SITE_PARAMETER));
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.initializeSearch(this, page);
@@ -409,12 +409,12 @@ public class Search extends Record {
         this.newItemIds = newItemIds;
     }
 
-    public boolean isIgnoreSitePredicate() {
-        return ignoreSitePredicate;
+    public boolean isIgnoreSite() {
+        return ignoreSite;
     }
 
-    public void setIgnoreSitePredicate(boolean ignoreSitePredicate) {
-        this.ignoreSitePredicate = ignoreSitePredicate;
+    public void setIgnoreSite(boolean ignoreSite) {
+        this.ignoreSite = ignoreSite;
     }
 
     public Set<ObjectType> findValidTypes() {
@@ -950,7 +950,7 @@ public class Search extends Record {
             }
         }
 
-        if (!ignoreSitePredicate
+        if (!isIgnoreSite()
                 && site != null
                 && !site.isAllSitesAccessible()) {
             Set<ObjectType> globalTypes = new HashSet<ObjectType>();
