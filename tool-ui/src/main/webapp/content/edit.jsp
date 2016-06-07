@@ -1062,6 +1062,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             wp.writeHtml(wp.localize(editingState.getType(), "action.save.draft"));
                                         wp.writeEnd();
                                     wp.writeEnd();
+
+                                    wp.writeStart("li", "class", "DraftAndReturnAction");
+                                        wp.writeStart("button",
+                                                "class", "link icon icon-action-save",
+                                                "name", "action-draftAndReturn",
+                                                "value", "true");
+                                            wp.writeHtml(wp.localize(editingState.getType(), "action.saveAndReturn.draft"));
+                                        wp.writeEnd();
+                                    wp.writeEnd();
                                 }
 
                                 if (draft != null && !draft.isNewContent()) {
@@ -1085,6 +1094,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     wp.writeEnd();
                                 wp.writeEnd();
 
+                                wp.writeStart("li", "class", "NewDraftAndReturnAction");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-object-draft",
+                                            "name", "action-newDraftAndReturn",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(editingState.getType(), "action.newAndReturn.draft"));
+                                    wp.writeEnd();
+                                wp.writeEnd();
+
                             } else if (displayWorkflowSave) {
                                 wp.writeStart("li");
                                     wp.writeStart("button",
@@ -1092,6 +1110,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             "name", "action-draft",
                                             "value", "true");
                                         wp.writeHtml(wp.localize(editingState.getType(), "action.save.draft"));
+                                    wp.writeEnd();
+                                wp.writeEnd();
+
+                                wp.writeStart("li", "class", "DraftAndReturnAction");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-action-save",
+                                            "name", "action-draftAndReturn",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(editingState.getType(), "action.saveAndReturn.draft"));
                                     wp.writeEnd();
                                 wp.writeEnd();
                             }

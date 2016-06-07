@@ -609,7 +609,8 @@ table.links.table-striped {
   .message-icon();
 
   .link {
-    color: @color-link-light;
+    color: white;
+    text-decoration: underline;
   }
 }
 
@@ -618,6 +619,11 @@ table.links.table-striped {
   .icon;
   .icon-ok-sign;
   .message-icon();
+
+  .link {
+    color: white;
+    text-decoration: underline;
+  }
 }
 
 .message-warning {
@@ -630,6 +636,22 @@ table.links.table-striped {
     [name='action-delete'] {
       color: @color-remove;
     }
+  }
+
+  .link {
+    color: @color-text;
+    text-decoration: underline;
+  }
+}
+
+.Message-returnToDashboard {
+  .icon;
+  .icon-arrow-left;
+
+  float: right;
+
+  .toolMessage & {
+    display: none;
   }
 }
 
