@@ -259,7 +259,7 @@ function($, bsp_utils) {
             var layout = self._getLayout();
 
             // Adjust the viewport position to account for a new tile at the beginning
-            var offset = layout.tilesOffset + (self.settings.vertical) ?  layout.titleHeight : layout.tileWidth;
+            var offset = layout.tilesOffset + ((self.settings.vertical) ?  layout.titleHeight : layout.tileWidth);
             
             // Turn off transitions for the offset temporarily.
             // When carousel.update() is called again transitions will turn on again.
