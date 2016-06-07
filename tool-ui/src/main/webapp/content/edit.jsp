@@ -436,6 +436,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 wp.include("/WEB-INF/objectMessage.jsp", "object", editing);
 
                 if (history == null
+                        && !editingState.hasAnyErrors()
                         && !user.isDisableWorkInProgress()
                         && !wp.getCmsTool().isDisableWorkInProgress()) {
 
