@@ -204,7 +204,8 @@ public class ContentState extends PageServlet {
 
         jsonResponse.put("_differences", differences);
 
-        if (!user.isDisableWorkInProgress()
+        if (page.param(boolean.class, "wip")
+                && !user.isDisableWorkInProgress()
                 && !Query.from(CmsTool.class).first().isDisableWorkInProgress()) {
 
             ObjectType contentType = state.getType();

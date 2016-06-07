@@ -13,6 +13,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
   bsp_utils.onDomInsert(document, '.contentForm, .enhancementForm, .standardForm', {
     'insert': function(form) {
       var $form = $(form);
+      var wipEnabled = $form.is('.contentForm');
       var running;
       var rerun;
       var idleTimeout;
@@ -74,7 +75,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
         $.ajax({
           'type': 'post',
-          'url': CONTEXT_PATH + 'contentState?idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
+          'url': CONTEXT_PATH + 'contentState?wip=' + wipEnabled + '&idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
           'cache': false,
           'dataType': 'json',
 
