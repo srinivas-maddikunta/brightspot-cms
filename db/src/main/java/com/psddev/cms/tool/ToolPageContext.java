@@ -1880,7 +1880,7 @@ public class ToolPageContext extends WebPageContext {
                                         if (user.findOtherAccessibleSites().size() > 0 || (user.getCurrentSite() != null && user.hasPermission("site/global"))) {
                                             writeStart("li");
                                                 writeStart("a",
-                                                    "href", cmsUrl("/siteSwitch"),
+                                                    "href", cmsUrl("/siteSwitch", "returnUrl", url("")),
                                                     "target", "siteSwitch");
                                                     writeHtml(localize(Site.class, "action.switch"));
                                                 writeEnd();
