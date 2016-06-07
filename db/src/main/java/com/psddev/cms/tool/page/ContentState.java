@@ -219,6 +219,7 @@ public class ContentState extends PageServlet {
 
             if (differences.isEmpty()) {
                 if (wip != null) {
+                    jsonResponse.put("_wip", page.localize(getClass(), "message.wipDeleted"));
                     wip.delete();
                 }
 
@@ -229,6 +230,10 @@ public class ContentState extends PageServlet {
                     wip.setOwner(user);
                     wip.setContentType(contentType);
                     wip.setContentId(contentId);
+                    jsonResponse.put("_wip", page.localize(getClass(), "message.wipCreated"));
+
+                } else {
+                    jsonResponse.put("_wip", page.localize(getClass(), "message.wipUpdated"));
                 }
 
                 wip.setContentLabel(state.getLabel());
