@@ -21,6 +21,7 @@ import javax.servlet.jsp.PageContext;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Draft;
+import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.Preview;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
@@ -31,6 +32,7 @@ import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.tool.page.content.Edit;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.PredicateParser;
@@ -74,6 +76,17 @@ public class ContentState extends PageServlet {
         Map<String, Object> oldValues = !ObjectUtils.isBlank(oldValuesString)
                 ? (Map<String, Object>) ObjectUtils.fromJson(oldValuesString)
                 : Draft.findOldValues(object);
+
+        // Change the old values to include the overlay differences so that
+        // the change detection during overlay edit work correctly.
+        Overlay overlay = Edit.getOverlay(object);
+
+        if (overlay != null) {
+            oldValues = Draft.mergeDifferences(
+                    state.getDatabase().getEnvironment(),
+                    oldValues,
+                    overlay.getDifferences());
+        }
 
         if (state.isNew()
                 || object instanceof Draft
