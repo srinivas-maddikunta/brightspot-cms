@@ -6359,6 +6359,7 @@ define([
                 var elementClose;
                 var elementName;
                 var from;
+                var indentChildren;
                 var isContainer;
                 var matchStyleObj;
                 var next;
@@ -6374,6 +6375,8 @@ define([
 
                 while (next) {
 
+                    indentChildren = indentLevel;
+                    
                     elementAttributes = {};
 
                     // Check if we got a text node or an element
@@ -6499,10 +6502,21 @@ define([
                         // so increment the indent level, and start a new line.
                         isContainer = self.elementIsContainer(elementName);
                         if (isContainer) {
-                            if (indentLevel) {
+                            
+                            // If inside a nested list, make sure we start nested list on a new line.
+                            // This will account for something like this:
+                            // <ul>
+                            //   <li>
+                            //     some content
+                            //     <ul><li>nested list needs a line break before</li></ul>
+                            //   </li>
+                            // </ul>
+                            if (indentLevel && !val.match(/\n$/)) {
                                 val += '\n';
                             }
-                            indentLevel++;
+                            
+                            // Increase the indent for anything within this container
+                            indentChildren = indentLevel + 1;
                         }
                         
                         // If we are inside a container element, start a new line if we encounter
@@ -6570,7 +6584,7 @@ define([
                         }
 
                         // Recursively go into our element and add more text to the value
-                        processNode(next, rawChildren, indentLevel);
+                        processNode(next, rawChildren, indentChildren);
 
                         if (elementClose) {
 
