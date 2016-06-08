@@ -1809,8 +1809,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             // The pop-up dialog used to prompt for links
             self.$linkDialog = $(
-                '<div>' +
-                    '<h2>Link</h2>' +
+                '<div class="widget">' +
+                    '<h1>Link</h1>' +
                     '<div class="rte2-dialogLine">' +
                         '<input type="text" class="rte2-dialogLinkHref">' +
                         '<input type="hidden" class="rte2-dialogLinkId">' +
@@ -1826,9 +1826,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                             '<option value="nofollow">nofollow</option>' +
                         '</select>' +
                     '</div>' +
-                    '<a class="rte2-dialogLinkSave">Save</a>' +
-                    '<a class="rte2-dialogLinkOpen" target="_blank">Open</a>' +
-                    '<a class="rte2-dialogLinkUnlink">Unlink</a>' +
+                    '<div class="rte2-dialogLinkActions">' +
+                        '<a class="rte2-dialogLinkSave button">Save</a>' +
+                        '<a class="rte2-dialogLinkOpen action" target="_blank">Open</a>' +
+                        '<a class="rte2-dialogLinkUnlink action">Unlink</a>' +
+                    '</div>' +
                 '</div>'
             ).on('click', '.rte2-dialogLinkSave', function() {
                 // User clicked "Save" button to save the link
