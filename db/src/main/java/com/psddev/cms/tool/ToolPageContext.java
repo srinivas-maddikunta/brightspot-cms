@@ -3462,6 +3462,13 @@ public class ToolPageContext extends WebPageContext {
     }
 
     private void redirectOnSave(String url, Object... parameters) throws IOException {
+        if (param(String.class, "action-draftAndReturn") != null
+                || param(String.class, "action-newDraftAndReturn") != null) {
+
+            getResponse().sendRedirect(cmsUrl("/"));
+            return;
+        }
+
         boolean frame = param(boolean.class, "_frame");
 
         if (!frame && getUser().isReturnToDashboardOnSave()) {
@@ -3634,7 +3641,8 @@ public class ToolPageContext extends WebPageContext {
      */
     public boolean tryDraft(Object object) {
         if (!isFormPost()
-                || param(String.class, "action-draft") == null) {
+                || (param(String.class, "action-draft") == null
+                && param(String.class, "action-draftAndReturn") == null)) {
             return false;
         }
 
@@ -3692,10 +3700,17 @@ public class ToolPageContext extends WebPageContext {
 
             draft.update(findOldValuesInForm(state), object);
             publish(draft);
-            getResponse().sendRedirect(url("",
-                    "editAnyway", null,
-                    ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
-                    ToolPageContext.HISTORY_ID_PARAMETER, null));
+
+            if (param(String.class, "action-draftAndReturn") != null) {
+                getResponse().sendRedirect(cmsUrl("/"));
+
+            } else {
+                getResponse().sendRedirect(url("",
+                        "editAnyway", null,
+                        ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
+                        ToolPageContext.HISTORY_ID_PARAMETER, null));
+            }
+
             return true;
 
         } catch (Exception error) {
@@ -3713,7 +3728,8 @@ public class ToolPageContext extends WebPageContext {
      */
     public boolean tryNewDraft(Object object) {
         if (!isFormPost()
-                || param(String.class, "action-newDraft") == null) {
+                || (param(String.class, "action-newDraft") == null
+                && param(String.class, "action-newDraftAndReturn") == null)) {
             return false;
         }
 
@@ -3747,10 +3763,15 @@ public class ToolPageContext extends WebPageContext {
                 draft.update(findOldValuesInForm(state), object);
                 publish(draft);
 
-                getResponse().sendRedirect(url("",
-                        "editAnyway", null,
-                        ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
-                        ToolPageContext.HISTORY_ID_PARAMETER, null));
+                if (param(String.class, "action-newDraftAndReturn") != null) {
+                    getResponse().sendRedirect(cmsUrl("/"));
+
+                } else {
+                    getResponse().sendRedirect(url("",
+                            "editAnyway", null,
+                            ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
+                            ToolPageContext.HISTORY_ID_PARAMETER, null));
+                }
             }
 
             return true;
