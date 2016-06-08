@@ -1853,7 +1853,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     return false;
                 }
             }).appendTo(document.body)
-                .popup({parent:self.$container}) // turn it into a popup
+                .popup() // turn it into a popup
                 .popup('close') // but initially close the popup
                 .popup('container').on('close', function() {
                     // If the popup is canceled with Esc or otherwise,
