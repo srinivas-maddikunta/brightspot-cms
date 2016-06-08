@@ -5414,18 +5414,58 @@ define([
 
             keymap = {};
 
-            keymap['Tab'] = function(){
-                //increase indent on an ul or ol
+            // If at the start of an indented line, backspace should remove the indent or the list style
+            keymap['Backspace'] = function(cm){
+                var indent;
+                var listType;
                 var range;
                 range = self.getRange();
-                self.blockDeltaIndent(range.from.line, 1);
+                indent = self.blockGetIndent(range.from.line);
+                listType = self.blockGetListType(range.from.line);
+                if (indent > 0 && range.from.ch === 0 && range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                    if (listType && indent === 1) {
+                        self.blockRemoveStyle(listType, range);
+                    }
+                    self.blockDeltaIndent(range.from.line, -1);
+                } else {
+                    // Do a normal backspace operation
+                    cm.execCommand('delCharBefore');
+                }
             };
-
-            keymap['Shift-Tab'] = function(){
+            
+            // Tab key should increase the indent of the line if you are on a list line and at start line.
+            // If you are not on a list line, then indent only if the previous line was a list,
+            // or the previous line has an indent (so you can continue the list item across multiple lines)
+            keymap['Tab'] = function(cm){
+                var indentPrevious;
+                var listType;
+                var listTypePrevious;
+                var range;
+                range = self.getRange();
+                listType = self.blockGetListType(range.from.line);
+                if (range.from.line > 0) {
+                    listTypePrevious = self.blockGetListType(range.from.line - 1);
+                    indentPrevious = self.blockGetIndent(range.from.line - 1);
+                }
+                if (range.from.ch === 0 && (listType || listTypePrevious || indentPrevious)) {
+                    self.blockDeltaIndent(range.from.line, 1);
+                } else {
+                    // Tell CodeMirror we're not doing anything with this key
+                    return cm.Pass;
+                }
+            };
+            
+            // Shift-Tab key should decrease the indent of the line if you are at start of line
+            keymap['Shift-Tab'] = function(cm){
                 //decrease an ident on an ul or ol
                 var range;
                 range = self.getRange();
-                self.blockDeltaIndent(range.from.line, -1);
+                if (range.from.ch === 0) {
+                    self.blockDeltaIndent(range.from.line, -1);
+                } else {
+                    // Tell CodeMirror we're not doing anything with this key
+                    return cm.Pass;
+                }
             };
 
             keymap['Shift-Enter'] = function (cm) {
