@@ -3527,15 +3527,18 @@ public class ToolPageContext extends WebPageContext {
                     }
                 }
 
+                redirectOnSave("");
+
             } else {
                 state.delete();
 
                 Query.from(Draft.class)
                         .where("objectId = ?", state.getId())
                         .deleteAll();
+
+                getResponse().sendRedirect(cmsUrl("/"));
             }
 
-            getResponse().sendRedirect(cmsUrl("/"));
             return true;
 
         } catch (Exception error) {
