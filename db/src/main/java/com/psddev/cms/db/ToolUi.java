@@ -662,6 +662,14 @@ public class ToolUi extends Modification<Object> {
     }
 
     public boolean isEffectivelySuggestions() {
+        Object object = getOriginalObject();
+
+        if (object instanceof ObjectField
+                && !ObjectUtils.isBlank(((ObjectField) object).getPredicate())) {
+
+            return false;
+        }
+
         return !Boolean.FALSE.equals(suggestions);
     }
 
