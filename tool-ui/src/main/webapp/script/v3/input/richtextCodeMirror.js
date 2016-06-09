@@ -5414,6 +5414,10 @@ define([
 
             keymap = {};
 
+            // Ignore Tab key so it can be used to move focus to the next field
+            keymap['Tab'] = false;
+            keymap['Shift-Tab'] = false;
+
             // If at the start of an indented line, backspace should remove the indent or the list style
             keymap['Backspace'] = function(cm){
                 var indent;
@@ -5433,39 +5437,19 @@ define([
                 }
             };
             
-            // Tab key should increase the indent of the line if you are on a list line and at start line.
-            // If you are not on a list line, then indent only if the previous line was a list,
-            // or the previous line has an indent (so you can continue the list item across multiple lines)
-            keymap['Tab'] = function(cm){
-                var indentPrevious;
-                var listType;
-                var listTypePrevious;
+            
+            // Alt-Right key should increase the indent of the line.
+            keymap['Alt-Right'] = function(cm){
                 var range;
                 range = self.getRange();
-                listType = self.blockGetListType(range.from.line);
-                if (range.from.line > 0) {
-                    listTypePrevious = self.blockGetListType(range.from.line - 1);
-                    indentPrevious = self.blockGetIndent(range.from.line - 1);
-                }
-                if (range.from.ch === 0 && (listType || listTypePrevious || indentPrevious)) {
-                    self.blockDeltaIndent(range.from.line, 1);
-                } else {
-                    // Tell CodeMirror we're not doing anything with this key
-                    return cm.Pass;
-                }
+                self.blockDeltaIndent(range.from.line, 1);
             };
             
-            // Shift-Tab key should decrease the indent of the line if you are at start of line
-            keymap['Shift-Tab'] = function(cm){
-                //decrease an ident on an ul or ol
+            // Alt-Left key should decrease the indent of the line.
+            keymap['Alt-Left'] = function(cm){
                 var range;
                 range = self.getRange();
-                if (range.from.ch === 0) {
-                    self.blockDeltaIndent(range.from.line, -1);
-                } else {
-                    // Tell CodeMirror we're not doing anything with this key
-                    return cm.Pass;
-                }
+                self.blockDeltaIndent(range.from.line, -1);
             };
 
             keymap['Shift-Enter'] = function (cm) {
