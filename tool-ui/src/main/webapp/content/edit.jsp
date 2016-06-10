@@ -1007,12 +1007,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     }
 
                                     DateTime publishDate;
+                                    String scheduleLabel;
 
                                     if (schedule != null) {
                                         publishDate = wp.toUserDateTime(schedule.getTriggerDate());
+                                        scheduleLabel = wp.localize(editingType, "action.reschedule");
 
                                     } else {
                                         publishDate = wp.param(DateTime.class, "publishDate");
+                                        scheduleLabel = wp.localize(editingType, "action.schedule");
 
                                         if (publishDate == null &&
                                                 (isDraft ||
@@ -1029,6 +1032,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             "type", "text",
                                             "class", "date dateInput",
                                             "data-emptylabel", "Now",
+                                            "data-schedule-label", scheduleLabel,
                                             "name", "publishDate",
                                             "size", 9,
                                             "value", publishDate != null ? publishDate.toString("yyyy-MM-dd HH:mm:ss") : "");
@@ -1036,6 +1040,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                                 wp.writeStart("button",
                                         "name", "action-publish",
+                                        "data-schedule-label", wp.localize(editingType, "action.schedule"),
                                         "value", "true");
                                     ObjectType type = editingState.getType();
                                     if (type != null) {
