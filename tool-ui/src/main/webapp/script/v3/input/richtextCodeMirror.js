@@ -3375,6 +3375,14 @@ define([
                 }
             });
 
+            // Update marks to account for undo history marks getting re-created
+            $.each(marks, function(i, mark) {
+                while (mark.newMark) {
+                    mark = mark.newMark;
+                }
+                marks[i] = mark;
+            });
+            
             return marks;
         },
 
@@ -5187,7 +5195,7 @@ define([
          * @returns Boolean
          * Value to tell if a history undo or redo action is currently executing.
          * Note this only works for synchronous code, if the undo/redo action causes
-         * async code, this will not be accurage.
+         * async code, this will not be accurate.
          */
         historyIsExecuting: function() {
             var self;
@@ -5226,7 +5234,7 @@ define([
             marksAndMore = [];
             $.each(marks, function(i, mark) {
                     
-                var markAndMore, options, pos;
+                var markAndMore, pos;
                     
                 markAndMore = {
                     mark:mark
@@ -5238,27 +5246,19 @@ define([
                         from: { line: pos.from.line, ch: pos.from.ch },
                         to: { line: pos.to.line, ch: pos.to.ch }
                     };
+                } else {
+                    // Skip if mark has been removed from the document
+                    return;
                 }
 
+                // Skip empty marks
+                if (pos.from.line == pos.to.line && pos.from.ch === pos.to.ch) {
+                    return;
+                }
+                
                 // Retain the options from the old mark
-                options = {};
-                $.each(mark, function(prop, value) {
-                    switch (prop) {
-                        // List of properties that should be copied/retained from the old mark
-                        // and passed as options on the new mark
-                    case 'atomic':
-                    case 'attributes':
-                    case 'className':
-                    case 'endStyle':
-                    case 'startStyle':
-                    case 'historyFind':
-                    case 'inclusiveRight':
-                    case 'inclusiveLeft':
-                    case 'triggerChange':
-                        options[prop] = value;
-                    }
-                });
-                markAndMore.options = options;
+                markAndMore.options = self.historyGetOptions(mark);
+                
                 marksAndMore.push(markAndMore);
             });
 
@@ -5283,6 +5283,34 @@ define([
             });
         },
 
+        /**
+         * Return a list of options that we want to keep from a mark.
+         * To be used when re-creating the mark.
+         * @param  {Object} mark CodeMirror mark
+         * @return {Object} A set of key/value pairs.
+         */
+        historyGetOptions: function(mark) {
+            var options;
+            options = {};
+            $.each(mark, function(prop, value) {
+                switch (prop) {
+                    // List of properties that should be copied/retained from the old mark
+                    // and passed as options on the new mark
+                case 'atomic':
+                case 'attributes':
+                case 'className':
+                case 'clearWhenEmpty':
+                case 'endStyle':
+                case 'startStyle':
+                case 'historyFind':
+                case 'inclusiveRight':
+                case 'inclusiveLeft':
+                case 'triggerChange':
+                    options[prop] = value;
+                }
+            });
+            return options;
+        },
         
         /**
          * Perform an undo action based on a CodeMirror change event that was stored in the history.
@@ -5701,7 +5729,110 @@ define([
             }
         },
 
+        /**
+         * Given a CodeMirror mark, replace the text within it with HTML,
+         * without destroying the mark. This is intended to be used for
+         * inline enhancments where an external popup sets content in the editor.
+         * It also sets up history so undo/redo actions will correctly
+         * maintain the mark.
+         * 
+         * @param  {[type]} mark [description]
+         * @param  {[type]} html [description]
+         * @return {[type]}      [description]
+         */
+        replaceMarkHTML: function(mark, html) {
+            var clearWhenEmpty;
+            var execute;
+            var inclusiveLeft;
+            var inclusiveRight;
+            var markNew;
+            var range;
+            var reset;
+            var self;
+            self = this;
+            
+            while (mark.markNew) {
+                mark = mark.markNew;
+            }
+            
+            // Remember the settings for inclusive left and inclusive right
+            // so we can restore them later
+            clearWhenEmpty = mark.clearWhenEmpty;
+            inclusiveLeft = mark.inclusiveLeft;
+            inclusiveRight = mark.inclusiveRight;
+            
+            // Remember the position of the mark because if the mark
+            // gets removed we need to recreate it
+            range = self.markGetRange(mark);
+            
+            reset = function() {
+                while (mark.markNew) {
+                    mark = mark.markNew;
+                }
+                mark.inclusiveLeft = inclusiveLeft;
+                mark.inclusiveRight = inclusiveRight;
+                mark.clearWhenEmpty = clearWhenEmpty;                
+            };
+            
+            execute = function() {
+                
+                // There is a chance that the mark that was saved in this
+                // change event was cleared and re-created in another change event.
+                // In that case, a pointer to the new mark was saved on the old mark.
+                // If we find that pointer, update this to the new one.
+                while (mark.markNew) {
+                    mark = mark.markNew;
+                }
+                
+                // If the mark was removed we must recreate it
+                if (!mark.find || !mark.find()) {
+                    
+                    // Recreate a new mark at the previous position.
+                    markNew = self.codeMirror.markText(range.from, range.to, self.historyGetOptions(mark));
+                    
+                    // Save a pointer to the new mark on the old mark,
+                    // in case other history events are still pointing to the old mark
+                    mark.markNew = markNew;
+                    
+                    mark = markNew;
+                }
+                
+                // Change the mark so it will expand when we insert content
+                mark.inclusiveLeft = true;
+                mark.inclusiveRight = true;
+                mark.clearWhenEmpty = false;
+                
+                // Replace the content of the mark
+                if (!self.historyIsExecuting()) {
+                    self.fromHTML(html, range, true, true);                    
+                    reset();
+                }
+            };
+            
+            self.historyAdd({
+                undo: function() {
+                    reset();
+                },
+                redo: function() {
+                    // Re-execute the insertion
+                    execute();
+                }
+            });
+            
+            // Execute the insertion now
+            execute();
 
+            // After the change is made, we need to reset the mark
+            self.historyAdd({
+                undo: function() {
+                    // reset();
+                },
+                redo: function() {
+                    reset();
+                }
+            });
+        },
+        
         /**
          * Replace a range of text without affecting the style marks
          * next to or surrounding the range.

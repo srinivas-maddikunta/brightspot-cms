@@ -133,15 +133,9 @@ if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-a
                     wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
 
                     if (body != null) {
-                        wp.writeRaw("var oldMarkInclusiveLeft = mark.inclusiveLeft;");
-                        wp.writeRaw("var oldMarkInclusiveRight = mark.inclusiveRight;");
-                        wp.writeRaw("mark.inclusiveLeft = true;");
-                        wp.writeRaw("mark.inclusiveRight = true;");
-                        wp.writeRaw("rte.rte.fromHTML('");
+                        wp.writeRaw("rte.rte.replaceMarkHTML(mark, '");
                         wp.writeRaw(StringUtils.escapeJavaScript(body));
-                        wp.writeRaw("', rte.rte.markGetRange(mark), true, true);");
-                        wp.writeRaw("mark.inclusiveLeft = oldMarkInclusiveLeft;");
-                        wp.writeRaw("mark.inclusiveRight = oldMarkInclusiveRight;");
+                        wp.writeRaw("');");
                     }
 
                     if (wp.param(boolean.class, "action-save-and-close")) {
