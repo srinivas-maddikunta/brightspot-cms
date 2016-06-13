@@ -1605,7 +1605,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             context = rte.getContext();
             var currentRange = rte.getRange();
             var currentRangeCollapsed = currentRange.from.line === currentRange.to.line && currentRange.from.ch === currentRange.to.ch;
-
+            
             // Go through each link in the toolbar and see if the style is defined
             $links.each(function(){
 
@@ -1767,6 +1767,21 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     
                 }
             });
+            var $submenuItems = self.$toolbar.find('.rte2-toolbar-submenu').find('ul a');
+            // remove the outOfContext class off parent item
+            self.$toolbar.find('.rte2-toolbar-submenu').find('span').removeClass('outOfContext');
+            if ($submenuItems.hasClass('outOfContext')) {
+                //loop through submenu items to check for outOfContext
+                $submenuItems.each(function(){
+                    var $this = $(this),
+                    $toolbarMenuItem = $this.parents('.rte2-toolbar-submenu').find('span');
+                    if ($this.hasClass('outOfContext')){
+                        $toolbarMenuItem.addClass('outOfContext');
+                    } else {
+                        $toolbarMenuItem.removeClass('outOfContext');
+                    }
+                 });
+            }
 
             return;
         },
