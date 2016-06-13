@@ -1774,7 +1774,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 //loop through submenu items to check for outOfContext
                 $submenuItems.each(function(){
                     var $this = $(this),
-                    $toolbarMenuItem = $this.parents('.rte2-toolbar-submenu').find('span');
+                    $toolbarMenuItem = $this.parents('ul').prev();
                     if ($this.hasClass('outOfContext')){
                         $toolbarMenuItem.addClass('outOfContext');
                     } else {
