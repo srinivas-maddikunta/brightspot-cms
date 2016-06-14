@@ -259,7 +259,7 @@ function($, bsp_utils) {
             var layout = self._getLayout();
 
             // Adjust the viewport position to account for a new tile at the beginning
-            var offset = layout.tilesOffset + ((self.settings.vertical) ?  layout.titleHeight : layout.tileWidth);
+            var offset = layout.tilesOffset + ((self.settings.vertical) ?  layout.tileHeight : layout.tileWidth);
             
             // Turn off transitions for the offset temporarily.
             // When carousel.update() is called again transitions will turn on again.
@@ -561,7 +561,7 @@ function($, bsp_utils) {
             // Adjust to center the tile in the viewport?
             if (center) {
                 if(self.settings.vertical){
-                    offset = offset - (layout.viewportWidth / 2) + (layout.tileHeight / 2);
+                    offset = offset - (layout.viewportHeight / 2) + (layout.tileHeight / 2);
                 }else {
                     offset = offset - (layout.viewportWidth / 2) + (layout.tileWidth / 2);
                 }
@@ -604,12 +604,12 @@ function($, bsp_utils) {
             var layout = self._getLayout();
             
             // Now figure out the offset to get to the tile we want
-            var tileOffset = (n-1) * layout.tileWidth;
+            var tileOffset = (n-1) * ((self.settings.vertical)? layout.tileHeight : layout.tileWidth);
 
             // Determine the distance from the current offset to the tile we want
             var offsetDiff = tileOffset - layout.tilesOffset;
 
-            var isVisible = Boolean((offsetDiff > 0) && (offsetDiff + layout.tileWidth < layout.viewportWidth));
+            var isVisible = (self.settings.vertical) ? Boolean((offsetDiff > 0) && (offsetDiff + layout.tileHeight < layout.viewportHeight)): Boolean((offsetDiff > 0) && (offsetDiff + layout.tileWidth < layout.viewportWidth));
             
             return isVisible;
         },
