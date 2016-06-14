@@ -13,8 +13,8 @@
     width: 70%;
   }
 
-  .objectInputs [data-dynamic-predicate]:not([data-dynamic-predicate = '']):not(.state-loaded) + & {
-
+  .objectInputs [data-dynamic-predicate]:not([data-dynamic-predicate = '']):not([data-additional-query]) + &,
+  .objectInputs [data-dynamic-predicate]:not([data-dynamic-predicate = ''])[data-additional-query = ''] + & {
     div:not(.content-edit-bulk) > form & {
       opacity: 0.5;
       pointer-events: none;

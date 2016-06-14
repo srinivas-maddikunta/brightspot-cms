@@ -54,12 +54,6 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
               && $(this).closest('.contentDiffCurrent').length === 0;
         });
 
-        if (!idle) {
-          $form.find('[data-dynamic-predicate]:not([data-dynamic-predicate = ""])').each(function () {
-            $(this).removeClass('state-loaded');
-          });
-        }
-
         var $publishingHeading = $form.find('.widget-publishing > h1');
 
         $.ajax({
@@ -150,7 +144,6 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
                 $element.attr('data-additional-query', dynamicPredicate);
                 $element.trigger('refresh.objectId');
-                $element.addClass('state-loaded');
               }
 
               //If text is missing set to empty to compare & replace below
