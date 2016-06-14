@@ -4304,7 +4304,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             // If the placeholder content is empty, remove the placeholder
             // (if it happens to be already showing)
-            if (!placeholder) {
+            if (!placeholder.trim()) {
                 self.placeholderRemove();
                 return;
             }
