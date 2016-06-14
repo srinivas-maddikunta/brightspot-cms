@@ -3989,6 +3989,7 @@ public class ToolPageContext extends WebPageContext {
 
                     state.putAtomically("cms.content.overlaid", Boolean.TRUE);
                     state.save();
+                    deleteWorksInProgress(object);
 
                 } else {
                     publishDifferences(object, differences);
