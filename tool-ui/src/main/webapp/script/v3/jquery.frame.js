@@ -154,8 +154,6 @@ $.plugin2('frame', {
           if (questionAt > -1) {
             data = href.substring(questionAt + 1);
             href = href.substring(0, questionAt);
-            console.log('href', href);
-            console.log('data', data);
           }
 
           loadPage($frame, $anchor, 'post', href, data, event);
