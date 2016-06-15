@@ -890,18 +890,21 @@ define([
 
             range = range || self.getRange();
 
-
-            // Create a history event so we can undo adding this style
-            self.historyAdd({
-                undo: function() {
-                    // Remove the style (but avoid creating a new history event)
-                    self._inlineRemoveStyle(style, range, options);
-                },
-                redo: function() {
-                    // Add the style back (but avoid creating a new history event)
-                    self._inlineSetStyle(style, range, options);
-                }
-            });
+            // Avoid creating a history event if the style does not cover characters
+            if (!(range.from.line === range.to.line && range.from.ch === range.to.ch)) {
+                
+                // Create a history event so we can undo adding this style
+                self.historyAdd({
+                    undo: function() {
+                        // Remove the style (but avoid creating a new history event)
+                        self._inlineRemoveStyle(style, range, options);
+                    },
+                    redo: function() {
+                        // Add the style back (but avoid creating a new history event)
+                        self._inlineSetStyle(style, range, options);
+                    }
+                });
+            }
 
             // Now actually add the style
             return self._inlineSetStyle(style, range, options);
@@ -1142,7 +1145,7 @@ define([
                     if (!matchesClass) {
                         return;
                     }
-
+                                        
                     markerOpts = mark.marker;
                     markerOpts.addToHistory = false;
 
@@ -1205,11 +1208,15 @@ define([
                         //      xxx          <-- text to delete (if deleteText is true)
                         
                         // Create a new marker for the text that should remain styled
-                        editor.markText(
+                        newMark = editor.markText(
                             { line: lineNumber, ch: toCh },
                             { line: lineNumber, ch: to },
                             markerOpts
                         );
+                        
+                        // Save a link from the old mark to the new one
+                        // so undo history can get to the new mark
+                        mark.marker.markNew = newMark;
 
                         if (deleteText) {
                             // Create a marker for the text that will be deleted
@@ -1240,12 +1247,17 @@ define([
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
+                        
+                        // Save a link from the old mark to the new one
+                        // so undo history can get to the new mark
+                        mark.marker.markNew = newMark;
+
                         self.inlineMakeInclusivePush(newMark);
                         
                         if (deleteText) {
                             // Create a marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
-                            editor.markText(
+                            newMark = editor.markText(
                                 { line: lineNumber, ch: fromCh },
                                 { line: lineNumber, ch: to },
                                 markerOpts
@@ -1270,7 +1282,7 @@ define([
                             return;
                         }
                         
-                        editor.markText(
+                        newMark = editor.markText(
                             { line: lineNumber, ch: toCh },
                             { line: lineNumber, ch: to },
                             markerOpts
@@ -1281,12 +1293,17 @@ define([
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
+                        
+                        // Save a link from the old mark to the new one
+                        // so undo history can get to the new mark.
+                        mark.marker.markNew = newMark;
+
                         self.inlineMakeInclusivePush(newMark);
                         
                         if (deleteText) {
                             // Create a marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
-                            editor.markText(
+                            newMark = editor.markText(
                                 { line: lineNumber, ch: fromCh },
                                 { line: lineNumber, ch: toCh },
                                 markerOpts
@@ -5235,7 +5252,12 @@ define([
             $.each(marks, function(i, mark) {
                     
                 var markAndMore, pos;
-                    
+                
+                // Skip spelling marks
+                if (mark.className === 'rte2-style-spelling') {
+                    return;
+                }
+                
                 markAndMore = {
                     mark:mark
                 };
@@ -5379,7 +5401,7 @@ define([
             var editor, self;
             self = this;
             editor = self.codeMirror;
-
+            
             // Re-add the marks that might have been removed due to an undo action
             if (change.marks && change.marks.length) {
                 $.each(change.marks, function(i, markAndMore) {
@@ -5402,13 +5424,14 @@ define([
                     mark.clear();
                     
                     // Recreate a new mark at the previous position.
-                    // Pass in the saved mark as "options" in the hope that will recreate
-                    // all the same mark options.
                     markNew = editor.markText(position.from, position.to, options);
                     
                     // Save a pointer to the new mark on the old mark,
                     // in case other history events are still pointing to the old mark
                     mark.markNew = markNew;
+                    
+                    // Update the mark that is saved with the history
+                    markAndMore.mark = markNew;
                 });
             }
         },
@@ -5750,11 +5773,7 @@ define([
             var reset;
             var self;
             self = this;
-            
-            while (mark.markNew) {
-                mark = mark.markNew;
-            }
-            
+                        
             // Remember the settings for inclusive left and inclusive right
             // so we can restore them later
             clearWhenEmpty = mark.clearWhenEmpty;
@@ -5771,7 +5790,7 @@ define([
                 }
                 mark.inclusiveLeft = inclusiveLeft;
                 mark.inclusiveRight = inclusiveRight;
-                mark.clearWhenEmpty = clearWhenEmpty;                
+                mark.clearWhenEmpty = clearWhenEmpty;
             };
             
             execute = function() {
@@ -7512,6 +7531,27 @@ define([
             }
 
             return attr;
+        },
+        
+        
+        /**
+         * Generate a message to display all the marks to the console.
+         * @return {String}
+         */
+        logMarks: function() {
+            var marks;
+            var msg;
+            var self;
+            self = this;
+            marks = self.codeMirror.getAllMarks();
+            msg = '';
+            $.each(marks, function(i,mark) {
+                if (mark.className === 'rte2-style-spelling') {
+                    return;
+                }
+                msg += ' ' + mark.id + ':' + mark.className;
+            })
+            return msg;
         }
         
     };
