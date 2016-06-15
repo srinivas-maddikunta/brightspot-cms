@@ -46,7 +46,7 @@ public class ToolUserWorksInProgress extends PageServlet {
 
         List<WorkInProgress> wips = null;
 
-        boolean clearWips = page.paramOrDefault(Boolean.class, PARAM_CLEAR, false);
+        boolean clearWips = page.isFormPost() && page.paramOrDefault(Boolean.class, PARAM_CLEAR, false);
         if (clearWips) {
             query.deleteAll();
         } else {
