@@ -167,8 +167,12 @@ define(['jquery'], function($) {
          */
         activeClear: function() {
             var self;
-            self = this;
-            self.$table.find('.' + self.activeClass).removeClass(self.activeClass);
+                self = this;
+            var $activeTableClass = self.$table.find('.' + self.activeClass);
+                $activeTableClass.removeClass(self.activeClass);
+            if ($activeTableClass.attr('class') === ""){
+                $activeTableClass.removeAttr('class');
+            }
             delete self.$active;
         },
 
