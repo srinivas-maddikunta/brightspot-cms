@@ -17,6 +17,8 @@ import java.util.UUID;
 @RoutingFilter.Path(application = "cms", value = "/user/wips")
 public class ToolUserWorksInProgress extends PageServlet {
 
+    private static final String PARAM_CLEAR = "clearWips";
+
     @Override
     protected String getPermissionId() {
         return null;
@@ -37,21 +39,43 @@ public class ToolUserWorksInProgress extends PageServlet {
             }
         }
 
-        List<WorkInProgress> wips = Query.from(WorkInProgress.class)
-                .where("owner = ?", page.getUser())
-                .and("updateDate != missing")
-                .sortDescending("updateDate")
-                .selectAll();
+        Query<WorkInProgress> query = Query.from(WorkInProgress.class)
+                        .where("owner = ?", page.getUser())
+                        .and("updateDate != missing")
+                        .sortDescending("updateDate");
+
+        List<WorkInProgress> wips = null;
+
+        boolean clearWips = page.paramOrDefault(Boolean.class, PARAM_CLEAR, false);
+        if (clearWips) {
+            query.deleteAll();
+        } else {
+            wips = query.selectAll();
+        }
 
         page.writeHeader();
 
         page.writeStart("div", "class", "widget ToolUserWorksInProgress");
         {
             page.writeStart("h1");
-                page.writeHtml("Works In Progress");
+                page.writeHtml("Works In Progress ");
+
+                if (!clearWips && !ObjectUtils.isBlank(wips)) {
+                    page.writeStart("form", "method", "post", "action", page.cmsUrl("/user/wips", PARAM_CLEAR, true));
+                        page.writeStart("button", "class", "link icon icon-action-cancel", "name", "action-clear-wip", "value", "true", "data-url",  page.cmsUrl("/user/wips", PARAM_CLEAR, true));
+                            page.writeHtml("Clear");
+                        page.writeEnd();
+                    page.writeEnd();
+                }
+
             page.writeEnd();
 
-            if (wips.isEmpty()) {
+            if (clearWips) {
+                page.writeStart("div", "class", "message message-info");
+                page.writeHtml("Works in Progress cleared.");
+                page.writeEnd();
+
+            } else if (ObjectUtils.isBlank(wips)) {
                 page.writeStart("div", "class", "message message-info");
                 page.writeHtml("No works in progress!");
                 page.writeEnd();

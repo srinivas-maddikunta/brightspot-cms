@@ -559,6 +559,10 @@ function() {
     return confirm('Are you sure you want to archive this item?');
   });
 
+  $doc.on('click', 'button[name="action-clear-wip"]', function() {
+    return confirm('Are you sure you want to clear all your Works in Progress?');
+  });
+
   (function() {
     function sync() {
       var $input = $(this),
