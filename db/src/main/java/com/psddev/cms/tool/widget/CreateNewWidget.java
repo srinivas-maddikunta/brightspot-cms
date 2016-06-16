@@ -144,7 +144,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                         && !type.getGroups().contains(Singleton.class.getName())
                         && !typeCounts.containsKey(type)
                         && page.hasPermission("type/" + type.getId() + "/write")
-                        && ObjectUtils.isBlank(type.getState().get("cms.ui.hidden"))) {
+                        && !type.as(ToolUi.class).isHidden()) {
                     TypeTemplate typeTemplate = new TypeTemplate(type, null);
 
                     if (typeTemplate.getCollapsedId().equals(redirect)) {
