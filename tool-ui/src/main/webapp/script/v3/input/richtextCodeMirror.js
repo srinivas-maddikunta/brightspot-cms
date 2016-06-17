@@ -5852,6 +5852,40 @@ define([
             });
         },
         
+        
+        /**
+         * Set a property on a mark in a way that supports undo history.
+         * @param  {Object} mark     A CodeMirror mark.
+         * @param  {String} property Name of the property, such as "attributes"
+         * @param  {String} value    Value for the property.
+         */
+        setMarkProperty: function(mark, property, value) {
+        
+            var self;
+            var valueOriginal;
+            self = this;
+            
+            valueOriginal = mark[property];
+            mark[property] = value;
+            
+            self.historyAdd({
+                undo: function() {
+                    // If mark was updated by other history events get latest mark
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark[property] = valueOriginal;
+                },
+                redo: function() {
+                    // If mark was updated by other history events get latest mark
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark[property] = value;
+                }
+            });
+        },
+        
         /**
          * Replace a range of text without affecting the style marks
          * next to or surrounding the range.
