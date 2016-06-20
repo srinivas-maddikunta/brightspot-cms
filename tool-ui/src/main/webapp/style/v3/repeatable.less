@@ -797,21 +797,20 @@
 
       > li {
         &:before {
-          @length-size: 20px;
-
-          .background-flat(fade(black, 60%));
-
+          background: @color-overlay;
           border: 2px solid white;
-          border-radius: @length-size;
+          border-radius: 12px;
+          color: white;
           counter-increment: listItem;
           content: counter(listItem);
-          height: @length-size;
-          line-height: @length-size;
-          position: absolute;
+          height: 24px;
           left: 10px;
+          line-height: 20px;
+          min-width: 24px;
+          padding: 0 4px;
+          position: absolute;
           text-align: center;
           top: 10px;
-          width: @length-size;
           z-index: 1;
         }
       }
