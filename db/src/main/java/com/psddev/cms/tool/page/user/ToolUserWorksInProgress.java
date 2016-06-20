@@ -17,8 +17,6 @@ import java.util.UUID;
 @RoutingFilter.Path(application = "cms", value = "/user/wips")
 public class ToolUserWorksInProgress extends PageServlet {
 
-    private static final String PARAM_CLEAR = "clearWips";
-
     @Override
     protected String getPermissionId() {
         return null;
@@ -44,11 +42,12 @@ public class ToolUserWorksInProgress extends PageServlet {
                 .and("updateDate != missing")
                 .sortDescending("updateDate");
 
+        boolean deleteAll = page.isFormPost() && page.param(String.class, "action-delete-all") != null;
         List<WorkInProgress> wips = null;
 
-        boolean clearWips = page.isFormPost() && page.paramOrDefault(Boolean.class, PARAM_CLEAR, false);
-        if (clearWips) {
+        if (deleteAll) {
             query.deleteAll();
+
         } else {
             wips = query.selectAll();
         }
@@ -59,20 +58,11 @@ public class ToolUserWorksInProgress extends PageServlet {
         {
             page.writeStart("h1");
                 page.writeHtml("Works In Progress ");
-
-                if (!clearWips && !ObjectUtils.isBlank(wips)) {
-                    page.writeStart("form", "method", "post", "action", page.cmsUrl("/user/wips", PARAM_CLEAR, true));
-                        page.writeStart("button", "class", "link icon icon-action-cancel", "name", "action-clear-wip", "value", "true", "data-url",  page.cmsUrl("/user/wips", PARAM_CLEAR, true));
-                            page.writeHtml("Clear");
-                        page.writeEnd();
-                    page.writeEnd();
-                }
-
             page.writeEnd();
 
-            if (clearWips) {
+            if (deleteAll) {
                 page.writeStart("div", "class", "message message-info");
-                page.writeHtml("Works in Progress cleared.");
+                page.writeHtml("All works in progress deleted!");
                 page.writeEnd();
 
             } else if (ObjectUtils.isBlank(wips)) {
@@ -81,6 +71,7 @@ public class ToolUserWorksInProgress extends PageServlet {
                 page.writeEnd();
 
             } else {
+                page.writeStart("div", "class", "ToolUserWorksInProgress-body");
                 page.writeStart("ul", "class", "links");
                 {
                     for (WorkInProgress wip : wips) {
@@ -122,6 +113,22 @@ public class ToolUserWorksInProgress extends PageServlet {
                         page.writeEnd();
                     }
                 }
+                page.writeEnd();
+
+                page.writeStart("form",
+                        "class", "ToolUserWorksInProgress-actions",
+                        "method", "post",
+                        "action", page.url(""));
+                {
+
+                    page.writeStart("button",
+                            "class", "link icon icon-action-remove",
+                            "name", "action-delete-all",
+                            "value", "true");
+                    page.writeHtml("Delete All Works In Progress");
+                    page.writeEnd();
+                }
+                page.writeEnd();
                 page.writeEnd();
             }
         }
