@@ -57,7 +57,7 @@ public class ToolUserWorksInProgress extends PageServlet {
         page.writeStart("div", "class", "widget ToolUserWorksInProgress");
         {
             page.writeStart("h1");
-                page.writeHtml("Works In Progress ");
+                page.writeHtml("Works In Progress");
             page.writeEnd();
 
             if (deleteAll) {
