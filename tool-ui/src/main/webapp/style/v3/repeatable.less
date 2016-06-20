@@ -289,18 +289,19 @@
         }
 
         &:before {
+          background: @color-overlay;
+          border: 2px solid white;
+          border-radius: 12px;
+          color: white;
           content: counter(@preview-counter);
-          position:absolute;
-          top:10px;
-          left:10px;
-          background:rgba(64,64,64,0.7);
-          border:2px solid white;
-          border-radius:50%;
-          color:white;
-          height: 20px;
-          width:20px;
-          text-align:center;
-          line-height:16px;
+          height: 24px;
+          left: 10px;
+          line-height: 20px;
+          min-width: 24px;
+          padding: 0 4px;
+          position: absolute;
+          text-align: center;
+          top: 10px;
         }
 
       }
