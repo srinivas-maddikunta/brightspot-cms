@@ -40,9 +40,9 @@ public class ToolUserWorksInProgress extends PageServlet {
         }
 
         Query<WorkInProgress> query = Query.from(WorkInProgress.class)
-                        .where("owner = ?", page.getUser())
-                        .and("updateDate != missing")
-                        .sortDescending("updateDate");
+                .where("owner = ?", page.getUser())
+                .and("updateDate != missing")
+                .sortDescending("updateDate");
 
         List<WorkInProgress> wips = null;
 
