@@ -1,7 +1,19 @@
 .repeatableForm {
+  > ol {
+    counter-reset: item;
+
+    > li {
+      > .repeatableLabel {
+        &:before {
+          content: counter(item) '. ';
+          counter-increment: item;
+        }
+      }
+    }
+  }
+
   > ol,
   > ul {
-    counter-reset: item;
     list-style-type: none;
     margin-bottom: 0;
     margin-left: 0;
@@ -36,11 +48,6 @@
           font-size: 80%;
           left: 5px;
           position: absolute;
-        }
-
-        &:before {
-          content: counter(item) '. ';
-          counter-increment: item;
         }
 
         &:hover:after {
