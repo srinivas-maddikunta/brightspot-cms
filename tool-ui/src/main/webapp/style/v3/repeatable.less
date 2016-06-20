@@ -620,15 +620,13 @@
 }
 
 .repeatableObjectId {
-  > ol {
-    counter-reset: repeatableObjectId;
+  > ol,
+  > ul {
     list-style-type: none;
     margin-left: 0;
 
     > li {
       &:before {
-        content: counter(repeatableObjectId) '.';
-        counter-increment: repeatableObjectId;
         display: inline-block;
         height: 30px;
         line-height: 30px;
@@ -637,10 +635,29 @@
         text-align: center;
         vertical-align: top;
       }
+    }
+  }
+
+  > ol {
+    counter-reset: repeatableObjectId;
+
+    > li {
+      &:before {
+        content: counter(repeatableObjectId) '.';
+        counter-increment: repeatableObjectId;
+      }
 
       &.sortable-dragging:before {
         counter-increment: none;
         visibility: hidden;
+      }
+    }
+  }
+
+  > ul {
+    > li {
+      &:before {
+        content: '\25cf';
       }
     }
   }
