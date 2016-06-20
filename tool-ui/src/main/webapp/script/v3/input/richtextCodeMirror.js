@@ -3472,10 +3472,13 @@ define([
                         }
                     }
 
-                    mark.clear();
+                    // Remove the text before the mark is removed, to ensure undo works
                     if (pos) {
                         self.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch});
                     }
+                    
+                    mark.clear();
+                    
                     self.focus();
                     self.dropdownCheckCursor();
                     self.triggerChange();
