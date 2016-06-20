@@ -620,6 +620,31 @@
 }
 
 .repeatableObjectId {
+  > ol {
+    counter-reset: repeatableObjectId;
+    list-style-type: none;
+    margin-left: 0;
+
+    > li {
+      &:before {
+        content: counter(repeatableObjectId) '.';
+        counter-increment: repeatableObjectId;
+        display: inline-block;
+        height: 30px;
+        line-height: 30px;
+        min-width: 18px;
+        padding: 0 4px;
+        text-align: center;
+        vertical-align: top;
+      }
+
+      &.sortable-dragging:before {
+        counter-increment: none;
+        visibility: hidden;
+      }
+    }
+  }
+
   > ol,
   > ul {
     margin-bottom: 0;
