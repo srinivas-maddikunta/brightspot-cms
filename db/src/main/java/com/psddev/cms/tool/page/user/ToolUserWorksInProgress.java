@@ -124,6 +124,7 @@ public class ToolUserWorksInProgress extends PageServlet {
                     page.writeStart("button",
                             "class", "link icon icon-action-remove",
                             "name", "action-delete-all",
+                            "data-confirm-message", "Are you sure you want to delete all your works in progress?",
                             "value", "true");
                     page.writeHtml("Delete All Works In Progress");
                     page.writeEnd();
