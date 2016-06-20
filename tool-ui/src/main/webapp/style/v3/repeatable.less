@@ -26,11 +26,11 @@
         cursor: pointer;
         left: 0;
         margin: -10px -10px 10px -10px;
-        padding-left: 45px;
+        padding-left: 25px;
         padding-right: 45px;
         position: relative;
 
-        &:before {
+        &:after {
           color: rgba(0, 0, 0, 0.3);
           content: '\25bc';
           font-size: 80%;
@@ -38,17 +38,12 @@
           position: absolute;
         }
 
-        &:after {
-          content: counter(item) '.';
+        &:before {
+          content: counter(item) '. ';
           counter-increment: item;
-          left: 20px;
-          position: absolute;
-          text-align: right;
-          top: 6px;
-          width: 20px;
         }
 
-        &:hover:before {
+        &:hover:after {
           color: rgba(0, 0, 0, 0.8);
         }
       }
@@ -89,7 +84,7 @@
           border-bottom-style: none;
           margin-bottom: 0;
 
-          &:before {
+          &:after {
             content: '\25ba';
             margin-right: 5px;
           }
@@ -109,7 +104,7 @@
           margin-bottom: 0;
           text-decoration: line-through;
 
-          &:before {
+          &:after {
             visibility: hidden;
           }
         }
@@ -550,7 +545,7 @@
           margin-bottom: 0;
           text-decoration: line-through;
 
-          &:before {
+          &:after {
             visibility: hidden;
           }
         }
@@ -1025,9 +1020,6 @@
       background: white;
       border-bottom: 1px solid @color-border;
       padding: 12px 120px 12px 45px;
-      &:after {
-        top: 12px;
-      }
     }
     > .removeButton {
       top: 10px;
