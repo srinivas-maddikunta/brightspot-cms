@@ -140,6 +140,9 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("UI")
     private boolean optInContentLocking;
 
+    @ToolUi.Tab("UI")
+    private boolean disableFieldLocking;
+
     @ToolUi.Tab("Debug")
     private boolean removeTrailingSlashes;
 
@@ -693,6 +696,14 @@ public class CmsTool extends Tool {
 
     public void setOptInContentLocking(boolean optInContentLocking) {
         this.optInContentLocking = optInContentLocking;
+    }
+
+    public boolean isDisableFieldLocking() {
+        return disableFieldLocking;
+    }
+
+    public void setDisableFieldLocking(boolean disableFieldLocking) {
+        this.disableFieldLocking = disableFieldLocking;
     }
 
     public boolean isRemoveTrailingSlashes() {

@@ -307,6 +307,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                     "published", null) %>"
             autocomplete="off"
             data-rtc-content-id="<%= draft != null ? draft.getId() : editingState.getId() %>"
+            data-field-locking="<%= !wp.getCmsTool().isDisableFieldLocking() %>"
             data-new="<%= State.getInstance(editing).isNew() %>"
             data-o-id="<%= State.getInstance(selected).getId() %>"
             data-o-label="<%= wp.h(State.getInstance(selected).getLabel()) %>"
