@@ -182,6 +182,7 @@ public class ImageFileType implements FileContentType {
                         page.writeStart("li");
                             page.writeStart("a",
                                     "class", "icon icon-crop",
+                                    "data-frame-post", "",
                                     "href", page.h(page.url("/contentImages", "data", ObjectUtils.toJson(fieldValue))),
                                     "target", "contentImages");
                                 page.writeHtml(page.localize(ImageFileType.class, "action.viewResized"));

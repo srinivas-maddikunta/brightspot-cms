@@ -6,7 +6,7 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.util.JspUtils;
+import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 
 import javax.servlet.ServletException;
@@ -33,7 +33,14 @@ public class SiteSwitch extends PageServlet {
 
             user.setCurrentSite(Query.from(Site.class).where("_id = ?", page.param(UUID.class, "id")).first());
             user.save();
-            JspUtils.redirect(page.getRequest(), page.getResponse(), page.cmsUrl("/"));
+
+            String returnUrl = page.param(String.class, "returnUrl");
+
+            if (ObjectUtils.isBlank(returnUrl)) {
+                returnUrl = page.cmsUrl("/");
+            }
+
+            page.getResponse().sendRedirect(returnUrl);
             return;
         }
 
@@ -61,13 +68,19 @@ public class SiteSwitch extends PageServlet {
                                 "data-bsp-autosubmit", "",
                                 "target", "siteSwitchResults");
 
+                            page.writeElement("input",
+                                    "type", "hidden",
+                                    "name", "returnUrl",
+                                    "value", page.param(String.class, "returnUrl"));
+
                             if (Query.from(SiteCategory.class).hasMoreThan(0)) {
                                 page.writeStart("select",
                                         "data-searchable", true,
                                         "name", SITE_CATEGORY_INPUT_NAME,
-                                        "placeholder", "Site Category",
                                         "style", "display: block;");
+
                                     page.writeStart("option", "value", "");
+                                        page.writeHtml(page.localize(SiteSwitch.class, "label.noCategory"));
                                     page.writeEnd();
 
                                     for (SiteCategory siteCategory : Query.from(SiteCategory.class).selectAll()) {

@@ -1,5 +1,5 @@
 /* jshint undef: true, unused: true, browser: true, jquery: true, devel: true */
-/* global define */
+/* global define document */
 
 define(['jquery'], function($) {
 
@@ -167,8 +167,12 @@ define(['jquery'], function($) {
          */
         activeClear: function() {
             var self;
-            self = this;
-            self.$table.find('.' + self.activeClass).removeClass(self.activeClass);
+                self = this;
+            var $activeTableClass = self.$table.find('.' + self.activeClass);
+                $activeTableClass.removeClass(self.activeClass);
+            if ($activeTableClass.attr('class') === ""){
+                $activeTableClass.removeAttr('class');
+            }
             delete self.$active;
         },
 
@@ -211,7 +215,7 @@ define(['jquery'], function($) {
             }).hide().on('click', function(event) {
                 event.preventDefault();
                 event.stopPropagation();
-            }).appendTo(self.$wrapper);
+            }).appendTo(document.body);
         },
 
         
@@ -266,15 +270,16 @@ define(['jquery'], function($) {
          * Update the position of the context menu so it appears below the active cell.
          */
         contextPosition: function() {
-            
-            var $el, pos, self;
-            
-            self = this;
+            var self = this;
+            var $el = self.selectedGet();
+            var offset = $el.offset();
 
-            $el = self.selectedGet();
-            pos = $el.position();
-            if (pos) {
-                self.$context.css({left:pos.left, top:pos.top + $el.outerHeight() - 1});
+            if (offset) {
+                self.$context.css({
+                    left: offset.left,
+                    top: offset.top + $el.outerHeight() - 1,
+                    'z-index': $el.zIndex() + 1
+                });
             }
         },
 
@@ -401,6 +406,8 @@ define(['jquery'], function($) {
             } else {
                 $rowNew.insertAfter($row);
             }
+            
+            self.triggerChange();
         },
 
         
@@ -431,6 +438,8 @@ define(['jquery'], function($) {
             
             $row = $cell.closest('tr');
             $row.remove();
+            
+            self.triggerChange();
         },
 
 
@@ -490,10 +499,9 @@ define(['jquery'], function($) {
             $table = $cell.closest('table');
             $table.find('> * > tr').each(function() {
                 
-                var $td, $tds, $tr;
+                var $td, $tr;
 
                 $tr = $(this);
-                $tds = $tr.find('> td, > th');
 
                 // Now add a new cell at the insertion point
                 $td = self.cellCreate();
@@ -503,6 +511,8 @@ define(['jquery'], function($) {
                     $td.insertBefore( $tr.find('> td, > th').eq(colNumber) );
                 }
             });
+            
+            self.triggerChange();
         },
 
         
@@ -548,6 +558,8 @@ define(['jquery'], function($) {
                 // Delete the cell for the column
                 $tds.eq(colNumber).remove();
             });
+            
+            self.triggerChange();
         },
 
         
@@ -672,6 +684,8 @@ define(['jquery'], function($) {
             $cell = options.cell ? $(options.cell) : self.selectedGet();
 
             $cell.html(content);
+            
+            self.triggerChange();
         },
 
         
@@ -732,6 +746,16 @@ define(['jquery'], function($) {
             // Remove any empty 'class' attributes because jquery leaves those around after setting and removing the active classes
             $cloned.find('[class=""]').removeAttr('class');
             return options.html ? $cloned.html() : self.$table;
+        },
+        
+        
+        /**
+         * Trigger a change event. To be used whenever the table is modified.
+         */  
+        triggerChange: function() {
+            var self;
+            self = this;
+            self.$table.trigger('tableEditorChange', [self]);
         }
     };
     

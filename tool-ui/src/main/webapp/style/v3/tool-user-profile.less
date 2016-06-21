@@ -99,3 +99,56 @@
 .p-tud-lg-recent {
   margin-left: 240px;
 }
+
+.ToolUserWorksInProgress {
+  .links,
+  .message {
+    margin: 0;
+  }
+
+  .links {
+    li {
+      position: relative;
+
+      form {
+        margin: 0;
+        position: absolute;
+        right: 0;
+        top: 7.5px;
+        z-index: 1;
+
+        button {
+          &:extend(.widget-controls-button all);
+
+          .icon-action-delete;
+
+          color: @color-remove;
+        }
+      }
+
+      &:hover {
+        form {
+          right: 20px;
+
+          button:hover {
+            color: @color-remove;
+          }
+        }
+      }
+    }
+  }
+
+  &-body {
+    margin: 0 -20px;
+    padding: 0 20px;
+  }
+
+  &-actions {
+    margin-top: 5px;
+    margin-right: 7px;
+
+    [name='action-delete-all'] {
+      float: right;
+    }
+  }
+}

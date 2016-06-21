@@ -13,6 +13,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
   bsp_utils.onDomInsert(document, '.contentForm, .enhancementForm, .standardForm', {
     'insert': function(form) {
       var $form = $(form);
+      var wipEnabled = $form.is('.contentForm');
       var running;
       var rerun;
       var idleTimeout;
@@ -53,15 +54,11 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
               && $(this).closest('.contentDiffCurrent').length === 0;
         });
 
-        if (!idle) {
-          $form.find('[data-dynamic-predicate]:not([data-dynamic-predicate = ""])').each(function () {
-            $(this).removeClass('state-loaded');
-          });
-        }
+        var $publishingHeading = $form.find('.widget-publishing > h1');
 
         $.ajax({
           'type': 'post',
-          'url': CONTEXT_PATH + 'contentState?idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
+          'url': CONTEXT_PATH + 'contentState?wip=' + wipEnabled + '&idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
           'cache': false,
           'dataType': 'json',
 
@@ -69,17 +66,50 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           // as well. We need to remove that from the form post or it messes up the dynamic values that return.
           'data': $form.find('[name]').not($form.find('.contentDiffCurrent [name]')).serialize() + $dynamicTexts.map(function() {
             var $element = $(this);
+            var fieldNames = { };
 
-            return '&_dti=' + ($element.closest('[data-object-id]').attr('data-object-id') || '') +
-                '&_dtt=' + (($element.attr('data-dynamic-text') ||
+            $form.find('.objectInputs').each(function () {
+              var $inputs = $(this);
+
+              fieldNames[$inputs.attr('data-object-id')] = $.makeArray($inputs.find('> .inputContainer').map(function () {
+                return $(this).attr('data-field-name');
+              }));
+            });
+
+            return '&_fns=' + encodeURIComponent(JSON.stringify(fieldNames)) +
+                '&_dti=' + encodeURIComponent($element.closest('[data-object-id]').attr('data-object-id') || '') +
+                '&_dtt=' + encodeURIComponent(($element.attr('data-dynamic-text') ||
                 $element.attr('data-dynamic-html') ||
                 $element.attr('data-dynamic-placeholder') ||
                 '')) +
-                  '&_dtf=' + ($element.attr('data-dynamic-field-name') || '') +
-                  '&_dtq=' + ($element.attr('data-dynamic-predicate') || '');
+                  '&_dtf=' + encodeURIComponent($element.attr('data-dynamic-field-name') || '') +
+                  '&_dtq=' + encodeURIComponent($element.attr('data-dynamic-predicate') || '');
           }).get().join(''),
 
           'success': function(data) {
+            if (wipEnabled) {
+              var wipMessage = data._wip;
+
+              if (wipMessage) {
+                var $wipSaveStatus = $publishingHeading.find('> .WorkInProgressSaveStatus');
+
+                if ($wipSaveStatus.length === 0) {
+                  $wipSaveStatus = $('<span/>', {
+                    'class': 'WorkInProgressSaveStatus'
+                  });
+
+                  $publishingHeading.append($wipSaveStatus);
+                }
+
+                $wipSaveStatus.removeAttr('data-status');
+                $wipSaveStatus.text(wipMessage);
+
+                setTimeout(function () {
+                  $wipSaveStatus.attr('data-status', 'saved');
+                }, 0)
+              }
+            }
+
             $form.trigger('cms-updateContentState', [ data ]);
 
             $dynamicTexts.each(function(index) {
@@ -87,11 +117,33 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                   text = data._dynamicTexts[index],
                   dynamicPredicate = data._dynamicPredicates[index];
 
+              if ($element.attr('data-placeholder-clear-on-change') === 'true') {
+                var oldClearKey = $element.attr('data-old-clear-key');
+                var newClearKey = text || 'null';
+
+                if (!oldClearKey) {
+                  $element.attr('data-old-clear-key', newClearKey)
+
+                } else if (oldClearKey !== newClearKey) {
+                  $element.attr('data-old-clear-key', newClearKey);
+
+                  if ($element.is('input, select, textarea')) {
+                    var rte = $element.data('rte2');
+
+                    if (rte) {
+                      rte.fromHTML('');
+                    }
+
+                    $element.val('');
+                    $element.change();
+                  }
+                }
+              }
+
               if ($element.is('[data-dynamic-predicate]')) {
 
                 $element.attr('data-additional-query', dynamicPredicate);
                 $element.trigger('refresh.objectId');
-                $element.addClass('state-loaded');
               }
 
               //If text is missing set to empty to compare & replace below
@@ -139,6 +191,8 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                   $inputs.find('> .inputContainer[data-field-name="' + name + '"]').addClass('state-changed');
                 });
               });
+
+              $form.trigger('content-state-differences');
             }
 
             $form.resize();
