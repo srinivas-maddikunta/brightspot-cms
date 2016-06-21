@@ -88,7 +88,7 @@
                     'css': {
                         'left': -10000,
                         'position': 'absolute',
-                        'top': 0,
+                        'top': -10000,
                         'visibility': 'hidden'
                     }
                 });
@@ -101,6 +101,7 @@
 
                 if (shadow && !shadow.elementAppended) {
                     $shadowContainer.append(shadow.$element);
+                    $shadowContainer.append(' ');
                     shadow.elementAppended = true;
                 }
             });
