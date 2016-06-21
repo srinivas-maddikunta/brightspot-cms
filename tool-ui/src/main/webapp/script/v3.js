@@ -139,6 +139,7 @@ function() {
     '.popup[data-popup-source-class~="objectId-select"] .searchResultList',
     '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchFiltersRest',
     '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList',
+    '.searchResult-actions-body',
     '.ToolUserWorksInProgress-body'
   ].join(','));
 
