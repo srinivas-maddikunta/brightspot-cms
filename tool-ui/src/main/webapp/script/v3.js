@@ -139,7 +139,7 @@ function() {
     '.popup[data-popup-source-class~="objectId-select"] .searchResultList',
     '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchFiltersRest',
     '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList',
-    '.ToolUserWorksInProgress > ul'
+    '.ToolUserWorksInProgress-body'
   ].join(','));
 
   $doc.frame({
@@ -557,6 +557,10 @@ function() {
 
   $doc.on('click', 'button[name="action-trash"], :submit[name="action-trash"]', function() {
     return confirm('Are you sure you want to archive this item?');
+  });
+
+  $doc.on('click', '[data-confirm-message]', function () {
+    return confirm($(this).attr('data-confirm-message'));
   });
 
   (function() {
