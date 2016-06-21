@@ -28,7 +28,7 @@ require([
   'jquery',
   'jquery.extra',
 
-  'bsp-autoexpand',
+  'v3/plugin/auto-expand',
   'bsp-autosubmit',
   'bsp-uploader',
   'bsp-utils',
