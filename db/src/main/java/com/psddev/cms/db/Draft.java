@@ -265,15 +265,6 @@ public class Draft extends Content {
             Set<String> xKeys = xMap.keySet();
             Set<String> yKeys = yMap.keySet();
 
-            // Ignore metadata in file fields.
-            if (field != null && field.getInternalItemType().equals(ObjectField.FILE_TYPE)) {
-                xKeys = new HashSet<>(xKeys);
-                yKeys = new HashSet<>(xKeys);
-
-                xKeys.remove("metadata");
-                yKeys.remove("metadata");
-            }
-
             return xKeys.equals(yKeys)
                     && xKeys.stream().allMatch(k -> roughlyEquals(field, xMap.get(k), yMap.get(k)));
 
