@@ -3424,7 +3424,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     // when popup is closed check to see if the mark attributes are empty
                     // remove mark if nothing has been selected.
 
-                    if ($.isEmptyObject(mark.attributes)) {
+                    if (mark.rteSuccess !== true) {
                         var pos;
 
                         // For void element, delete the text in the mark

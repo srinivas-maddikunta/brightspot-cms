@@ -131,7 +131,8 @@ if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-a
                     wp.writeRaw("var rte = $source.data('rte');");
                     wp.writeRaw("var mark = $source.data('mark');");
                     wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
-
+                    wp.writeRaw("mark.rteSuccess = true;");
+                    
                     if (body != null) {
                         wp.writeRaw("var oldMarkInclusiveLeft = mark.inclusiveLeft;");
                         wp.writeRaw("var oldMarkInclusiveRight = mark.inclusiveRight;");
