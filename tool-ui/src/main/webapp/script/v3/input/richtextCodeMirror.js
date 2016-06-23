@@ -885,32 +885,6 @@ define([
          */
         inlineSetStyle: function(style, range, options) {
             
-            var self;
-            self = this;
-
-            range = range || self.getRange();
-
-            // Avoid creating a history event if the style does not cover characters
-            if (!(range.from.line === range.to.line && range.from.ch === range.to.ch)) {
-                
-                // Create a history event so we can undo adding this style
-                self.historyAdd({
-                    undo: function() {
-                        // Remove the style (but avoid creating a new history event)
-                        self._inlineRemoveStyle(style, range, options);
-                    },
-                    redo: function() {
-                        // Add the style back (but avoid creating a new history event)
-                        self._inlineSetStyle(style, range, options);
-                    }
-                });
-            }
-
-            // Now actually add the style
-            return self._inlineSetStyle(style, range, options);
-        },
-        _inlineSetStyle: function(style, range, options) {
-            
             var className;
             var editor;
             var isEmpty;
@@ -987,7 +961,7 @@ define([
                 }
             }
 
-            mark = editor.markText(range.from, range.to, markOptions);
+            mark = self.historyCreateMark(range.from, range.to, markOptions);
             self.inlineSplitMarkAcrossLines(mark);
 
             // If this is a set of mutually exclusive styles, clear the other styles
@@ -1044,27 +1018,6 @@ define([
          * Set to false if you want to prevent a change event from being triggered.
          */
         inlineRemoveStyle: function(styleKey, range, options) {
-            
-            var self;
-            self = this;
-
-            // Create a history event so we can undo adding this style
-            self.historyAdd({
-                undo: function() {
-                    // Add the style back (but avoid creating a new history event)
-                    // TODO: are the options for inlineSetStyle the same as inlineRemoveStyle?
-                    self._inlineSetStyle(styleKey, range, options);
-                },
-                redo: function() {
-                    // Remove the style (but avoid creating a new history event)
-                    self._inlineRemoveStyle(styleKey, range, options);
-                }
-            });
-
-            // Now actually add the style
-            self._inlineRemoveStyle(styleKey, range, options);
-        },
-        _inlineRemoveStyle: function(styleKey, range, options) {
 
             var className;
             var deleteText;
@@ -1103,7 +1056,7 @@ define([
 
                 var fromCh;
                 var marks;
-                var newMark;
+                var markNew;
                 var toCh;
 
                 // Get the character ranges to search within this line.
@@ -1146,7 +1099,7 @@ define([
                         return;
                     }
                                         
-                    markerOpts = mark.marker;
+                    markerOpts = self.historyGetOptions(mark.marker);
                     markerOpts.addToHistory = false;
 
                     markerOptsNotInclusive = $.extend(true, {}, markerOpts);
@@ -1208,18 +1161,14 @@ define([
                         //      xxx          <-- text to delete (if deleteText is true)
                         
                         // Create a new marker for the text that should remain styled
-                        newMark = editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: toCh },
                             { line: lineNumber, ch: to },
                             markerOpts
                         );
                         
-                        // Save a link from the old mark to the new one
-                        // so undo history can get to the new mark
-                        mark.marker.markNew = newMark;
-
                         if (deleteText) {
-                            // Create a marker for the text that will be deleted
+                            // Create a temporary marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
                             editor.markText(
                                 { line: lineNumber, ch: from },
@@ -1242,22 +1191,18 @@ define([
                         //      nn           <-- new mark
                         //        xxxxx      <-- text to delete (if deleteText is true)
 
-                        newMark = editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
                         
-                        // Save a link from the old mark to the new one
-                        // so undo history can get to the new mark
-                        mark.marker.markNew = newMark;
-
-                        self.inlineMakeInclusivePush(newMark);
+                        self.inlineMakeInclusivePush(markNew);
                         
                         if (deleteText) {
-                            // Create a marker for the text that will be deleted
+                            // Create a tempoary marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
-                            newMark = editor.markText(
+                            markNew = editor.markText(
                                 { line: lineNumber, ch: fromCh },
                                 { line: lineNumber, ch: to },
                                 markerOpts
@@ -1282,28 +1227,24 @@ define([
                             return;
                         }
                         
-                        newMark = editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: toCh },
                             { line: lineNumber, ch: to },
                             markerOpts
                         );
 
-                        newMark = editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
                         
-                        // Save a link from the old mark to the new one
-                        // so undo history can get to the new mark.
-                        mark.marker.markNew = newMark;
-
-                        self.inlineMakeInclusivePush(newMark);
+                        self.inlineMakeInclusivePush(markNew);
                         
                         if (deleteText) {
-                            // Create a marker for the text that will be deleted
+                            // Create a temporary marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
-                            newMark = editor.markText(
+                            markNew = editor.markText(
                                 { line: lineNumber, ch: fromCh },
                                 { line: lineNumber, ch: toCh },
                                 markerOpts
@@ -1341,7 +1282,7 @@ define([
                 }
                 if (mark.shouldRemove) {
                     
-                    mark.clear();
+                    self.historyRemoveMark(mark);
                     
                     // Trigger a change event for the editor later
                     triggerChange = true;
@@ -2030,7 +1971,7 @@ define([
                 for (lineNumber = from.line; lineNumber <= to.line; lineNumber++) {
 
                     var fromCh;
-                    var newMark;
+                    var markNew;
                     var toCh;
                     
                     fromCh = (lineNumber === from.line) ? from.ch : 0;
@@ -2038,14 +1979,14 @@ define([
 
                     
                     // Create a new mark on this line only
-                    newMark = editor.markText(
+                    markNew = editor.markText(
                         { line: lineNumber, ch: fromCh },
                         { line: lineNumber, ch: toCh },
                         mark
                     );
 
                     // Copy any additional attributes that were attached to the old mark
-                    newMark.attributes = mark.attributes;
+                    markNew.attributes = mark.attributes;
 
                     // Don't create other marks if this is a singleLine mark
                     if (singleLine) {
@@ -2246,7 +2187,7 @@ define([
             if (!self.historyIsExecuting()) {
                 self.historyAdd({
                     undo: function() {
-                        self._blockRemoveStyle(style, range, options);
+                        self.blockRemoveStyle(style, range, options);
                     },
                     redo: function() {
                         self._blockSetStyle(style, range, options);
@@ -2275,6 +2216,7 @@ define([
             } else {
                 styleObj = style;
             }
+            if (!styleObj) { return; }
             className = styleObj.className;
 
             // Create a fake "mark" object for the line
@@ -3394,8 +3336,8 @@ define([
 
             // Update marks to account for undo history marks getting re-created
             $.each(marks, function(i, mark) {
-                while (mark.newMark) {
-                    mark = mark.newMark;
+                while (mark.markNew) {
+                    mark = mark.markNew;
                 }
                 marks[i] = mark;
             });
@@ -5439,7 +5381,98 @@ define([
             }
         },
 
-        
+
+        /**
+         * Remove a mark and add a history event that recreates the mark if the user performs an undo.
+         * @param  {Object} mark A CodeMirror mark.
+         */
+        historyRemoveMark: function(mark) {
+            var options;
+            var pos;
+            var self;
+            self = this;
+            
+            // Save the position of this mark
+            if (mark.find) {
+                pos = mark.find();
+            }
+            if (!pos) {
+                return;
+            }
+            
+            // Save the attributes and options of this mark
+            options = self.historyGetOptions(mark);
+            
+            // Set up a history entry to recreate the mark
+            self.historyAdd({
+                // Undo should recreate the mark
+                undo: function(){
+                    var markNew;
+                    // Find the latest copy of this mark in case other history events have changed it
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark.clear();
+                    markNew = self.codeMirror.markText(pos.from, pos.to, options);
+                    mark.markNew = markNew;
+                    mark = markNew;
+                },
+                // Redo should remove the mark again
+                redo: function(){
+                    // Find the latest copy of this mark in case other history events have changed it
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark.clear();
+                }
+            });
+            
+            // Remove the mark
+            mark.clear();
+        },
+
+
+        /**
+         * Create a mark and add a history event that removes the mark if the user performans an undo.
+         * @param  {[type]} range   Range of characters for the mark.
+         * @param  {[type]} options Options and attributes for the mark.
+         * @return {Object} The mark that was created.
+         */
+        historyCreateMark: function(from, to, options) {
+            var mark;
+            var self;
+            self = this;
+            
+            // Only add a history event if the mark surrounds some characters.
+            if (!(from.line === to.line && from.ch === to.ch)) {
+                
+                self.historyAdd({
+                    undo: function(){
+                        // Find the latest copy of this mark in case other history events have changed it
+                        while (mark.markNew) {
+                            mark = mark.markNew;
+                        }
+                        mark.clear();
+                    },
+                    redo: function(){
+                        var markNew;
+                        // Find the latest copy of this mark in case other history events have changed it
+                        while (mark.markNew) {
+                            mark = mark.markNew;
+                        }
+                        mark.clear();
+                        markNew = self.codeMirror.markText(from, to, options);
+                        mark.markNew = markNew;
+                        mark = markNew;
+                    }
+                });
+            }
+            
+            mark = self.codeMirror.markText(from, to, options);
+            return mark;
+        },
+
+
         //==================================================
         // Miscelaneous Functions
         //==================================================
