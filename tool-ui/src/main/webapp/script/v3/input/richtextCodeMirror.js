@@ -3203,8 +3203,8 @@ define([
 
             self.$dropdown = $('<div/>', {
                 'class': 'rte2-dropdown'
-            }).hide().appendTo( editor.getWrapperElement() );
-            
+            }).hide().appendTo( editor.getWrapperElement().parentNode );
+
             editor.on('cursorActivity', $.debounce(250, function(instance, event) {
                 self.dropdownCheckCursor();
             }));
