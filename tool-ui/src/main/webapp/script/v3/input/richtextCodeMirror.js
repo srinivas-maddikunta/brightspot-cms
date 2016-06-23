@@ -2217,19 +2217,7 @@ define([
             
             for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
 
-                // Special trick to ensure lineNumber is unique value for each iteration
-                (function(lineNumberUnique) {
-                    self.historyAdd({
-                        undo: function(){
-                            editor.removeLineClass(lineNumberUnique, 'text', className);
-                        },
-                        redo: function(){
-                            editor.addLineClass(lineNumberUnique, 'text', className);
-                        }
-                    });
-                })(lineNumber);
-            
-                editor.addLineClass(lineNumber, 'text', className);
+                self.historyCreateLineClass(lineNumber, className);
 
                 // Store the mark data (and attributes) for the block style
                 self.blockSetLineData(styleObj.key, lineNumber, mark);
@@ -2419,46 +2407,19 @@ define([
 
             for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
                 
-                (function(lineNumberUnique) {
+                if (className) {
                     
-                    if (className) {
-                        
-                        // Remove a single class from the line
-                        self.historyAdd({
-                            undo: function(){
-                                editor.addLineClass(lineNumberUnique, 'text', className);
-                            },
-                            redo: function(){
-                                self.blockRemovePreviewForClass(className, lineNumberUnique);
-                                editor.removeLineClass(lineNumberUnique, 'text', className);
-                            }
-                        });
-                        
-                        self.blockRemovePreviewForClass(className, lineNumberUnique);
-                        editor.removeLineClass(lineNumberUnique, 'text', className);
-                        
-                    } else {
-                        
-                        // Remove all classes from the line
-                        line = editor.getLineHandle(lineNumberUnique);
-                        $.each((line.textClass || '').split(' '), function(i, className) {
-                            
-                            self.historyAdd({
-                                undo: function(){
-                                    editor.addLineClass(lineNumberUnique, 'text', className);
-                                },
-                                redo: function(){
-                                    self.blockRemovePreviewForClass(className, lineNumberUnique);
-                                    editor.removeLineClass(lineNumberUnique, 'text', className);
-                                }
-                            });
-                            
-                            self.blockRemovePreviewForClass(className, lineNumberUnique);
-                            editor.removeLineClass(lineNumberUnique, 'text', className);
-                        });
-                    }
+                    // Remove a single class from the line
+                    self.historyRemoveLineClass(lineNumber, className);
                     
-                })(lineNumber);
+                } else {
+                    
+                    // Remove all classes from the line
+                    line = editor.getLineHandle(lineNumber);
+                    $.each((line.textClass || '').split(' '), function(i, className) {
+                        self.historyRemoveLineClass(lineNumber, className);
+                    });
+                }
             }
             
             // Refresh the editor display since our line classes
@@ -5472,6 +5433,56 @@ define([
         },
 
 
+        /**
+         * Remove a line class and add a history event that recreates it if the user performans an undo.
+         * @param  {Number} lineNumber
+         * @param  {String} className
+         */
+        historyRemoveLineClass: function(lineNumber, className) {
+            var editor;
+            var self;
+            self = this;
+            editor = self.codeMirror;
+            
+            self.historyAdd({
+                undo: function(){
+                    editor.addLineClass(lineNumber, 'text', className);
+                },
+                redo: function(){
+                    self.blockRemovePreviewForClass(className, lineNumber);
+                    editor.removeLineClass(lineNumber, 'text', className);
+                }
+            });
+            
+            self.blockRemovePreviewForClass(className, lineNumber);
+            editor.removeLineClass(lineNumber, 'text', className);
+        },
+
+        
+        /**
+         * Create a line class and add a history event that removes it if the user performans an undo.
+         * @param  {Number} lineNumber
+         * @param  {String} className
+         */
+        historyCreateLineClass: function(lineNumber, className) {
+            var editor;
+            var self;
+            self = this;
+            editor = self.codeMirror;
+            
+            self.historyAdd({
+                undo: function(){
+                    editor.removeLineClass(lineNumber, 'text', className);
+                },
+                redo: function(){
+                    editor.addLineClass(lineNumber, 'text', className);
+                }
+            });
+            
+            editor.addLineClass(lineNumber, 'text', className);            
+        },
+        
+        
         //==================================================
         // Miscelaneous Functions
         //==================================================
