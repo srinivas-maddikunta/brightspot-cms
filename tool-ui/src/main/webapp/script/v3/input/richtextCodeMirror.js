@@ -2179,25 +2179,6 @@ define([
          * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
          */
         blockSetStyle: function(style, range, options) {
-            
-            var self;
-            self = this;
-
-            // Create a history event so we can undo adding this style
-            if (!self.historyIsExecuting()) {
-                self.historyAdd({
-                    undo: function() {
-                        self.blockRemoveStyle(style, range, options);
-                    },
-                    redo: function() {
-                        self._blockSetStyle(style, range, options);
-                    }
-                });
-            }
-            // Now actually add the style
-            return self._blockSetStyle(style, range, options);
-        },
-        _blockSetStyle: function(style, range, options) {
 
             var className;
             var editor;
@@ -2235,7 +2216,19 @@ define([
             }
             
             for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
-                
+
+                // Special trick to ensure lineNumber is unique value for each iteration
+                (function(lineNumberUnique) {
+                    self.historyAdd({
+                        undo: function(){
+                            editor.removeLineClass(lineNumberUnique, 'text', className);
+                        },
+                        redo: function(){
+                            editor.addLineClass(lineNumberUnique, 'text', className);
+                        }
+                    });
+                })(lineNumber);
+            
                 editor.addLineClass(lineNumber, 'text', className);
 
                 // Store the mark data (and attributes) for the block style
@@ -2398,25 +2391,6 @@ define([
          * The range of positions {from,to} 
          */
         blockRemoveStyle: function(styleKey, range) {
-            var self;
-            self = this;
-
-            // Create a history event so we can undo adding this style
-            if (!self.historyIsExecuting()) {
-                self.historyAdd({
-                    undo: function() {
-                        // TODO: what if the marks removed have attributes? Might need to maintain them
-                        self._blockSetStyle(styleKey, range);
-                    },
-                    redo: function() {
-                        self._blockRemoveStyle(styleKey, range);
-                    }
-                });
-            }
-
-            self._blockRemoveStyle(styleKey, range);
-        },
-        _blockRemoveStyle: function(styleKey, range) {
 
             var className;
             var editor;
@@ -2445,21 +2419,46 @@ define([
 
             for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
                 
-                if (className) {
+                (function(lineNumberUnique) {
                     
-                    // Remove a single class from the line
-                    self.blockRemovePreviewForClass(className, lineNumber);
-                    editor.removeLineClass(lineNumber, 'text', className);
+                    if (className) {
+                        
+                        // Remove a single class from the line
+                        self.historyAdd({
+                            undo: function(){
+                                editor.addLineClass(lineNumberUnique, 'text', className);
+                            },
+                            redo: function(){
+                                self.blockRemovePreviewForClass(className, lineNumberUnique);
+                                editor.removeLineClass(lineNumberUnique, 'text', className);
+                            }
+                        });
+                        
+                        self.blockRemovePreviewForClass(className, lineNumberUnique);
+                        editor.removeLineClass(lineNumberUnique, 'text', className);
+                        
+                    } else {
+                        
+                        // Remove all classes from the line
+                        line = editor.getLineHandle(lineNumberUnique);
+                        $.each((line.textClass || '').split(' '), function(i, className) {
+                            
+                            self.historyAdd({
+                                undo: function(){
+                                    editor.addLineClass(lineNumberUnique, 'text', className);
+                                },
+                                redo: function(){
+                                    self.blockRemovePreviewForClass(className, lineNumberUnique);
+                                    editor.removeLineClass(lineNumberUnique, 'text', className);
+                                }
+                            });
+                            
+                            self.blockRemovePreviewForClass(className, lineNumberUnique);
+                            editor.removeLineClass(lineNumberUnique, 'text', className);
+                        });
+                    }
                     
-                } else {
-                    
-                    // Remove all classes from the line
-                    line = editor.getLineHandle(lineNumber);
-                    $.each((line.textClass || '').split(' '), function(i, className) {
-                        self.blockRemovePreviewForClass(className, lineNumber);
-                        editor.removeLineClass(lineNumber, 'text', className);
-                    });
-                }
+                })(lineNumber);
             }
             
             // Refresh the editor display since our line classes
