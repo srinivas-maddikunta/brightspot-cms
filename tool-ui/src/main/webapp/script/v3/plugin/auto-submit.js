@@ -48,7 +48,12 @@
                 (input === $form[0] ? $form.find(':input') : $input).prop('autocomplete', 'off');
             }
 
-            plugin._on(input, 'change', submit);
+            plugin._on(input, 'change', function(event) {
+                if (event.target.name) {
+                    submit();
+                }
+            });
+            
             plugin._on(input, 'input', function(event){
                 if (event.target.name) {
                     submitCheck();
