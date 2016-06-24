@@ -5265,7 +5265,7 @@ define([
                 to.ch = change.text[ change.text.length - 1 ].length;
             }
 
-            self.replaceRangeWithoutStyles(from, to, change.removed.join('\n'));
+            self.codeMirror.replaceRange(change.removed.join('\n'), from, to, 'brightspotUndo');
             
             // Now re-add the marks that were possibly removed
             self.historyCodeMirrorChangeMarks(change);
