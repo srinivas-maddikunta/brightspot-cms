@@ -44,6 +44,12 @@ define([ 'string', 'bsp-utils' ], function (S, bsp_utils) {
       $original.bind('input-disable', function(event, disable) {
         $input.toggleClass('state-disabled', disable);
       });
+      
+      var width = $original.outerWidth();
+      
+      if (isMultiple) {
+        width = width * 2;
+      }
 
       $input = $('<div/>', {
         'class': plugin.className('input'),
@@ -52,8 +58,9 @@ define([ 'string', 'bsp-utils' ], function (S, bsp_utils) {
           'margin-left': $original.css('margin-left'),
           'margin-right': $original.css('margin-right'),
           'margin-top': $original.css('margin-top'),
+          'max-width': '100%',
           'position': 'relative',
-          'width': $original.outerWidth()
+          'width': width
         }
       });
 
