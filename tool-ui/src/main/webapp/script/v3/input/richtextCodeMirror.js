@@ -1939,12 +1939,16 @@ define([
 
             var editor;
             var from;
+            var fromCh;
             var lineNumber;
+            var options;
             var pos;
             var self;
             var singleLine;
             var styleObj;
             var to;
+            var toCh;
+            
 
             self = this;
             editor = self.codeMirror;
@@ -1964,29 +1968,22 @@ define([
             from = pos.from;
             to = pos.to;
 
+            options = self.historyGetOptions(mark);
+            
             // Does this mark span multiple lines?
             if (to.line !== from.line) {
 
                 // Loop through the lines that this marker spans and create a marker for each line
                 for (lineNumber = from.line; lineNumber <= to.line; lineNumber++) {
 
-                    var fromCh;
-                    var markNew;
-                    var toCh;
-                    
                     fromCh = (lineNumber === from.line) ? from.ch : 0;
                     toCh = (lineNumber === to.line) ? to.ch : editor.getLine(lineNumber).length;
-
                     
                     // Create a new mark on this line only
-                    markNew = editor.markText(
+                    self.historyCreateMark(
                         { line: lineNumber, ch: fromCh },
                         { line: lineNumber, ch: toCh },
-                        mark
-                    );
-
-                    // Copy any additional attributes that were attached to the old mark
-                    markNew.attributes = mark.attributes;
+                        options);
 
                     // Don't create other marks if this is a singleLine mark
                     if (singleLine) {
@@ -1995,7 +1992,7 @@ define([
                 }
 
                 // Remove the old mark that went across multiple lines
-                mark.clear();
+                self.historyRemoveMark(mark);
             }
         },
 
