@@ -49,7 +49,11 @@
             }
 
             plugin._on(input, 'change', submit);
-            plugin._on(input, 'input', submitCheck);
+            plugin._on(input, 'input', function(event){
+                if (event.target.name) {
+                    submitCheck();
+                }
+            });
         }
     });
 });
