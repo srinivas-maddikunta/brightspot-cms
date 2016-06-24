@@ -3513,10 +3513,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
          * @returns {undefined}
          */
         updateLinkInit: function(){
-            var self,
-                removeLink,
-                toolKey;
+            var self;
+            var removeLink;
+            var toolKey;
                 self = this;
+                
             $.each(self.styles, function(styleKey, styleObj){
                  if (styleObj.element === 'a' && styleKey !== 'link'){
                      removeLink = true;
@@ -3533,7 +3534,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                   }); 
 
                 delete self.styles.link;
-                self.toolbarConfig.splice(toolKey, 1);
+                if (toolKey !== undefined){
+                   self.toolbarConfig.splice(toolKey, 1);                    
+                }
 
              }
         },
