@@ -29,7 +29,7 @@ require([
   'jquery.extra',
 
   'bsp-autoexpand',
-  'bsp-autosubmit',
+  'v3/jquery.autosubmit',
   'bsp-uploader',
   'bsp-utils',
   'iframeResizer',
