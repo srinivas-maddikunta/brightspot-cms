@@ -277,7 +277,7 @@ if (oldObject != null) {
 <%
 wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null);
 %>
-<div class="content-edit">
+<div class="content-edit"<%= wp.getCmsTool().isHorizontalSearchCarousel() ? "" : " data-vertical-carousel" %>>
 <%
 
     String search = wp.param(String.class, "search");

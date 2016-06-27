@@ -191,6 +191,9 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("Debug")
     private boolean disableWorkInProgress;
 
+    @ToolUi.Tab("Debug")
+    private boolean horizontalSearchCarousel;
+
     @Embedded
     public static class CommonTime extends Record {
 
@@ -830,6 +833,14 @@ public class CmsTool extends Tool {
 
     public void setDisableWorkInProgress(boolean disableWorkInProgress) {
         this.disableWorkInProgress = disableWorkInProgress;
+    }
+
+    public boolean isHorizontalSearchCarousel() {
+        return horizontalSearchCarousel;
+    }
+
+    public void setHorizontalSearchCarousel(boolean horizontalSearchCarousel) {
+        this.horizontalSearchCarousel = horizontalSearchCarousel;
     }
 
     public String createManualContentLockingNoteText() {
