@@ -869,6 +869,7 @@
 
   .addButtonContainer {
     float: left;
+    max-width: 100%;
     position: relative;
 
     > input[type=text] {
@@ -882,8 +883,9 @@
       .icon-plus;
       .icon-only;
 
+      margin-right: 0;
       position: absolute;
-      right: ((@input-height - @iconSize-default) / 2);
+      right: ((@input-height - @iconSize-default) / 2 - 5px);
       top: ((@input-height - @lineHeight-default) / 2);
       width: @iconSize-default;
     }
