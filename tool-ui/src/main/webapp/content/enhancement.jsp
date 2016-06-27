@@ -89,8 +89,11 @@ if (isRichTextElement) {
 }
 
 Map<String, Object> stateOldValues = state.getSimpleValues();
+boolean saved = false;
 
 if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-and-close") || wp.param(boolean.class, "action-save"))) {
+    saved = true;
+
     try {
         request.setAttribute("excludeFields", Arrays.asList("record"));
         wp.updateUsingParameters(ref);
@@ -296,7 +299,7 @@ if (object == null) {
                 }
             }
 
-            <% if (!isRichTextElement && wp.isFormPost() && wp.getErrors().isEmpty()) { %>
+            <% if (!isRichTextElement && saved && wp.getErrors().isEmpty()) { %>
                 $page.popup('close');
             <% } %>
 
