@@ -954,6 +954,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             rte.fromHTML(self.$el.val());
             
+            rte.historyClear();
+            
             // Turn track changes back on (if it was on)
             rte.trackSet(trackIsOn);
         },
