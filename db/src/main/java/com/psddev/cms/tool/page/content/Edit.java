@@ -1,8 +1,11 @@
 package com.psddev.cms.tool.page.content;
 
+import com.psddev.cms.db.Draft;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.ToolUi;
+import com.psddev.cms.db.ToolUser;
+import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.Query;
@@ -92,5 +95,72 @@ public class Edit {
         } else {
             return placeholder;
         }
+    }
+
+    /**
+     * Restores the work in progress associated with the given {@code content}
+     * in the context of the given {@code page}.
+     *
+     * <p>If successful, writes an appropriate message to the output attached
+     * to the given {@code page}.</p>
+     *
+     * @param page Can't be {@code null}.
+     * @param content Can't be {@code null}.
+     */
+    public static void restoreWorkInProgress(ToolPageContext page, Object content) throws IOException {
+        if (page.getOverlaidHistory(content) != null) {
+            return;
+        }
+
+        State state = State.getInstance(content);
+
+        if (state.hasAnyErrors()) {
+            return;
+        }
+
+        ToolUser user = page.getUser();
+
+        if (user.isDisableWorkInProgress()
+                || page.getCmsTool().isDisableWorkInProgress()) {
+
+            return;
+        }
+
+        WorkInProgress wip = Query.from(WorkInProgress.class)
+                .where("owner = ?", user)
+                .and("contentId = ?", state.getId())
+                .first();
+
+        if (wip == null) {
+            return;
+        }
+
+        state.setValues(Draft.mergeDifferences(
+                state.getDatabase().getEnvironment(),
+                state.getSimpleValues(),
+                wip.getDifferences()));
+
+        page.writeStart("div", "class", "message message-warning WorkInProgressRestoredMessage");
+        {
+            page.writeStart("div", "class", "WorkInProgressRestoredMessage-actions");
+            {
+                page.writeStart("a",
+                        "class", "icon icon-action-remove",
+                        "href", page.cmsUrl("/user/wips",
+                                "action-delete", true,
+                                "wip", wip.getId(),
+                                "returnUrl", page.url("")));
+                page.writeHtml(page.localize(wip, "action.clearChanges"));
+                page.writeEnd();
+            }
+            page.writeEnd();
+
+            page.writeStart("p");
+            {
+                page.writeHtml(page.localize(wip, "message.restored"));
+            }
+            page.writeEnd();
+        }
+        page.writeEnd();
     }
 }
