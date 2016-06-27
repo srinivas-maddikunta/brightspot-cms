@@ -61,6 +61,8 @@ define([ 'jquery', 'bsp-utils', 'v3/input/carousel' ], function($, bsp_utils, ca
         });
 
       });
+      
+      $container.closest('.content-edit').attr('data-search-carousel-embedded', 'true');
 
       /**
        * Appends or prepends tiles to carousel
