@@ -954,6 +954,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             rte.fromHTML(self.$el.val());
             
+            rte.historyClear();
+            
             // Turn track changes back on (if it was on)
             rte.trackSet(trackIsOn);
         },
@@ -3936,6 +3938,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 text: 'Set',
                 click: function(event) {
                     event.preventDefault();
+                    self.tableEditSave = true;
                     $(this).popup('close');
                 }
             }).appendTo($controls);
@@ -3945,7 +3948,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 text: 'Cancel',
                 click: function(event) {
                     event.preventDefault();
-                    self.tableEditCancel = true;
                     $(this).popup('close');
                 }
             }).appendTo($controls);
@@ -3973,7 +3975,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             self.tableEditInit();
 
             // Set a flag so we only update the table cell if user clicks the save button
-            self.tableEditCancel = false;
+            self.tableEditSave = false;
             
             value = $el.html();
 
@@ -3994,12 +3996,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             self.$tableEditDiv.popup('container').one('closed', function(){
 
-                 if (self.tableEditCancel) {
-                     self.tableEditCancel = false;
-                 } else {
+                 if (self.tableEditSave) {
                      value = self.tableEditRte.toHTML();
                      $el.html(value);
                      self.rte.triggerChange();
+                } else {
+                     self.tableEditSave = false;
                  }
 
             });

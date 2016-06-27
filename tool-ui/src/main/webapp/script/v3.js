@@ -29,7 +29,7 @@ require([
   'jquery.extra',
 
   'v3/plugin/auto-expand',
-  'bsp-autosubmit',
+  'v3/plugin/auto-submit',
   'bsp-uploader',
   'bsp-utils',
   'iframeResizer',
@@ -134,11 +134,10 @@ function() {
     '.fixedScrollable',
     '.searchResult-list',
     '.searchResultTaxonomyColumn ul',
-    '.popup[name="miscSearch"] .searchFiltersRest',
-    '.popup[data-popup-source-class~="objectId-select"] .searchFiltersRest',
+    '.searchFiltersRest',
     '.popup[data-popup-source-class~="objectId-select"] .searchResultList',
-    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchFiltersRest',
     '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList',
+    '.searchResult-actions-body',
     '.ToolUserWorksInProgress-body'
   ].join(','));
 
@@ -354,7 +353,7 @@ function() {
       updateWordCount(
           $input.closest('.inputContainer'),
           $input,
-          $input.val());
+          $input.val() || $input.prop('placeholder'));
     }));
 
     // For original rich text editor, special handling for the word count
