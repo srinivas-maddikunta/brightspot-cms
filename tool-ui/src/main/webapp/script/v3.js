@@ -29,7 +29,7 @@ require([
   'jquery.extra',
 
   'bsp-autoexpand',
-  'bsp-autosubmit',
+  'v3/plugin/auto-submit',
   'bsp-uploader',
   'bsp-utils',
   'iframeResizer',
@@ -134,12 +134,11 @@ function() {
     '.fixedScrollable',
     '.searchResult-list',
     '.searchResultTaxonomyColumn ul',
-    '.popup[name="miscSearch"] .searchFiltersRest',
-    '.popup[data-popup-source-class~="objectId-select"] .searchFiltersRest',
+    '.searchFiltersRest',
     '.popup[data-popup-source-class~="objectId-select"] .searchResultList',
-    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchFiltersRest',
     '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList',
-    '.ToolUserWorksInProgress > ul'
+    '.searchResult-actions-body',
+    '.ToolUserWorksInProgress-body'
   ].join(','));
 
   $doc.frame({
@@ -354,7 +353,7 @@ function() {
       updateWordCount(
           $input.closest('.inputContainer'),
           $input,
-          $input.val());
+          $input.val() || $input.prop('placeholder'));
     }));
 
     // For original rich text editor, special handling for the word count
@@ -557,6 +556,10 @@ function() {
 
   $doc.on('click', 'button[name="action-trash"], :submit[name="action-trash"]', function() {
     return confirm('Are you sure you want to archive this item?');
+  });
+
+  $doc.on('click', '[data-confirm-message]', function () {
+    return confirm($(this).attr('data-confirm-message'));
   });
 
   (function() {
