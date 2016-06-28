@@ -44,6 +44,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
+import com.psddev.cms.db.Overlay;
+import com.psddev.cms.db.OverlayProvider;
+import com.psddev.cms.db.WorkInProgress;
+import com.psddev.cms.tool.page.content.Edit;
+import com.psddev.dari.db.Modification;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
@@ -510,6 +515,7 @@ public class ToolPageContext extends WebPageContext {
             try (CloseableHttpClient client = HttpClients.createDefault()) {
                 HttpUriRequest request = RequestBuilder.get()
                         .setUri("https://www.googleapis.com/language/translate/v2")
+                        .addParameter("format", "text")
                         .addParameter("key", googleServerApiKey)
                         .addParameter("q", pattern)
                         .addParameter("source", source.getLanguage())
@@ -1050,6 +1056,48 @@ public class ToolPageContext extends WebPageContext {
             object = Query.fromAll().where("_id = ?", objectId).resolveInvisible().first();
         }
 
+        UUID overlayId = param(UUID.class, "overlayId");
+        Object overlayObject;
+
+        if (overlayId != null) {
+            overlayObject = Query.fromAll()
+                    .where("_id = ?", overlayId)
+                    .resolveInvisible()
+                    .first();
+
+        } else {
+            overlayObject = null;
+        }
+
+        Overlay overlay = null;
+
+        if (overlayObject instanceof Overlay) {
+            overlay = (Overlay) overlayObject;
+
+        } else if (object instanceof Overlay) {
+            overlay = (Overlay) object;
+
+        } else if (object != null && overlayObject instanceof OverlayProvider) {
+            overlay = ((OverlayProvider) overlayObject).provideOverlay(object);
+        }
+
+        if (overlay != null) {
+            object = Query.fromAll()
+                    .where("_id = ?", overlay.getContentId())
+                    .noCache()
+                    .resolveInvisible()
+                    .first();
+
+            State objectState = State.getInstance(object);
+
+            objectState.getExtras().put("cms.draft.oldValues", objectState.getSimpleValues());
+            objectState.getExtras().put("cms.tool.overlay", overlay);
+            objectState.setValues(Draft.mergeDifferences(
+                    objectState.getDatabase().getEnvironment(),
+                    objectState.getSimpleValues(),
+                    overlay.getDifferences()));
+        }
+
         if (object == null && !ObjectUtils.isBlank(validTypes)) {
             ObjectType selectedType = ObjectType.getInstance(param(UUID.class, TYPE_ID_PARAMETER));
 
@@ -1264,6 +1312,34 @@ public class ToolPageContext extends WebPageContext {
         }
 
         return predicate;
+    }
+
+    public Predicate userTypesPredicate() {
+        Set<UUID> denied = new HashSet<>();
+        Set<UUID> allowed = new HashSet<>();
+
+        for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypes()) {
+            UUID typeId = type.getId();
+
+            if (hasPermission("type/" + typeId + "/read")) {
+                allowed.add(typeId);
+
+            } else {
+                denied.add(typeId);
+            }
+        }
+
+        int deniedSize = denied.size();
+
+        if (deniedSize > allowed.size()) {
+            return PredicateParser.Static.parse("_type = ?", allowed);
+
+        } else if (deniedSize > 0) {
+            return PredicateParser.Static.parse("_type != ?", denied);
+
+        } else {
+            return null;
+        }
     }
 
     private String cmsResource(String path, Object... parameters) {
@@ -1737,6 +1813,18 @@ public class ToolPageContext extends WebPageContext {
                                     if (avatar != null) {
                                         writeElement("img",
                                                 "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
+                                    } else {
+                                        String email = user.getEmail();
+
+                                        if (!ObjectUtils.isBlank(email)) {
+                                            String hash = StringUtils.hex(StringUtils.md5(email.trim().toLowerCase(Locale.ENGLISH)));
+
+                                            writeElement("img",
+                                                    "src", StringUtils.addQueryParameters(
+                                                            "https://www.gravatar.com/avatar/" + hash,
+                                                            "s", 50,
+                                                            "d", "blank"));
+                                        }
                                     }
                                 writeEnd();
                             writeEnd();
@@ -1748,6 +1836,19 @@ public class ToolPageContext extends WebPageContext {
 
                                 writeStart("div", "class", "toolUserControls");
                                     writeStart("ul", "class", "piped");
+
+                                        if (!user.isDisableWorkInProgress()
+                                                && !cms.isDisableWorkInProgress()) {
+
+                                            writeStart("li");
+                                                writeStart("a",
+                                                        "href", cmsUrl("/user/wips"),
+                                                        "target", "wip");
+                                                    writeHtml(localize(ToolUser.class, "action.wip"));
+                                                writeEnd();
+                                            writeEnd();
+                                        }
+
                                         writeStart("li");
                                             writeStart("a",
                                                     "href", cmsUrl("/profilePanel"),
@@ -1779,7 +1880,7 @@ public class ToolPageContext extends WebPageContext {
                                         if (user.findOtherAccessibleSites().size() > 0 || (user.getCurrentSite() != null && user.hasPermission("site/global"))) {
                                             writeStart("li");
                                                 writeStart("a",
-                                                    "href", cmsUrl("/siteSwitch"),
+                                                    "href", cmsUrl("/siteSwitch", "returnUrl", url("")),
                                                     "target", "siteSwitch");
                                                     writeHtml(localize(Site.class, "action.switch"));
                                                 writeEnd();
@@ -2075,6 +2176,7 @@ public class ToolPageContext extends WebPageContext {
                 }
 
                 richTextElement.put("line", tag.block());
+                richTextElement.put("previewable", tag.preview());
                 richTextElement.put("readOnly", tag.readOnly());
                 richTextElement.put("position", tag.position());
 
@@ -2186,7 +2288,7 @@ public class ToolPageContext extends WebPageContext {
 
         writeStart("script", "type", "text/javascript");
             write("var CONTEXT_PATH = '", cmsUrl("/"), "';");
-            write("var UPLOAD_PATH = ", "'" + Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "';");
+            write("var UPLOAD_PATH = ", "'" + getRequest().getContextPath() + StringUtils.ensureStart(Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "/"), "';");
             write("var CSS_CLASS_GROUPS = ", ObjectUtils.toJson(cssClassGroups), ";");
             write("var STANDARD_IMAGE_SIZES = ", ObjectUtils.toJson(standardImageSizes), ";");
             write("var RTE_LEGACY_HTML = ", getCmsTool().isLegacyHtml(), ';');
@@ -2358,9 +2460,25 @@ public class ToolPageContext extends WebPageContext {
 
         writeTypeSelectReally(
                 true,
+                false,
                 types,
                 selectedTypes != null ? selectedTypes : Collections.<ObjectType>emptySet(),
                 null,
+                attributes);
+    }
+
+    public void writeCreateTypeSelect(
+            Iterable<ObjectType> types,
+            ObjectType selectedType,
+            String allLabel,
+            Object... attributes) throws IOException {
+
+        writeTypeSelectReally(
+                false,
+                true,
+                types,
+                selectedType != null ? Arrays.asList(selectedType) : Collections.<ObjectType>emptySet(),
+                allLabel,
                 attributes);
     }
 
@@ -2383,6 +2501,7 @@ public class ToolPageContext extends WebPageContext {
 
         writeTypeSelectReally(
                 false,
+                false,
                 types,
                 selectedType != null ? Arrays.asList(selectedType) : Collections.<ObjectType>emptySet(),
                 allLabel,
@@ -2401,6 +2520,7 @@ public class ToolPageContext extends WebPageContext {
 
         return (ObjectType type) ->
             type.isConcrete()
+                && !Modification.class.isAssignableFrom(type.getObjectClass())
                 && (ObjectUtils.isBlank(permissions) || permissions.stream().allMatch((String permission) -> hasPermission("type/" + type.getId() + "/" + permission)))
                 && (getCmsTool().isDisplayTypesNotAssociatedWithJavaClasses() || type.getObjectClass() != null)
                 && !(Draft.class.equals(type.getObjectClass()))
@@ -2409,6 +2529,7 @@ public class ToolPageContext extends WebPageContext {
 
     private void writeTypeSelectReally(
             boolean multiple,
+            boolean create,
             Iterable<ObjectType> types,
             Collection<ObjectType> selectedTypes,
             String allLabel,
@@ -2420,10 +2541,12 @@ public class ToolPageContext extends WebPageContext {
 
         List<ObjectType> miscTypes = ObjectUtils.to(new TypeReference<List<ObjectType>>() { }, types);
 
-        for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypes()) {
-            if (Boolean.FALSE.equals(type.as(ToolUi.class).getHidden()) && !type.isConcrete()) {
-                if (miscTypes.containsAll(type.findConcreteTypes())) {
-                    miscTypes.add(type);
+        if (!create) {
+            for (ObjectType type : Database.Static.getDefault().getEnvironment().getTypes()) {
+                if (Boolean.FALSE.equals(type.as(ToolUi.class).getHidden()) && !type.isConcrete()) {
+                    if (miscTypes.containsAll(type.findConcreteTypes())) {
+                        miscTypes.add(type);
+                    }
                 }
             }
         }
@@ -3137,7 +3260,8 @@ public class ToolPageContext extends WebPageContext {
 
         if (displayCopyAction
                 && !State.getInstance(object).isNew()
-                && !(object instanceof com.psddev.dari.db.Singleton)) {
+                && !(object instanceof com.psddev.dari.db.Singleton)
+                && !State.getInstance(object).getType().as(ToolUi.class).isReadOnly()) {
 
             writeStart("div", "class", "widget-contentCreate");
                 writeStart("div", "class", "action action-create");
@@ -3338,6 +3462,13 @@ public class ToolPageContext extends WebPageContext {
     }
 
     private void redirectOnSave(String url, Object... parameters) throws IOException {
+        if (param(String.class, "action-draftAndReturn") != null
+                || param(String.class, "action-newDraftAndReturn") != null) {
+
+            getResponse().sendRedirect(cmsUrl("/"));
+            return;
+        }
+
         boolean frame = param(boolean.class, "_frame");
 
         if (!frame && getUser().isReturnToDashboardOnSave()) {
@@ -3396,15 +3527,18 @@ public class ToolPageContext extends WebPageContext {
                     }
                 }
 
+                redirectOnSave("");
+
             } else {
                 state.delete();
 
                 Query.from(Draft.class)
                         .where("objectId = ?", state.getId())
                         .deleteAll();
+
+                getResponse().sendRedirect(cmsUrl("/"));
             }
 
-            redirectOnSave("");
             return true;
 
         } catch (Exception error) {
@@ -3510,7 +3644,8 @@ public class ToolPageContext extends WebPageContext {
      */
     public boolean tryDraft(Object object) {
         if (!isFormPost()
-                || param(String.class, "action-draft") == null) {
+                || (param(String.class, "action-draft") == null
+                && param(String.class, "action-draftAndReturn") == null)) {
             return false;
         }
 
@@ -3530,18 +3665,29 @@ public class ToolPageContext extends WebPageContext {
                 state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
             }
 
+            if (draft == null
+                    && (state.isNew()
+                    || state.as(Content.ObjectModification.class).isDraft())) {
+
+                state.as(Content.ObjectModification.class).setDraft(true);
+            }
+
+            Map<String, Map<String, Object>> differences = Draft.findDifferences(
+                    state.getDatabase().getEnvironment(),
+                    findOldValuesInForm(state),
+                    state.getSimpleValues());
+
             if (draft == null) {
                 if (state.isNew()
                         || state.as(Content.ObjectModification.class).isDraft()) {
-                    state.as(Content.ObjectModification.class).setDraft(true);
-                    publish(state);
+                    publishDifferences(object, differences);
                     redirectOnSave("",
                             "id", state.getId(),
                             "copyId", null);
                     return true;
 
                 } else if (state.as(Workflow.Data.class).getCurrentState() != null) {
-                    publish(state);
+                    publishDifferences(object, differences);
                     redirectOnSave("");
                     return true;
                 }
@@ -3550,17 +3696,24 @@ public class ToolPageContext extends WebPageContext {
                 draft.setOwner(getUser());
 
             } else if (draft.isNewContent()) {
-                publish(object);
+                publishDifferences(object, differences);
                 redirectOnSave("");
                 return true;
             }
 
             draft.update(findOldValuesInForm(state), object);
             publish(draft);
-            getResponse().sendRedirect(url("",
-                    "editAnyway", null,
-                    ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
-                    ToolPageContext.HISTORY_ID_PARAMETER, null));
+
+            if (param(String.class, "action-draftAndReturn") != null) {
+                getResponse().sendRedirect(cmsUrl("/"));
+
+            } else {
+                getResponse().sendRedirect(url("",
+                        "editAnyway", null,
+                        ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
+                        ToolPageContext.HISTORY_ID_PARAMETER, null));
+            }
+
             return true;
 
         } catch (Exception error) {
@@ -3578,7 +3731,8 @@ public class ToolPageContext extends WebPageContext {
      */
     public boolean tryNewDraft(Object object) {
         if (!isFormPost()
-                || param(String.class, "action-newDraft") == null) {
+                || (param(String.class, "action-newDraft") == null
+                && param(String.class, "action-newDraftAndReturn") == null)) {
             return false;
         }
 
@@ -3612,10 +3766,15 @@ public class ToolPageContext extends WebPageContext {
                 draft.update(findOldValuesInForm(state), object);
                 publish(draft);
 
-                getResponse().sendRedirect(url("",
-                        "editAnyway", null,
-                        ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
-                        ToolPageContext.HISTORY_ID_PARAMETER, null));
+                if (param(String.class, "action-newDraftAndReturn") != null) {
+                    getResponse().sendRedirect(cmsUrl("/"));
+
+                } else {
+                    getResponse().sendRedirect(url("",
+                            "editAnyway", null,
+                            ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
+                            ToolPageContext.HISTORY_ID_PARAMETER, null));
+                }
             }
 
             return true;
@@ -3737,7 +3896,17 @@ public class ToolPageContext extends WebPageContext {
                     throw new ValidationException(Arrays.asList(state));
                 }
 
-                if (draft == null || param(boolean.class, "newSchedule")) {
+                boolean newSchedule = param(boolean.class, "newSchedule");
+                Map<String, Object> oldValues = findOldValuesInForm(state);
+
+                if (draft != null && newSchedule) {
+                    oldValues = Draft.mergeDifferences(
+                            state.getDatabase().getEnvironment(),
+                            oldValues,
+                            draft.getDifferences());
+                }
+
+                if (draft == null || newSchedule) {
                     draft = new Draft();
                     draft.setOwner(user);
 
@@ -3746,7 +3915,7 @@ public class ToolPageContext extends WebPageContext {
                     }
                 }
 
-                draft.update(findOldValuesInForm(state), object);
+                draft.update(oldValues, object);
 
                 if (state.isNew()) {
                     contentData.setDraft(true);
@@ -3812,7 +3981,20 @@ public class ToolPageContext extends WebPageContext {
                             state.getSimpleValues());
                 }
 
-                publishDifferences(object, differences);
+                Overlay overlay = Edit.getOverlay(object);
+
+                if (overlay != null) {
+                    overlay.setDifferences(differences);
+                    publish(overlay);
+
+                    state.putAtomically("cms.content.overlaid", Boolean.TRUE);
+                    state.save();
+                    deleteWorksInProgress(object);
+
+                } else {
+                    publishDifferences(object, differences);
+                }
+
                 state.commitWrites();
                 redirectOnSave("",
                         "typeId", state.getTypeId(),
@@ -4223,14 +4405,26 @@ public class ToolPageContext extends WebPageContext {
         return history;
     }
 
+    private void deleteWorksInProgress(Object object) {
+        UUID contentId = object instanceof Draft
+                ? ((Draft) object).getObjectId()
+                : State.getInstance(object).getId();
+
+        Query.from(WorkInProgress.class)
+                .where("owner = ?", getUser())
+                .and("contentId = ?", contentId)
+                .deleteAll();
+    }
+
     /**
      * @see Content.Static#publish(Object, Site, ToolUser)
      */
     public History publish(Object object) {
+        PublishModification.setBroadcast(object, true);
+        deleteWorksInProgress(object);
+
         ToolUser user = getUser();
         History history = updateLockIgnored(Content.Static.publish(object, getSite(), user));
-
-        PublishModification.setBroadcast(object, true);
 
         return history;
     }
@@ -4239,10 +4433,11 @@ public class ToolPageContext extends WebPageContext {
      * @see Content.Static#publishDifferences(Object, Map, Site, ToolUser)
      */
     public History publishDifferences(Object object, Map<String, Map<String, Object>> differences) {
+        PublishModification.setBroadcast(object, true);
+        deleteWorksInProgress(object);
+
         ToolUser user = getUser();
         History history = updateLockIgnored(Content.Static.publishDifferences(object, differences, getSite(), user));
-
-        PublishModification.setBroadcast(object, true);
 
         return history;
     }
@@ -4251,6 +4446,8 @@ public class ToolPageContext extends WebPageContext {
      * @see {@link com.psddev.cms.db.Content.Static#trash(Object, com.psddev.cms.db.Site, com.psddev.cms.db.ToolUser)}
      */
     public void trash(Object object) {
+        deleteWorksInProgress(object);
+
         Content.Static.trash(object, getSite(), getUser());
     }
 
@@ -4263,6 +4460,8 @@ public class ToolPageContext extends WebPageContext {
 
     /** @see Content.Static#purge */
     public void purge(Object object) {
+        deleteWorksInProgress(object);
+
         Content.Static.purge(object, getSite(), getUser());
     }
 

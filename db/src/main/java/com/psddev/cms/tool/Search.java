@@ -2,11 +2,10 @@ package com.psddev.cms.tool;
 
 import java.awt.Color;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Modifier;
-import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,8 +29,10 @@ import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
+import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
+import com.psddev.cms.db.ToolUserSearch;
 import com.psddev.cms.db.Workflow;
 import com.psddev.cms.db.WorkflowState;
 import com.psddev.cms.tool.search.ListSearchResultView;
@@ -55,12 +56,21 @@ import com.psddev.dari.util.PaginatedResult;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UuidUtils;
+import org.apache.http.Header;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 public class Search extends Record {
 
     public static final String ADDITIONAL_PREDICATE_PARAMETER = "aq";
     public static final String ADVANCED_QUERY_PARAMETER = "av";
+    public static final String CONTEXT_PARAMETER = "cx";
     public static final String GLOBAL_FILTER_PARAMETER_PREFIX = "gf.";
+    public static final String IGNORE_SITE_PARAMETER = "is";
     public static final String FIELD_FILTER_PARAMETER_PREFIX = "f.";
     public static final String LIMIT_PARAMETER = "l";
     public static final String MISSING_FILTER_PARAMETER_SUFFIX = ".m";
@@ -72,6 +82,7 @@ public class Search extends Record {
     public static final String PARENT_TYPE_PARAMETER = "py";
     public static final String QUERY_STRING_PARAMETER = "q";
     public static final String SELECTED_TYPE_PARAMETER = "st";
+    public static final String SESSION_ID_PARAMETER = "si";
     public static final String SHOW_DRAFTS_PARAMETER = "d";
     public static final String VISIBILITIES_PARAMETER = "v";
     public static final String SHOW_MISSING_PARAMETER = "m";
@@ -107,6 +118,7 @@ public class Search extends Record {
     private long offset;
     private int limit;
     private Set<UUID> newItemIds;
+    private boolean ignoreSite;
 
     public Search() {
     }
@@ -189,6 +201,7 @@ public class Search extends Record {
         setOffset(page.param(long.class, OFFSET_PARAMETER));
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
         setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
+        setIgnoreSite(page.param(boolean.class, IGNORE_SITE_PARAMETER));
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.initializeSearch(this, page);
@@ -394,6 +407,14 @@ public class Search extends Record {
 
     public void setNewItemIds(Set<UUID> newItemIds) {
         this.newItemIds = newItemIds;
+    }
+
+    public boolean isIgnoreSite() {
+        return ignoreSite;
+    }
+
+    public void setIgnoreSite(boolean ignoreSite) {
+        this.ignoreSite = ignoreSite;
     }
 
     public Set<ObjectType> findValidTypes() {
@@ -618,38 +639,43 @@ public class Search extends Record {
 
         if (!ObjectUtils.isBlank(queryString)) {
             try {
-                URL qsUrl = new URL(queryString.trim());
-                URLConnection qsConnection = qsUrl.openConnection();
+                URI qsUri = new URL(queryString.trim()).toURI();
+                String qsHost = qsUri.getHost();
+                qsUri = new URI(qsUri.getScheme(), qsUri.getUserInfo(), "localhost", qsUri.getPort(), qsUri.getPath(), qsUri.getQuery(), qsUri.getFragment());
 
-                if (qsConnection instanceof HttpURLConnection) {
-                    HttpURLConnection qsHttp = (HttpURLConnection) qsConnection;
+                try (CloseableHttpClient client = HttpClients.createDefault()) {
+                    HttpHead request = new HttpHead(qsUri);
 
-                    qsHttp.setConnectTimeout(1000);
-                    qsHttp.setReadTimeout(1000);
-                    qsHttp.setRequestMethod("HEAD");
-                    qsHttp.setRequestProperty("Brightspot-Main-Object-Id-Query", "true");
+                    request.setHeader("Host", qsHost);
+                    request.setHeader("Brightspot-Main-Object-Id-Query", "true");
+                    request.setConfig(RequestConfig.custom()
+                            .setConnectionRequestTimeout(1000)
+                            .setConnectTimeout(1000)
+                            .setSocketTimeout(1000)
+                            .build());
 
-                    InputStream qsInput = qsHttp.getInputStream();
+                    try (CloseableHttpResponse response = client.execute(request)) {
+                        EntityUtils.consume(response.getEntity());
 
-                    try {
-                        UUID mainObjectId = ObjectUtils.to(UUID.class, qsHttp.getHeaderField("Brightspot-Main-Object-Id"));
+                        Header mainObjectIdHeader = response.getFirstHeader("Brightspot-Main-Object-Id");
 
-                        if (mainObjectId != null) {
-                            if (query.isFromAll() && !validTypeIds.isEmpty()) {
-                                query.and("_type = ?", validTypeIds);
+                        if (mainObjectIdHeader != null) {
+                            UUID mainObjectId = ObjectUtils.to(UUID.class, mainObjectIdHeader.getValue());
+
+                            if (mainObjectId != null) {
+                                if (query.isFromAll() && !validTypeIds.isEmpty()) {
+                                    query.and("_type = ?", validTypeIds);
+                                }
+
+                                return query
+                                        .and("_id = ? or * matches ?", mainObjectId, mainObjectId)
+                                        .sortRelevant(100.0, "_id = ?", mainObjectId);
                             }
-
-                            return query
-                                    .and("_id = ? or * matches ?", mainObjectId, mainObjectId)
-                                    .sortRelevant(100.0, "_id = ?", mainObjectId);
                         }
-
-                    } finally {
-                        qsInput.close();
                     }
                 }
 
-            } catch (IOException error) {
+            } catch (IOException | URISyntaxException error) {
                 // Can't connect to the URL in the query string to get the main
                 // object ID, but that's OK to ignore and move on.
             }
@@ -751,11 +777,15 @@ public class Search extends Record {
                     String prefix = type.getInternalName() + "/";
 
                     for (String field : type.getLabelFields()) {
-                        if (type.getIndex(field) != null) {
+
+                        ObjectIndex objectIndex = type.getIndex(field);
+                        if (objectIndex != null) {
+
+                            String comparisonOperator = "contains" + (objectIndex.isCaseSensitive() ? "" : "[c]");
                             predicate = CompoundPredicate.combine(
                                     PredicateParser.OR_OPERATOR,
                                     predicate,
-                                    PredicateParser.Static.parse(prefix + field + " contains[c] ?", queryString));
+                                    PredicateParser.Static.parse(prefix + field + " " + comparisonOperator + " ?", queryString));
                         }
                     }
                 }
@@ -808,6 +838,7 @@ public class Search extends Record {
             query.and(advancedQuery);
         }
 
+        int filtersCount = 0;
         Map<String, String> globalFilters = getGlobalFilters();
 
         for (Map.Entry<String, String> entry : globalFilters.entrySet()) {
@@ -815,6 +846,8 @@ public class Search extends Record {
             String value = entry.getValue();
 
             if (ObjectUtils.to(UUID.class, key) != null && value != null) {
+                ++ filtersCount;
+
                 int count = ObjectUtils.to(int.class, globalFilters.get(key + "#"));
 
                 if (count > 0) {
@@ -843,6 +876,8 @@ public class Search extends Record {
             }
 
             if (ObjectUtils.to(boolean.class, value.get("m"))) {
+                ++ filtersCount;
+
                 query.and(fieldName + " = missing");
 
             } else {
@@ -852,6 +887,10 @@ public class Search extends Record {
                 if ("d".equals(queryType)) {
                     Date start = ObjectUtils.to(Date.class, fieldValue);
                     Date end = ObjectUtils.to(Date.class, value.get("x"));
+
+                    if (start != null || end != null) {
+                        ++ filtersCount;
+                    }
 
                     if (start != null) {
                         query.and(fieldName + " >= ?", start);
@@ -865,6 +904,10 @@ public class Search extends Record {
                     Double minimum = ObjectUtils.to(Double.class, fieldValue);
                     Double maximum = ObjectUtils.to(Double.class, value.get("x"));
 
+                    if (minimum != null && maximum != null) {
+                        ++ filtersCount;
+                    }
+
                     if (minimum != null) {
                         query.and(fieldName + " >= ?", fieldValue);
                     }
@@ -877,6 +920,8 @@ public class Search extends Record {
                     if (fieldValue == null) {
                         continue;
                     }
+
+                    ++ filtersCount;
 
                     if ("t".equals(queryType)) {
                         if (selectedType == null || Content.Static.isSearchableType(selectedType)) {
@@ -905,7 +950,8 @@ public class Search extends Record {
             }
         }
 
-        if (site != null
+        if (!isIgnoreSite()
+                && site != null
                 && !site.isAllSitesAccessible()) {
             Set<ObjectType> globalTypes = new HashSet<ObjectType>();
 
@@ -918,10 +964,15 @@ public class Search extends Record {
                 }
             }
 
-            query.and(CompoundPredicate.combine(
-                    PredicateParser.OR_OPERATOR,
-                    site.itemsPredicate(),
-                    PredicateParser.Static.parse("_type = ?", globalTypes)));
+            if (globalTypes.isEmpty()) {
+                query.and(site.itemsPredicate());
+
+            } else {
+                query.and(CompoundPredicate.combine(
+                        PredicateParser.OR_OPERATOR,
+                        site.itemsPredicate(),
+                        PredicateParser.Static.parse("_type = ?", globalTypes)));
+            }
         }
 
         Collection<String> visibilities = getVisibilities();
@@ -965,12 +1016,34 @@ public class Search extends Record {
         }
 
         if (validTypeIds != null) {
-            query.and("_type = ?", validTypeIds);
+            if (page != null) {
+                query.and("_type = ?", validTypeIds.stream()
+                        .filter(typeId -> page.hasPermission("type/" + typeId + "/read"))
+                        .collect(Collectors.toSet()));
+
+            } else {
+                query.and("_type = ?", validTypeIds);
+            }
+
+        } else if (page != null) {
+            ToolUser user = page.getUser();
+
+            if (user != null) {
+                ToolRole role = user.getRole();
+
+                if (role != null
+                        && role.getPermissions().contains("+type/")) {
+
+                    query.and(page.userTypesPredicate());
+                }
+            }
         }
 
         String color = getColor();
 
         if (color != null && color.startsWith("#")) {
+            ++ filtersCount;
+
             int[] husl = HuslColorSpace.Static.toHUSL(new Color(Integer.parseInt(color.substring(1), 16)));
             int normalized0 = husl[0];
             int normalized1 = husl[1];
@@ -1029,6 +1102,58 @@ public class Search extends Record {
 
         if (page != null) {
             QueryRestriction.updateQueryUsingAll(query, page);
+
+            // Recent searches.
+            String context = page.param(String.class, CONTEXT_PARAMETER);
+            String sessionId = page.param(String.class, SESSION_ID_PARAMETER);
+
+            if (!ObjectUtils.isBlank(context) && !ObjectUtils.isBlank(sessionId)) {
+                ToolUser user = page.getUser();
+
+                if (user != null
+                        && (!ObjectUtils.isBlank(queryString)
+                        || (selectedType != null && validTypes.size() != 1)
+                        || filtersCount > 0)) {
+
+                    // Delete all searches from the current session.
+                    String keyPrefix = user.getId().toString() + context;
+                    String key = keyPrefix + sessionId;
+
+                    Query.from(ToolUserSearch.class).where("key = ?", key).deleteAll();
+
+                    // Remember search query string for later.
+                    String searchQueryString = page.url("", NAME_PARAMETER, null);
+                    int questionAt = searchQueryString.indexOf('?');
+
+                    if (questionAt > -1) {
+                        searchQueryString = searchQueryString.substring(questionAt + 1);
+                    }
+
+                    // Save the search for the recent searches list.
+                    ToolUserSearch recentSearch = new ToolUserSearch();
+
+                    recentSearch.setKey(key);
+                    recentSearch.setQueryString(queryString);
+                    recentSearch.setSelectedType(selectedType != null && validTypes.size() != 1 ? selectedType : null);
+                    recentSearch.setFiltersCount(filtersCount);
+                    recentSearch.setSearch(searchQueryString);
+                    recentSearch.save();
+
+                    // Only keep up to 5 recent searches.
+                    List<ToolUserSearch> recentSearches = Query.from(ToolUserSearch.class)
+                            .where("key startsWith ?", keyPrefix)
+                            .sortDescending("key")
+                            .select(5, 1)
+                            .getItems();
+
+                    if (!recentSearches.isEmpty()) {
+                        Query.from(ToolUserSearch.class)
+                                .where("key startsWith ?", keyPrefix)
+                                .and("key <= ?", recentSearches.get(0).getKey())
+                                .deleteAll();
+                    }
+                }
+            }
         }
 
         return query;
@@ -1140,6 +1265,7 @@ public class Search extends Record {
 
         if (selectedView.isHtmlWrapped(this, page, itemWriter)) {
             page.writeStart("div", "class", "searchResult-container");
+                page.writeStart("div", "class", "searchResult-items");
                 page.writeStart("div", "class", "searchResult-views");
                     page.writeStart("ul", "class", "piped");
                         for (SearchResultView view : views) {
@@ -1156,6 +1282,7 @@ public class Search extends Record {
 
                 page.writeStart("div", "class", "searchResult-view");
                     boolean viewWritten = writeViewHtml(itemWriter, selectedView);
+                page.writeEnd();
                 page.writeEnd();
 
                 if (viewWritten) {

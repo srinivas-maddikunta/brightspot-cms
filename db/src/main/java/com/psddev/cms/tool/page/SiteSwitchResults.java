@@ -35,14 +35,25 @@ public class SiteSwitchResults extends PageServlet {
         // Filter sites by site category and query string (if necessary)
         final SiteCategory siteCategory = siteCategoryId != null ? Query.findById(SiteCategory.class, siteCategoryId) : null;
         final String queryString = page.param(String.class, "query");
-        sites.removeIf(s -> (siteCategory != null && !siteCategory.equals(s.getSiteCategory()))
-            || (!StringUtils.isBlank(queryString) && !s.is("name != missing && name ^=[c] ?", queryString)));
+
+        if (siteCategory != null) {
+            sites.removeIf(s -> !siteCategory.equals(s.getSiteCategory()));
+
+        } else {
+            sites.removeIf(s -> s.getSiteCategory() != null);
+        }
+
+        if (!StringUtils.isBlank(queryString)) {
+            sites.removeIf(s -> !s.is("name != missing && name ^=[c] ?", queryString));
+        }
+
+        String returnUrl = page.param(String.class, "returnUrl");
 
         page.writeStart("ul", "class", "links");
             if (currentSite != null && page.hasPermission("site/global") && siteCategoryId == null) {
                 page.writeStart("li");
                     page.writeStart("a",
-                            "href", page.cmsUrl("/siteSwitch", "switch", true),
+                            "href", page.cmsUrl("/siteSwitch", "switch", true, "returnUrl", returnUrl),
                             "target", "_top");
                         page.writeHtml(page.localize(SiteSwitch.class, "label.global"));
                     page.writeEnd();
@@ -52,7 +63,7 @@ public class SiteSwitchResults extends PageServlet {
             for (Site site : sites) {
                 page.writeStart("li");
                     page.writeStart("a",
-                            "href", page.cmsUrl("/siteSwitch", "switch", true, "id", site.getId()),
+                            "href", page.cmsUrl("/siteSwitch", "switch", true, "returnUrl", returnUrl, "id", site.getId()),
                             "target", "_top");
                         page.writeObjectLabel(site);
                     page.writeEnd();

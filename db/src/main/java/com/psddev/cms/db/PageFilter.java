@@ -118,11 +118,13 @@ public class PageFilter extends AbstractFilter {
     public static final String SITE_ATTRIBUTE = ATTRIBUTE_PREFIX + ".site";
     public static final String SITE_CHECKED_ATTRIBUTE = ATTRIBUTE_PREFIX + ".siteChecked";
     public static final String SUBSTITUTIONS_ATTRIBUTE = ATTRIBUTE_PREFIX + ".substitutions";
+    public static final String VIEW_TYPE_ATTRIBUTE = ATTRIBUTE_PREFIX + ".viewType";
 
     public static final String MAIN_OBJECT_RENDERER_CONTEXT = "_main";
     public static final String EMBED_OBJECT_RENDERER_CONTEXT = "_embed";
     public static final String PAGE_VIEW_TYPE = "cms.page";
     public static final String PREVIEW_VIEW_TYPE = "cms.preview";
+    public static final String EMBED_VIEW_TYPE = "cms.embed";
 
     public static final String VIEW_TYPE_PARAMETER = "_viewType";
 
@@ -1139,7 +1141,8 @@ public class PageFilter extends AbstractFilter {
         // 1. Find ViewModel class (check the different view types, etc.)
         Class<? extends ViewModel<? super T>> viewModelClass = null;
 
-        String viewType = request.getParameter(VIEW_TYPE_PARAMETER);
+        String viewType = Static.getViewType(request);
+
         if (!ObjectUtils.isBlank(viewType)) {
             viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
 
@@ -1678,9 +1681,9 @@ public class PageFilter extends AbstractFilter {
                     }
                 }
 
-                marker.append("<span class=\"cms-objectBegin\" style=\"display: none;\" data-object=\"");
-                marker.append(StringUtils.escapeHtml(ObjectUtils.toJson(map)));
-                marker.append("\"></span>");
+                marker.append("<!--brightspot.object-begin ");
+                marker.append(ObjectUtils.toJson(map));
+                marker.append("-->");
                 lazyWriter.writeLazily(marker.toString());
             }
 
@@ -1700,7 +1703,7 @@ public class PageFilter extends AbstractFilter {
             }
 
             if (lazyWriter != null) {
-                lazyWriter.writeLazily("<span class=\"cms-objectEnd\" style=\"display: none;\"></span>");
+                lazyWriter.writeLazily("<!--brightspot.object-end-->");
                 lazyWriter.writePending();
             }
         }
@@ -1865,6 +1868,7 @@ public class PageFilter extends AbstractFilter {
                                             Object object = type.createObject(ObjectUtils.to(UUID.class, objectMap.remove("_id")));
                                             State objectState = State.getInstance(object);
 
+                                            objectState.setResolveInvisible(true);
                                             objectState.setValues(objectMap);
                                             substitutions.put(objectState.getId(), object);
                                         }
@@ -2218,6 +2222,52 @@ public class PageFilter extends AbstractFilter {
 
                 return user != null && user.getInlineEditing() == null;
             }
+        }
+
+        /**
+         * Gets the view type associated with the given {@code request}. First
+         * checks for the special parameter "_embed" and if set to true will
+         * immediately return {@link #EMBED_VIEW_TYPE}. Next it checks for the
+         * parameter {@link #VIEW_TYPE_PARAMETER} in the request query String,
+         * and then finally falls back to the request attribute
+         * {@link #VIEW_TYPE_ATTRIBUTE}.
+         *
+         * @param request Can't be {@code null}.
+         * @return the view type for the current request.
+         */
+        static String getViewType(HttpServletRequest request) {
+
+            String viewType = null;
+
+            // special case to support module embeds on 3rd party pages
+            // takes precedence over all
+            if (ObjectUtils.to(boolean.class, request.getParameter("_embed"))) {
+                viewType = EMBED_VIEW_TYPE;
+            }
+
+            // parameter in the request query string has next highest precedence
+            if (StringUtils.isBlank(viewType)) {
+                viewType = request.getParameter(VIEW_TYPE_PARAMETER);
+            }
+
+            // and finally fall back to the request attribute.
+            if (StringUtils.isBlank(viewType)) {
+                viewType = (String) request.getAttribute(VIEW_TYPE_ATTRIBUTE);
+            }
+
+            return viewType;
+        }
+
+        /**
+         * Sets the view type associated with the given {@code request}. Does
+         * nothing if the the view type is already present in the request URL
+         * query string.
+         *
+         * @param request Can't be {@code null}.
+         * @param viewType the view type to set.
+         */
+        public static void setViewType(HttpServletRequest request, String viewType) {
+            request.setAttribute(VIEW_TYPE_ATTRIBUTE, viewType);
         }
 
         /** @deprecated Use {@link ElFunctionUtils#plainResource} instead. */

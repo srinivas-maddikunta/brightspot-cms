@@ -2,6 +2,9 @@
 
 com.psddev.cms.db.Content,
 com.psddev.cms.db.ContentLock,
+com.psddev.cms.db.Copyable,
+com.psddev.cms.db.Overlay,
+com.psddev.cms.db.OverlayProvider,
 com.psddev.cms.db.Directory,
 com.psddev.cms.db.Draft,
 com.psddev.cms.db.Guide,
@@ -20,15 +23,15 @@ com.psddev.cms.db.Workflow,
 com.psddev.cms.db.WorkflowLog,
 com.psddev.cms.db.WorkflowState,
 com.psddev.cms.db.WorkflowTransition,
+com.psddev.cms.db.WorkInProgress,
 com.psddev.cms.db.WorkStream,
 com.psddev.cms.tool.CmsTool,
 com.psddev.cms.tool.ContentEditWidgetDisplay,
 com.psddev.cms.tool.ToolPageContext,
 com.psddev.cms.tool.Widget,
-com.psddev.dari.util.Settings,
+com.psddev.cms.tool.page.content.Edit,
 
 com.psddev.dari.db.ObjectField,
-com.psddev.dari.db.ObjectIndex,
 com.psddev.dari.db.ObjectType,
 com.psddev.dari.db.Query,
 com.psddev.dari.db.Singleton,
@@ -36,6 +39,7 @@ com.psddev.dari.db.State,
 com.psddev.dari.util.HtmlWriter,
 com.psddev.dari.util.JspUtils,
 com.psddev.dari.util.ObjectUtils,
+com.psddev.dari.util.Settings,
 com.psddev.dari.util.StringUtils,
 com.psddev.cms.tool.ContentEditable,
 
@@ -47,7 +51,6 @@ java.util.List,
 java.util.Map,
 java.util.Set,
 java.util.UUID,
-java.util.function.Consumer,
 
 org.joda.time.DateTime,
 com.google.common.collect.ImmutableMap" %><%
@@ -162,6 +165,48 @@ if (workStream != null) {
     State.getInstance(workstreamObject).as(WorkStream.Data.class).complete(workStream, wp.getUser());
 }
 
+// Only permit copy if the copy source object is accessible to the current Site
+Object copy = Query.findById(Object.class, wp.uuidParam("copyId"));
+if (copy != null) {
+
+    if (site != null && !Site.Static.isObjectAccessible(site, copy)) {
+        wp.writeHeader();
+        wp.writeStart("div", "class", "message message-warning");
+        wp.writeHtml(wp.localize(
+                "com.psddev.cms.tool.page.content.Edit",
+                ImmutableMap.of(
+                        "typeLabel", wp.getTypeLabel(copy),
+                        "objectLabel", wp.getObjectLabel(copy),
+                        "siteName", site.getName()
+                ),
+                "message.notAccessible"));
+        wp.writeEnd();
+        wp.writeFooter();
+        return;
+    }
+}
+
+// When a copy is specified as part of a POST, overlay the editingState on top of
+// the copyState to retain non-displaying State values from the original copy.
+if (wp.isFormPost() && copy != null) {
+
+    State editingState = State.getInstance(editing);
+    State copyState = State.getInstance(Copyable.copy(copy));
+
+    if (site != null
+            && !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
+        // Only set the owner to current site if not on global and no setting to dictate otherwise.
+        copyState.as(Site.ObjectModification.class).setOwner(site);
+    }
+
+    copyState.putAll(editingState.getRawValues());
+    copyState.setId(editingState.getId());
+    copyState.setStatus(editingState.getStatus());
+    state = copyState;
+    editing = state.getOriginalObject();
+    selected = editing;
+}
+
 if (wp.tryDelete(editing) ||
         wp.tryNewDraft(editing) ||
         wp.tryDraft(editing) ||
@@ -174,35 +219,20 @@ if (wp.tryDelete(editing) ||
     return;
 }
 
-Object copy = Query.findById(Object.class, wp.uuidParam("copyId"));
-if (copy != null) {
-    State editingState = State.getInstance(editing);
-    editingState.setValues(State.getInstance(copy).getSimpleValues());
-    editingState.setId(null);
+// Only copy on a GET request to the page.  Subsequent POSTs should not overwrite
+// the editing state with the copy source state again.
+if (!wp.isFormPost() && copy != null) {
 
-    Consumer<ObjectIndex> removeVisibilityIndexValues = index -> {
-        if (index.isVisibility()) {
-            index.getFields().forEach(editingState::remove);
-        }
-    };
+    state = State.getInstance(Copyable.copy(copy));
 
-    editingState.getDatabase().getEnvironment().getIndexes().forEach(removeVisibilityIndexValues);
-
-    ObjectType editingType = editingState.getType();
-
-    if (editingType != null) {
-        editingType.getIndexes().forEach(removeVisibilityIndexValues);
-    }
-
-    editingState.as(Directory.ObjectModification.class).clearPaths();
-    for (Site consumer : editingState.as(Site.ObjectModification.class).getConsumers()) {
-        editingState.as(Directory.ObjectModification.class).clearSitePaths(consumer);
-    }
-    if (site != null && 
-            !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
+    if (site != null
+            && !Settings.get(boolean.class, "cms/tool/copiedObjectInheritsSourceObjectsSiteOwner")) {
         // Only set the owner to current site if not on global and no setting to dictate otherwise.
-        editingState.as(Site.ObjectModification.class).setOwner(site);
-    }    
+        state.as(Site.ObjectModification.class).setOwner(site);
+    }
+
+    editing = state.getOriginalObject();
+    selected = editing;
 }
 
 // Directory directory = Query.findById(Directory.class, wp.uuidParam("directoryId"));
@@ -247,7 +277,7 @@ if (oldObject != null) {
 <%
 wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel() : null);
 %>
-<div class="content-edit">
+<div class="content-edit"<%= wp.getCmsTool().isHorizontalSearchCarousel() ? "" : " data-vertical-carousel" %>>
 <%
 
     String search = wp.param(String.class, "search");
@@ -258,6 +288,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
             wp.writeEnd();
         wp.writeEnd();
     }
+
+    Overlay overlay = Edit.getOverlay(editing);
+    OverlayProvider overlayProvider = overlay != null ? overlay.getOverlayProvider() : null;
+
+    Edit.writeOverlayProviderSelect(wp, editing, overlayProvider);
 %>
     <form class="contentForm contentLock"
             method="post"
@@ -272,13 +307,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                     "published", null) %>"
             autocomplete="off"
             data-rtc-content-id="<%= draft != null ? draft.getId() : editingState.getId() %>"
+            data-field-locking="<%= !wp.getCmsTool().isDisableFieldLocking() %>"
             data-new="<%= State.getInstance(editing).isNew() %>"
             data-o-id="<%= State.getInstance(selected).getId() %>"
             data-o-label="<%= wp.h(State.getInstance(selected).getLabel()) %>"
             data-o-preview="<%= wp.h(wp.getPreviewThumbnailUrl(selected)) %>"
             data-object-id="<%= State.getInstance(editing).getId() %>"
             data-content-locked-out="<%= lockedOut && !editAnyway %>"
-            data-content-id="<%= State.getInstance(editing).getId() %>">
+            data-content-id="<%= State.getInstance(editing).getId() %>"
+            <% if (overlay != null) { %>data-overlay-differences="<%= wp.h(ObjectUtils.toJson(overlay.getDifferences())) %>"<% } %>>
 
         <input type="hidden" name="<%= editingState.getId() %>/oldValues" value="<%= wp.h(ObjectUtils.toJson(editingOldValues)) %>">
 
@@ -287,6 +324,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 <h1 class="breadcrumbs"><%
 
                     wp.writeStart("span", "class", "breadcrumbItem icon icon-object");
+                        if (overlayProvider != null) {
+                            wp.writeTypeObjectLabel(overlayProvider);
+                            wp.writeHtml(" - ");
+                        }
+
                         if (state.isNew()) {
                             wp.writeHtml("New");
 
@@ -356,7 +398,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 </div>
 
                 <% if (!State.getInstance(editing).isNew() &&
-                        !(editing instanceof com.psddev.dari.db.Singleton)) { %>
+                        !(editing instanceof com.psddev.dari.db.Singleton)
+                        && !State.getInstance(editing).getType().as(ToolUi.class).isReadOnly()) { %>
                     <div class="widget-contentCreate">
                         <div class="action action-create">
                             <%= wp.h(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.new"))%>
@@ -392,6 +435,43 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 <%
                 wp.include("/WEB-INF/objectMessage.jsp", "object", editing);
+
+                if (history == null
+                        && !editingState.hasAnyErrors()
+                        && !user.isDisableWorkInProgress()
+                        && !wp.getCmsTool().isDisableWorkInProgress()) {
+
+                    WorkInProgress wip = Query.from(WorkInProgress.class)
+                            .where("owner = ?", user)
+                            .and("contentId = ?", editingState.getId())
+                            .first();
+
+                    if (wip != null) {
+                        editingState.setValues(Draft.mergeDifferences(
+                                editingState.getDatabase().getEnvironment(),
+                                editingState.getSimpleValues(),
+                                wip.getDifferences()));
+                    }
+
+                    if (wip != null) {
+                        wp.writeStart("div", "class", "message message-warning WorkInProgressRestoredMessage");
+                            wp.writeStart("div", "class", "WorkInProgressRestoredMessage-actions");
+                                wp.writeStart("a",
+                                        "class", "icon icon-action-remove",
+                                        "href", wp.cmsUrl("/user/wips",
+                                                "action-delete", true,
+                                                "wip", wip.getId(),
+                                                "returnUrl", wp.url("")));
+                                    wp.writeHtml(wp.localize(wip, "action.clearChanges"));
+                                wp.writeEnd();
+                            wp.writeEnd();
+
+                            wp.writeStart("p");
+                                wp.writeHtml(wp.localize(wip, "message.restored"));
+                            wp.writeEnd();
+                        wp.writeEnd();
+                    }
+                }
 
                 Object compareObject = null;
 
@@ -488,8 +568,13 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
         </div>
 
         <div class="contentForm-aside">
-            <div class="widget widget-publishing">
-                <h1 class="icon icon-action-publish"><%= wp.h(wp.localize(editingState.getType(), "action.publish")) %></h1>
+            <%
+                ObjectType editingType = editingState.getType();
+                boolean publishable = editingType != null && editingType.as(ToolUi.class).isPublishable();
+            %>
+
+            <div class="widget widget-publishing"<%= publishable ? " data-publishable" : "" %>>
+                <h1 class="icon icon-action-publish"><%= wp.h(wp.localize(editingState.getType(), publishable ? "action.publish" : "action.save")) %></h1>
 
                 <%
                 wp.writeStart("div", "class", "widget-controls");
@@ -833,13 +918,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             }
 
                                             if (draft == null
-                                                    && (wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)
-                                                    || workflow.getTransitionsTo(currentState)
-                                                            .keySet()
-                                                            .stream()
-                                                            .filter(name -> wp.hasPermission("type/" + editingState.getTypeId() + "/" + name))
-                                                            .findFirst()
-                                                            .isPresent())) {
+                                                    && wp.hasPermission("type/" + editingState.getTypeId() + "/workflow.saveAllowed." + currentState)) {
 
                                                 displayWorkflowSave = true;
                                             }
@@ -908,7 +987,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                         } else if (!isTrash) {
                             wp.writeStart("div", "class", "widget-publishingPublish");
-                                if (wp.getUser().getCurrentSchedule() == null) {
+                                if (publishable && wp.getUser().getCurrentSchedule() == null) {
                                     if (!contentData.isDraft() && schedule != null) {
                                         boolean newSchedule = wp.param(boolean.class, "newSchedule");
 
@@ -930,12 +1009,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     }
 
                                     DateTime publishDate;
+                                    String scheduleLabel;
 
                                     if (schedule != null) {
                                         publishDate = wp.toUserDateTime(schedule.getTriggerDate());
+                                        scheduleLabel = wp.localize(editingType, "action.reschedule");
 
                                     } else {
                                         publishDate = wp.param(DateTime.class, "publishDate");
+                                        scheduleLabel = wp.localize(editingType, "action.schedule");
 
                                         if (publishDate == null &&
                                                 (isDraft ||
@@ -952,6 +1034,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             "type", "text",
                                             "class", "date dateInput",
                                             "data-emptylabel", "Now",
+                                            "data-schedule-label", scheduleLabel,
                                             "name", "publishDate",
                                             "size", 9,
                                             "value", publishDate != null ? publishDate.toString("yyyy-MM-dd HH:mm:ss") : "");
@@ -959,12 +1042,13 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                                 wp.writeStart("button",
                                         "name", "action-publish",
+                                        "data-schedule-label", wp.localize(editingType, "action.schedule"),
                                         "value", "true");
                                     ObjectType type = editingState.getType();
                                     if (type != null) {
-                                        wp.writeHtml(ObjectUtils.firstNonBlank(type.as(ToolUi.class).getPublishButtonText(), wp.localize(type, "action.publish")));
+                                        wp.writeHtml(ObjectUtils.firstNonBlank(type.as(ToolUi.class).getPublishButtonText(), wp.localize(type, publishable ? "action.publish" : "action.save")));
                                     } else {
-                                        wp.writeHtml(wp.localize(type, "action.publish"));
+                                        wp.writeHtml(wp.localize(type, publishable ? "action.publish" : "action.save"));
                                     }
                                 wp.writeEnd();
                             wp.writeEnd();
@@ -974,7 +1058,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 wp.writeStart("div", "class", "widget-publishingExtra");
                     wp.writeStart("ul", "class", "widget-publishingExtra-left");
-                        if ((!lockedOut || editAnyway) && isWritable) {
+                        if (publishable && (overlay == null && (!lockedOut || editAnyway) && isWritable)) {
                             if (isDraft) {
                                 if (schedule == null) {
                                     wp.writeStart("li");
@@ -983,6 +1067,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                                 "name", "action-draft",
                                                 "value", "true");
                                             wp.writeHtml(wp.localize(editingState.getType(), "action.save.draft"));
+                                        wp.writeEnd();
+                                    wp.writeEnd();
+
+                                    wp.writeStart("li", "class", "DraftAndReturnAction");
+                                        wp.writeStart("button",
+                                                "class", "link icon icon-action-save",
+                                                "name", "action-draftAndReturn",
+                                                "value", "true");
+                                            wp.writeHtml(wp.localize(editingState.getType(), "action.saveAndReturn.draft"));
                                         wp.writeEnd();
                                     wp.writeEnd();
                                 }
@@ -1008,6 +1101,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     wp.writeEnd();
                                 wp.writeEnd();
 
+                                wp.writeStart("li", "class", "NewDraftAndReturnAction");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-object-draft",
+                                            "name", "action-newDraftAndReturn",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(editingState.getType(), "action.newAndReturn.draft"));
+                                    wp.writeEnd();
+                                wp.writeEnd();
+
                             } else if (displayWorkflowSave) {
                                 wp.writeStart("li");
                                     wp.writeStart("button",
@@ -1015,6 +1117,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             "name", "action-draft",
                                             "value", "true");
                                         wp.writeHtml(wp.localize(editingState.getType(), "action.save.draft"));
+                                    wp.writeEnd();
+                                wp.writeEnd();
+
+                                wp.writeStart("li", "class", "DraftAndReturnAction");
+                                    wp.writeStart("button",
+                                            "class", "link icon icon-action-save",
+                                            "name", "action-draftAndReturn",
+                                            "value", "true");
+                                        wp.writeHtml(wp.localize(editingState.getType(), "action.saveAndReturn.draft"));
                                     wp.writeEnd();
                                 wp.writeEnd();
                             }
@@ -1032,7 +1143,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                    if ((!lockedOut || editAnyway) && isWritable) {
+                    if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
                         wp.writeStart("ul", "class", "widget-publishingExtra-right");
                             if (isWritable && isDraft) {
                                 if (schedule != null) {
@@ -1167,8 +1278,6 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                             wp.writeEnd();
                         }
                     wp.writeEnd();
-
-                    ObjectType editingType = editingState.getType();
 
                     if (editingType != null) {
                         Renderer.TypeModification rendererData = editingType.as(Renderer.TypeModification.class);
@@ -1546,7 +1655,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 return color;
             };
 
-            $edit.delegate('.inputContainer', 'mouseenter', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'mouseenter', function() {
                 var $container = $(this),
                         $toggle = $.data($container[0], 'fieldPreview-$toggle');
 
@@ -1565,7 +1674,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 }
             });
 
-            $edit.delegate('.inputContainer .fieldPreviewToggle', 'click', function() {
+            $edit.delegate('.contentForm-main .inputContainer .fieldPreviewToggle', 'click', function() {
                 var $toggle = $(this),
                         $container = $toggle.closest('.inputContainer');
 
@@ -1573,15 +1682,15 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 $toggle.css('color', $container.is('.fieldPreview-displaying') ? getUniqueColor($container) : '');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-enable', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-enable', function() {
                 $(this).addClass('fieldPreview-enabled');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-disable', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-disable', function() {
                 $(this).trigger('fieldPreview-hide').removeClass('fieldPreview-enabled');
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-hide', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-hide', function() {
                 var $container = $(this),
                         name = $container.attr('data-name');
 
@@ -1595,7 +1704,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 $('.fieldPreviewPaths[data-name="' + name + '"]').remove();
             });
 
-            $edit.delegate('.inputContainer', 'fieldPreview-toggle', function(event, $source) {
+            $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-toggle', function(event, $source) {
                 var $container = $(this),
                         name = $container.attr('data-name'),
                         color,
@@ -1777,7 +1886,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 }
             });
 
-            $edit.delegate('.inputContainer', 'click', function() {
+            $edit.delegate('.contentForm-main .inputContainer', 'click', function() {
                 if ($previewWidget.is('.widget-expanded')) {
                     $(this).trigger('fieldPreview-toggle');
                     return false;
@@ -1796,6 +1905,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 private static void renderWidgets(ToolPageContext wp, Object object, String position) throws Exception {
 
     State state = State.getInstance(object);
+    ObjectType type = state.getType();
     List<Widget> widgets = null;
     for (List<Widget> item : wp.getTool().findWidgets(position)) {
         widgets = item;
@@ -1808,12 +1918,17 @@ private static void renderWidgets(ToolPageContext wp, Object object, String posi
         wp.write("\">");
 
         for (Widget widget : widgets) {
-            if (!wp.hasPermission(widget.getPermissionId())) {
+
+            if (object instanceof ContentEditWidgetDisplay) {
+                if (!((ContentEditWidgetDisplay) object).shouldDisplayContentEditWidget(widget.getInternalName())) {
+                    continue;
+                }
+
+            } else if((type == null || !type.as(ToolUi.class).isPublishable()) && !widget.shouldDisplayInNonPublishable()) {
                 continue;
             }
 
-            if (object instanceof ContentEditWidgetDisplay
-                    && !((ContentEditWidgetDisplay) object).shouldDisplayContentEditWidget(widget.getInternalName())) {
+            if (!wp.hasPermission(widget.getPermissionId())) {
                 continue;
             }
 

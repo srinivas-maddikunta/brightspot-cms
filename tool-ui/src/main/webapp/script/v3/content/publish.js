@@ -2,7 +2,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
   var $window = $(window);
 
   // Publishing widget behaviors.
-  bsp_utils.onDomInsert(document, '.widget-publishing', {
+  bsp_utils.onDomInsert(document, '.widget-publishing[data-publishable]', {
     'insert': function(widget) {
       var $widget = $(widget);
       var $dateInput = $widget.find('.dateInput');
@@ -15,13 +15,13 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
       // Change the publish button label if scheduling.
       if ($dateInput.length === 0) {
         $publishButton.addClass('schedule');
-        $publishButton.text('Schedule');
+        $publishButton.text($publishButton.attr('data-schedule-label'));
 
       } else {
         onChange = function() {
           if ($dateInput.val()) {
             $publishButton.addClass('schedule');
-            $publishButton.text(oldDate && !$newSchedule.val() ? 'Reschedule' : 'Schedule');
+            $publishButton.text($dateInput.attr('data-schedule-label'));
 
           } else {
             $publishButton.removeClass('schedule');
@@ -127,6 +127,12 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
               $form.find('.state-changed').removeClass('state-changed');
               $form.find('.toBeRemoved').remove();
+
+              var OLD_VALUES_SELECTOR = '.contentForm > input[type="hidden"][name$="/oldValues"]';
+              var $oldValuesInput = $(OLD_VALUES_SELECTOR);
+
+              $oldValuesInput.val($(OLD_VALUES_SELECTOR, this.contentDocument).val());
+              $oldValuesInput.change();
 
               $form.removeAttr('target');
               $frame.remove();

@@ -94,9 +94,11 @@ public class CmsTool extends Tool {
     @Embedded
     private Template modulePreviewTemplate;
 
+    @ToolUi.Secret
     @ToolUi.Tab("Integrations")
     private String dropboxApplicationKey;
 
+    @ToolUi.Secret
     @ToolUi.Tab("Integrations")
     private String googleServerApiKey;
 
@@ -137,6 +139,9 @@ public class CmsTool extends Tool {
     @ToolUi.NoteHtml("<span data-dynamic-text='${content.createManualContentLockingNoteText()}'></span>")
     @ToolUi.Tab("UI")
     private boolean optInContentLocking;
+
+    @ToolUi.Tab("UI")
+    private boolean disableFieldLocking;
 
     @ToolUi.Tab("Debug")
     private boolean removeTrailingSlashes;
@@ -182,6 +187,12 @@ public class CmsTool extends Tool {
 
     @ToolUi.Tab("Debug")
     private boolean disableInvisibleContentPreview;
+
+    @ToolUi.Tab("Debug")
+    private boolean disableWorkInProgress;
+
+    @ToolUi.Tab("Debug")
+    private boolean horizontalSearchCarousel;
 
     @Embedded
     public static class CommonTime extends Record {
@@ -690,6 +701,14 @@ public class CmsTool extends Tool {
         this.optInContentLocking = optInContentLocking;
     }
 
+    public boolean isDisableFieldLocking() {
+        return disableFieldLocking;
+    }
+
+    public void setDisableFieldLocking(boolean disableFieldLocking) {
+        this.disableFieldLocking = disableFieldLocking;
+    }
+
     public boolean isRemoveTrailingSlashes() {
         return removeTrailingSlashes;
     }
@@ -806,6 +825,22 @@ public class CmsTool extends Tool {
 
     public void setDisableInvisibleContentPreview(boolean disableInvisibleContentPreview) {
         this.disableInvisibleContentPreview = disableInvisibleContentPreview;
+    }
+
+    public boolean isDisableWorkInProgress() {
+        return disableWorkInProgress;
+    }
+
+    public void setDisableWorkInProgress(boolean disableWorkInProgress) {
+        this.disableWorkInProgress = disableWorkInProgress;
+    }
+
+    public boolean isHorizontalSearchCarousel() {
+        return horizontalSearchCarousel;
+    }
+
+    public void setHorizontalSearchCarousel(boolean horizontalSearchCarousel) {
+        this.horizontalSearchCarousel = horizontalSearchCarousel;
     }
 
     public String createManualContentLockingNoteText() {

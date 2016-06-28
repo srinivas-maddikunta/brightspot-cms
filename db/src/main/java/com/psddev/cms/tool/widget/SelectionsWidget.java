@@ -1,8 +1,12 @@
 package com.psddev.cms.tool.widget;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
+import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.Search;
@@ -13,7 +17,6 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
-import com.psddev.dari.util.StringUtils;
 
 public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResultSelection> {
 
@@ -118,25 +121,31 @@ public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResult
     @Override
     public void writeResultsItemHtml(ToolPageContext page, SearchResultSelection selection) throws IOException {
 
-        if (StringUtils.isBlank(selection.getName())) {
-            return;
-        }
-
         Search search = new Search();
         search.setAdditionalPredicate(selection.createItemsQuery().getPredicate().toString());
         search.setLimit(10);
 
-        page.writeStart("td");
+        page.writeStart("tr");
+            page.writeStart("td");
 
-            page.writeStart("a",
-                    "target", "_top",
-                    "href", page.cmsUrl("/searchAdvancedFull",
-                        "search", ObjectUtils.toJson(search.getState().getSimpleValues()),
-                        "view", MixedSearchResultView.class.getCanonicalName()));
-                page.writeObjectLabel(selection);
+                page.writeStart("a",
+                        "target", "_top",
+                        "href", page.cmsUrl("/searchAdvancedFull",
+                                "search", ObjectUtils.toJson(search.getState().getSimpleValues()),
+                                "view", MixedSearchResultView.class.getCanonicalName()));
+                    page.writeObjectLabel(selection);
+                page.writeEnd();
 
             page.writeEnd();
-
+            page.writeStart("td");
+                Set<ToolEntity> entities = selection.getEntities();
+                page.writeHtml(!ObjectUtils.isBlank(entities)
+                        ? entities.stream().map(e -> e.getState().getLabel()).collect(Collectors.joining(", "))
+                        : "");
+            page.writeEnd();
+            page.writeStart("td");
+                page.writeHtml(page.localize(SelectionsWidget.class, ImmutableMap.of("count", selection.size()), "numItems"));
+            page.writeEnd();
         page.writeEnd();
     }
 

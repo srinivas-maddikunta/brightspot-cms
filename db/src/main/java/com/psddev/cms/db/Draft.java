@@ -2,12 +2,13 @@ package com.psddev.cms.db;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -72,10 +73,14 @@ public class Draft extends Content {
      *
      * @return Never {@code null}.
      */
+    @SuppressWarnings("unchecked")
     public static Map<String, Map<String, Object>> findDifferences(
             DatabaseEnvironment environment,
             Map<String, Object> oldValues,
             Map<String, Object> newValues) {
+
+        oldValues = (Map<String, Object>) ObjectUtils.fromJson(ObjectUtils.toJson(oldValues));
+        newValues = (Map<String, Object>) ObjectUtils.fromJson(ObjectUtils.toJson(newValues));
 
         Map<String, Map<String, Object>> newIdMaps = newValues != null
                 ? findIdMaps(newValues)
@@ -88,52 +93,38 @@ public class Draft extends Content {
         Map<String, Map<String, Object>> oldIdMaps = findIdMaps(oldValues);
         Map<String, Map<String, Object>> differences = new CompactMap<>();
 
-        oldIdMaps.keySet().stream().filter(newIdMaps::containsKey).forEach(id -> {
+        newIdMaps.keySet().stream().forEach(id -> {
             Map<String, Object> oldIdMap = oldIdMaps.get(id);
             Map<String, Object> newIdMap = newIdMaps.get(id);
             Map<String, Object> changes = new CompactMap<>();
             ObjectType type = environment.getTypeById(ObjectUtils.to(UUID.class, newIdMap.get(State.TYPE_KEY)));
+            Set<String> keys = new LinkedHashSet<>(newIdMap.keySet());
 
-            Stream.concat(oldIdMap.keySet().stream(), newIdMap.keySet().stream()).forEach(key -> {
-                Object oldValue = oldIdMap.get(key);
-                Object newValue = newIdMap.get(key);
+            if (oldIdMap != null) {
+                keys.addAll(oldIdMap.keySet());
+            }
 
-                if (ObjectUtils.equals(oldValue, newValue)) {
-                    return;
-                }
-
-                if (ObjectUtils.isBlank(oldValue)
-                        && ObjectUtils.isBlank(newValue)) {
-
-                    return;
-                }
+            keys.forEach(key -> {
+                ObjectField field = null;
 
                 if (type != null) {
-                    ObjectField field = type.getField(key);
+                    field = type.getField(key);
 
                     if (field == null) {
                         field = environment.getField(key);
                     }
-
-                    if (field != null
-                            && field.getInternalType().startsWith(ObjectField.SET_TYPE + "/")
-                            && ObjectUtils.equals(ObjectUtils.to(Set.class, oldValue), ObjectUtils.to(Set.class, newValue))) {
-
-                        return;
-                    }
                 }
 
-                changes.put(key, newValue);
+                Object oldValue = oldIdMap != null ? oldIdMap.get(key) : null;
+                Object newValue = newIdMap.get(key);
+
+                if (!roughlyEquals(field, oldValue, newValue)) {
+                    changes.put(key, newValue);
+                }
             });
 
             if (!changes.isEmpty()) {
                 differences.put(id, changes);
-            }
-        });
-
-        newIdMaps.forEach((id, newIdMap) -> {
-            if (!oldIdMaps.containsKey(id)) {
-                differences.put(id, newIdMap);
             }
         });
 
@@ -213,6 +204,72 @@ public class Draft extends Content {
         } else {
             return value;
         }
+    }
+
+    private static boolean roughlyEquals(ObjectField field, Object x, Object y) {
+        if (field != null && field.getInternalType().startsWith(ObjectField.SET_TYPE + "/")) {
+            x = ObjectUtils.to(Set.class, x);
+            y = ObjectUtils.to(Set.class, y);
+        }
+
+        if (ObjectUtils.equals(x, y)) {
+            return true;
+        }
+
+        // null equals false.
+        if (x instanceof Boolean) {
+            if (Boolean.TRUE.equals(x)) {
+                return Boolean.TRUE.equals(y);
+
+            } else {
+                return !Boolean.TRUE.equals(y);
+            }
+
+        } else if (y instanceof Boolean) {
+            if (Boolean.TRUE.equals(y)) {
+                return Boolean.TRUE.equals(x);
+
+            } else {
+                return !Boolean.TRUE.equals(x);
+            }
+        }
+
+        // null equals [ ], etc.
+        if (ObjectUtils.isBlank(x)) {
+            return ObjectUtils.isBlank(y);
+
+        } else if (ObjectUtils.isBlank(y)) {
+            return ObjectUtils.isBlank(x);
+        }
+
+        // Compare list items using roughlyEquals.
+        if (x instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Object> xList = (List<Object>) x;
+            @SuppressWarnings("unchecked")
+            List<Object> yList = (List<Object>) y;
+            int xSize = xList.size();
+            int ySize = yList.size();
+
+            return xSize == ySize
+                    && IntStream.range(0, xSize).allMatch(i -> roughlyEquals(field, xList.get(i), yList.get(i)));
+        }
+
+        // Compare map values using roughlyEquals.
+        if (x instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> xMap = (Map<String, Object>) x;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> yMap = (Map<String, Object>) y;
+            Set<String> xKeys = xMap.keySet();
+            Set<String> yKeys = yMap.keySet();
+
+            return xKeys.equals(yKeys)
+                    && xKeys.stream().allMatch(k -> roughlyEquals(field, xMap.get(k), yMap.get(k)));
+
+        }
+
+        return false;
     }
 
     /**

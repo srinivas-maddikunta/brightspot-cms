@@ -88,7 +88,12 @@ if (isRichTextElement) {
     ((RichTextElement) object).fromBody(wp.param(String.class, "body"));
 }
 
-if (object != null && wp.isFormPost()) {
+Map<String, Object> stateOldValues = state.getSimpleValues();
+boolean saved = false;
+
+if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-and-close") || wp.param(boolean.class, "action-save"))) {
+    saved = true;
+
     try {
         request.setAttribute("excludeFields", Arrays.asList("record"));
         wp.updateUsingParameters(ref);
@@ -106,40 +111,49 @@ if (object != null && wp.isFormPost()) {
             }
 
             if (!state.hasAnyErrors()) {
-                wp.writeStart("div", "id", pageId);
-                wp.writeEnd();
-                wp.writeStart("script", "type", "text/javascript");
-                wp.writeRaw("var $page = $('#" + pageId + "');");
-                wp.writeRaw("var $source = $page.popup('source');");
-                wp.writeRaw("var rte = $source.data('rte');");
-                wp.writeRaw("var mark = $source.data('mark');");
-
                 RichTextElement rte = (RichTextElement) object;
-                Map<String, String> attributes = rte.toAttributes();
+                Map<String, String> attributes = null;
+                String body = null;
+                boolean successful = false;
 
-                wp.writeRaw("mark.attributes = " + ObjectUtils.toJson(attributes) + ";");
+                try {
+                    attributes = rte.toAttributes();
+                    body = rte.toBody();
+                    successful = true;
 
-                String body = rte.toBody();
-
-                if (body != null) {
-                    wp.writeRaw("var oldMarkInclusiveLeft = mark.inclusiveLeft;");
-                    wp.writeRaw("var oldMarkInclusiveRight = mark.inclusiveRight;");
-                    wp.writeRaw("mark.inclusiveLeft = true;");
-                    wp.writeRaw("mark.inclusiveRight = true;");
-                    wp.writeRaw("rte.rte.fromHTML('");
-                    wp.writeRaw(StringUtils.escapeJavaScript(body));
-                    wp.writeRaw("', rte.rte.markGetRange(mark), true, true);");
-                    wp.writeRaw("mark.inclusiveLeft = oldMarkInclusiveLeft;");
-                    wp.writeRaw("mark.inclusiveRight = oldMarkInclusiveRight;");
+                } catch (RuntimeException error) {
+                    wp.getErrors().add(error);
                 }
 
-                if (wp.param(boolean.class, "action-save-and-close")) {
-                    wp.writeRaw("$page.popup('close');");
+                if (successful) {
+                    wp.writeStart("div", "id", pageId);
                     wp.writeEnd();
-                    return;
+                    wp.writeStart("script", "type", "text/javascript");
+                    wp.writeRaw("var $page = $('#" + pageId + "');");
+                    wp.writeRaw("var $source = $page.popup('source');");
+                    wp.writeRaw("var rte = $source.data('rte');");
+                    wp.writeRaw("var mark = $source.data('mark');");
+                    
+                    // Set the mark attributes in a way that supports RTE undo history
+                    wp.writeRaw("rte.rte.setMarkProperty(mark, 'attributes', " + ObjectUtils.toJson(attributes) + ");");
 
-                } else {
-                    wp.writeEnd();
+                    if (body != null) {
+                        // Change the mark content in a way that support RTE undo hisotry
+                        wp.writeRaw("rte.rte.replaceMarkHTML(mark, '");
+                        wp.writeRaw(StringUtils.escapeJavaScript(body));
+                        wp.writeRaw("');");
+                    }
+
+                    if (wp.param(boolean.class, "action-save-and-close")) {
+                        wp.writeRaw("$page.popup('close');");
+                        wp.writeEnd();
+                        return;
+
+                    } else {
+                        wp.writeEnd();
+
+                        stateOldValues = state.getSimpleValues();
+                    }
                 }
             }
         }
@@ -190,7 +204,8 @@ if (object == null) {
     }
     %>
 
-    <form class="enhancementForm" action="<%= wp.url("", "typeId", state.getTypeId(), "id", state.getId()) %>" enctype="multipart/form-data" id="<%= pageId %>" method="post">
+    <form class="enhancementForm" data-enhancement-rte action="<%= wp.url("", "typeId", state.getTypeId(), "id", state.getId()) %>" enctype="multipart/form-data" id="<%= pageId %>" method="post">
+        <input type="hidden" name="<%= state.getId() %>/oldValues" value="<%= wp.h(ObjectUtils.toJson(stateOldValues)) %>">
         <% wp.include("/WEB-INF/errors.jsp"); %>
 
         <%
@@ -215,7 +230,10 @@ if (object == null) {
                     wp.writeEnd();
 
                 } else {
-                    wp.writeStart("button", "class", "action action-save");
+                    wp.writeStart("button",
+                            "class", "action action-save",
+                            "name", "action-save",
+                            "value", true);
                     wp.writeHtml(wp.localize(state.getType(), "action.save"));
                     wp.writeEnd();
                 }
@@ -275,13 +293,13 @@ if (object == null) {
                 if (rte2) {
 
                     // Save the enhancement data on the enhancement
-                    // Enhancement will be updated automaticaly when the popup closes
+                    // Enhancement will be updated automatically when the popup closes
                     rte2.enhancementSetReference($source, reference);
 
                 }
             }
 
-            <% if (wp.isFormPost() && wp.getErrors().isEmpty()) { %>
+            <% if (!isRichTextElement && saved && wp.getErrors().isEmpty()) { %>
                 $page.popup('close');
             <% } %>
 

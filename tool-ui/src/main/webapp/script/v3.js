@@ -28,15 +28,15 @@ require([
   'jquery',
   'jquery.extra',
 
-  'bsp-autoexpand',
-  'bsp-autosubmit',
+  'v3/plugin/auto-expand',
+  'v3/plugin/auto-submit',
   'bsp-uploader',
   'bsp-utils',
+  'iframeResizer',
   'jquery.mousewheel',
   'velocity',
 
   'v3/input/carousel',
-  'v3/input/change',
   'input/code',
   'input/color',
   'v3/color-utils',
@@ -52,6 +52,7 @@ require([
   'input/region',
   'v3/input/richtext',
   'v3/input/richtext2',
+  'v3/input/secret',
   'input/table',
   'input/workflow',
 
@@ -82,6 +83,7 @@ require([
   'content/layout-element',
   'v3/content/state',
   'v3/csrf',
+  'v3/search',
   'v3/search-fields',
   'v3/search-filters',
   'v3/search-result-check',
@@ -116,13 +118,27 @@ function() {
   $doc.dropDown('live', 'select[multiple], select[data-searchable="true"]');
   $doc.editablePlaceholder('live', ':input[data-editable-placeholder]');
 
+  bsp_utils.onDomInsert(document, '.ExternalPreviewFrame', {
+    insert: function (frame) {
+      var $frame = $(frame);
+
+      $frame.iFrameResize({
+        resizedCallback: function () {
+          $frame.resize();
+        }
+      });
+    }
+  });
+
   bsp_fixedScrollable.live(document, [
     '.fixedScrollable',
     '.searchResult-list',
     '.searchResultTaxonomyColumn ul',
-    '.popup[name="miscSearch"] .searchFiltersRest',
-    '.popup[data-popup-source-class~="objectId-select"] .searchFiltersRest',
-    '.popup[data-popup-source-class~="objectId-select"] .searchResultList'
+    '.searchFiltersRest',
+    '.popup[data-popup-source-class~="objectId-select"] .searchResultList',
+    '.popup[data-popup-source-class~="rte2-enhancement-toolbar-change"] .searchResultList',
+    '.searchResult-actions-body',
+    '.ToolUserWorksInProgress-body'
   ].join(','));
 
   $doc.frame({
@@ -337,7 +353,7 @@ function() {
       updateWordCount(
           $input.closest('.inputContainer'),
           $input,
-          $input.val());
+          $input.val() || $input.prop('placeholder'));
     }));
 
     // For original rich text editor, special handling for the word count
@@ -540,6 +556,10 @@ function() {
 
   $doc.on('click', 'button[name="action-trash"], :submit[name="action-trash"]', function() {
     return confirm('Are you sure you want to archive this item?');
+  });
+
+  $doc.on('click', '[data-confirm-message]', function () {
+    return confirm($(this).attr('data-confirm-message'));
   });
 
   (function() {

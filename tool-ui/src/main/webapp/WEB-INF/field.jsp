@@ -183,6 +183,20 @@ try {
         if (layoutField != null) {
             wp.write("\" data-layout-field=\"");
             wp.writeHtml(ObjectUtils.toJson(layoutField.toMap()));
+
+            Object fieldValue = state.get(fieldName);
+            State fieldState;
+            try {
+                fieldState = State.getInstance(fieldValue);
+            } catch (IllegalArgumentException e) {
+                fieldState = null;
+            }
+
+            boolean layoutErrors = state.hasErrors(field) ||
+                    (fieldState != null &&
+                    fieldState.hasAnyErrors());
+
+            wp.write("\" data-layout-errors=\"" + layoutErrors);
         }
 
         String languageTag = ui.getLanguageTag();

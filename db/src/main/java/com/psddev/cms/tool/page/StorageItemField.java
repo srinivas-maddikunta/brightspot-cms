@@ -22,9 +22,6 @@ import java.util.UUID;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.fileupload.FileItem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.psddev.cms.db.ImageCrop;
 import com.psddev.cms.db.ImageTag;
 import com.psddev.cms.db.ImageTextOverlay;
@@ -50,6 +47,9 @@ import com.psddev.dari.util.SparseSet;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeReference;
+import org.apache.commons.fileupload.FileItem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @deprecated
@@ -148,15 +148,10 @@ public class StorageItemField extends PageServlet {
             }
         }
 
-        Map<String, ImageCrop> crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
-        }, fieldValueMetadata.get("cms.crops"));
+        Map<String, ImageCrop> crops = ImageCrop.createCrops(fieldValueMetadata.get("cms.crops"));
         if (crops == null) {
             // for backward compatibility
-            crops = ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() {
-            }, state.getValue(cropsFieldName));
-        }
-        if (crops == null) {
-            crops = new HashMap<String, ImageCrop>();
+            crops = ImageCrop.createCrops(state.getValue(cropsFieldName));
         }
 
         crops = new TreeMap<String, ImageCrop>(crops);
@@ -288,7 +283,7 @@ public class StorageItemField extends PageServlet {
                         FileItem fileItem = mpRequest.getFileItem(fileName);
 
                         if (fileItem != null) {
-                            name = fileItem.getName();
+                            name = StringUtils.getFileName(fileItem.getName());
                             fileContentType = fileItem.getContentType();
                             fileSize = fileItem.getSize();
 

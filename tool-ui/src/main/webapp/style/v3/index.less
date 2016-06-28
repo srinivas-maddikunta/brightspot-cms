@@ -14,6 +14,11 @@
 @import 'element.less';
 @import 'reset.less';
 
+* {
+  // Solve problem of certain font-ligatures like "fi" from messing up cursor positions in input fields
+  font-variant-ligatures: no-common-ligatures !important;
+}
+
 .repeatableForm > ol > li > .inputLabel > .inputSmall,
 .repeatableForm > ul > li > .inputLabel > .inputSmall {
   display: inline-block;
@@ -43,6 +48,7 @@
 @import 'repeatable.less';
 @import 'rte.less';
 @import 'rte2.less';
+@import 'tableEditor.less';
 @import 'scheduled-events.less';
 @import 'search.less';
 @import 'taxonomy.less';
@@ -51,6 +57,9 @@
 @import 'tool-user-profile.less';
 @import 'work-streams.less';
 @import 'workflow.less';
+
+@import 'ExternalPreviewFrame.less';
+@import 'OverlayProviderSelect.less';
 
 // From Bower.
 @import '../handsontable.full.css';
@@ -559,7 +568,7 @@
   &-left,
   &-right {
     list-style-type: none;
-    margin: 15px 0 0 0;
+    margin: 0;
   }
 
   &-left {
@@ -569,6 +578,18 @@
   &-right {
     float: right;
   }
+}
+
+.widget-publishingPublish + .widget-publishingExtra {
+  .widget-publishingExtra-left,
+  .widget-publishingExtra-right {
+    margin-top: 15px;
+  }
+}
+
+.DraftAndReturnAction,
+.NewDraftAndReturnAction {
+  display: none;
 }
 
 .inputContainer .permissions select {
@@ -683,6 +704,7 @@
   .icon-only;
   .link;
 
+  box-sizing: content-box;
   color: fade(@color-text, 30%);
   display: none;
   padding: 5px;

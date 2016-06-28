@@ -241,10 +241,7 @@ public class ImageFileType implements FileContentType {
         );
 
         // Crops and StandardImageSizes.
-        Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
-                ObjectUtils.to(new TypeReference<TreeMap<String, ImageCrop>>() { }, metadata.get("cms.crops")),
-                new HashMap<String, ImageCrop>()
-        );
+        Map<String, ImageCrop> crops = ImageCrop.createCrops(metadata.get("cms.crops"));
 
         crops = new TreeMap<>(crops);
 
@@ -297,6 +294,7 @@ public class ImageFileType implements FileContentType {
                             page.writeStart("a",
                                     "class", "icon icon-crop",
                                     "href", page.h(page.url("/contentImages", "data", ObjectUtils.toJson(storageItem))),
+                                    "data-frame-post", "",
                                     "target", "contentImages");
                                 page.writeHtml(page.localize(ImageFileType.class, "action.viewResized"));
                             page.writeEnd();

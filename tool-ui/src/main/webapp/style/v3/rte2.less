@@ -1,3 +1,25 @@
+.rte2-submenu() {
+  display:none;
+  margin:0;
+  position:absolute;
+  padding:0.5em;
+  background-color: fade(white, 93%);
+  border:1px solid @color-separator;
+  z-index:4;
+  &:hover {
+    z-index: 5;
+  }
+      
+  li {
+    display:block;
+
+    a {
+          // Prevent submenu from shrinking and cutting off text when on right side
+      white-space: nowrap;
+    }
+  }
+}
+
 .rte2-toolbar {
   background: white;
   border-color: transparent;
@@ -25,12 +47,12 @@
   .rte2-wrapper > & {
 
     // Give a higher z-index than the rich text editor.
-    z-index: 3;
+    z-index: 4;
 
     // When hovering the toolbar, give it a higher z-index than other toolbars
     // below so that the submenu will be on top of other toolbars.
     &:hover {
-      z-index: 4;
+      z-index: 5;
     }
   }
 
@@ -48,22 +70,7 @@
     height: 25px;
 
     > ul {  // Submenu
-      display:none;
-      margin:0;
-      position:absolute;
-      padding:0.5em;
-      background-color: fade(white, 93%);
-      border:1px solid @color-separator;
-      z-index:1;
-      
-      li {
-        display:block;
-
-        a {
-          // Prevent submenu from shrinking and cutting off text when on right side
-          white-space: nowrap;
-        }
-      }
+      .rte2-submenu;
     }
 
     &:hover {
@@ -160,7 +167,15 @@
 
   .rte2-toolbar-clear { width:auto; padding-left:0.5em; padding-right:0.5em; }
 
-  .rte2-toolbar-fullscreen { .icon; .icon-fullscreen; }
+  .rte2-toolbar-fullscreen {
+    .icon;
+    .icon-fullscreen;
+
+    .imageEditor-text-toolbar & {
+      display: none !important;
+    }
+  }
+
   .rte2-toolbar-moveLeft { .icon; .icon-arrow-left; }
   .rte2-toolbar-moveUp { .icon; .icon-arrow-up; }
   .rte2-toolbar-moveCenter { .icon; .icon-resize-full; }
@@ -196,6 +211,10 @@
   background-color: transparent;
   border-style: none;
   padding: 0;
+  > li:last-of-type {
+    // Remove the extra space normally reserved for the word count
+      margin-right: 0;
+  }
 
   .rte2-enhancement-toolbar-up { .icon; .icon-arrow-up; }
   .rte2-enhancement-toolbar-down { .icon; .icon-arrow-down; }
@@ -208,7 +227,28 @@
   .rte2-enhancement-toolbar-change { .icon; .icon-random; width:auto; padding-right:0.5em; }
   .rte2-enhancement-toolbar-options { .icon; .icon-cog; width:auto; padding-right:0.5em; }
   .rte2-enhancement-toolbar-edit { .icon; .icon-pencil; width:auto; padding-right:0.5em; }
-  .rte2-enhancement-toolbar-size { width:auto; }
+  .rte2-enhancement-toolbar-size {
+    .icon;
+    .icon-caret-right;
+    &.hovered, &:hover {
+      .icon-caret-down;
+    }
+    width:auto;
+    padding-right:0.5em;
+    &:before { padding: 0 0 1px 3px; }
+  }
+}
+
+.rte2-enhancement-sizes-popup:extend(.rte2-toolbar all) {
+  .rte2-submenu;
+  width:auto;
+  a { width:auto; display:block; }
+  > li {
+    &:last-of-type {
+      // Remove the extra space normally reserved for the word count
+      margin-right: 0;
+    }
+  }
 }
 
 .rte2-enhancement.toBeRemoved, .rte2-table.toBeRemoved {
@@ -217,9 +257,9 @@
   .rte2-enhancement-toolbar-remove-completely { display:inline-block; }
 }
 .rte2-table-placeholder {
-  overflow:hidden;
   height:auto;
   width:100%;
+  position:relative;
 }
 .rte2-style-html {
   font-family: @fontFamily-code;
@@ -239,6 +279,10 @@
 }
 .rte2-style-strikethrough {
   text-decoration:line-through;
+
+  &.rte2-style-underline {
+    text-decoration: line-through underline;
+  }
 }
 .rte2-style-subscript {
   font-size: 0.83em;
@@ -249,21 +293,23 @@
   vertical-align:super;
 }
 .rte2-style-link {
-  color:blue;
+  color: @color-link-dark;
   text-decoration: underline;
-  cursor:pointer;
 }
+.cms-textAlign-left,
 .rte2-style-align-left {
   text-align:left;
 }
+.cms-textAlign-center,
 .rte2-style-align-center {
   text-align:center;
 }
+.cms-textAlign-right,
 .rte2-style-align-right {
   text-align:right;
 }
 .rte2-style-spelling {
-  border-bottom:1px dotted red;
+  border-bottom: 1px dotted @color-remove;
 }
 @rte2-style-comment-border: 1px solid rgba(0, 0, 0, 0.3);
 .rte2-style-comment {
@@ -305,15 +351,21 @@
   width:100%;
   margin:1em 0;
 }
+.rte2-style-enhancement-float() {
+  width:auto;
+  .rte2-enhancement-toolbar {
+    white-space:nowrap;
+  }
+}
 .rte2-style-enhancement-left {
+  .rte2-style-enhancement-float;
   float:left;
   margin:0 1em 0 0;
-  width:400px;
 }
 .rte2-style-enhancement-right {
+  .rte2-style-enhancement-float;
   float:right;
   margin:0 0 0 1em;
-  width:400px;
 }
 .rte2-style-track-delete, .rte2-table-placeholder del {
   background-color: rgba(255, 0, 0, 0.3);
@@ -408,13 +460,18 @@ li.CodeMirror-hint-active {
 // For enhancements, let the enhancement toolbar overflow the codemirror widget,
 // and reset the z-index because it was causing problems with the submenu hover
 .rte2-codemirror {
-  .CodeMirror,
-  .CodeMirror-scroll {
-    overflow: visible !important;
-  }
   .CodeMirror-linewidget {
     overflow: visible;
     z-index: inherit;
+  }
+}
+
+.rte-fullscreen {
+  position: relative;
+  z-index: 999;
+
+  &.contentForm {
+    overflow: visible;
   }
 }
 
@@ -483,7 +540,11 @@ li.CodeMirror-hint-active {
       width: 60em;
 
       .CodeMirror-lines {
-        padding: 30px;
+        padding: 30px 0;
+      }
+
+      pre {
+        padding: 0 30px;
       }
     }
   }
@@ -493,13 +554,13 @@ li.CodeMirror-hint-active {
     font-family:inherit;
 
     .CodeMirror-lines {
-      padding: 5px 6px;
+      padding: 5px 0;
     }
 
     pre {
       font-family:inherit;
       counter-reset: brightspot_ol_counter;
-      padding: 0;
+      padding: 0 6px;
     }
     .rte2-style-ul {
       padding-left: 2em;
@@ -561,7 +622,7 @@ li.CodeMirror-hint-active {
       padding:0.25em;
     }
 
-    a {
+    .rte2-enhancement-toolbar a {
       color: @color-placeholder;
 
       &:hover {
@@ -584,7 +645,7 @@ li.CodeMirror-hint-active {
 }
 
 .rte2-dialogLinkHref {
-  padding-right: 6em !important;
+  padding-right: 7em !important;
   width: 100%;
 }
 
@@ -592,22 +653,34 @@ li.CodeMirror-hint-active {
   .icon;
   .icon-action-search;
 
-  line-height: 26px;
+  line-height: 30px;
   position: absolute;
-  right: 5px;
+  right: 6px;
   top: 0;
 }
 
-.rte2-dialogLinkSave {
-  .icon;
-  .icon-ok;
+.rte2-dialogLinkTarget {
+  margin-right: 5px;
+}
 
+.rte2-dialogLinkActions {
+  .actions;
+
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.rte2-dialogLinkSave {
+  float: left;
   margin-right: 10px;
 }
 
 .rte2-dialogLinkOpen {
   .icon;
   .icon-share;
+
+  float: left;
+  line-height: 30px;
 }
 
 .rte2-dialogLinkUnlink {
@@ -616,6 +689,7 @@ li.CodeMirror-hint-active {
 
   color: @color-remove;
   float: right;
+  line-height: 30px;
 }
 
 .popup[name^=rte2-frame-enhancement-inline] {
@@ -632,14 +706,8 @@ li.CodeMirror-hint-active {
   .closeButton {
     display:none;
   }
-  
 }
 
-.rte2-table-editor {
-  .rte2-wrapper {
-    overflow: hidden;
-  }
-}
 .rte2-table-editor-save {
   margin-right: 0.5em;
 }
@@ -652,7 +720,9 @@ li.CodeMirror-hint-active {
   strike { text-decoration:line-through;}
   
   // Within the table do not let users click link or button elements
-  a, button { pointer-events:none; }
+  table {
+    a, button { pointer-events:none; }
+  }
 
   .rte-comment {
     &:extend(.rte2-style-comment);
@@ -675,34 +745,113 @@ li.CodeMirror-hint-active {
 }
 
 .rte2-dropdown {
-  z-index:2;
-  position:absolute;
-  background-color:rgba(255, 255, 255, 0.9);
-  padding:0.25em;
-  border:1px solid rgba(0, 0, 0, 0.5);
-  border-radius:2px;
-  top:0;
-  left:0;
-  display:table;
+  background-color: white;
+  border: 1px solid @color-overlay;
+  border-radius: 2px;
+  box-shadow: 0 0 5px @color-shadow;
+  display: table;
+  left: 0;
+  margin: 5px 0 0 -12px;
+  padding: 3px 6px;
+  position: absolute;
+  top: 0;
+  z-index: 2;
+
+  &:before {
+    border-color: transparent transparent @color-overlay transparent;
+    border-style: solid;
+    border-width: 5px;
+    content: '';
+    left: 10px;
+    position: absolute;
+    top: -10px;
+  }
+
+  &:after {
+    border-color: transparent transparent white transparent;
+    border-style: solid;
+    border-width: 4px;
+    content: '';
+    left: 11px;
+    position: absolute;
+    top: -8px;
+  }
 
   .rte2-dropdown-item {
-    display:table-row;
+    display: table-row;
   }
-  
-  .rte2-dropdown-label {
-    padding-right:0.25em;
-    border-right:1px solid #aaa;
-    display:table-cell;
-  }
-  .rte2-dropdown-edit {
-    padding-left:0.25em;
-    padding-right:0.25em;
-    border-right:1px solid #aaa;
-    margin-right:0.25em;
-    display:table-cell;
-  }
+
+  .rte2-dropdown-label,
+  .rte2-dropdown-edit,
   .rte2-dropdown-clear {
-    display:table-cell;
-    padding-left:0.25em;
+    display: table-cell;
+  }
+
+  .rte2-dropdown-label {
+    padding-right: 5px;
+
+    &:after {
+      content: ':';
+    }
+  }
+
+  .rte2-dropdown-edit {
+    border-right: 1px solid @color-separator;
+    margin-right: 5px;
+    padding-right: 5px;
+  }
+
+  .rte2-dropdown-clear {
+    color: @color-remove;
+    padding-left: 5px;
+  }
+}
+
+.rte2-table-placeholder {
+
+  .wtHolder::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 5px;
+    height:5px;
+  }
+  .wtHolder::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background-color: rgba(0,0,0,.25);
+    -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
+  }
+}
+
+.rte2-placeholder-showing .CodeMirror pre {
+  color: @color-placeholder;
+}
+
+.rte2-wrapper .CodeMirror {
+  .rte2-block-preview {
+    .background-striped(@color-heading);
+    border-radius: 5px;
+    margin-top: 10px;
+    position: relative;
+
+    &:before {
+      border-color: transparent transparent @color-heading transparent;
+      border-style: solid;
+      border-width: 10px;
+      content: '';
+      left: 10px;
+      position: absolute;
+      top: -20px;
+    }
+  }
+
+  .rte2-style-com-psddev-cms-rte-ExternalContentRichTextElement {
+    color: @color-link-dark;
+    text-decoration: underline;
+
+    &:before {
+      .visibilityLabel;
+
+      content: 'External Content';
+      margin-right: 5px;
+    }
   }
 }

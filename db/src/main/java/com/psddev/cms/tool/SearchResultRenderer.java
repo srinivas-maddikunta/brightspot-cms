@@ -11,6 +11,9 @@ import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.psddev.cms.db.PageFilter;
+import com.psddev.cms.view.ViewCreator;
+import com.psddev.cms.view.ViewModel;
 import org.joda.time.DateTime;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Renderer;
@@ -479,9 +482,11 @@ public class SearchResultRenderer {
                 int previewWidth = rendererData.getEmbedPreviewWidth();
 
                 if (previewWidth > 0
-                        && !ObjectUtils.isBlank(rendererData.getEmbedPath())) {
+                        && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
+                        || ViewCreator.findCreatorClass(item, null, PageFilter.EMBED_VIEW_TYPE, null) != null
+                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, item) != null)) {
                     permalink = "/_preview?_embed=true&_cms.db.previewId=" + itemState.getId();
-                    embedWidth = 320;
+                    embedWidth = previewWidth;
                 }
             }
         }
@@ -528,7 +533,7 @@ public class SearchResultRenderer {
                 page.writeEnd();
             }
 
-            page.writeStart("td", "data-preview-anchor", "");
+            page.writeStart("td");
                 renderBeforeItem(item);
                 page.writeObjectLabel(item);
                 renderAfterItem(item);
@@ -633,8 +638,7 @@ public class SearchResultRenderer {
     public void renderBeforeItem(Object item) throws IOException {
         page.writeStart("a",
                 "href", page.toolUrl(CmsTool.class, "/content/edit.jsp",
-                        "id", State.getInstance(item).getId(),
-                        "search", page.url("", Search.NAME_PARAMETER, null)),
+                        "id", State.getInstance(item).getId()),
                 "data-objectId", State.getInstance(item).getId(),
                 "target", "_top");
     }
