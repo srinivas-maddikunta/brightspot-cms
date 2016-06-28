@@ -1,33 +1,16 @@
 package com.psddev.cms.tool.file;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.runners.MockitoJUnitRunner;
-import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.TestStorageItem;
 import com.psddev.cms.db.ImageCrop;
 import com.psddev.cms.db.StandardImageSize;
@@ -45,6 +28,18 @@ import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.TypeReference;
 import com.psddev.dari.util.UuidUtils;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.runners.MockitoJUnitRunner;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -263,11 +258,7 @@ public class ImageFileTypeTest {
                     new HashMap<String, Object>()
             );
 
-            Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
-                    ObjectUtils.to(new TypeReference<TreeMap<String, ImageCrop>>() {
-                    }, metadata.get("cms.crops")),
-                    new HashMap<String, ImageCrop>()
-            );
+            Map<String, ImageCrop> crops = ImageCrop.createCrops(metadata.get("cms.crops"));
 
             compareMaps(edits, ObjectUtils.to(new TypeReference<Map<String, Object>>() {
             }, EXPECTED_EDITS));
@@ -416,7 +407,7 @@ public class ImageFileTypeTest {
 
         private void validateInput(Element input, String expectedValue) {
             assertNotNull(input);
-            assertEquals(input.attr("value"), expectedValue);
+            assertEquals(expectedValue, input.attr("value"));
         }
     }
 
