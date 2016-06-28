@@ -81,7 +81,7 @@ String access = siteData.isGlobal() ? "all" :
     <% wp.writeHtml(wp.localize("com.psddev.cms.tool.widget.Sites", "label.owner")); %>
 </label><br>
 
-<% if (owner != null & !wp.hasPermission(owner.getPermissionId())) {%>
+<% if (owner != null && !wp.hasPermission(owner.getPermissionId())) {%>
     <div><%= wp.getObjectLabel(owner) %></div>
 
 <% } else {%>
