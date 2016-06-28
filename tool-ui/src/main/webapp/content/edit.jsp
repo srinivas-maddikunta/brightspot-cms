@@ -357,7 +357,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                         wp.write(": " );
 
-                        wp.writeStart("span", "data-dynamic-html", "${toolPageContext.createObjectLabelHtml(content)}");
+                        wp.writeStart("span", "class", "ContentLabel", "data-dynamic-html", "${toolPageContext.createObjectLabelHtml(content)}");
                             wp.write(wp.createObjectLabelHtml(editing));
                         wp.writeEnd();
                     wp.writeEnd();
