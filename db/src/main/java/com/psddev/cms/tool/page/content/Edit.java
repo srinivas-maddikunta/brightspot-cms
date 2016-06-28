@@ -13,10 +13,16 @@ import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class Edit {
+
+    private static final String ATTRIBUTE_PREFIX = Edit.class.getName() + ".";
+    private static final String WIP_DIFFERENCE_IDS_ATTRIBUTE = ATTRIBUTE_PREFIX + "wipDifferenceIds";
 
     public static Overlay getOverlay(Object content) {
         return content != null
@@ -135,10 +141,14 @@ public class Edit {
             return;
         }
 
+        Map<String, Map<String, Object>> differences = wip.getDifferences();
+
+        page.getRequest().setAttribute(WIP_DIFFERENCE_IDS_ATTRIBUTE, differences.keySet());
+
         state.setValues(Draft.mergeDifferences(
                 state.getDatabase().getEnvironment(),
                 state.getSimpleValues(),
-                wip.getDifferences()));
+                differences));
 
         page.writeStart("div", "class", "message message-warning WorkInProgressRestoredMessage");
         {
@@ -162,5 +172,54 @@ public class Edit {
             page.writeEnd();
         }
         page.writeEnd();
+    }
+
+    /**
+     * Returns {@code true} if a work in progress object was restored on top of
+     * the given {@code object} using {@link #restoreWorkInProgress} in the
+     * context of the given {@code page}.
+     *
+     * @param page Can't be {@code null}.
+     * @param object Can't be {@code null}.
+     */
+    public static boolean isWorkInProgressRestored(ToolPageContext page, Object object) {
+        @SuppressWarnings("unchecked")
+        Set<String> differenceIds = (Set<String>) page.getRequest().getAttribute(WIP_DIFFERENCE_IDS_ATTRIBUTE);
+
+        if (differenceIds == null) {
+            return false;
+        }
+
+        State state = State.getInstance(object);
+
+        return differenceIds.contains(state.getId().toString())
+                || wipCheckObject(differenceIds, state.getSimpleValues());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean wipCheckObject(Set<String> differenceIds, Object object) {
+        if (object instanceof List) {
+            return wipCheckCollection(differenceIds, (List<Object>) object);
+
+        } else if (object instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) object;
+            String ref = ObjectUtils.to(String.class, map.get("_ref"));
+
+            if (ref != null) {
+                return differenceIds.contains(ref);
+            }
+
+            String id = ObjectUtils.to(String.class, map.get(State.ID_KEY));
+
+            return (id != null && differenceIds.contains(id))
+                    || wipCheckCollection(differenceIds, map.values());
+
+        } else {
+            return false;
+        }
+    }
+
+    private static boolean wipCheckCollection(Set<String> differenceIds, Collection<Object> collection) {
+        return collection.stream().anyMatch(v -> wipCheckObject(differenceIds, v));
     }
 }
