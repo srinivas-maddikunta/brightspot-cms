@@ -121,10 +121,7 @@ public class ImageFileType implements FileContentType {
         Map<String, Object> fieldValueMetadata = new LinkedHashMap<>(storageItem.getMetadata());
 
         // Crops.
-        Map<String, ImageCrop> crops = ObjectUtils.firstNonNull(
-                ObjectUtils.to(new TypeReference<Map<String, ImageCrop>>() { }, fieldValueMetadata.get("cms.crops")),
-                new HashMap<String, ImageCrop>()
-        );
+        Map<String, ImageCrop> crops =  ImageCrop.createCrops(fieldValueMetadata.get("cms.crops"));
 
         crops = new TreeMap<>(crops);
 
