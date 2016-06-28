@@ -926,8 +926,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                         wp.writeEnd();
                                     }
 
-                                    wp.writeStart("div", "class", "widget-publishingWorkflow");
-                                        if (!transitionNames.isEmpty()) {
+                                    if (!transitionNames.isEmpty()) {
+                                        wp.writeStart("div", "class", "widget-publishingWorkflow");
                                             WorkflowLog newLog = new WorkflowLog();
 
                                             if (log != null) {
@@ -971,8 +971,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                                     wp.writeHtml(entry.getValue());
                                                 wp.writeEnd();
                                             }
-                                        }
-                                    wp.writeEnd();
+                                        wp.writeEnd();
+                                    }
                                 }
                             }
                         }
