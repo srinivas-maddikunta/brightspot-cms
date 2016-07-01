@@ -776,7 +776,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 return false;
             });
             self.$editor.on('rteBlur', function(){
-                self.$el.trigger('rteBlur', [self]);
+                self.rteBlurTimeout = setTimeout(function(){
+                    self.$el.trigger('rteBlur', [self]);
+                }, 100);
                 return false;
             });
             self.$editor.on('rteChange', function(){
@@ -1331,6 +1333,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             $button.on('click', function(event) {
                 event.preventDefault();
+                clearTimeout(self.rteBlurTimeout);
                 self.toolbarHandleClick(item, event);
             });
 
