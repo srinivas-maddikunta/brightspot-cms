@@ -13,6 +13,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
   bsp_utils.onDomInsert(document, '.contentForm, .enhancementForm, .standardForm', {
     'insert': function(form) {
       var $form = $(form);
+      var wipEnabled = $form.is('.contentForm');
       var running;
       var rerun;
       var idleTimeout;
@@ -53,28 +54,11 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
               && $(this).closest('.contentDiffCurrent').length === 0;
         });
 
-        if (!idle) {
-          $form.find('[data-dynamic-predicate]:not([data-dynamic-predicate = ""])').each(function () {
-            $(this).removeClass('state-loaded');
-          });
-        }
-
         var $publishingHeading = $form.find('.widget-publishing > h1');
-        var $wipSaveStatus = $publishingHeading.find('> .WorkInProgressSaveStatus');
-
-        if ($wipSaveStatus.length === 0) {
-          $wipSaveStatus = $('<span/>', {
-            'class': 'WorkInProgressSaveStatus'
-          });
-
-          $publishingHeading.append($wipSaveStatus);
-        }
-
-        $wipSaveStatus.text('(Saving WIP)').attr('data-status', 'saving');
 
         $.ajax({
           'type': 'post',
-          'url': CONTEXT_PATH + 'contentState?idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
+          'url': CONTEXT_PATH + 'contentState?wip=' + wipEnabled + '&idle=' + (!!idle) + (questionAt > -1 ? '&' + action.substring(questionAt + 1) : ''),
           'cache': false,
           'dataType': 'json',
 
@@ -103,8 +87,27 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           }).get().join(''),
 
           'success': function(data) {
-            if ($wipSaveStatus) {
-              $wipSaveStatus.text('(Saved WIP)').attr('data-status', 'saved');
+            if (wipEnabled) {
+              var wipMessage = data._wip;
+
+              if (wipMessage) {
+                var $wipSaveStatus = $publishingHeading.find('> .WorkInProgressSaveStatus');
+
+                if ($wipSaveStatus.length === 0) {
+                  $wipSaveStatus = $('<span/>', {
+                    'class': 'WorkInProgressSaveStatus'
+                  });
+
+                  $publishingHeading.append($wipSaveStatus);
+                }
+
+                $wipSaveStatus.removeAttr('data-status');
+                $wipSaveStatus.text(wipMessage);
+
+                setTimeout(function () {
+                  $wipSaveStatus.attr('data-status', 'saved');
+                }, 0)
+              }
             }
 
             $form.trigger('cms-updateContentState', [ data ]);
@@ -141,7 +144,6 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
                 $element.attr('data-additional-query', dynamicPredicate);
                 $element.trigger('refresh.objectId');
-                $element.addClass('state-loaded');
               }
 
               //If text is missing set to empty to compare & replace below
@@ -181,13 +183,24 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
             if (diffs) {
               $form.find('.inputContainer').removeClass('state-changed');
+              $form.find('.repeatableForm > ol > li, .repeatableForm > ul > li').removeClass('state-changed');
 
               $.each(diffs, function (id, fields) {
+                if (fields.length === 0) {
+                  return;
+                }
+                
                 var $inputs = $form.find('.objectInputs[data-object-id="' + id + '"]');
 
                 $.each(fields, function (name) {
                   $inputs.find('> .inputContainer[data-field-name="' + name + '"]').addClass('state-changed');
                 });
+                
+                var $li = $inputs.closest('li');
+
+                if ($li.parent().parent().is('.repeatableForm')) {
+                  $li.addClass('state-changed');
+                }
               });
 
               $form.trigger('content-state-differences');

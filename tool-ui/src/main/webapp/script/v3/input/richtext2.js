@@ -54,7 +54,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
          * Style definitions to pass to the CodeMirrorRte.
          */
         styles: {
-
             bold: {
                 className: 'rte2-style-bold',
                 element: 'b',
@@ -172,7 +171,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     // otherwise the click outside the popup will close the popup!
                     setTimeout(function() {
                         
-                        self.linkEdit(mark.attributes).done(function(attributes){
+                        self.linkEdit(mark.attributes, mark).done(function(attributes){
 
                             if (attributes.remove || attributes.href === '' || attributes.href === 'http://') {
                                 // Remove the link
@@ -594,6 +593,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             self.initStyles();
             self.enhancementInit();
             self.inlineEnhancementInit();
+            self.updateLinkInit();
             self.tableInit();
             self.initRte();
             self.tableInitChangeEvent(); // must be after initRte
@@ -954,6 +954,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             rte.fromHTML(self.$el.val());
             
+            rte.historyClear();
+            
             // Turn track changes back on (if it was on)
             rte.trackSet(trackIsOn);
         },
@@ -1081,7 +1083,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     if (self.inline && item.inline === false) {
                         return;
                     }
-
                     if (item.separator) {
 
                         // Add a separator between items
@@ -1809,8 +1810,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             // The pop-up dialog used to prompt for links
             self.$linkDialog = $(
-                '<div>' +
-                    '<h2>Link</h2>' +
+                '<div class="widget">' +
+                    '<h1>Link</h1>' +
                     '<div class="rte2-dialogLine">' +
                         '<input type="text" class="rte2-dialogLinkHref">' +
                         '<input type="hidden" class="rte2-dialogLinkId">' +
@@ -1826,9 +1827,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                             '<option value="nofollow">nofollow</option>' +
                         '</select>' +
                     '</div>' +
-                    '<a class="rte2-dialogLinkSave">Save</a>' +
-                    '<a class="rte2-dialogLinkOpen" target="_blank">Open</a>' +
-                    '<a class="rte2-dialogLinkUnlink">Unlink</a>' +
+                    '<div class="rte2-dialogLinkActions">' +
+                        '<a class="rte2-dialogLinkSave button">Save</a>' +
+                        '<a class="rte2-dialogLinkOpen action" target="_blank">Open</a>' +
+                        '<a class="rte2-dialogLinkUnlink action">Unlink</a>' +
+                    '</div>' +
                 '</div>'
             ).on('click', '.rte2-dialogLinkSave', function() {
                 // User clicked "Save" button to save the link
@@ -1851,7 +1854,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     return false;
                 }
             }).appendTo(document.body)
-                .popup({parent:self.$container}) // turn it into a popup
+                .popup() // turn it into a popup
                 .popup('close') // but initially close the popup
                 .popup('container').on('close', function() {
                     // If the popup is canceled with Esc or otherwise,
@@ -1887,7 +1890,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
          * @param {Boolean} [attributes.remove]
          * If this is true, then remove the link.
          */
-        linkEdit: function(attributes) {
+        linkEdit: function(attributes, mark) {
 
             var deferred;
             var $linkDialog;
@@ -1904,6 +1907,45 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             // Open the popup
             $linkDialog.popup('open');
+
+            if (mark) {
+                var offset = self.rte.getOffset(self.rte.markGetRange(mark));
+                var popupWidth = $linkDialog.outerWidth();
+                var left = offset.left + (offset.right - offset.left) / 2 - popupWidth / 2;
+                var markerDelta = 0;
+
+                if (left < 10) {
+                    markerDelta = left - 10;
+                    left = 10;
+
+                } else {
+                    var leftDelta = left + popupWidth - $(document).width() + 10;
+
+                    if (leftDelta > 0) {
+                        markerDelta = leftDelta;
+                        left -= leftDelta;
+                    }
+                }
+
+                var $content = $linkDialog.popup('content');
+                var $marker = $content.find('> .marker');
+
+                if ($marker.length === 0) {
+                    $marker = $('<div/>', { 'class': 'marker' });
+                    $content.append($marker);
+                }
+
+                var markerLeft = (popupWidth  - 20) / 2 + markerDelta;
+
+                $marker.css('left', markerLeft < 5 ? 5 : markerLeft);
+                $linkDialog.css({
+                    'left': left,
+                    'margin': 0,
+                    'position': 'absolute',
+                    'top': offset.bottom,
+                    'z-index': self.$el.zIndex() + 1
+                });
+            }
 
             // Add existing attributes to the popup form
             $href = $linkDialog.find('.rte2-dialogLinkHref');
@@ -2271,6 +2313,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                         'id', reference.record._ref,
                         'reference', JSON.stringify(reference));
                 $options.attr('href', optionsUrl);
+                $options.attr('data-frame-post', '');
 
                 // Modify the "Edit" button in the toolbar so it will pop up the edit dialog for the enhancement
                 $edit = $enhancement.find('.rte2-enhancement-toolbar-edit');
@@ -3481,8 +3524,41 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 }
             }
         },
+        /*
+         * remove link style definition of the "a" element 
+         * with values provided from inline enhancement (RICH_TEXT_ELEMENTS variable)
+         * 
+         * @returns {undefined}
+         */
+        updateLinkInit: function(){
+            var self;
+            var removeLink;
+            var toolKey;
+                self = this;
+                
+            $.each(self.styles, function(styleKey, styleObj){
+                 if (styleObj.element === 'a' && styleKey !== 'link'){
+                     removeLink = true;
+                     return false;
+                 }
+             });
 
-        
+             if (removeLink) {
+                 $.each(self.toolbarConfig, function(toolbarKey, toolbarObj){
+                     if (toolbarObj.style === 'link'){
+                         toolKey = toolbarKey;
+                         return false;
+                     }
+                  }); 
+
+                delete self.styles.link;
+                if (toolKey !== undefined){
+                   self.toolbarConfig.splice(toolKey, 1);                    
+                }
+
+             }
+        },
+
         /*==================================================
          * Tables
          *==================================================*/
@@ -3910,6 +3986,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 text: 'Set',
                 click: function(event) {
                     event.preventDefault();
+                    self.tableEditSave = true;
                     $(this).popup('close');
                 }
             }).appendTo($controls);
@@ -3919,7 +3996,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 text: 'Cancel',
                 click: function(event) {
                     event.preventDefault();
-                    self.tableEditCancel = true;
                     $(this).popup('close');
                 }
             }).appendTo($controls);
@@ -3947,7 +4023,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             self.tableEditInit();
 
             // Set a flag so we only update the table cell if user clicks the save button
-            self.tableEditCancel = false;
+            self.tableEditSave = false;
             
             value = $el.html();
 
@@ -3968,12 +4044,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             self.$tableEditDiv.popup('container').one('closed', function(){
 
-                 if (self.tableEditCancel) {
-                     self.tableEditCancel = false;
-                 } else {
+                 if (self.tableEditSave) {
                      value = self.tableEditRte.toHTML();
                      $el.html(value);
                      self.rte.triggerChange();
+                } else {
+                     self.tableEditSave = false;
                  }
 
             });
@@ -4278,7 +4354,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             // If the placeholder content is empty, remove the placeholder
             // (if it happens to be already showing)
-            if (!placeholder) {
+            if (!placeholder.trim()) {
                 self.placeholderRemove();
                 return;
             }

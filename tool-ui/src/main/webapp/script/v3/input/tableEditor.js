@@ -167,8 +167,12 @@ define(['jquery'], function($) {
          */
         activeClear: function() {
             var self;
-            self = this;
-            self.$table.find('.' + self.activeClass).removeClass(self.activeClass);
+                self = this;
+            var $activeTableClass = self.$table.find('.' + self.activeClass);
+                $activeTableClass.removeClass(self.activeClass);
+            if ($activeTableClass.attr('class') === ""){
+                $activeTableClass.removeAttr('class');
+            }
             delete self.$active;
         },
 
@@ -211,7 +215,7 @@ define(['jquery'], function($) {
             }).hide().on('click', function(event) {
                 event.preventDefault();
                 event.stopPropagation();
-            }).appendTo(self.$wrapper);
+            }).appendTo(document.body);
         },
 
         
@@ -266,15 +270,16 @@ define(['jquery'], function($) {
          * Update the position of the context menu so it appears below the active cell.
          */
         contextPosition: function() {
-            
-            var $el, pos, self;
-            
-            self = this;
+            var self = this;
+            var $el = self.selectedGet();
+            var offset = $el.offset();
 
-            $el = self.selectedGet();
-            pos = $el.position();
-            if (pos) {
-                self.$context.css({left:pos.left, top:pos.top + $el.outerHeight() - 1});
+            if (offset) {
+                self.$context.css({
+                    left: offset.left,
+                    top: offset.top + $el.outerHeight() - 1,
+                    'z-index': $el.zIndex() + 1
+                });
             }
         },
 

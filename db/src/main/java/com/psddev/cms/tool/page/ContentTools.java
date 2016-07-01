@@ -19,8 +19,8 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import com.psddev.cms.db.Draft;
-import com.psddev.cms.db.History;
+import com.psddev.cms.tool.CmsTool;
+import com.psddev.dari.db.Application;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -28,15 +28,16 @@ import org.joda.time.format.DateTimeFormat;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.ContentLock;
 import com.psddev.cms.db.Directory;
+import com.psddev.cms.db.Draft;
+import com.psddev.cms.db.History;
 import com.psddev.cms.db.PageFilter;
 import com.psddev.cms.db.Renderer;
+import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
-import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
-import com.psddev.dari.db.Application;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
@@ -443,15 +444,30 @@ public class ContentTools extends PageServlet {
                                         || ViewCreator.findCreatorClass(object, null, PageFilter.EMBED_VIEW_TYPE, null) != null
                                         || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, object) != null) {
 
-                                    String permalink = state.as(Directory.ObjectModification.class).getPermalink();
+                                    Site site = page.getSite();
+                                    String permalink;
+
+                                    if (site != null) {
+                                        permalink = state.as(Directory.ObjectModification.class).getSitePermalink(site);
+
+                                    } else {
+                                        permalink = state.as(Directory.ObjectModification.class).getSitePermalink(null);
+
+                                        if (!ObjectUtils.isBlank(permalink)) {
+                                            String siteUrl = Application.Static.getInstance(CmsTool.class).getDefaultSiteUrl();
+
+                                            if (!ObjectUtils.isBlank(siteUrl)) {
+                                                permalink = StringUtils.removeEnd(siteUrl, "/") + permalink;
+                                            }
+                                        }
+                                    }
 
                                     if (!ObjectUtils.isBlank(permalink)) {
-                                        String siteUrl = Application.Static.getInstance(CmsTool.class).getDefaultSiteUrl();
                                         StringBuilder embedCode = new StringBuilder();
 
                                         embedCode.append("<script type=\"text/javascript\" src=\"");
                                         embedCode.append(StringUtils.addQueryParameters(
-                                                StringUtils.removeEnd(siteUrl, "/") + permalink,
+                                                permalink,
                                                 "_embed", true,
                                                 "_format", "js"));
                                         embedCode.append("\"></script>");

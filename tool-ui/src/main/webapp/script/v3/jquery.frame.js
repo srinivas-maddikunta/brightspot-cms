@@ -145,7 +145,23 @@ $.plugin2('frame', {
     // Intercept anchor clicks to see if it's targeted.
     $caller.delegate('a', 'click.frame', function(event) {
       return findTargetFrame(this, function($anchor, $frame) {
-        loadPage($frame, $anchor, 'get', $anchor.attr('href'), null, event);
+        var href = $anchor.attr('href');
+
+        if ($anchor.is('[data-frame-post]')) {
+          var questionAt = href.indexOf('?');
+          var data;
+
+          if (questionAt > -1) {
+            data = href.substring(questionAt + 1);
+            href = href.substring(0, questionAt);
+          }
+
+          loadPage($frame, $anchor, 'post', href, data, event);
+
+        } else {
+          loadPage($frame, $anchor, 'get', href, null, event);
+        }
+
         return false;
       });
     });

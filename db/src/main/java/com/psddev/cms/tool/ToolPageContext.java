@@ -1880,7 +1880,7 @@ public class ToolPageContext extends WebPageContext {
                                         if (user.findOtherAccessibleSites().size() > 0 || (user.getCurrentSite() != null && user.hasPermission("site/global"))) {
                                             writeStart("li");
                                                 writeStart("a",
-                                                    "href", cmsUrl("/siteSwitch"),
+                                                    "href", cmsUrl("/siteSwitch", "returnUrl", url("")),
                                                     "target", "siteSwitch");
                                                     writeHtml(localize(Site.class, "action.switch"));
                                                 writeEnd();
@@ -2288,7 +2288,7 @@ public class ToolPageContext extends WebPageContext {
 
         writeStart("script", "type", "text/javascript");
             write("var CONTEXT_PATH = '", cmsUrl("/"), "';");
-            write("var UPLOAD_PATH = ", "'" + Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "';");
+            write("var UPLOAD_PATH = ", "'" + getRequest().getContextPath() + StringUtils.ensureStart(Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "/"), "';");
             write("var CSS_CLASS_GROUPS = ", ObjectUtils.toJson(cssClassGroups), ";");
             write("var STANDARD_IMAGE_SIZES = ", ObjectUtils.toJson(standardImageSizes), ";");
             write("var RTE_LEGACY_HTML = ", getCmsTool().isLegacyHtml(), ';');
@@ -3527,15 +3527,18 @@ public class ToolPageContext extends WebPageContext {
                     }
                 }
 
+                redirectOnSave("");
+
             } else {
                 state.delete();
 
                 Query.from(Draft.class)
                         .where("objectId = ?", state.getId())
                         .deleteAll();
+
+                getResponse().sendRedirect(cmsUrl("/"));
             }
 
-            getResponse().sendRedirect(cmsUrl("/"));
             return true;
 
         } catch (Exception error) {
@@ -3986,6 +3989,7 @@ public class ToolPageContext extends WebPageContext {
 
                     state.putAtomically("cms.content.overlaid", Boolean.TRUE);
                     state.save();
+                    deleteWorksInProgress(object);
 
                 } else {
                     publishDifferences(object, differences);
