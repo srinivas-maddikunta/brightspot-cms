@@ -4261,7 +4261,11 @@ define([
                     } else {
                         $replacement = $('<span>', {'data-rte2-sanitize': style});
                         $replacement.append( $match.contents() );
-                        $match.replaceWith( $replacement );
+                        if ($match[0].tagName.toLowerCase() === 'td'){
+                            $match.append( $replacement );
+                        }else {
+                            $match.replaceWith( $replacement );
+                        } 
                     }
                 });
             });
