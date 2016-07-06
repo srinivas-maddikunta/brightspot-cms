@@ -20,7 +20,8 @@ java.util.List,
 java.util.Map,
 java.util.Set,
 java.util.UUID,
-java.util.stream.Collectors
+java.util.stream.Collectors,
+java.util.stream.Stream
 " %><%
 
 ToolPageContext wp = new ToolPageContext(pageContext);
@@ -100,6 +101,8 @@ if (JspWidget.isUpdating(wp)) {
             Set<Directory.Path> oldPaths = new LinkedHashSet<Directory.Path>(dirData.getPaths());
             Set<String> oldRawPaths = new LinkedHashSet<String>(dirData.getRawPaths());
 
+            dirData.clearPaths();
+
             for (Directory.Path path : State.getInstance(varied).as(Directory.ObjectModification.class).createPaths(site)) {
                 dirData.addPath(path.getSite(), path.getPath(), path.getType());
             }
@@ -107,8 +110,11 @@ if (JspWidget.isUpdating(wp)) {
             Set<Directory.Path> newPaths = new LinkedHashSet<Directory.Path>(dirData.getPaths());
             Set<String> newRawPaths = new LinkedHashSet<String>(dirData.getRawPaths());
 
-            newPaths.removeAll(oldPaths);
-            newRawPaths.removeAll(oldRawPaths);
+            dirData.clearPaths();
+
+            Stream.concat(oldPaths.stream(), newPaths.stream())
+                    .forEach(p -> dirData.addPath(p.getSite(), p.getPath(), p.getType()));
+
             state.getExtras().put("cms.newPaths", newPaths);
             dirData.setAutomaticRawPaths(newRawPaths);
 
