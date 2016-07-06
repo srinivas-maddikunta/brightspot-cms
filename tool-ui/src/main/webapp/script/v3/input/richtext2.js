@@ -267,7 +267,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             
             'googledocs': {
                 isType: function(content) {
-                    return Boolean($(content).find('[id^=docs-internal-guid], [data-sheets-value]').length);
+                    return Boolean($(content).find('[id^=docs-internal-guid]').length);
                 },
                 rules: {
             
@@ -283,19 +283,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     'span[style*="vertical-align:super"]': 'superscript',
                     'span[style*="vertical-align:sub"]': 'subscript',
 
-                    //google spread sheets
-                    'td[style*="font-style:italic"]': 'italic',
-                    'td[style*="font-weight:700"]': 'bold',
-                    'td[style*="font-weight:bold"]': 'bold',
-                    'td[style*="text-decoration:underline"]': 'underline',
-                    'td[style*="vertical-align:super"]': 'superscript',
-                    'td[style*="vertical-align:sub"]': 'subscript',
-                    'td[style*="text-decoration:line-through"]': 'strikethrough',
-                    
-                    //microsoft excel
-                    'font[class*="font6"]':'italic',
-                    'font[class*="font5"]':'bold',
-                    
                     // Google docs puts paragraph within list items, so eliminate it
                     'li > p': '',
 
@@ -305,10 +292,25 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     'p ~ br': ''
                 }
             },
-
+            'googlesheets': {
+                isType: function(content) {
+                    return Boolean($(content).find('[data-sheets-value]').length);
+                },
+                rules: {
+                    //google spread sheets
+                    'td[style*="font-style:italic"]': 'italic',
+                    'td[style*="font-weight:700"]': 'bold',
+                    'td[style*="font-weight:bold"]': 'bold',
+                    'td[style*="text-decoration:underline"]': 'underline',
+                    'td[style*="vertical-align:super"]': 'superscript',
+                    'td[style*="vertical-align:sub"]': 'subscript',
+                    'td[style*="text-decoration:line-through"]': 'strikethrough',
+                }
+            },
+            
             'msword': {
                 isType: function(content) {
-                    return Boolean($(content).find('[class^=Mso], [xmlns:x="urn:schemas-microsoft-com:office:excel"]').length);
+                    return Boolean($(content).find('[class^=Mso]').length);
                 },
                 rules: {
 
@@ -336,6 +338,17 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                         $el.replaceWith( $replacement );
                     }
 
+                }
+            },
+            'msexcel': {
+                isType: function(content) {
+                    return Boolean($(content).find('meta[name=Generator][content^="Microsoft Excel"]').length);
+                },
+                rules: {
+                    //microsoft excel
+                    'td[class*=xl63]':'bold',
+                    'td[class*=xl64]':'italic',
+                    'td[class*=xl65]':'underline',
                 }
             }
         },
