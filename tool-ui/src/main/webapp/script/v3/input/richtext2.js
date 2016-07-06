@@ -778,7 +778,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             self.$editor.on('rteBlur', function(){
                 self.rteBlurTimeout = setTimeout(function(){
                     self.$el.trigger('rteBlur', [self]);
-                }, 100);
+                }, 200);
                 return false;
             });
             self.$editor.on('rteChange', function(){
