@@ -1,4 +1,4 @@
-define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
+define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function($, bsp_utils, rtc, color_utils) {
 
   rtc.receive('com.psddev.cms.tool.page.content.EditFieldUpdateBroadcast', function(data) {
     var userId = data.userId;
@@ -17,9 +17,11 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
     }
 
     var contentId = data.contentId;
+    var $form = $('form[data-rtc-content-id="' + contentId + '"]');
+    var hasEdits;
 
     $.each(fieldNamesByObjectId, function (objectId, fieldNames) {
-      var $inputs = $('form[data-rtc-content-id="' + contentId + '"] .objectInputs[data-id="' + objectId + '"]');
+      var $inputs = $form.find('.objectInputs[data-id="' + objectId + '"]');
 
       if ($inputs.length === 0) {
         return;
@@ -37,6 +39,8 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
         });
 
         if (!nested) {
+          hasEdits = true;
+          
           $container.addClass('inputContainer-pending');
 
           $container.find('> .inputLabel').after($('<div/>', {
@@ -63,6 +67,13 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
         }
       });
     });
+    
+    if (hasEdits) {
+      $form.attr('data-edits', true);
+      
+    } else {
+      $form.removeAttr('data-edits');
+    }
   });
 
   rtc.receive('com.psddev.cms.tool.page.content.PublishBroadcast', function(data) {
@@ -135,6 +146,87 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
     }
 
     update();
+  });
+
+  rtc.receive('com.psddev.cms.tool.page.content.OpenContentBroadcast', function(data) {
+    var userId = data.userId;
+    var avatarHtml = data.avatarHtml;
+    var contentId = data.contentId;
+    var closed = data.closed;
+    var $publishingHeading = $('.contentForm[data-content-id="' + contentId + '"] .widget-publishing > h1');
+    var $message = $publishingHeading.find('> .OpenContentMessage');
+    var $viewers;
+
+    if ($message.length === 0) {
+      var $noViewers = $('<div/>', {
+        'class': 'OpenContentMessage-noViewers',
+        html: $publishingHeading.html()
+      });
+      
+      $viewers = $('<div/>', {
+        'class': 'OpenContentMessage-viewers'
+      });
+
+      $message = $('<div/>', {
+        'class': 'OpenContentMessage',
+        html: [
+          $noViewers,
+          $viewers
+        ]
+      });
+      
+      $message.append($noViewers);
+      $message.append($viewers);
+      $publishingHeading.html($message);
+      
+    } else {
+      $viewers = $message.find('> .OpenContentMessage-viewers');
+    }
+
+    var $viewer = $viewers.find('> .OpenContentMessage-viewer[data-user-id="' + userId + '"]');
+
+    if ($viewer.length > 0) {
+      if (closed) {
+        $viewer.attr('data-closed', true);
+        
+      } else {
+        $viewer.removeAttr('data-closed');
+      }
+      
+    } else if (!closed) {
+      $viewer = $('<div/>', {
+        'class': 'OpenContentMessage-viewer',
+        'data-user-id': userId,
+        html: avatarHtml,
+        css: {
+          'background-color': color_utils.generateFromHue(color_utils.changeHue(Math.random()))
+        }
+      });
+
+      $viewers.append($viewer);
+    }
+
+    if ($viewers.find('> .OpenContentMessage-viewer:not([data-closed])').length > 0) {
+      $message.attr('data-viewers', true);
+      
+    } else {
+      $message.removeAttr('data-viewers');
+    }
+  });
+
+  bsp_utils.onDomInsert(document, '.contentForm[data-rtc-content-id]', {
+    insert: function (form) {
+      var $form = $(form);
+      var contentId = $form.attr('data-rtc-content-id');
+
+      rtc.restore('com.psddev.cms.tool.page.content.OpenContentState', {
+        'contentId': contentId
+      }, function() {
+        rtc.execute('com.psddev.cms.tool.page.content.OpenContentAction', {
+          'contentId': contentId
+        });
+      });
+    }
   });
 
   bsp_utils.onDomInsert(document, '.contentForm[data-field-locking="true"]', {
