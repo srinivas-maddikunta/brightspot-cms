@@ -12,6 +12,7 @@ import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Record;
 import com.psddev.dari.util.PaginatedResult;
+import com.psddev.dari.util.StringUtils;
 
 /**
  * Provides an extensible base implementation of a {@link DashboardWidget} displaying a {@link PaginatedResult}.
@@ -146,9 +147,12 @@ public abstract class AbstractPaginatedResultWidget<T extends Record> extends Da
 
         page.writeStart("div", "class", "widget");
 
-            page.writeStart("h1");
-                page.writeHtml(getTitle(page));
-            page.writeEnd();
+            String title = getTitle(page);
+            if (!StringUtils.isBlank(title)) {
+                page.writeStart("h1");
+                    page.writeHtml(title);
+                page.writeEnd();
+            }
 
             page.writeStart("div", "class", "widget-filters");
                 page.writeStart("form",
