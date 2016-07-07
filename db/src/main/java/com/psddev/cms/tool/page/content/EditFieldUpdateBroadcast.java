@@ -1,9 +1,9 @@
 package com.psddev.cms.tool.page.content;
 
-import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.rtc.RtcBroadcast;
 import com.psddev.dari.db.Query;
+import com.psddev.dari.util.CompactMap;
 
 import java.util.Map;
 import java.util.UUID;
@@ -23,11 +23,15 @@ class EditFieldUpdateBroadcast implements RtcBroadcast<EditFieldUpdate> {
             return null;
         }
 
-        return ImmutableMap.of(
-                "userId", user.getId().toString(),
-                "userName", user.getName(),
-                "contentId", update.getContentId().toString(),
-                "fieldNamesByObjectId", update.getFieldNamesByObjectId()
-        );
+        Map<String, Object> data = new CompactMap<>();
+
+        data.put("userId", user.getId().toString());
+        data.put("userName", user.getName());
+        data.put("userAvatarHtml", user.createAvatarHtml());
+        data.put("contentId", update.getContentId().toString());
+        data.put("closed", update.isClosed());
+        data.put("fieldNamesByObjectId", update.getFieldNamesByObjectId());
+
+        return data;
     }
 }

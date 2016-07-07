@@ -24,6 +24,7 @@ public class EditFieldUpdate extends Record implements RtcEvent {
     @Indexed
     private UUID contentId;
 
+    private boolean closed;
     private Map<String, Set<String>> fieldNamesByObjectId;
 
     /**
@@ -74,6 +75,14 @@ public class EditFieldUpdate extends Record implements RtcEvent {
         this.contentId = contentId;
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public void setClosed(boolean closed) {
+        this.closed = closed;
+    }
+
     /**
      * @return Never {@code null}.
      */
@@ -90,6 +99,7 @@ public class EditFieldUpdate extends Record implements RtcEvent {
 
     @Override
     public void onDisconnect() {
+        setClosed(true);
         setFieldNamesByObjectId(null);
         saveImmediately();
 
