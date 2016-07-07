@@ -44,11 +44,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
-import com.psddev.cms.db.Overlay;
-import com.psddev.cms.db.OverlayProvider;
-import com.psddev.cms.db.WorkInProgress;
-import com.psddev.cms.tool.page.content.Edit;
-import com.psddev.dari.db.Modification;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
@@ -59,12 +54,13 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 
+import com.ibm.icu.text.MessageFormat;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
-import com.ibm.icu.text.MessageFormat;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.ContentField;
 import com.psddev.cms.db.ContentType;
@@ -72,6 +68,8 @@ import com.psddev.cms.db.Draft;
 import com.psddev.cms.db.History;
 import com.psddev.cms.db.ImageTag;
 import com.psddev.cms.db.LayoutTag;
+import com.psddev.cms.db.Overlay;
+import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.Page;
 import com.psddev.cms.db.PageFilter;
 import com.psddev.cms.db.Renderer;
@@ -87,12 +85,14 @@ import com.psddev.cms.db.ToolUiLayoutElement;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.db.Trash;
 import com.psddev.cms.db.Variation;
+import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.db.WorkStream;
 import com.psddev.cms.db.Workflow;
 import com.psddev.cms.db.WorkflowLog;
 import com.psddev.cms.db.WorkflowState;
 import com.psddev.cms.db.WorkflowTransition;
 import com.psddev.cms.tool.file.SvgFileType;
+import com.psddev.cms.tool.page.content.Edit;
 import com.psddev.cms.tool.page.content.PublishModification;
 import com.psddev.cms.view.PageViewClass;
 import com.psddev.cms.view.ViewCreator;
@@ -100,6 +100,7 @@ import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.db.Application;
 import com.psddev.dari.db.CompoundPredicate;
 import com.psddev.dari.db.Database;
+import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectFieldComparator;
 import com.psddev.dari.db.ObjectIndex;
@@ -3962,6 +3963,15 @@ public class ToolPageContext extends WebPageContext {
                     contentData.setPublishUser(null);
                 }
 
+                Overlay overlay = Edit.getOverlay(object);
+
+                // Calling State#save to trigger commit hooks before getting differences.
+                if (overlay != null) {
+                    state.putAtomically("cms.content.overlaid", Boolean.TRUE);
+                    state.save();
+                    deleteWorksInProgress(object);
+                }
+
                 Map<String, Map<String, Object>> differences;
 
                 if (draft != null) {
@@ -3981,15 +3991,9 @@ public class ToolPageContext extends WebPageContext {
                             state.getSimpleValues());
                 }
 
-                Overlay overlay = Edit.getOverlay(object);
-
                 if (overlay != null) {
                     overlay.setDifferences(differences);
                     publish(overlay);
-
-                    state.putAtomically("cms.content.overlaid", Boolean.TRUE);
-                    state.save();
-                    deleteWorksInProgress(object);
 
                 } else {
                     publishDifferences(object, differences);
