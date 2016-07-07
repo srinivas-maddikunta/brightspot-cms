@@ -26,42 +26,45 @@
     }
 
     &-viewer {
-        border-radius: 50%;
+        .icon;
+        .icon-action-edit;
+
+        background: @color-change;
+        border-radius: 12px;
         float: left;
+        font-weight: normal;
         height: 24px;
         margin: 6px 5px 0 0;
+        position: relative;
+        text-shadow: none;
+        transition: width .4s;
         width: 24px;
 
-        .ToolUserAvatar {
-            .icon;
-            .icon-action-edit;
+        &:before {
+            color: black;
+            height: 24px;
+            line-height: 24px;
+            position: absolute;
+            right: -4px;
+            top: 0;
+            transform: rotate(-40deg) scale(.95);
+        }
 
-            background: transparent;
+        .ToolUserAvatar {
             display: block;
             height: 24px;
             font-size: 10px;
-            font-weight: normal;
             line-height: 24px;
-            text-shadow: none;
             width: 24px;
-
-            &:before {
-                background: @color-change;
-                border-radius: 50%;
-                bottom: -4px;
-                color: black;
-                line-height: 18px;
-                opacity: 0;
-                position: absolute;
-                right: -6px;
-                transform: scale(.5);
-                transition: opacity .5s;
-                z-index: 1;
-            }
         }
 
-        &[data-editing] .ToolUserAvatar:before {
-            opacity: 1;
+        &[data-editing] {
+            width: 36px;
+
+            &:after {
+                border-radius: 12px;
+                content: '';
+            }
         }
     }
 }

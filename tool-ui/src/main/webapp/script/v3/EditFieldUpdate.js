@@ -55,10 +55,11 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
                 $viewer = $('<div/>', {
                     'class': 'EditFieldUpdateViewers-viewer',
                     'data-user-id': userId,
-                    html: userAvatarHtml,
-                    css: {
-                        'background-color': color_utils.generateFromHue(color_utils.changeHue(Math.random()))
-                    }
+                    html: userAvatarHtml
+                });
+                
+                $viewer.find('.ToolUserAvatar').css({
+                    'background-color': color_utils.generateFromHue(color_utils.changeHue(Math.random()))
                 });
 
                 $some.append($viewer);
