@@ -187,10 +187,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function($, bsp_ut
 
     if ($viewer.length > 0) {
       if (closed) {
-        $viewer.attr('data-closed', true);
-        
-      } else {
-        $viewer.removeAttr('data-closed');
+        $viewer.remove();
       }
       
     } else if (!closed) {
@@ -206,7 +203,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function($, bsp_ut
       $viewers.append($viewer);
     }
 
-    if ($viewers.find('> .OpenContentMessage-viewer:not([data-closed])').length > 0) {
+    if ($viewers.find('> .OpenContentMessage-viewer').length > 0) {
       $message.attr('data-viewers', true);
       
     } else {
