@@ -6,15 +6,17 @@
 
     &-viewers,
     &-noViewers {
+        background: @color-heading;
         backface-visibility: hidden;
+        height: 100%;
         left: 0;
         position: absolute;
         top: 0;
+        width: 100%;
     }
 
     &-viewers {
-        height: 25px;
-        margin: 6px 0 0 -8px;
+        margin-left: -8px;
         overflow: hidden;
         transform: rotateX(180deg);
     }
@@ -26,9 +28,9 @@
     &-viewer {
         border-radius: 50%;
         float: left;
-        height: 25px;
-        margin-right: 5px;
-        width: 25px;
+        height: 24px;
+        margin: 6px 5px 0 0;
+        width: 24px;
 
         .ToolUserAvatar {
             .icon;
@@ -36,12 +38,12 @@
 
             background: transparent;
             display: block;
-            height: 25px;
+            height: 24px;
             font-size: 10px;
             font-weight: normal;
-            line-height: 25px;
+            line-height: 24px;
             text-shadow: none;
-            width: 25px;
+            width: 24px;
 
             &:before {
                 background: @color-change;
