@@ -74,6 +74,8 @@ require([
   'jquery.toggleable',
   'nv.d3',
 
+  'v3/EditFieldUpdate',
+        
   'v3/dashboard',
   'v3/sticky',
   'v3/content/diff',
