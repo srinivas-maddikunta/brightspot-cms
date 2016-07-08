@@ -69,6 +69,12 @@ public abstract class AbstractPaginatedResultWidget<T extends Record> extends Da
      * @return the {@link PaginatedResult} to be displayed by the widget.
      */
     public PaginatedResult<T> getPaginatedResult(ToolPageContext page) {
+        Query<T> query = getQuery(page);
+
+        if (query == null) {
+            return null;
+        }
+
         return getQuery(page).select(page.param(long.class, OFFSET_PARAMETER), page.paramOrDefault(int.class, LIMIT_PARAMETER, LIMITS[0]));
     }
 
@@ -164,9 +170,11 @@ public abstract class AbstractPaginatedResultWidget<T extends Record> extends Da
 
             PaginatedResult<T> result = getPaginatedResult(page);
 
-            writePaginationHtml(page, result, page.paramOrDefault(int.class, LIMIT_PARAMETER, LIMITS[0]));
+            if (result != null) {
+                writePaginationHtml(page, result, page.paramOrDefault(int.class, LIMIT_PARAMETER, LIMITS[0]));
+            }
 
-            if (result.hasPages()) {
+            if (result != null && result.hasPages()) {
                 writeResultsHtml(page, result);
             } else {
                 writeEmptyHtml(page);
