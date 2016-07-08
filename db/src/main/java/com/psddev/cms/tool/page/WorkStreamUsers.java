@@ -53,7 +53,9 @@ public class WorkStreamUsers extends PageServlet {
 
             } else {
 
-                page.writeStart("div", "class", "tabbed");
+                page.writeStart("div",
+                        "class", "tabbed",
+                        "data-id", "workStreamUsers");
 
                     writeStatusTabHtml(page, workStream, users);
                     writeCompleteTabHtml(page);
