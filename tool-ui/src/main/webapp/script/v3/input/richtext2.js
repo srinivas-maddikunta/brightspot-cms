@@ -339,17 +339,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     }
 
                 }
-            },
-            'msexcel': {
-                isType: function(content) {
-                    return Boolean($(content).find('meta[name=Generator][content^="Microsoft Excel"]').length);
-                },
-                rules: {
-                    //microsoft excel
-                    'td[class*=xl63]':'bold',
-                    'td[class*=xl64]':'italic',
-                    'td[class*=xl65]':'underline',
-                }
             }
         },
 

@@ -4212,7 +4212,7 @@ define([
             $.each(self.clipboardSanitizeTypes, function(typeName, typeConf) {
                 var isType;
                 if (typeConf.isType && typeConf.rules) {
-                    isType = typeConf.isType(html);
+                    isType = typeConf.isType($el);
                     if (isType) {
                         // The pasted content matches this type, so apply these rules
                         self.clipboardSanitizeApplyRules($el, typeConf.rules);
