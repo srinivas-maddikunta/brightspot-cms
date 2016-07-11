@@ -2089,7 +2089,11 @@ define([
                     if (!markNext) {
                         break;
                     }
-
+                    
+                    if (mark.attributes || markNext.attributes) {
+                        break;
+                    }
+                    
                     pos = mark.find();
                     posNext = markNext.find();
 
