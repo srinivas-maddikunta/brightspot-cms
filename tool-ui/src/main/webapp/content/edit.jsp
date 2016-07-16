@@ -240,7 +240,6 @@ if (!wp.isFormPost() && copy != null && editingState.isNew()) {
 History history = wp.getOverlaidHistory(editing);
 Draft draft = wp.getOverlaidDraft(editing);
 Set<ObjectType> compatibleTypes = ToolUi.getCompatibleTypes(State.getInstance(editing).getType());
-State editingState = State.getInstance(editing);
 ToolUser user = wp.getUser();
 ContentLock contentLock = null;
 boolean lockedOut = false;
