@@ -1,70 +1,5 @@
 define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
 
-  rtc.receive('com.psddev.cms.tool.page.content.EditFieldUpdateBroadcast', function(data) {
-    var userId = data.userId;
-    var userName = data.userName;
-    var fieldNamesByObjectId = data.fieldNamesByObjectId;
-
-    $('.inputPending[data-user-id="' + userId + '"]').each(function() {
-      var $pending = $(this);
-
-      $pending.closest('.inputContainer').removeClass('inputContainer-pending');
-      $pending.remove();
-    });
-
-    if (!fieldNamesByObjectId) {
-      return;
-    }
-
-    var contentId = data.contentId;
-
-    $.each(fieldNamesByObjectId, function (objectId, fieldNames) {
-      var $inputs = $('form[data-rtc-content-id="' + contentId + '"] .objectInputs[data-id="' + objectId + '"]');
-
-      if ($inputs.length === 0) {
-        return;
-      }
-
-      $.each(fieldNames, function (i, fieldName) {
-        var $container = $inputs.find('> .inputContainer[data-field-name="' + fieldName + '"]');
-        var nested = false;
-
-        $container.find('.objectInputs').each(function() {
-          if (fieldNamesByObjectId[$(this).attr('data-id')]) {
-            nested = true;
-            return false;
-          }
-        });
-
-        if (!nested) {
-          $container.addClass('inputContainer-pending');
-
-          $container.find('> .inputLabel').after($('<div/>', {
-            'class': 'inputPending',
-            'data-user-id': userId,
-            'html': [
-              'Pending edit from ' + userName + ' - ',
-              $('<a/>', {
-                'text': 'Unlock',
-                'click': function() {
-                  if (confirm('Are you sure you want to forcefully unlock this field?')) {
-                    rtc.execute('com.psddev.cms.tool.page.content.EditFieldUpdateAction', {
-                      contentId: $container.closest('form').attr('data-rtc-content-id'),
-                      unlockObjectId: $container.closest('.objectInputs').attr('data-id'),
-                      unlockFieldName: $container.attr('data-field-name')
-                    });
-                  }
-
-                  return false;
-                }
-              })
-            ]
-          }));
-        }
-      });
-    });
-  });
-
   rtc.receive('com.psddev.cms.tool.page.content.PublishBroadcast', function(data) {
     var newValues = data.values;
     var newValuesId = newValues._id;
@@ -137,67 +72,21 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
     update();
   });
 
-  bsp_utils.onDomInsert(document, '.contentForm[data-field-locking="true"]', {
-    insert: function (form) {
-      var $form = $(form);
-      var contentId = $form.attr('data-rtc-content-id');
+  // Tab navigation from textarea or record input to RTE.
+  $(document).on('keydown', '.contentForm :text, .contentForm textarea, .objectId-select', function (event) {
+    if (event.which === 9) {
+      var $container = $(this).closest('.inputContainer');
+      var rte2 = $container.next('.inputContainer').find('> .inputSmall > .rte2-wrapper').data('rte2');
 
-      function update() {
-        var fieldNamesByObjectId = { };
-
-        $form.find('.inputContainer.state-changed, .inputContainer.state-focus').each(function () {
-          var $container = $(this);
-          var objectId = $container.closest('.objectInputs').attr('data-id');
-
-          (fieldNamesByObjectId[objectId] = fieldNamesByObjectId[objectId] || [ ]).push($container.attr('data-field-name'));
-        });
-
-        if (fieldNamesByObjectId) {
-          rtc.execute('com.psddev.cms.tool.page.content.EditFieldUpdateAction', {
-            contentId: contentId,
-            fieldNamesByObjectId: fieldNamesByObjectId
-          });
-        }
+      if (rte2) {
+        rte2.rte.focus();
+        return false;
       }
-
-      rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
-        contentId: contentId
-      }, update);
-
-      var updateTimeout;
-      var $document = $(document);
-
-      function throttledUpdate() {
-        if (updateTimeout) {
-          clearTimeout(updateTimeout);
-        }
-
-        updateTimeout = setTimeout(function() {
-          updateTimeout = null;
-          update();
-        }, 50);
-      }
-
-      $document.on('blur focus change', '.contentForm :input', throttledUpdate);
-      $document.on('content-state-differences', '.contentForm', throttledUpdate);
-
-      // Tab navigation from textarea or record input to RTE.
-      $document.on('keydown', '.contentForm :text, .contentForm textarea, .objectId-select', function (event) {
-        if (event.which === 9) {
-          var $container = $(this).closest('.inputContainer');
-          var rte2 = $container.next('.inputContainer').find('> .inputSmall > .rte2-wrapper').data('rte2');
-
-          if (rte2) {
-            rte2.rte.focus();
-            return false;
-          }
-        }
-
-        return true;
-      });
     }
-  });
 
+    return true;
+  });
+  
   // Add the new item to the search results.
   bsp_utils.onDomInsert(document, '.contentForm', {
     insert: function (form) {

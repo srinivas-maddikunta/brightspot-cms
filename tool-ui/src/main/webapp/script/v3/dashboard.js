@@ -15,6 +15,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc' ], function($, bsp_utils, rtc) {
               $widget.trigger('create');
               $widget.trigger('load');
               $widget.trigger('frame-load');
+              $widget.resize();
             }
           });
         }

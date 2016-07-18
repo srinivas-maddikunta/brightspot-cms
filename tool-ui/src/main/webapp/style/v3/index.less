@@ -58,8 +58,10 @@
 @import 'work-streams.less';
 @import 'workflow.less';
 
+@import 'EditFieldUpdateViewers.less';
 @import 'ExternalPreviewFrame.less';
 @import 'OverlayProviderSelect.less';
+@import 'ToolUserAvatar.less';
 
 // From Bower.
 @import '../handsontable.full.css';
@@ -472,6 +474,10 @@
   margin-bottom: 10px;
   z-index: 1;
 
+  > h1 {
+    position: relative;
+  }
+
   [name='workflowComment'] {
     margin-bottom: 5px;
   }
@@ -846,11 +852,6 @@ form[data-type='com.psddev.cms.db.ContentType'] {
   .icon:before {
     display: none !important;
   }
-}
-
-.noToolUser .toolTitle {
-  position: relative;
-  top: 200px;
 }
 
 .widget-logIn {

@@ -74,6 +74,8 @@ require([
   'jquery.toggleable',
   'nv.d3',
 
+  'v3/EditFieldUpdate',
+        
   'v3/dashboard',
   'v3/sticky',
   'v3/content/diff',
@@ -676,16 +678,18 @@ function() {
     }
 
     var label = (isEnhancement ? 'Select Enhancement for ' : (isAdd ? 'Add to ' : 'Select ')) + fieldsLabel;
-    var objectLabel = $input.closest('.contentForm').attr('data-o-label');
-
-    if (objectLabel) {
-      label += ' - ';
-      label += objectLabel;
-    }
+    var objectLabelHtml = $input.closest('.contentForm').find('.ContentLabel').html();
 
     bsp_utils.onDomInsert($popup[0], '> .content > .frame > h1', {
       insert: function (heading) {
-        $(heading).text(label);
+        var $heading = $(heading);
+        
+        $heading.text(label);
+        
+        if (objectLabelHtml) {
+          $heading.append(' - ');
+          $heading.append(objectLabelHtml);
+        }
       }
     });
   });

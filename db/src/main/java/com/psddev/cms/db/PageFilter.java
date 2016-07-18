@@ -430,7 +430,7 @@ public class PageFilter extends AbstractFilter {
             }
 
             if (Static.isPreview(request) || user != null) {
-                response.setHeader("Cache-Control", "private, no-cache");
+                response.setHeader("Cache-Control", "private, no-cache, max-age=0, must-revalidate, no-store");
                 response.setHeader("Brightspot-Cache", "none");
             }
 

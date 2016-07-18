@@ -137,6 +137,7 @@ public class FileField extends PageServlet {
                 }
             } else if ("newUrl".equals(action)) {
                 newItem = StorageItem.Static.createUrl(page.param(String.class, urlName));
+                new MetadataAfterSave().afterSave(newItem);
             }
 
             // Do additional processing specific to content type
