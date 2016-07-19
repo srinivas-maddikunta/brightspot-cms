@@ -45,11 +45,14 @@
         });
 
         $edit = $('<a/>', {
-            'class': 'icon icon-action-edit',
+            'class': 'icon icon-action-edit objectId-edit',
             'href': CONTEXT_PATH + '/content/edit.jsp?id=' + objectData.id,
-            'target': '_blank',
+            'target': 'objectId-1-edit',
             'text': objectData.typeLabel,
-
+            'click': function() {
+                //scroll to the top of the window
+                $(window.parent).scrollTop(0);
+            },
             'mouseenter': function() {
                 var box = $.data($begin[0], 'inlineEditor-box');
 
@@ -205,6 +208,7 @@
             'width': '100%',
             'z-index': 1000000
         });
+
     }
 
     equalizeHeight();
