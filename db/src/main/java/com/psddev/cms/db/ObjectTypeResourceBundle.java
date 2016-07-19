@@ -1,10 +1,9 @@
-package com.psddev.cms.tool;
+package com.psddev.cms.db;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
-import com.psddev.cms.db.ToolUi;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
