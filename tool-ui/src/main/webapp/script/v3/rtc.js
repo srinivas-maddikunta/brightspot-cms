@@ -122,6 +122,14 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
   };
 
   subscribe();
+  
+  setInterval(function () {
+    if (isOnline) {
+      onlineExecutions.push({
+        type: 'ping'
+      });
+    }
+  }, 5000);
 
   return {
     restore: function(state, data, callback) {

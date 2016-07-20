@@ -6,7 +6,9 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.AuthenticationFilter;
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Query;
+import com.psddev.dari.db.State;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.TypeDefinition;
@@ -24,9 +26,15 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
@@ -84,12 +92,23 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                 .first();
 
         if (session != null) {
-            session.delete();
+            Database database = Database.Static.getDefault();
 
-            Query.from(RtcEvent.class)
-                    .where("cms.rtc.event.sessionId = ?", sessionId)
-                    .selectAll()
-                    .forEach(RtcEvent::onDisconnect);
+            database.beginWrites();
+
+            try {
+                session.delete();
+
+                Query.from(RtcEvent.class)
+                        .where("cms.rtc.event.sessionId = ?", sessionId)
+                        .selectAll()
+                        .forEach(RtcEvent::onDisconnect);
+
+                database.commitWrites();
+
+            } finally {
+                database.endWrites();
+            }
         }
     }
 
@@ -118,6 +137,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
                 session.getState().setId(createSessionId(resource));
                 session.setUserId(userId);
+                session.setLastPing(System.currentTimeMillis());
                 session.save();
                 resource.addEventListener(disconnectListener);
 
@@ -132,9 +152,24 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                         return;
                     }
 
+                    UUID sessionId = createSessionId(resource);
+
+                    if ("ping".equals(type)) {
+                        RtcSession session = Query
+                                .from(RtcSession.class)
+                                .where("_id = ?", sessionId)
+                                .first();
+
+                        if (session != null) {
+                            session.setLastPing(System.currentTimeMillis());
+                            session.save();
+                        }
+
+                        return;
+                    }
+
                     String className = (String) messageJson.get("className");
                     Map<String, Object> data = (Map<String, Object>) messageJson.get("data");
-                    UUID sessionId = createSessionId(resource);
                     UUID userId = userIds.getUnchecked(sessionId).orElse(null);
 
                     if (userId == null) {
@@ -151,8 +186,52 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                         case "state" :
                             RtcState state = createInstance(RtcState.class, className);
 
-                            for (Object object : state.create(data)) {
-                                RtcBroadcast.forEachBroadcast(object, (broadcast, broadcastData) ->
+                            // Find all events.
+                            List<Object> events = new ArrayList<>();
+                            state.create(data).forEach(events::add);
+
+                            // Find all sessions associated to the events.
+                            List<RtcSession> eventSessions = Query
+                                    .from(RtcSession.class)
+                                    .where("_id = ?", events.stream()
+                                            .map(event -> State.getInstance(event).as(RtcEvent.Data.class).getSessionId())
+                                            .filter(Objects::nonNull)
+                                            .collect(Collectors.toSet()))
+                                    .selectAll();
+
+                            // Delete events associated with non-existent
+                            // sessions.
+                            Set<UUID> eventSessionIds = eventSessions.stream()
+                                    .map(RtcSession::getId)
+                                    .collect(Collectors.toSet());
+
+                            for (Iterator<Object> i = events.iterator(); i.hasNext();) {
+                                State eventState = State.getInstance(i.next());
+                                UUID eventSessionId = eventState.as(RtcEvent.Data.class).getSessionId();
+
+                                if (eventSessionId != null && !eventSessionIds.contains(eventSessionId)) {
+                                    eventState.delete();
+                                    i.remove();
+                                }
+                            }
+
+                            // Delete expired sessions.
+                            long expiration = System.currentTimeMillis() - 30000;
+
+                            for (Iterator<RtcSession> i = eventSessions.iterator(); i.hasNext();) {
+                                RtcSession eventSession = i.next();
+
+                                if (eventSession.getLastPing() < expiration) {
+                                    UUID eventSessionId = eventSession.getId();
+
+                                    disconnectSession(eventSessionId);
+                                    events.removeIf(event -> eventSessionId.equals(State.getInstance(event).as(RtcEvent.Data.class).getSessionId()));
+                                    i.remove();
+                                }
+                            }
+
+                            for (Object event : events) {
+                                RtcBroadcast.forEachBroadcast(event, (broadcast, broadcastData) ->
                                         writeBroadcast(broadcast, broadcastData, userId, resource));
                             }
 
