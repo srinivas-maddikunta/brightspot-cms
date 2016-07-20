@@ -500,20 +500,27 @@ public class Search extends Record {
                     addVisibilityFields(comparisonKeys, type);
                 }
 
+                Predicate publishedPredicate = null;
+
                 for (String key : comparisonKeys) {
                     if (showDrafts) {
-                        visibilitiesPredicate = CompoundPredicate.combine(
-                                PredicateParser.OR_OPERATOR,
-                                visibilitiesPredicate,
+                        publishedPredicate = CompoundPredicate.combine(
+                                PredicateParser.AND_OPERATOR,
+                                publishedPredicate,
                                 PredicateParser.Static.parse(key + " = missing or " + key + " != missing or " + key + " = true"));
 
                     } else {
-                        visibilitiesPredicate = CompoundPredicate.combine(
-                                PredicateParser.OR_OPERATOR,
-                                visibilitiesPredicate,
+                        publishedPredicate = CompoundPredicate.combine(
+                                PredicateParser.AND_OPERATOR,
+                                publishedPredicate,
                                 PredicateParser.Static.parse(key + " = missing"));
                     }
                 }
+
+                visibilitiesPredicate = CompoundPredicate.combine(
+                        PredicateParser.OR_OPERATOR,
+                        visibilitiesPredicate,
+                        publishedPredicate);
 
             } else if ("w".equals(visibility)) {
                 Set<String> ss = new HashSet<String>();
