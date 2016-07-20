@@ -26,36 +26,42 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
     socket = atmosphere.subscribe(request);
   });
 
-  var restores = [ ];
-
-  var broadcastCallbacks = { };
-
   var isOnline = false;
-  var offlineMessages = [ ];
-  var onlineMessages = {
+
+  var offlineExecutions = [ ];
+  var onlineExecutions = {
     push: function(message) {
       socket.push(JSON.stringify(message));
     }
   };
-
-  request.onOpen = function() {
-    isOnline = true;
-
-    $.each(restores, function(i, restore) {
-      onlineMessages.push(restore.message);
+  
+  var offlineRestores = [ ];
+  var onlineRestores = {
+    push: function(restore) {
+      onlineExecutions.push(restore.message);
 
       var callback = restore.callback;
 
       if (callback) {
         callback();
       }
+    }
+  };
+
+  request.onOpen = function() {
+    isOnline = true;
+
+    $.each(offlineRestores, function(i, restore) {
+      onlineRestores.push(restore);
+    });
+    
+    offlineRestores = [ ];
+
+    $.each(offlineExecutions, function(i, message) {
+      onlineExecutions.push(message);
     });
 
-    $.each(offlineMessages, function(i, message) {
-      onlineMessages.push(message);
-    });
-
-    offlineMessages = [ ];
+    offlineExecutions = [ ];
 
     if (localStorage) {
       var KEY_PREFIX = 'brightspot.rtc.socket.';
@@ -72,7 +78,7 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
               parseInt(localStorage.getItem(key), 10) + (INTERVAL * 5) < $.now()) {
 
             localStorage.removeItem(key);
-            (isOnline ? onlineMessages : offlineMessages).push({
+            (isOnline ? onlineExecutions : offlineExecutions).push({
               type: 'disconnect',
               sessionId: key.substring(KEY_PREFIX.length)
             });
@@ -92,6 +98,8 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
     subscribe();
   };
 
+  var broadcastCallbacks = { };
+  
   function processMessage(message) {
     var messageJson = JSON.parse(message);
     var callbacks = broadcastCallbacks[messageJson.broadcast];
@@ -117,7 +125,7 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
 
   return {
     restore: function(state, data, callback) {
-      restores.push({
+      (isOnline ? onlineRestores : offlineRestores).push({
         callback: callback,
         message: {
           type: 'state',
@@ -132,7 +140,7 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
     },
 
     execute: function(action, data) {
-      (isOnline ? onlineMessages : offlineMessages).push({
+      (isOnline ? onlineExecutions : offlineExecutions).push({
         type: 'action',
         className: action,
         data: data

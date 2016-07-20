@@ -11,6 +11,7 @@ com.psddev.cms.tool.ToolPageContext,
 com.psddev.dari.db.Query,
 com.psddev.dari.db.State,
 com.psddev.dari.util.CompactMap,
+com.psddev.dari.util.CompactSet,
 com.psddev.dari.util.ObjectUtils,
 
 java.util.HashSet,
@@ -18,7 +19,9 @@ java.util.LinkedHashSet,
 java.util.List,
 java.util.Map,
 java.util.Set,
-java.util.UUID
+java.util.UUID,
+java.util.stream.Collectors,
+java.util.stream.Stream
 " %><%
 
 ToolPageContext wp = new ToolPageContext(pageContext);
@@ -62,7 +65,22 @@ boolean initialDraft = state.isNew() ||
 
 if (JspWidget.isUpdating(wp)) {
     dirData.setPathsMode(wp.param(boolean.class, automaticName) ? null : Directory.PathsMode.MANUAL);
+
+    Set<Directory.Path> viewOnlyPaths = !ObjectUtils.isBlank(dirData.getPaths())
+            ? dirData.getPaths()
+                .stream()
+                .filter(path -> (path.getSite() == null && !user.hasPermission("site/global"))
+                        || (path.getSite() != null && !user.hasPermission(path.getSite().getPermissionId())))
+                .collect(Collectors.toSet())
+            : null;
+
     dirData.clearPaths();
+
+    if (!ObjectUtils.isBlank(viewOnlyPaths)) {
+        for (Directory.Path path : viewOnlyPaths) {
+            dirData.addPath(path.getSite(), path.getPath(), path.getType());
+        }
+    }
 
     List<String> paths = wp.params(String.class, pathName);
     List<UUID> siteIds = wp.params(UUID.class, siteIdName);
@@ -70,7 +88,10 @@ if (JspWidget.isUpdating(wp)) {
 
     for (int i = 0, size = Math.min(paths.size(), types.size()); i < size; i ++) {
         if (!wp.param(boolean.class, removeName + "." + i)) {
-            dirData.addPath(i < siteIds.size() ? sites.get(siteIds.get(i)) : null, paths.get(i), types.get(i));
+            Site removeSite = i < siteIds.size() ? sites.get(siteIds.get(i)) : null;
+            if ((removeSite != null && user.hasPermission(removeSite.getPermissionId())) || (removeSite == null && user.hasPermission("site/global"))) {
+                dirData.addPath(i < siteIds.size() ? sites.get(siteIds.get(i)) : null, paths.get(i), types.get(i));
+            }
         }
     }
 
@@ -80,6 +101,8 @@ if (JspWidget.isUpdating(wp)) {
             Set<Directory.Path> oldPaths = new LinkedHashSet<Directory.Path>(dirData.getPaths());
             Set<String> oldRawPaths = new LinkedHashSet<String>(dirData.getRawPaths());
 
+            dirData.clearPaths();
+
             for (Directory.Path path : State.getInstance(varied).as(Directory.ObjectModification.class).createPaths(site)) {
                 dirData.addPath(path.getSite(), path.getPath(), path.getType());
             }
@@ -87,8 +110,11 @@ if (JspWidget.isUpdating(wp)) {
             Set<Directory.Path> newPaths = new LinkedHashSet<Directory.Path>(dirData.getPaths());
             Set<String> newRawPaths = new LinkedHashSet<String>(dirData.getRawPaths());
 
-            newPaths.removeAll(oldPaths);
-            newRawPaths.removeAll(oldRawPaths);
+            dirData.clearPaths();
+
+            Stream.concat(oldPaths.stream(), newPaths.stream())
+                    .forEach(p -> dirData.addPath(p.getSite(), p.getPath(), p.getType()));
+
             state.getExtras().put("cms.newPaths", newPaths);
             dirData.setAutomaticRawPaths(newRawPaths);
 
@@ -159,6 +185,33 @@ if (!paths.isEmpty()) {
                 href = href.substring(0, href.length() - 1);
             }
 
+            if (user != null
+                    && ((path.getSite() == null && !user.hasPermission("site/global"))
+                        || (path.getSite() != null && !user.hasPermission(path.getSite().getPermissionId())))) {
+
+                wp.writeStart("li", "class", "widget-urlsItem");
+                    wp.writeStart("div", "class", "widget-urlsItemLabel");
+                        wp.writeStart("a", "href", href, "target", "_blank");
+                            wp.writeHtml(pathPath);
+                        wp.writeEnd();
+                    wp.writeEnd();
+
+                    wp.writeStart("label");
+                        if (path.getSite() == null) {
+                            wp.writeHtml("Global");
+                        } else {
+                            wp.writeObjectLabel(path.getSite());
+                        }
+
+                        if (path.getType() != null) {
+                            wp.writeHtml(": ");
+                            wp.writeHtml(path.getType());
+                        }
+                    wp.writeEnd();
+                wp.writeEnd();
+
+            } else {
+
             wp.writeStart("li", "class", "widget-urlsItem");
                 wp.writeElement("input",
                         "type", "hidden",
@@ -214,8 +267,8 @@ if (!paths.isEmpty()) {
                     }
                 wp.writeEnd();
             wp.writeEnd();
-
             ++ index;
+            }
         }
     wp.writeEnd();
 }

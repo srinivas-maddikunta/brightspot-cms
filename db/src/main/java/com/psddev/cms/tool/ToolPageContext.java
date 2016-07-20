@@ -1803,29 +1803,13 @@ public class ToolPageContext extends WebPageContext {
                     }
 
                     if (user != null) {
-                        StorageItem avatar = user.getAvatar();
 
                         writeStart("div", "class", "toolUserDisplay");
-                            writeStart("span", "class", "toolUserAvatar");
+                            writeStart("span", "class", "toolUserAvatarProfile");
                                 writeStart("a",
                                         "href", cmsUrl("/profilePanel"),
                                         "target", "profilePanel");
-                                    if (avatar != null) {
-                                        writeElement("img",
-                                                "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
-                                    } else {
-                                        String email = user.getEmail();
-
-                                        if (!ObjectUtils.isBlank(email)) {
-                                            String hash = StringUtils.hex(StringUtils.md5(email.trim().toLowerCase(Locale.ENGLISH)));
-
-                                            writeElement("img",
-                                                    "src", StringUtils.addQueryParameters(
-                                                            "https://www.gravatar.com/avatar/" + hash,
-                                                            "s", 50,
-                                                            "d", "blank"));
-                                        }
-                                    }
+                                    writeRaw(user.createAvatarHtml());
                                 writeEnd();
                             writeEnd();
 
@@ -2288,7 +2272,7 @@ public class ToolPageContext extends WebPageContext {
 
         writeStart("script", "type", "text/javascript");
             write("var CONTEXT_PATH = '", cmsUrl("/"), "';");
-            write("var UPLOAD_PATH = ", "'" + Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "';");
+            write("var UPLOAD_PATH = ", "'" + getRequest().getContextPath() + StringUtils.ensureStart(Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "/"), "';");
             write("var CSS_CLASS_GROUPS = ", ObjectUtils.toJson(cssClassGroups), ";");
             write("var STANDARD_IMAGE_SIZES = ", ObjectUtils.toJson(standardImageSizes), ";");
             write("var RTE_LEGACY_HTML = ", getCmsTool().isLegacyHtml(), ';');

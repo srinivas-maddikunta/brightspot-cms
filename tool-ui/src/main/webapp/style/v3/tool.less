@@ -117,13 +117,20 @@
 
   .toolUserSite,
   .toolUser,
-  .toolUserAvatar {
+  .toolUserAvatarProfile {
     float: right;
     margin-left: @-padding;
   }
 
-  .toolUserAvatar {
+  .toolUserAvatarProfile {
     margin-left: (@-padding * 2);
+
+    .link {
+      display: block;
+      height: 100%;
+      text-decoration: none;
+      width: 100%;
+    }
   }
 
   .toolUserSite,
@@ -148,32 +155,6 @@
 
     .piped {
       margin: 0;
-    }
-  }
-
-  .toolUserAvatar {
-    background-color: @color-focus;
-    background-image: url(icon/avatar.svg);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: (@-avatar-size - 15px);
-    border-radius: 50%;
-    color: @color-border;
-    height: @-avatar-size;
-    text-align: center;
-    vertical-align: middle;
-    width: @-avatar-size;
-
-    img {
-      border-radius: 100%;
-      height: 100%;
-      width: 100%;
-    }
-
-    .link {
-      display: block;
-      height: 100%;
-      width: 100%;
     }
   }
 }
@@ -361,6 +342,7 @@
   padding: 0 @toolContent-padding;
   position: fixed;
   right: 0;
+  text-align: right;
   z-index: -1;
 
   img {
