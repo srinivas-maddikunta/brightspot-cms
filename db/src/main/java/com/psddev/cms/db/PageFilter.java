@@ -1793,8 +1793,15 @@ public class PageFilter extends AbstractFilter {
                 // Therefore, an extra checking is needed on the conditional statement below to avoid a slash
                 // from being added at the end.
 
-                if (path.length() == 0 && absoluteUrl.length() > entry.getKey().length()) {
+                if (path.length() == 0
+                        &&
+                        (absoluteUrl.length() > entry.getKey().length()
+                            ||
+                         !Query.from(CmsTool.class).first().isRemoveTrailingSlashes())) {
                     fixPath(request, servletPath + "/");
+
+                } else if ("/".equals(path) && !"/".equals(servletPath) && Query.from(CmsTool.class).first().isRemoveTrailingSlashes()) {
+                    fixPath(request, servletPath.substring(0, servletPath.length() - 1));
                 }
 
                 site = Query.from(Site.class).where("_id = ?", entry.getValue()).first();
