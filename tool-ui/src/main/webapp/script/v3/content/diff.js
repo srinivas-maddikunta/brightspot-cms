@@ -74,7 +74,7 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
         var $leftInput = $(this);
         var $rightInput = $right.find('> .objectInputs > .inputContainer[data-field="' + $leftInput.attr('data-field') + '"]');
 
-        if (getValues($leftInput) === getValues($rightInput)) {
+        if ($rightInput.length === 0 || getValues($leftInput) === getValues($rightInput)) {
           $leftInput.addClass('contentDiffSame');
           $rightInput.addClass('contentDiffSame');
         }
@@ -83,6 +83,11 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
       $left.find('> .objectInputs > .inputContainer > .inputSmall > textarea').each(function() {
         var $leftText = $(this);
         var $rightText = $right.find('> .objectInputs > .inputContainer[data-field="' + $leftText.closest('.inputContainer').attr('data-field') + '"] textarea');
+        
+        if ($rightText.length === 0) {
+          return;
+        }
+        
         var left = $leftText.val().replace(new RegExp('[\\r\\n]', 'g'), ' ').replace(new RegExp('<br[^>]*\/?>', 'ig'), '\n');
         var right = $rightText.val().replace(new RegExp('[\\r\\n]', 'g'), ' ').replace(new RegExp('<br[^>]*\/?>', 'ig'), '\n');
         var rich = $leftText.is('.richtext');
