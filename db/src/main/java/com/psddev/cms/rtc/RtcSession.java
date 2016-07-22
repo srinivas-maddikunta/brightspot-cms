@@ -10,6 +10,7 @@ import java.util.UUID;
 public class RtcSession extends Record {
 
     private UUID userId;
+    private long lastPing;
 
     public UUID getUserId() {
         return userId;
@@ -17,5 +18,13 @@ public class RtcSession extends Record {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public long getLastPing() {
+        return lastPing;
+    }
+
+    public void setLastPing(long lastPing) {
+        this.lastPing = lastPing;
     }
 }
