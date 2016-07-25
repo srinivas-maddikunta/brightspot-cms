@@ -3467,7 +3467,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 $(document).on('closed.' + frameName, '[name=' + frameName + ']', function(event){
                     // when popup is closed check to see if the mark attributes are empty
                     // remove mark if nothing has been selected.
-debugger;
                     if (mark.rteSuccess !== true) {
                         if (mark.rteMarkInit === true){
                             var pos;
@@ -3496,7 +3495,6 @@ debugger;
                     // Stop listening for this event
                     $(document).off('closed.' + frameName);
                 });
-                $
 
             }, 100);
 
