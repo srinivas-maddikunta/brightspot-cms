@@ -6958,7 +6958,12 @@ define([
 
                             // Determine if the element maps to one of our defined styles
                             matchStyleObj = self.getStyleForElement(next);
-
+                            
+                            // Create new line if this is a block element and the previous text did not end the line.
+                            if (matchStyleObj && matchStyleObj.line && val[ val.length - 1 ] !== '\n') {
+                                // Note in this case, when exporting HTML a <br/> element will be added.
+                                val += '\n';
+                            }
                         }
 
                         // Figure out which line and character for the start of our element
