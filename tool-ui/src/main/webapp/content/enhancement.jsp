@@ -133,6 +133,8 @@ if (object != null && wp.isFormPost() && (wp.param(boolean.class, "action-save-a
                     wp.writeRaw("var $source = $page.popup('source');");
                     wp.writeRaw("var rte = $source.data('rte');");
                     wp.writeRaw("var mark = $source.data('mark');");
+                    // Set a success flag so we can remove the mark if the popup is canceled
+                    wp.writeRaw("mark.rteSuccess = true;");
                     
                     // Set the mark attributes in a way that supports RTE undo history
                     wp.writeRaw("rte.rte.setMarkProperty(mark, 'attributes', " + ObjectUtils.toJson(attributes) + ");");

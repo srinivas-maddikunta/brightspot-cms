@@ -3342,6 +3342,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Create a new mark then call the onclick function on it
             mark = self.rte.setStyle(style);
             if (mark) {
+                mark.rteMarkInit = true;
                 self.inlineEnhancementHandleClick(event, mark);
             }
 
@@ -3467,7 +3468,23 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
                 // When the popup is closed put focus back on the editor
                 $(document).on('closed.' + frameName, '[name=' + frameName + ']', function(event){
-                    
+                    // when popup is closed check to see if the mark attributes are empty
+                    // remove mark if nothing has been selected.
+                    if (mark.rteSuccess !== true) {
+                        if (mark.rteMarkInit === true){
+                            var pos;
+
+                            // For void element, delete the text in the mark
+                             if (styleObj.readOnly || styleObj.void) {
+                                 if (mark.type !== 'range') {
+                                    pos = mark.find();
+                                    // Delete below after the mark is cleared
+                                    self.rte.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch}, 'brightspotMark');
+                                }
+                             }
+                            mark.clear();
+                        }
+                    }
                     // Make sure this 'closed' event was fired on the frame,
                     // and not on some popup within the frame
                     if (event.target !== event.currentTarget) {
