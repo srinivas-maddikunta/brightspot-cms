@@ -6977,6 +6977,13 @@ define([
                         // Note we are treating tables as an enhancement as well.
                         if ((elementName === 'table') || ((elementName === 'span' || elementName === 'button') && $(next).hasClass('enhancement'))) {
 
+                            // End the last line if necessary
+                            if (val[ val.length - 1] !== '\n') {
+                                val += '\n';
+                                from.line++;
+                                from.ch = 0;
+                            }
+                            
                             enhancements.push({
                                 line: from.line,
                                 $content: $(next)
