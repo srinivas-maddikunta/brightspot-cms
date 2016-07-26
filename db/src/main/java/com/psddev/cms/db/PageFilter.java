@@ -1786,19 +1786,13 @@ public class PageFilter extends AbstractFilter {
             if (entry != null) {
                 String path = absoluteUrl.substring(entry.getKey().length() - 1);
 
-                // The following conditional statement is to handle home page of a site where its base URL has a prefix path
-                //   e.g. Site base URL https://www.example.com/siteone
-                // It should honor the CMS setting 'Remove Trailing Slashes'
+                if (Query.from(CmsTool.class).first().isRemoveTrailingSlashes()) {
+                    if ("/".equals(path)) {
+                        fixPath(request, servletPath.substring(0, servletPath.length() - 1));
+                    }
 
-                if (path.length() == 0
-                        &&
-                        (absoluteUrl.length() > entry.getKey().length()
-                                ||
-                                !Query.from(CmsTool.class).first().isRemoveTrailingSlashes())) {
+                } else if (path.length() == 0) {
                     fixPath(request, servletPath + "/");
-
-                } else if ("/".equals(path) && !"/".equals(servletPath) && Query.from(CmsTool.class).first().isRemoveTrailingSlashes()) {
-                    fixPath(request, servletPath.substring(0, servletPath.length() - 1));
                 }
 
                 site = Query.from(Site.class).where("_id = ?", entry.getValue()).first();
