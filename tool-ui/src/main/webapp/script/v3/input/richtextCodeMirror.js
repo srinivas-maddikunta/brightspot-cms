@@ -7403,8 +7403,16 @@ define([
                         // If text node is not within an element remove leading and trailing spaces.
                         // For example, pasting content from Word has text nodes with whitespace
                         // between elements.
-                        if ($(next.parentElement).is('body,td,th')) {
+                        if ($(next.parentElement).is('body')) {
                             text = text.replace(/^\s*|\s*$/g, '');
+                        }
+                        if ($(next.parentElement).is('td,th')) {
+                            if (!next.previousSibling) {
+                                text = text.replace(/^\s+/, '');
+                            }
+                            if (!next.nextSibling) {
+                                text = text.replace(/\s+$/, '');
+                            }
                         }
 
                         val += text;
