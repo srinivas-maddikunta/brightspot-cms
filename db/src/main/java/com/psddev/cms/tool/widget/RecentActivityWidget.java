@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
+import com.psddev.dari.db.Database;
 import org.joda.time.DateTime;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -124,8 +125,9 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                         "action", page.url(null));
 
                     page.writeTypeSelect(
-                            ObjectType.getInstance(Content.class).as(ToolUi.class).findDisplayTypes()
-                                    .stream()
+                            Database.Static.getDefault().getEnvironment().getTypesByGroup(Content.SEARCHABLE_GROUP).stream()
+                                    .flatMap(t -> t.as(ToolUi.class).findDisplayTypes().stream())
+                                    .distinct()
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,
