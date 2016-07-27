@@ -51,7 +51,7 @@ public class EditFieldUpdate extends Record implements RtcEvent {
 
         EditFieldUpdate update = new EditFieldUpdate();
 
-        update.getState().setId(UuidUtils.createVersion3Uuid(EditFieldUpdate.class.getName() + "/" + sessionId + "/" + contentId));
+        update.getState().setId(UuidUtils.createVersion3Uuid(EditFieldUpdate.class.getName() + "/" + userId + "/" + contentId));
         update.setUserId(userId);
         update.as(RtcEvent.Data.class).setSessionId(sessionId);
         update.setContentId(contentId);
