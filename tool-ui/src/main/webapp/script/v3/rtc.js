@@ -14,6 +14,7 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
 
   var request = {
     url: '/_rtc',
+    closeAsync: true,
     contentType: 'application/json',
     fallbackTransport: 'sse',
     maxReconnectOnClose: 0,
