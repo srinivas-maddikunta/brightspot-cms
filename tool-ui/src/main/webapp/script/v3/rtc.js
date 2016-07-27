@@ -35,10 +35,12 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
       socket.push(JSON.stringify(message));
     }
   };
-  
+
+  var redoRestores = [ ];
   var offlineRestores = [ ];
   var onlineRestores = {
     push: function(restore) {
+      redoRestores.push(restore);
       onlineExecutions.push(restore.message);
 
       var callback = restore.callback;
@@ -51,6 +53,16 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
 
   request.onOpen = function() {
     isOnline = true;
+
+    $.each(redoRestores, function(i, restore) {
+      onlineExecutions.push(restore.message);
+
+      var callback = restore.callback;
+
+      if (callback) {
+        callback();
+      }
+    });
 
     $.each(offlineRestores, function(i, restore) {
       onlineRestores.push(restore);
