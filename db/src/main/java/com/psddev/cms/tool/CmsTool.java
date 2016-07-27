@@ -118,7 +118,10 @@ public class CmsTool extends Tool {
     private boolean disableAutomaticallySavingDrafts;
 
     @ToolUi.Tab("Debug")
-    private boolean disableAjaxSaves;
+    @ToolUi.Note(
+            "This feature is only available for backward compatibility while"
+            + " it's being phased out. Please do not use if at all possible.")
+    private boolean enableAjaxSaves;
 
     @ToolUi.Tab("UI")
     private boolean enableFrontEndUploader;
@@ -649,11 +652,11 @@ public class CmsTool extends Tool {
     }
 
     public boolean isDisableAjaxSaves() {
-        return disableAjaxSaves;
+        return !enableAjaxSaves;
     }
 
     public void setDisableAjaxSaves(boolean disableAjaxSaves) {
-        this.disableAjaxSaves = disableAjaxSaves;
+        this.enableAjaxSaves = !disableAjaxSaves;
     }
 
     public boolean isEnableFrontEndUploader() {
