@@ -102,7 +102,10 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                 Query.from(RtcEvent.class)
                         .where("cms.rtc.event.sessionId = ?", sessionId)
                         .selectAll()
-                        .forEach(RtcEvent::onDisconnect);
+                        .forEach(event -> {
+                            event.onDisconnect();
+                            event.getState().delete();
+                        });
 
                 database.commitWrites();
 

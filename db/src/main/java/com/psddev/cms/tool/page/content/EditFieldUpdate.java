@@ -2,7 +2,6 @@ package com.psddev.cms.tool.page.content;
 
 import com.google.common.base.Preconditions;
 import com.psddev.cms.rtc.RtcEvent;
-import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Record;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.UuidUtils;
@@ -102,17 +101,5 @@ public class EditFieldUpdate extends Record implements RtcEvent {
         setClosed(true);
         setFieldNamesByObjectId(null);
         saveImmediately();
-
-        Database db = Database.Static.getDefault();
-
-        db.beginIsolatedWrites();
-
-        try {
-            delete();
-            db.commitWrites();
-
-        } finally {
-            db.endWrites();
-        }
     }
 }
