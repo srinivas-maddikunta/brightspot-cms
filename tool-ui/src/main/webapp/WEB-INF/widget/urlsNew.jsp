@@ -123,14 +123,8 @@ if (JspWidget.isUpdating(wp)) {
         }
 
     } else {
-        if (!Directory.PathsMode.MANUAL.equals(dirData.getPathsMode())) {
-            dirData.setPathsMode(Directory.PathsMode.MANUAL);
-            dirData.setAutomaticRawPaths(null);
-
-            for (Directory.Path path : State.getInstance(varied).as(Directory.ObjectModification.class).createPaths(site)) {
-                dirData.addPath(path.getSite(), path.getPath(), path.getType());
-            }
-        }
+        dirData.setPathsMode(Directory.PathsMode.MANUAL);
+        dirData.setAutomaticRawPaths(null);
     }
 
     return;
