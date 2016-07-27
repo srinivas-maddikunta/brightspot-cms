@@ -130,7 +130,7 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
         type: 'ping'
       });
     }
-  }, 5000);
+  }, 10000);
 
   return {
     restore: function(state, data, callback) {
