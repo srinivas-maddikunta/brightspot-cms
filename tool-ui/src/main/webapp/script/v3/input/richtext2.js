@@ -3982,7 +3982,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             self.$tableEditTextarea = $('<textarea>').appendTo(self.$tableEditDiv);
             self.tableEditRte = Object.create(Rte);
-            self.tableEditRte.init(self.$tableEditTextarea, {contextRoot:'td'});
+            
+            self.tableEditRte.init(self.$tableEditTextarea, {
+                contextRoot: 'td',
+                richTextElementTags: self.tableGetRichTextElementTags()
+            });
 
             $controls = $('<div/>', {'class': 'rte2-table-editor-controls'}).appendTo(self.$tableEditDiv);
 
@@ -4012,6 +4016,77 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
         },
 
         
+        /**
+         * Returns a list of elements that should be allowed in a table cell, based on the context rules.
+         * This only returns a list if the context rules contain at least one element that has a 'td' context.
+         * Otherwise returns the same list of elements (if any) that are defined on the main RTE.
+         *
+         * @return {Array|undefined} [description]
+         */
+        tableGetRichTextElementTags: function() {
+            var allowed;
+            var tags;
+            var tagsArray;
+            var self;
+            self = this;
+            
+            // First reverse the context rules so we can perform efficient lookups
+            // So for example, we can lookup allowed['td'] and it will show us which styles are allowed inside 'td'
+            allowed = {};
+            $.each(self.styles, function(styleKey, styleObj) {
+                var element;
+                element = styleObj.element;
+                if (element && styleObj.context) {
+                    $.each(styleObj.context, function(i, contextElement) {
+                        if (!allowed[contextElement]) {
+                            allowed[contextElement] = {};
+                        }
+                        allowed[contextElement][element] = true;
+                    });
+                }
+            })
+                        
+            // Now see if there are context rules defined for the 'td' element
+            if (!allowed.td) {
+                // If there are no context rules for 'td' then return the same element list that
+                // was defined for the main RTE
+                return self.richTextElementTags;
+            }
+            
+            // Start with an empty list of elements allowed 
+            tags = {};
+            
+            // Function to recursively find all the tags allowed within a 'td'
+            // plus children tags that should also be allowed
+            function processTags(tagsToAdd) {
+                $.each(tagsToAdd, function(tag) {
+                    // Check if it's already in the list of tags
+                    if (!tags[tag]) {
+                        
+                        // Add it to the list of tags
+                        tags[tag] = true;
+                        
+                        // Also add the children of this tag
+                        if (allowed[tag]) {
+                            processTags(allowed[tag]);
+                        }
+                    }
+                });
+            }
+            
+            // Start the recursive process to find elements allowed in table cells,
+            // and children of those elements
+            processTags(allowed.td);
+            
+            // Convert the tags found into an array
+            tagsArray = [];
+            $.each(tags, function(tag) {
+                tagsArray.push(tag);
+            });
+            return tagsArray;
+        },
+        
+
         /**
          * @param jQuery $el
          * The table cell that is being edited.
