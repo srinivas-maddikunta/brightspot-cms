@@ -3692,7 +3692,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             }
 
             // Start the table editor
-            tEdit.init($placeholder, {tableEl: $content});
+            tEdit.init($placeholder, {tableEl: $content, readOnly: self.rte.readOnlyGet()});
 
             // Save the table editor on the placeholder so we can get to it later
             $placeholder.data('tableEditor', tEdit);
