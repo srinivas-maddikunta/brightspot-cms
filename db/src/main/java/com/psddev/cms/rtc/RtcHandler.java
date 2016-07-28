@@ -1,5 +1,6 @@
 package com.psddev.cms.rtc;
 
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -8,37 +9,43 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.State;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UuidUtils;
+import org.atmosphere.cpr.AtmosphereConfig;
 import org.atmosphere.cpr.AtmosphereRequest;
 import org.atmosphere.cpr.AtmosphereResource;
 import org.atmosphere.cpr.AtmosphereResourceEvent;
 import org.atmosphere.cpr.AtmosphereResourceEventListener;
 import org.atmosphere.cpr.AtmosphereResourceEventListenerAdapter;
+import org.atmosphere.cpr.AtmosphereResourceFactory;
 import org.atmosphere.handler.AbstractReflectorAtmosphereHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RtcHandler.class);
+
+    private ScheduledExecutorService executor;
+
+    private final Cache<UUID, Long> lastPings = CacheBuilder
+            .newBuilder()
+            .expireAfterWrite(60, TimeUnit.SECONDS)
+            .build();
 
     private final LoadingCache<UUID, Optional<UUID>> userIds = CacheBuilder
             .newBuilder()
@@ -84,6 +91,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
             return;
         }
 
+        lastPings.invalidate(sessionId);
         userIds.invalidate(sessionId);
 
         RtcSession session = Query
@@ -116,6 +124,62 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
     }
 
     @Override
+    public void init(AtmosphereConfig config) throws ServletException {
+        executor = Executors.newSingleThreadScheduledExecutor();
+
+        // Clean up any sessions that haven't been pinged in a while.
+        executor.scheduleWithFixedDelay(() -> {
+            AtmosphereResourceFactory factory = config.resourcesFactory();
+            long now = System.currentTimeMillis();
+
+            for (AtmosphereResource resource : factory.findAll()) {
+                try {
+                    UUID sessionId = createSessionId(resource);
+                    Long lastPing = lastPings.getIfPresent(sessionId);
+
+                    if (lastPing == null || now - lastPing > 30000) {
+                        disconnectSession(sessionId);
+                        resource.removeFromAllBroadcasters();
+                        factory.unRegisterUuidForFindCandidate(resource);
+                    }
+
+                } catch (Exception error) {
+                    LOGGER.debug(
+                            String.format("Can't check resource [%s] for clean-up!", resource),
+                            error);
+                }
+            }
+        }, 0, 5, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void destroy() {
+        if (executor == null) {
+            return;
+        }
+
+        try {
+            executor.shutdown();
+
+            boolean terminated;
+
+            try {
+                terminated = executor.awaitTermination(5, TimeUnit.SECONDS);
+
+            } catch (InterruptedException error) {
+                terminated = false;
+            }
+
+            if (!terminated) {
+                executor.shutdownNow();
+            }
+
+        } finally {
+            executor = null;
+        }
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public void onRequest(AtmosphereResource resource) throws IOException {
         try {
@@ -140,7 +204,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
                 session.getState().setId(createSessionId(resource));
                 session.setUserId(userId);
-                session.setLastPing(System.currentTimeMillis());
+                updateLastPing(session);
                 session.save();
                 resource.addEventListener(disconnectListener);
 
@@ -164,7 +228,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                                 .first();
 
                         if (session != null) {
-                            session.setLastPing(System.currentTimeMillis());
+                            updateLastPing(session);
                             session.save();
                         }
 
@@ -189,51 +253,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                         case "state" :
                             RtcState state = createInstance(RtcState.class, className);
 
-                            // Find all events.
-                            List<Object> events = new ArrayList<>();
-                            state.create(data).forEach(events::add);
-
-                            // Find all sessions associated to the events.
-                            List<RtcSession> eventSessions = Query
-                                    .from(RtcSession.class)
-                                    .where("_id = ?", events.stream()
-                                            .map(event -> State.getInstance(event).as(RtcEvent.Data.class).getSessionId())
-                                            .filter(Objects::nonNull)
-                                            .collect(Collectors.toSet()))
-                                    .selectAll();
-
-                            // Delete events associated with non-existent
-                            // sessions.
-                            Set<UUID> eventSessionIds = eventSessions.stream()
-                                    .map(RtcSession::getId)
-                                    .collect(Collectors.toSet());
-
-                            for (Iterator<Object> i = events.iterator(); i.hasNext();) {
-                                State eventState = State.getInstance(i.next());
-                                UUID eventSessionId = eventState.as(RtcEvent.Data.class).getSessionId();
-
-                                if (eventSessionId != null && !eventSessionIds.contains(eventSessionId)) {
-                                    eventState.delete();
-                                    i.remove();
-                                }
-                            }
-
-                            // Delete expired sessions.
-                            long expiration = System.currentTimeMillis() - 30000;
-
-                            for (Iterator<RtcSession> i = eventSessions.iterator(); i.hasNext();) {
-                                RtcSession eventSession = i.next();
-
-                                if (eventSession.getLastPing() < expiration) {
-                                    UUID eventSessionId = eventSession.getId();
-
-                                    disconnectSession(eventSessionId);
-                                    events.removeIf(event -> eventSessionId.equals(State.getInstance(event).as(RtcEvent.Data.class).getSessionId()));
-                                    i.remove();
-                                }
-                            }
-
-                            for (Object event : events) {
+                            for (Object event : state.create(data)) {
                                 RtcBroadcast.forEachBroadcast(event, (broadcast, broadcastData) ->
                                         writeBroadcast(broadcast, broadcastData, userId, resource));
                             }
@@ -249,6 +269,13 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
         } catch (Exception error) {
             error.printStackTrace();
         }
+    }
+
+    private void updateLastPing(RtcSession session) {
+        long ping = System.currentTimeMillis();
+
+        lastPings.put(session.getId(), ping);
+        session.setLastPing(ping);
     }
 
     @Override
