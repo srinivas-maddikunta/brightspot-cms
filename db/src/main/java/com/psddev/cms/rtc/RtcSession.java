@@ -12,6 +12,8 @@ import java.util.UUID;
 public class RtcSession extends Record {
 
     private UUID userId;
+
+    @Indexed
     private long lastPing;
 
     public UUID getUserId() {
