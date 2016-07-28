@@ -1,5 +1,7 @@
 package com.psddev.cms.rtc;
 
+import com.psddev.dari.db.Database;
+import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Record;
 
 import java.util.UUID;
@@ -26,5 +28,28 @@ public class RtcSession extends Record {
 
     public void setLastPing(long lastPing) {
         this.lastPing = lastPing;
+    }
+
+    public void disconnect() {
+        Database database = Database.Static.getDefault();
+
+        database.beginWrites();
+
+        try {
+            delete();
+
+            Query.from(RtcEvent.class)
+                    .where("cms.rtc.event.sessionId = ?", getId())
+                    .selectAll()
+                    .forEach(event -> {
+                        event.onDisconnect();
+                        event.getState().delete();
+                    });
+
+            database.commitWrites();
+
+        } finally {
+            database.endWrites();
+        }
     }
 }

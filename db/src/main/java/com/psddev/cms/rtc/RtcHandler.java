@@ -7,7 +7,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.AuthenticationFilter;
-import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.ObjectUtils;
@@ -100,26 +99,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                 .first();
 
         if (session != null) {
-            Database database = Database.Static.getDefault();
-
-            database.beginWrites();
-
-            try {
-                session.delete();
-
-                Query.from(RtcEvent.class)
-                        .where("cms.rtc.event.sessionId = ?", sessionId)
-                        .selectAll()
-                        .forEach(event -> {
-                            event.onDisconnect();
-                            event.getState().delete();
-                        });
-
-                database.commitWrites();
-
-            } finally {
-                database.endWrites();
-            }
+            session.disconnect();
         }
     }
 
