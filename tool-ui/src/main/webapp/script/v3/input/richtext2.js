@@ -1117,8 +1117,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Process all the toolbar entries
             toolbarProcess(self.toolbarConfig, $toolbar);
 
-            // Whenever the cursor moves, update the toolbar to show which styles are selected
-            self.$container.on("rteCursorActivity",
+            // Whenever the cursor moves, update the toolbar to show which styles are selected.
+            // Also update after an undo/redo occurs
+            self.$container.on("rteCursorActivity rteHistory",
                                $.debounce(200, function() {
                                    self.toolbarUpdate();
                                })
