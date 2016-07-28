@@ -200,6 +200,9 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("Debug")
     private boolean useOldHistoryIndex;
 
+    @ToolUi.Tab("Debug")
+    private boolean useOldTaxonomyChildrenDetection;
+
     @Embedded
     public static class CommonTime extends Record {
 
@@ -855,6 +858,14 @@ public class CmsTool extends Tool {
 
     public void setUseOldHistoryIndex(boolean useOldHistoryIndex) {
         this.useOldHistoryIndex = useOldHistoryIndex;
+    }
+
+    public boolean isUseOldTaxonomyChildrenDetection() {
+        return useOldTaxonomyChildrenDetection;
+    }
+
+    public void setUseOldTaxonomyChildrenDetection(boolean useOldTaxonomyChildrenDetection) {
+        this.useOldTaxonomyChildrenDetection = useOldTaxonomyChildrenDetection;
     }
 
     public String createManualContentLockingNoteText() {

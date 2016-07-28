@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.Taxon;
+import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.SearchResultItem;
 import com.psddev.cms.tool.ToolPageContext;
@@ -136,9 +137,17 @@ public class TaxonomySearchResultView extends AbstractSearchResultView {
                                         itemWriter.writeAfterHtml(page, search, item);
                                     }
 
-                                    Collection<? extends Taxon> children = Taxon.Static.getChildren(item, predicate);
+                                    boolean childrenEmpty;
 
-                                    if (children != null && !children.isEmpty()) {
+                                    if (page.getCmsTool().isUseOldTaxonomyChildrenDetection()) {
+                                        Collection<? extends Taxon> children = Taxon.Static.getChildren(item, predicate);
+                                        childrenEmpty = children == null || children.isEmpty();
+
+                                    } else {
+                                        childrenEmpty = item.as(Taxon.Data.class).isChildrenEmpty();
+                                    }
+
+                                    if (!childrenEmpty) {
                                         page.writeStart("a",
                                                 "class", "searchResultTaxonomyExpand",
                                                 "target", target,
