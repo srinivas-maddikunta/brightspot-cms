@@ -100,6 +100,6 @@ public class EditFieldUpdate extends Record implements RtcEvent {
     public void onDisconnect() {
         setClosed(true);
         setFieldNamesByObjectId(null);
-        saveImmediately();
+        save();
     }
 }

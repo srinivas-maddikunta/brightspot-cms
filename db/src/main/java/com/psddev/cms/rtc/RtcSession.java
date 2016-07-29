@@ -4,6 +4,7 @@ import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Record;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -33,21 +34,28 @@ public class RtcSession extends Record {
     }
 
     public void disconnect() {
+        List<RtcEvent> events = Query
+                .from(RtcEvent.class)
+                .where("cms.rtc.event.sessionId = ?", getId())
+                .selectAll();
+
         Database database = Database.Static.getDefault();
 
         database.beginWrites();
 
         try {
+            events.forEach(RtcEvent::onDisconnect);
+            database.commitWrites();
+
+        } finally {
+            database.endWrites();
+        }
+
+        database.beginWrites();
+
+        try {
             delete();
-
-            Query.from(RtcEvent.class)
-                    .where("cms.rtc.event.sessionId = ?", getId())
-                    .selectAll()
-                    .forEach(event -> {
-                        event.onDisconnect();
-                        event.getState().delete();
-                    });
-
+            events.forEach(e -> e.getState().delete());
             database.commitWrites();
 
         } finally {
