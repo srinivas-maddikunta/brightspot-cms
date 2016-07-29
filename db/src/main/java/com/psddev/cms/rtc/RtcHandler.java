@@ -1,50 +1,37 @@
 package com.psddev.cms.rtc;
 
-import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.AuthenticationFilter;
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.UuidUtils;
-import org.atmosphere.cpr.AtmosphereConfig;
 import org.atmosphere.cpr.AtmosphereRequest;
 import org.atmosphere.cpr.AtmosphereResource;
 import org.atmosphere.cpr.AtmosphereResourceEvent;
 import org.atmosphere.cpr.AtmosphereResourceEventListener;
 import org.atmosphere.cpr.AtmosphereResourceEventListenerAdapter;
-import org.atmosphere.cpr.AtmosphereResourceFactory;
 import org.atmosphere.handler.AbstractReflectorAtmosphereHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RtcHandler.class);
-
-    private ScheduledExecutorService executor;
-
-    private final Cache<UUID, Long> lastPings = CacheBuilder
-            .newBuilder()
-            .expireAfterWrite(60, TimeUnit.SECONDS)
-            .build();
 
     private final LoadingCache<UUID, Optional<UUID>> userIds = CacheBuilder
             .newBuilder()
@@ -90,7 +77,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
             return;
         }
 
-        lastPings.invalidate(sessionId);
         userIds.invalidate(sessionId);
 
         RtcSession session = Query
@@ -100,62 +86,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
         if (session != null) {
             session.disconnect();
-        }
-    }
-
-    @Override
-    public void init(AtmosphereConfig config) throws ServletException {
-        executor = Executors.newSingleThreadScheduledExecutor();
-
-        // Clean up any sessions that haven't been pinged in a while.
-        executor.scheduleWithFixedDelay(() -> {
-            AtmosphereResourceFactory factory = config.resourcesFactory();
-            long now = System.currentTimeMillis();
-
-            for (AtmosphereResource resource : factory.findAll()) {
-                try {
-                    UUID sessionId = createSessionId(resource);
-                    Long lastPing = lastPings.getIfPresent(sessionId);
-
-                    if (lastPing == null || now - lastPing > 30000) {
-                        disconnectSession(sessionId);
-                        resource.removeFromAllBroadcasters();
-                        factory.unRegisterUuidForFindCandidate(resource);
-                    }
-
-                } catch (Exception error) {
-                    LOGGER.debug(
-                            String.format("Can't check resource [%s] for clean-up!", resource),
-                            error);
-                }
-            }
-        }, 0, 5, TimeUnit.SECONDS);
-    }
-
-    @Override
-    public void destroy() {
-        if (executor == null) {
-            return;
-        }
-
-        try {
-            executor.shutdown();
-
-            boolean terminated;
-
-            try {
-                terminated = executor.awaitTermination(5, TimeUnit.SECONDS);
-
-            } catch (InterruptedException error) {
-                terminated = false;
-            }
-
-            if (!terminated) {
-                executor.shutdownNow();
-            }
-
-        } finally {
-            executor = null;
         }
     }
 
@@ -184,7 +114,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
                 session.getState().setId(createSessionId(resource));
                 session.setUserId(userId);
-                updateLastPing(session);
+                session.setLastPing(Database.Static.getDefault().now());
                 session.save();
                 resource.addEventListener(disconnectListener);
 
@@ -208,7 +138,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                                 .first();
 
                         if (session != null) {
-                            updateLastPing(session);
+                            session.setLastPing(Database.Static.getDefault().now());
                             session.save();
                         }
 
@@ -249,13 +179,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
         } catch (Exception error) {
             error.printStackTrace();
         }
-    }
-
-    private void updateLastPing(RtcSession session) {
-        long ping = System.currentTimeMillis();
-
-        lastPings.put(session.getId(), ping);
-        session.setLastPing(ping);
     }
 
     @Override

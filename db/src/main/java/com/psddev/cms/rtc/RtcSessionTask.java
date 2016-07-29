@@ -1,5 +1,6 @@
 package com.psddev.cms.rtc;
 
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseException;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.RepeatingTask;
@@ -16,7 +17,7 @@ public class RtcSessionTask extends RepeatingTask {
 
     @Override
     protected void doRepeatingTask(DateTime currentTime) throws Exception {
-        long now = System.currentTimeMillis();
+        long now = Database.Static.getDefault().now();
         long past = now - 60000;
         RtcSessionTaskStatus status = Query.from(RtcSessionTaskStatus.class).first();
 
