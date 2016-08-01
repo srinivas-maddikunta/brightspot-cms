@@ -3638,6 +3638,14 @@ public class ToolPageContext extends WebPageContext {
                     contentData.setPublishUser(null);
                 }
 
+                Overlay overlay = Edit.getOverlay(object);
+
+                if (overlay != null) {
+                    state.putAtomically("cms.content.overlaid", Boolean.TRUE);
+                    state.save();
+                    deleteWorksInProgress(object);
+                }
+
                 Map<String, Map<String, Object>> differences;
 
                 if (draft != null) {
@@ -3657,15 +3665,9 @@ public class ToolPageContext extends WebPageContext {
                             state.getSimpleValues());
                 }
 
-                Overlay overlay = Edit.getOverlay(object);
-
                 if (overlay != null) {
                     overlay.setDifferences(differences);
                     publish(overlay);
-
-                    state.putAtomically("cms.content.overlaid", Boolean.TRUE);
-                    state.save();
-                    deleteWorksInProgress(object);
 
                 } else {
                     publishDifferences(object, differences);
