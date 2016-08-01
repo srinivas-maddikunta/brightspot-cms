@@ -117,7 +117,6 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
 
     request.onClose = function () {
       isOnline = false;
-      console.log('onclose');
       subscribe();
     };
 
