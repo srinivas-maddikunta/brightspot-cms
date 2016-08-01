@@ -1785,7 +1785,13 @@ public class PageFilter extends AbstractFilter {
 
             if (entry != null) {
                 String path = absoluteUrl.substring(entry.getKey().length() - 1);
-                if (path.length() == 0) {
+
+                if (Query.from(CmsTool.class).first().isRemoveTrailingSlashes()) {
+                    if ("/".equals(path)) {
+                        fixPath(request, servletPath.substring(0, servletPath.length() - 1));
+                    }
+
+                } else if (path.length() == 0) {
                     fixPath(request, servletPath + "/");
                 }
 
