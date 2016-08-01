@@ -56,4 +56,10 @@
         <method>boolean inline()</method>
     </difference>
 
+    <difference>
+        <className>com/psddev/cms/rtc/RtcState</className>
+        <differenceType>7012</differenceType>
+        <method>java.lang.Iterable close(java.util.Map, java.util.UUID)</method>
+    </difference>
+
 </differences>

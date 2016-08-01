@@ -15,8 +15,6 @@ import com.psddev.dari.util.UuidUtils;
 import org.atmosphere.cpr.AtmosphereRequest;
 import org.atmosphere.cpr.AtmosphereResource;
 import org.atmosphere.cpr.AtmosphereResourceEvent;
-import org.atmosphere.cpr.AtmosphereResourceEventListener;
-import org.atmosphere.cpr.AtmosphereResourceEventListenerAdapter;
 import org.atmosphere.handler.AbstractReflectorAtmosphereHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,15 +50,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                 }
             });
 
-    private final AtmosphereResourceEventListener disconnectListener = new AtmosphereResourceEventListenerAdapter.OnDisconnect() {
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public void onDisconnect(AtmosphereResourceEvent event) {
-            disconnectSession(createSessionId(event.getResource()));
-        }
-    };
-
     private UUID createSessionId(AtmosphereResource resource) {
         String resourceUuid = resource.uuid();
         UUID sessionId = ObjectUtils.to(UUID.class, resourceUuid);
@@ -70,23 +59,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
         }
 
         return sessionId;
-    }
-
-    private void disconnectSession(UUID sessionId) {
-        if (sessionId == null) {
-            return;
-        }
-
-        userIds.invalidate(sessionId);
-
-        RtcSession session = Query
-                .from(RtcSession.class)
-                .where("_id = ?", sessionId)
-                .first();
-
-        if (session != null) {
-            session.disconnect();
-        }
     }
 
     @Override
@@ -116,7 +88,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                 session.setUserId(userId);
                 session.setLastPing(Database.Static.getDefault().now());
                 session.save();
-                resource.addEventListener(disconnectListener);
 
             } else if ("post".equalsIgnoreCase(method)) {
                 try (InputStream requestInput = request.getInputStream()) {
@@ -129,8 +100,30 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                     Map<String, Object> messageJson = (Map<String, Object>) ObjectUtils.fromJson(message);
                     String type = (String) messageJson.get("type");
 
-                    if ("disconnect".equals(type)) {
-                        disconnectSession(ObjectUtils.to(UUID.class, messageJson.get("sessionId")));
+                    if ("migrate".equals(type)) {
+                        UUID newSessionId = ObjectUtils.to(UUID.class, messageJson.get("newSessionId"));
+
+                        if (newSessionId != null) {
+                            Database database = Database.Static.getDefault();
+
+                            database.beginWrites();
+
+                            try {
+                                Query.from(RtcEvent.class)
+                                        .where("cms.rtc.event.sessionId = ?", messageJson.get("oldSessionId"))
+                                        .selectAll()
+                                        .forEach(event -> {
+                                            event.as(RtcEvent.Data.class).setSessionId(newSessionId);
+                                            event.getState().save();
+                                        });
+
+                                database.commitWrites();
+
+                            } finally {
+                                database.endWrites();
+                            }
+                        }
+
                         return;
                     }
 
@@ -160,17 +153,42 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
                     switch (type) {
                         case "action" :
-                            createInstance(RtcAction.class, className)
-                                    .execute(data, userId, sessionId);
+                            createInstance(RtcAction.class, className).execute(data, userId, sessionId);
 
                             break;
 
-                        case "state" :
-                            RtcState state = createInstance(RtcState.class, className);
+                        case "restore" :
+                            Iterable<?> restores = createInstance(RtcState.class, className).create(data);
 
-                            for (Object event : state.create(data)) {
-                                RtcBroadcast.forEachBroadcast(event, (broadcast, broadcastData) ->
-                                        writeBroadcast(broadcast, broadcastData, userId, resource));
+                            if (restores != null) {
+                                for (Object event : restores) {
+                                    RtcBroadcast.forEachBroadcast(event, (broadcast, broadcastData) ->
+                                            writeBroadcast(broadcast, broadcastData, userId, resource));
+                                }
+                            }
+
+                            break;
+
+                        case "close" :
+                            Iterable<?> closes = createInstance(RtcState.class, className).close(data, userId);
+
+                            if (closes != null) {
+                                Database database = Database.Static.getDefault();
+
+                                database.beginWrites();
+
+                                try {
+                                    closes.forEach(event -> {
+                                        if (event instanceof RtcEvent) {
+                                            ((RtcEvent) event).onDisconnect();
+                                        }
+                                    });
+
+                                    database.commitWrites();
+
+                                } finally {
+                                    database.endWrites();
+                                }
                             }
 
                             break;

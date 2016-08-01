@@ -17,6 +17,7 @@
     "L.GeoSearch": "*",
     "spectrum": "1.3.4",
     "string": "3.3.0",
+    "tabex": "1.0.5",
     "velocity": "1.1.0",
     "javascript-undo-manager": "1.0.5"
   },
