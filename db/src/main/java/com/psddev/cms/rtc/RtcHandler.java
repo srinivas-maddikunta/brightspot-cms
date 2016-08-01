@@ -121,6 +121,11 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
             } else if ("post".equalsIgnoreCase(method)) {
                 try (InputStream requestInput = request.getInputStream()) {
                     String message = IoUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
+
+                    if (ObjectUtils.isBlank(message)) {
+                        return;
+                    }
+
                     Map<String, Object> messageJson = (Map<String, Object>) ObjectUtils.fromJson(message);
                     String type = (String) messageJson.get("type");
 
