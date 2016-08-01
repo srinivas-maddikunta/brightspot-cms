@@ -3964,7 +3964,6 @@ public class ToolPageContext extends WebPageContext {
 
                 Overlay overlay = Edit.getOverlay(object);
 
-                // Calling State#save to trigger commit hooks before getting differences.
                 if (overlay != null) {
                     state.putAtomically("cms.content.overlaid", Boolean.TRUE);
                     state.save();
