@@ -6216,6 +6216,7 @@ define([
             var doc;
             var enhancementsByLine;
             var html;
+            var lineNo;
             var rangeWasSpecified;
             var self;
 
@@ -6255,20 +6256,9 @@ define([
             enhancementsByLine = {};
             if (!(rangeWasSpecified && range.from.line === range.to.line)) {
                 
-                $.each(self.enhancementCache, function(i, mark) {
-
-                    var lineNo;
-
-                    lineNo = self.enhancementGetLineNumber(mark);
-                
-                    if (lineNo !== undefined) {
-                    
-                        // Create an array to hold the enhancements for this line, then add the current enhancement
-                        enhancementsByLine[lineNo] = enhancementsByLine[lineNo] || [];
-                
-                        enhancementsByLine[lineNo].push(mark);
-                    }
-                });
+                for (lineNo = range.from.line; lineNo <= range.to.line; lineNo++) {
+                    enhancementsByLine[lineNo] = self.enhancementGetFromLine(lineNo);
+                }
             }
             
             // Start the HTML!
