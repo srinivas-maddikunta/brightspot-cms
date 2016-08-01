@@ -185,6 +185,7 @@ define([
             
         }, // styles
 
+        indentClassPrefix: 'rte2-indent-level-',
         
         /**
          * Rules for cleaning up the clipboard data when content is pasted
@@ -389,6 +390,7 @@ define([
         initListListeners: function() {
 
             var editor;
+            var indent;
             var isEmptyLine;
             var isFirstListItem;
             var isLastListItem;
@@ -398,7 +400,7 @@ define([
             var self;
 
             self = this;
-            
+
             editor = self.codeMirror;
 
             // Monitor the "beforeChange" event so we can save certain information
@@ -411,10 +413,11 @@ define([
 
                 // Get the listType and set the closure variable for later use
                 listType = self.blockGetListType(changeObj.from.line);
-
+                indent = self.blockGetIndent(changeObj.from.line)
+                
                 rangeFirstLine = {from:changeObj.from, to:changeObj.from};
                 rangeBeforeChange = {from:changeObj.from, to:changeObj.to};
-
+          
                 // Get the list type of the previous line
                 listTypePrevious = '';
                 if (rangeBeforeChange.from.line > 0) {
@@ -426,17 +429,23 @@ define([
                 if (rangeBeforeChange.to.line < editor.lineCount() - 1) {
                     listTypeNext = self.blockGetListType(rangeBeforeChange.to.line + 1);
                 }
-                
+
                 isFirstListItem = Boolean(listTypePrevious === '');
                 isLastListItem = Boolean(listTypeNext === '');
 
+                // Remember if this change is taking palce at the start of the line,
+                // so we can tell if the user presses Enter at the first list item
+                // and we should move the whole list down instead of adding a new list item.
                 isStartOfLine = Boolean(rangeBeforeChange.from.ch === 0);
-                
+
+                // Check if the list item started out as an empty line,
+                // so if user presses Enter on the last list item
+                // the list style should be removed.
                 isEmptyLine = Boolean(editor.getLine(rangeBeforeChange.from.line) === '');
-                
+
                 // Loop through all the changes that have not yet been applied, and determine if more text will be added to the line
                 $.each(changeObj.text, function(i, textChange) {
-                    
+
                     // Check if this change has more text to add to the page
                     if (textChange.length > 0) {
                         isEmptyLine = false;
@@ -445,41 +454,48 @@ define([
                 });
 
             });
-            
+
             // Monitor the "change" event so we can adjust styles for list items
             // This will use the closure variables set in the "beforeChange" event.
             editor.on('change', function(instance, changeObj) {
 
                 var range;
-                
+
                 // Check for a listType that was saved by the beforeChange event
                 if (listType) {
 
                     // Get the current range (after the change has been applied)
                     range = self.getRange();
-                    
+
                     // For the new line, if user pressed enter on a blank list item and it was the last item in the list,
                     // Then do not add a new line - instead change the list item to a non-list item
                     if (isLastListItem && isEmptyLine) {
 
+                        // Remove the indent on new line
+                        self.blockRemoveIndent(range.to.line);
+
                         // Remove the list class on the new line
                         self.blockRemoveStyle(listType, range);
-                        
+
                     } else if (isFirstListItem && isStartOfLine) {
 
                         // If at the first character of the first list item and user presses enter,
                         // do not create a new list item above it, just move the entire list down
-                        
+
                     } else {
-                        
+
                         // Always keep the original starting line the list style.
                         // This is used in the case when you press enter and move the current
                         // line lower - so we need to add list style to the original starting point.
                         // TODO: not sure what happens when you insert multiple line
                         self.blockSetStyle(listType, rangeFirstLine);
-
+                        self.blockSetIndent(rangeFirstLine.from.line, indent);
+                       
                         // Set list style for the new range
                         self.blockSetStyle(listType, range);
+                        
+                        // Indent the new list item the proper amount
+                        self.blockSetIndent(range.from.line, indent);
                     }
                 }
 
@@ -2241,6 +2257,175 @@ define([
             return self.blockGetLineData(styleObj.key, range.from.line) || {};
         },
 
+        /**
+         * Set the indent level for a line.
+         *
+         * @param {Number|Object} lineNumber
+         * The line number on which to set indent.
+         * Or an object that contains a range, like {from:{line:0,ch:0}, to:{line:1,ch:5}}
+         *
+         * @param {Number} indentLevel
+         * The indent level (number from 1..n)
+         *
+         * @param Object [options]
+         * Set of key/value pairs to specify options.
+         * These options will be passed as mark options when the mark is created.
+         *
+         * @param Object [options.triggerChange=true]
+         * Set this to false if you do not want to trigger the rteChange event after setting the style.
+         * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
+         */
+        blockSetIndent: function(lineNumber, level, options) {
+
+            var editor;
+            var i;
+            var indentClass;
+            var range;
+            var self;
+
+            self = this;
+            editor = self.codeMirror;
+            options = options || {};
+            
+            // Change into an object for consistency
+            range = lineNumber;
+            if (typeof lineNumber === 'number') {
+                range = {from:{line:lineNumber, ch:0}, to:{line:lineNumber, ch:0}};
+            }
+                
+            if (level < 0) {
+                return;
+            }
+            
+            indentClass = self.indentClassPrefix + level;
+
+            for (i = range.from.line; i <= range.to.line; i++) {
+                // Remove any existing indent level
+                self.blockRemoveIndent(i);
+                if (level > 0) {
+                    editor.addLineClass(i, 'text', indentClass);
+                }
+            }
+
+            // Refresh the editor display since our line classes
+            // might have padding that messes with the cursor position
+            editor.refresh();
+
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
+        },
+
+
+        /**
+         * Change the indent level up or down.
+         *
+         * @param {Number} lineNumber
+         * @param {Number} delta
+         * Amount by which to change the indent level. +1 or -1.
+         *
+         * @returns {Number}
+         * The new indent level.
+         */
+        blockDeltaIndent: function(lineNumber, delta, options) {
+            var indentLevel, self;
+            self = this;
+            indentLevel = self.blockGetIndent(lineNumber);
+            indentLevel = indentLevel + delta;
+            if (indentLevel < 0) {
+                indentLevel = 0;
+            }
+            self.blockSetIndent(lineNumber, indentLevel, options)
+            return indentLevel;
+        },
+
+        
+       /**
+         * Remove all indent from a line.
+         *
+         * @param Number lineNumber
+         * The line number where indent should be removed.
+         *
+         */
+        blockRemoveIndent: function(lineNumber, options) {
+
+            var editor;
+            var lineInfo;
+            var self;
+
+            self = this;
+            editor = self.codeMirror;
+            options = options || {};
+
+            lineInfo = editor.lineInfo(lineNumber);
+            if (lineInfo && lineInfo.textClass) {
+                $.each(lineInfo.textClass.split(' '), function(i, className) {
+                    if (className.indexOf(self.indentClassPrefix) === 0) {
+                        editor.removeLineClass(lineNumber, 'text', className);
+                    }
+                });
+            }
+            
+            // Refresh the editor display since our line classes
+            // might have padding that messes with the cursor position
+            editor.refresh();
+
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
+        },
+        
+       /**
+         * Returns the indent level for a line.
+         * If a line does not have a specified indent but it is a list style,
+         * then the indent defaults to 1.
+         * Otherwise the indent defaults to 0.
+         *
+         * @param Number lineNumber
+         * The line number where indent should be retrieved.
+         *
+         * @returns Number
+         * Indent level, a number from 0..n
+         *
+         */
+        blockGetIndent: function(lineNumber) {
+
+            var editor, indentLevel, lineInfo, self;
+
+            self = this;
+            editor = self.codeMirror;
+
+            indentLevel = 0;
+            
+            lineInfo = editor.lineInfo(lineNumber);
+            if (lineInfo && lineInfo.textClass) {
+                $.each(lineInfo.textClass.split(' '), function(i, className) {
+                    
+                    var styleObj;
+                    
+                    // Check if the line has a specified indent level
+                    if (className.indexOf(self.indentClassPrefix) === 0) {
+                        // Classname looks like "prefix-#"
+                        // So lets get the number part of the classname.
+                        indentLevel = className.slice( self.indentClassPrefix.length );
+                        indentLevel = parseInt( indentLevel, 10 ) || 0;
+                        // Since we found a specified indent level, stop looping
+                        return;
+                    }
+                    
+                    // Check if this is a style that has a container.
+                    // If so it is a list and should default to indent level one (instead of zero)
+                    styleObj = self.classes[className];
+                    if (styleObj && styleObj.elementContainer) {
+                        indentLevel = 1;
+                        // Continue looping to check for a specified indent level
+                    }
+                });
+            }
+
+            return indentLevel;
+        },
+
         
         /**
          * Return the data stored on the line, for a particular style.
@@ -2519,8 +2704,7 @@ define([
 
             return styles;
         },
-
-        
+ 
         /**
          * Returns the list type for a line.
          *
@@ -6020,8 +6204,43 @@ define([
 
             keymap = {};
 
+            // Ignore Tab key so it can be used to move focus to the next field
             keymap['Tab'] = false;
             keymap['Shift-Tab'] = false;
+
+            // If at the start of an indented line, backspace should remove the indent or the list style
+            keymap['Backspace'] = function(cm){
+                var indent;
+                var listType;
+                var range;
+                range = self.getRange();
+                indent = self.blockGetIndent(range.from.line);
+                listType = self.blockGetListType(range.from.line);
+                if (indent > 0 && range.from.ch === 0 && range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                    if (listType && indent === 1) {
+                        self.blockRemoveStyle(listType, range);
+                    }
+                    self.blockDeltaIndent(range.from.line, -1);
+                } else {
+                    // Do a normal backspace operation
+                    cm.execCommand('delCharBefore');
+                }
+            };
+            
+            
+            // Alt-Right key should increase the indent of the line.
+            keymap['Alt-Right'] = function(cm){
+                var range;
+                range = self.getRange();
+                self.blockDeltaIndent(range.from.line, 1);
+            };
+            
+            // Alt-Left key should decrease the indent of the line.
+            keymap['Alt-Left'] = function(cm){
+                var range;
+                range = self.getRange();
+                self.blockDeltaIndent(range.from.line, -1);
+            };
 
             keymap['Shift-Enter'] = function (cm) {
                 // Add a carriage-return symbol and style it as 'newline'
@@ -6063,7 +6282,6 @@ define([
 
             return keymap;
         },
-
 
         /**
          * Get plain text from codemirror.
@@ -6132,8 +6350,8 @@ define([
                 return html;
             }
 
-            var blockActive;
             var blockElementsToClose;
+            var containerActive;
             var doc;
             var enhancementsByLine;
             var html;
@@ -6160,9 +6378,9 @@ define([
 
             // List of block styles that are currently open.
             // We need this so we can continue a list on the next line.
-            blockActive = {};
+            containerActive = [];
             
-            // List of block elements that are currently open
+             // List of block elements that are currently open
             // We need this so we can close them all at the end of the line.
             blockElementsToClose = [];
 
@@ -6200,16 +6418,21 @@ define([
 
                 var annotationEnd;
                 var annotationStart;
-                var blockOnThisLine;
                 var charInRange;
                 var charNum;
+                var containerClosed;
+                var containerData;
+                var containerOnLine;
                 var htmlEndOfLine;
                 var htmlStartOfLine;
+                var i;
+                var indentLevel;
                 var inlineActive;
                 var inlineActiveIndex;
                 var inlineActiveIndexLast;
                 var inlineElementsToClose;
                 var isVoid;
+                var lineClasses;
                 var lineNo;
                 var outputChar;
                 var raw;
@@ -6223,90 +6446,163 @@ define([
                 // List of inline styles that are currently open.
                 // We need this because if we close one element we will need to re-open all the elements.
                 inlineActive = [];
-
+                
                 // List of inline elements that are currently open
                 // (in the order they were opened so they can be closed in reverse order)
                 inlineElementsToClose = [];
-
-                // Keep track of the block styles we find only on this line,
-                // so we know when to end a list.
-                // For example, if the previous line was in a list,
-                // and the current line contains a list item, then we keep the list open.
-                // But if the current line does not contain a list item then we close the list.
-                blockOnThisLine = {};
+                
+                indentLevel = self.blockGetIndent(lineNo);
+                containerOnLine = false;
 
                 // If lineNo is in range
                 if (range.from.line <= lineNo && range.to.line >= lineNo) {
 
                     // Get any line classes and determine which kind of line we are on (bullet, etc)
-                    // Note this does not support nesting line elements (like a list within a list)
                     // From CodeMirror, the textClass property will contain multiple line styles separated by space
                     // like 'rte2-style-ol rte2-style-align-left'
-                    if (line.textClass) {
+                    lineClasses = (line.textClass || '').split(' ').filter(function(value){
+                        return value !== '';
+                    });
+                    $.each(lineClasses, function() {
                         
-                        $.each(line.textClass.split(' '), function() {
+                        var container;
+                        var containerData;
+                        var containerPrevious;
+                        var i;
+                        var lineStyleData;
+                        var styleObj;
+                        
+                        // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
+                        styleObj = self.classes[this] || {};
+                        
+                        // Get the "container" element for this style (for example: ul or ol)
+                        container = styleObj.elementContainer;
+                        if (container) {
                             
-                            var container;
-                            var lineStyleData;
-                            var styleObj;
-
-                            // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
-                            styleObj = self.classes[this];
-                            if (!styleObj) {
-                                return;
-                            }
-
-                            // Get the "container" element for this style (for example: ul or ol)
-                            container = styleObj.elementContainer;
-                            if (container) {
-
-                                // Mark that we found this container, so later we can close off any containers that are not active any more.
-                                // For example this will set blockOnThisLine.ul to true.
-                                blockOnThisLine[container] = true;
+                            containerOnLine = true;
+                            
+                            // There are several possibilities at this point:
+                            // * We are not inside another list and we need to create a new list.
+                            // * We are inside a list already and at the same indent level.
+                            // * We are inside a list already, but the indent level is greater,
+                            //   so we need to create a new nested list.
+                            // * We are inside a list already, but the indent level is less,
+                            //   so we need to close previous lists until we get to the correct indent.
+                            
+                            // Check if we are inside a list already, but the indent level is less,
+                            // so we need to close previous lists until we get to the correct indent.
+                            for (i = containerActive.length; i--; ) {
                                 
-                                // Check to see if we are already inside this container element
-                                if (blockActive[container]) {
-
-                                    // We are currently inside this style so we don't need to open the container element
+                                containerData = containerActive[i];
+                                
+                                if (indentLevel < containerData.indentLevel) {
                                     
+                                    // Now close the previous list that was at a higher indent
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    containerActive.splice(i,1); // remove this container from the array
+                                    
+                                } else if (indentLevel === containerData.indentLevel &&
+                                    container !== containerData.styleObj.elementContainer) {
+                                        
+                                    // Special case:
+                                    // We're at the same indent level, but a different container
+                                    // element (like a UL followed by an OL list).
+                                    // In that case we must close the previous list, and open
+                                    // a new list.
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    
+                                    // Remove this container from the array
+                                    containerActive.splice(i,1);
+                                    
+                                     // Do not continue up the list of active containers
+                                    break;
+                                        
                                 } else {
-
-                                    // We are not already inside this style, so create the container element
-                                    // and remember that we created it
-                                    blockActive[container] = true;
-                                    htmlStartOfLine += '<' + container + '>';
+                                    
+                                    // We're either at the same indent level with the same container,
+                                    // or at a greater indent level.
+                                    // Do not continue up the list of active containers.
+                                    break;
                                 }
                             }
-
+                                
+                            // Check to see if we are already inside this container element and at the same indent level
+                            containerPrevious = containerActive[ containerActive.length - 1 ];
+                            if (containerPrevious &&
+                                container === containerPrevious.styleObj.elementContainer  &&
+                                indentLevel === containerPrevious.indentLevel) {
+                                        
+                                // We are continuting the container from the previous line
+                                // so we don't need to open the container element.
+                                // But we must close any existing block elements from the previous line,
+                                // such as the <LI> element from the last list item,
+                                // because we will be opening up a new <LI> element for this line.
+                                html += '</' + containerPrevious.styleObj.element + '>';
+                                        
+                            } else {
+                                    
+                                // We are not inside the same container element,
+                                // or we are at a different indent level
+                                    
+                                // We are not already inside this style, so create the container element
+                                // and remember that we created it
+                                containerActive.push({
+                                    styleObj: styleObj,
+                                    indentLevel:indentLevel
+                                });
+                                htmlStartOfLine += '<' + container + '>';
+                            }
+                                
+                        } else { // this style does not have a container
+                                                            
+                            // Push this style onto a stack so when we reach the end of the line we can close the element.
+                            // Note the element will be opened later.
+                            if (styleObj.element) {
+                                blockElementsToClose.push(styleObj);
+                            }
+                        }
+                            
+                        if (styleObj.element) {
+                                
                             // Get any attributes that might be defined for this line style
                             lineStyleData = self.blockGetLineData(styleObj.key, lineNo) || {};
-                            
+                                
                             // Now determine which element to create for the line.
                             // For example, if it is a list then we would create an 'LI' element.
                             htmlStartOfLine += openElement(styleObj, lineStyleData.attributes);
+                        }
+                    }); // .each(lineClasses)
 
-                            // Also push this style onto a stack so when we reach the end of the line we can close the element
-                            blockElementsToClose.push(styleObj);
-                            
-                        }); // .each
-                    }// if line.textClass
-                    
-                } // if lineNo is in range
-                
-                // Now that we know which line styles are on this line, we can tell if we need to continue a list
-                // from a previous line, or actually close the list.
-                // Loop through all the blocks that are currently active (from this line and previous lines)
-                // and find the ones that are not active on this line.
-                $.each(blockActive, function(container) {
-
-                    if (!blockOnThisLine[container]) {
-                        delete blockActive[container];
-                        if (container) {
-                            html += '</' + container + '>';
+                    // Now that we have gone through all the line classes,
+                    // we should know if we are in a container on this line
+                    if (!containerOnLine) {
+                        
+                        // We are not inside a container, so we should close all open containers
+                        // that are greater than the current indent level
+                        if (containerActive.length) {
+                            for (i = containerActive.length; i--; ) {
+                                containerData = containerActive[i];
+                                if (indentLevel < containerData.indentLevel) {
+                                    containerClosed = true;
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    containerActive.splice(i,1); // remove this container from the array
+                                } else {
+                                    break;
+                                }
+                            }
+                            // If we didn't close one of the containing block elements,
+                            // then we need to put a line break before this text, to separate it from the
+                            // list text: <li>previous_text<br/>this_text
+                            if (!containerClosed) {
+                                html += '<br/>';
+                            }
                         }
                     }
-                });
-
+                } // if lineNo is in range
+ 
                 // Determine if there are any enhancements on this line
                 if (enhancementsByLine[lineNo] && options.enhancements !== false) {
                     
@@ -6609,10 +6905,10 @@ define([
 
                 
                 if (range.from.line <= lineNo && range.to.line >= lineNo) {
-                    
+
                     // If we reached end of line, close all the open block elements
                     if (blockElementsToClose.length) {
-                    
+                        
                         $.each(blockElementsToClose.reverse(), function() {
                             var element;
                             element = this.element;
@@ -6621,10 +6917,10 @@ define([
                             }
                         });
                         blockElementsToClose = [];
-
+                        
                     } else if (charInRange && rawLastChar && !self.rawBr) {
                         html += '\n';
-                    } else if (charInRange) {
+                    } else if (charInRange && containerActive.length === 0) {
                         // No block elements so add a line break
                         html += '<br/>';
                     }
@@ -6639,12 +6935,23 @@ define([
             });
 
             // When we finish with the final line close any block elements that are still open
-            $.each(blockActive, function(container) {
-                delete blockActive[container];
-                if (container) {
-                    html += '</' + container + '>';
+            if (blockElementsToClose.length) {
+                $.each(blockElementsToClose.reverse(), function() {
+                    var element;
+                    element = this.element;
+                    if (element) {
+                        html += '</' + element + '>';
+                    }
+                });
+                blockElementsToClose = [];
+            }
+            $.each(containerActive, function(i, containerData) {
+                if (containerData) {
+                    html += '</' + containerData.styleObj.element + '>';
+                    html += '</' + containerData.styleObj.elementContainer + '>';
                 }
             });
+            containerActive = [];
 
             // Find the raw "<" characters (which we previosly replaced with &raw_lt;)
             // and add a data-rte2-raw attribute to each HTML element.
@@ -6860,12 +7167,13 @@ define([
             annotations = [];
             enhancements = [];
             
-            function processNode(n, rawParent) {
+            function processNode(n, rawParent, indentLevel) {
                 
                 var elementAttributes;
                 var elementClose;
                 var elementName;
                 var from;
+                var indentChildren;
                 var isContainer;
                 var matchStyleObj;
                 var next;
@@ -6875,10 +7183,14 @@ define([
                 var text;
                 var to;
 
+                indentLevel = indentLevel || 0;
+                
                 next = n.childNodes[0];
 
                 while (next) {
 
+                    indentChildren = indentLevel;
+                    
                     elementAttributes = {};
 
                     // Check if we got a text node or an element
@@ -6935,6 +7247,16 @@ define([
                         
                         val += text;
 
+                        // Set indent level for this line.
+                        if (indentLevel) {
+                            split = val.split("\n");
+                            from =  {
+                                line: split.length - 1,
+                                ch: split[split.length - 1].length
+                            };
+                            annotations.push({from:from, indent:indentLevel});
+                        }
+                        
                     } else if (next.nodeType === 1) {
 
                         // We got an element
@@ -6990,17 +7312,31 @@ define([
                             continue;
                         }
                         
-                        // For container elements such as "ul" or "ol", do not allow nested lists within.
-                        // If we find a nested list treat the whole thing as raw html
+                        // For container elements such as "ul" or "ol", we allow nesting,
+                        // so increment the indent level, and start a new line.
                         isContainer = self.elementIsContainer(elementName);
                         if (isContainer) {
                             
-                            // If there are any nested list items, then we treat this element as raw html
-                            if ($(next).find('li li').length) {
-                                raw = true;
-                                rawChildren = true;
+                            // If inside a nested list, make sure we start nested list on a new line.
+                            // This will account for something like this:
+                            // <ul>
+                            //   <li>
+                            //     some content
+                            //     <ul><li>nested list needs a line break before</li></ul>
+                            //   </li>
+                            // </ul>
+                            if (indentLevel && !val.match(/\n$/)) {
+                                val += '\n';
                             }
                             
+                            // Increase the indent for anything within this container
+                            indentChildren = indentLevel + 1;
+                        }
+                        
+                        // If we are inside a container element, start a new line if we encounter
+                        // a line style (that is not the actual list element)
+                        if (indentLevel && matchStyleObj && matchStyleObj.line && !matchStyleObj.elementContainer) {
+                            val += '\n';
                         }
                         
                         // Do we need to keep this element as raw HTML?
@@ -7051,7 +7387,8 @@ define([
                             annotations.push({
                                 styleObj:matchStyleObj,
                                 from:from,
-                                to:to
+                                to:to,
+                                indent: indentLevel
                             });
                             
                             // Remember we need to close the element later
@@ -7061,7 +7398,7 @@ define([
                         }
 
                         // Recursively go into our element and add more text to the value
-                        processNode(next, rawChildren);
+                        processNode(next, rawChildren, indentChildren);
 
                         if (elementClose) {
 
@@ -7085,13 +7422,12 @@ define([
                         };
 
                         if (matchStyleObj) {
-
                             // Check to see if there is a fromHTML function for this style
                             if (matchStyleObj.fromHTML) {
-
+                                
                                 // Yes, there is a fromHTML function, so as part of this annotation we will create
                                 // a function that reads information from the element and saves it on the mark.
-
+                                
                                 // Since we're in a loop we can't rely on closure variables to maintain the
                                 // current values, so we're using a special javascript trick to get around that.
                                 // The with statement will create a new closure for each loop.
@@ -7104,24 +7440,32 @@ define([
                                             }
                                         }),
                                         from:from,
-                                        to:to
+                                        to:to,
+                                        indent: indentLevel
                                     });
                                 }
                                 
                             } else {
+                                
                                 annotations.push({
                                     styleObj:matchStyleObj,
                                     from:from,
                                     to:to,
-                                    attributes: elementAttributes
+                                    attributes: elementAttributes,
+                                    indent: indentLevel
                                 });
                             }
                         }
-
                         // Add a new line for certain elements
                         // Add a new line for custom elements
                         if (self.newLineRegExp.test(elementName) || (matchStyleObj && matchStyleObj.line)) {
-                            val += '\n';
+                            
+                            // Special case:
+                            // If this is a list item, and there is already a newline at the end,
+                            // then do not add another newline
+                            if (!(matchStyleObj && matchStyleObj.elementContainer && val.match(/\n$/))) {
+                                val += '\n';
+                            }
                         }
 
                     } // else if this is an element...
@@ -7200,6 +7544,7 @@ define([
             // the marks for child elements (so elements can later be created in the same order)
             $.each(annotations, function(i, annotation) {
 
+                var annotationRange;
                 var styleObj;
 
                 styleObj = annotation.styleObj;
@@ -7230,11 +7575,30 @@ define([
                     annotation.to.line += range.from.line;
 
                 }
-                
-                if (styleObj.line) {
-                    self.blockSetStyle(styleObj, annotation, {triggerChange:false, attributes:annotation.attributes});
-                } else {
-                    self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false, attributes:annotation.attributes});
+                if (styleObj) {
+                    if (styleObj.line) {
+                        
+                        // If this is a list item, then only set the style on the first line
+                        annotationRange = {
+                            from: annotation.from,
+                            to: annotation.to
+                        };
+                        if (styleObj.elementContainer) {
+                            annotationRange.to = annotation.from;
+                        }
+                        self.blockSetStyle(styleObj, annotationRange, {triggerChange:false, attributes:annotation.attributes});
+                        
+                        if (annotation.indent) {
+                            self.blockSetIndent(annotationRange, annotation.indent);
+                        }
+                        
+                    } else {
+                        self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false, attributes:annotation.attributes});
+                    }
+                } else if (annotation.indent) {
+                    // Special case for extra lines within a list item,
+                    // we save an annotation that contains only the line and indent.
+                    self.blockSetIndent(annotation.from.line, annotation.indent);
                 }
             });
 

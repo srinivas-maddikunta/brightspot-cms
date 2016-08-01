@@ -206,7 +206,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 element: 'li',
                 elementContainer: 'ul',
                 clear: ['ol', 'alignLeft', 'alignCenter', 'alignRight']
-            },
+            },            
             alignLeft: {
                 className: 'rte2-style-align-left',
                 line: true,
@@ -236,7 +236,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             }
         },
 
-        
         /**
          * Rules for cleaning up the clipboard data when content is pasted
          * from outside the RTE, based on the type of content. These rules
