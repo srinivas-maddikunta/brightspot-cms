@@ -79,6 +79,7 @@ define(['jquery'], function($) {
          *
          * @param {String} options.tableHtml
          * @param {Element} options.tableEl
+         * @param {Boolean} options.readOnly
          * 
          */
         init: function(el, options) {
@@ -110,6 +111,8 @@ define(['jquery'], function($) {
             self.$table.appendTo(self.$tableWrapper);
 
             self.activeClass = self.className + 'Active';
+            
+            self.readOnlySet(options.readOnly);
             
             self.initEvents();
             self.contextInit();
@@ -295,6 +298,11 @@ define(['jquery'], function($) {
             var self;
             self = this;
 
+            // Do not do anything when in readonly mode
+            if (self.readOnlyGet()) {
+                return;
+            }
+            
             switch (key) {
                 
             case 'rowAddAbove':
@@ -331,6 +339,11 @@ define(['jquery'], function($) {
             
             self = this;
 
+            // Do not show the context menu when in readonly mode
+            if (self.readOnlyGet()) {
+                return;
+            }
+            
             // Update the links that are in the context menu
             self.contextUpdate();
             
@@ -715,6 +728,31 @@ define(['jquery'], function($) {
             $cell = options.cell ? $(options.cell) : self.selectedGet();
 
             return options.html ? $cell.html() : $cell.contents();
+        },
+
+        
+        /**
+         * Set or clear readonly mode for the table editor.
+         * 
+         * @param  {Boolean} [flag=false]
+         * True to make the table editor readonly. False to turn off readonly mode.
+         * Default is false.
+         */
+        readOnlySet: function(flag) {
+            var self;
+            self = this;
+            self.readOnly = Boolean(flag);
+        },
+
+
+        /**
+         * Determine if the editor is in readonly mode.
+         * @return {Boolean} True if the table editor is in readonly mode.
+         */
+        readOnlyGet: function() {
+            var self;
+            self = this;
+            return Boolean(self.readOnly)
         },
 
         
