@@ -2231,7 +2231,7 @@ define([
 
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
-            editor.refresh();
+            self.refresh();
 
             if (options.triggerChange !== false) {
                 self.triggerChange();
@@ -2421,7 +2421,7 @@ define([
             
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
-            editor.refresh();
+            self.refresh();
             
             self.triggerChange();
         },
@@ -5695,10 +5695,18 @@ define([
          * You should call this if you modify the size of any enhancement content
          * that is in the editor.
          */
-        refresh: function(mark) {
+        refresh: function() {
             var self;
             self = this;
-            self.codeMirror.refresh();
+            
+            // Set up a debounced refresh so it is not called too often
+            if (!self._refresh) {
+                self._refresh = $.debounce(200, function(){
+                    self.codeMirror.refresh();
+                });
+            }
+            
+            self._refresh();
         },
 
 
