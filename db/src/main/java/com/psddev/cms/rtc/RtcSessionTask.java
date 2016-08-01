@@ -18,7 +18,7 @@ public class RtcSessionTask extends RepeatingTask {
     @Override
     protected void doRepeatingTask(DateTime currentTime) throws Exception {
         long now = Database.Static.getDefault().now();
-        long past = now - 60000;
+        long past = now - 30000;
         RtcSessionTaskStatus status = Query.from(RtcSessionTaskStatus.class).first();
 
         if (status.getLastRun() < past) {
