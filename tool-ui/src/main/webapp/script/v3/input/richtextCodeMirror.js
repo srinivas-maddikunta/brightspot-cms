@@ -2757,6 +2757,9 @@ define([
          *
          * @param Object [options]
          * @param Object [options.block=false]
+         * @param Object [options.index]
+         * The position to insert the enhancement, if there are other enhancements on the line.
+         * Can be 0 to insert the enhancement before any others, or undefined to insert after others.
          * @param Function [options.toHTML]
          * Function to return HTML content to be placed at the point of the enhancement.
          * If not provided then the enhancement will not appear in the output.
@@ -2799,7 +2802,7 @@ define([
                 // Create the line widget.
                 // We set a flag rteEnhancement on the line widget, so we can distinguish
                 // it from other line widgets later
-                mark = editor.addLineWidget(lineNumber, content, {above: true, rteEnhancement:true});
+                mark = editor.addLineWidget(lineNumber, content, {above: true, rteEnhancement:true, insertAt: options.index});
 
                 mark.deleteLineFunction = function(){
 
@@ -2866,6 +2869,10 @@ define([
         enhancementMove: function(mark, lineDelta) {
 
             var editor;
+            var enhancementsOnLine;
+            var index;
+            var indexNew;
+            var length;
             var lineLength;
             var lineNumber;
             var lineMax;
@@ -2875,8 +2882,45 @@ define([
             editor = self.codeMirror;
             
             lineMax = editor.lineCount() - 1;
-            lineNumber = self.enhancementGetLineNumber(mark) + lineDelta;
+            lineNumber = self.enhancementGetLineNumber(mark);
 
+            // Get array of enhancements on the current line
+            enhancementsOnLine = self.enhancementGetFromLine( self.enhancementGetLineNumber(mark) );
+            
+            // If there are multiple enhancements on this line, determine if we need to keep the enhancement
+            // on this line (and rearrange the order of enhancements) or move to another line
+            length = enhancementsOnLine.length;
+            if (length > 1) {
+                // Determine the index for this enhancement
+                $.each(enhancementsOnLine, function(i,enhancement) {
+                    if (mark === enhancement) {
+                        index = i;
+                        return false;
+                    }
+                });
+
+                // Check to make sure we found the enhancement index
+                if ($.isNumeric(index)) {
+                    
+                    // Determine if the index should be increased or decreased
+                    index += lineDelta;
+                    
+                    // Make sure the enhancement should stay on this line
+                    if (index >= 0 && index < length) {
+                        
+                        // Special case, if enhancement is moving to the end of the list,
+                        // we must set index=undefined
+                        if (index === length - 1) {
+                            index = undefined;
+                        }
+                        
+                        return self.enhancementMoveToLine(mark, lineNumber, index);
+                    }
+                }
+            }
+            
+            // There is only a single enhancement on this line, so move it to another line
+            lineNumber += lineDelta;
             if (lineNumber < 0) {
                 return mark;
             }
@@ -2888,8 +2932,10 @@ define([
                 // added automatically rather than the user typing (so we don't try to adjust the
                 // position of the enhancement - see enhancementNewlineAdjust()
                 lineLength = editor.getLine(lineMax).length;
-                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, undefined, 'brightspotEnhancementMove');
+                editor.replaceRange('\n', {line:lineMax, ch:lineLength - 1}, undefined, 'brightspotEnhancementMove');
                 
+                // Adding the newline seems to move all the enhancements down a line so no need  to move it
+                return;
             }
 
             // If the next (or previous) line is blank, then try to move to the line after that (if it is not blank)
@@ -2898,7 +2944,11 @@ define([
                 lineNumber += lineDelta;
             }
 
-            return self.enhancementMoveToLine(mark, lineNumber);
+            // If moving to the previous line, add the enhancement to the end of any other enhancements.
+            // If moving to the next line, add the enhancement before any other enhancements.
+            index = (lineDelta === -1) ? undefined : 0;
+            
+            return self.enhancementMoveToLine(mark, lineNumber, index);
         },
 
 
@@ -2910,10 +2960,16 @@ define([
          *
          * @param Number lineNumber
          *
+         * @param Number [index]
+         * If the lineNumber already contains enhancements, you can specify
+         * an index to position the new enhancement in relation to the others.
+         * Specify 0 to position at the beginning of the line, or undefined to
+         * position after the other enhancements.
+         * 
          * @return Object
          * Returns a new mark that contains the enhancement content.
          */
-        enhancementMoveToLine: function(mark, lineNumber) {
+        enhancementMoveToLine: function(mark, lineNumber, index) {
             
             var content;
             var $content;
@@ -2924,7 +2980,8 @@ define([
 
             // Get the options we saved previously so we can create a mark with the same options
             options = mark.options;
-
+            options.index = index;
+            
             // Depending on the type of mark that was created, the content is stored differently
             content = self.enhancementGetContent(mark);
             $content = $(content).detach();
@@ -3144,6 +3201,36 @@ define([
         },
 
 
+        /**
+         * Returns an array of the enhancements on a line.
+         * @param  {[type]} lineNumber [description]
+         * @return {Array}
+         */
+        enhancementGetFromLine: function(lineNumber) {
+            var editor;
+            var lineHandle;
+            var self;
+            var list;
+            
+            self = this;
+            editor = self.codeMirror;
+            list = [];
+            lineHandle = editor.getLineHandle(lineNumber);
+            if (lineHandle && lineHandle.widgets) {
+                $.each(lineHandle.widgets, function(i,widget) {
+                    var mark;
+                    if (widget.node) {
+                        mark = self.enhancementGetMark(widget.node);
+                        if (mark) {
+                            list.push(mark);
+                        }
+                    }
+                });
+            }
+            return list;
+        },
+        
+        
         //==================================================
         // Dropdown Handlers
         //==================================================
