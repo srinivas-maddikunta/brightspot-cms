@@ -56,6 +56,7 @@ public class Draft extends Content {
     @Indexed
     private boolean newContent;
 
+    @Raw
     private Map<String, Map<String, Object>> differences;
 
     /**
@@ -243,7 +244,7 @@ public class Draft extends Content {
         }
 
         // Compare list items using roughlyEquals.
-        if (x instanceof List) {
+        if (x instanceof List && y instanceof List) {
             @SuppressWarnings("unchecked")
             List<Object> xList = (List<Object>) x;
             @SuppressWarnings("unchecked")
@@ -256,7 +257,7 @@ public class Draft extends Content {
         }
 
         // Compare map values using roughlyEquals.
-        if (x instanceof Map) {
+        if (x instanceof Map && y instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> xMap = (Map<String, Object>) x;
             @SuppressWarnings("unchecked")
@@ -294,9 +295,32 @@ public class Draft extends Content {
 
         Preconditions.checkNotNull(oldValues);
 
+        oldValues = (Map<String, Object>) cloneValue(oldValues);
+
         return differences != null && !differences.isEmpty()
                 ? (Map<String, Object>) mergeValue(environment, findIdMaps(oldValues), differences, oldValues)
                 : oldValues;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object cloneValue(Object value) {
+        if (value instanceof List) {
+            return ((List<Object>) value).stream()
+                    .map(v -> cloneValue(v))
+                    .collect(Collectors.toList());
+
+        } else if (value instanceof Map) {
+            Map<String, Object> clone = new CompactMap<>();
+
+            for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
+                clone.put(entry.getKey(), cloneValue(entry.getValue()));
+            }
+
+            return clone;
+
+        } else {
+            return value;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -613,12 +637,11 @@ public class Draft extends Content {
         Preconditions.checkNotNull(object);
 
         State state = State.getInstance(object);
-        Map<String, Object> oldValues = state.getSimpleValues();
 
-        state.getExtras().put(OLD_VALUES_EXTRA, oldValues);
+        state.getExtras().put(OLD_VALUES_EXTRA, state.getSimpleValues());
         state.setValues(mergeDifferences(
                 state.getDatabase().getEnvironment(),
-                oldValues,
+                state.getSimpleValues(),
                 getDifferences()));
     }
 
