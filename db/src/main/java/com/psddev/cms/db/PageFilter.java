@@ -1841,7 +1841,7 @@ public class PageFilter extends AbstractFilter {
 
                 // On preview request, manually create the main object based on
                 // the post data.
-                if (path.startsWith("/_preview")) {
+                if (request.getServletPath().startsWith("/_preview")) {
                     request.setAttribute(PREVIEW_ATTRIBUTE, Boolean.TRUE);
 
                     UUID previewId = ObjectUtils.to(UUID.class, request.getParameter(PREVIEW_ID_PARAMETER));

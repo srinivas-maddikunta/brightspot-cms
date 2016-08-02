@@ -26,6 +26,7 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
+import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.PaginatedResult;
 
 public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
@@ -315,7 +316,7 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
 
                                 UUID draftId = draft.getId();
 
-                                page.writeStart("tr", "data-preview-url", "/_preview?_cms.db.previewId=" + draftId);
+                                page.writeStart("tr", "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", draftId));
                                     page.writeStart("td");
                                         page.writeHtml(page.getTypeLabel(item));
                                     page.writeEnd();
@@ -339,7 +340,7 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
                                 State itemState = State.getInstance(item);
                                 UUID itemId = itemState.getId();
 
-                                page.writeStart("tr", "data-preview-url", "/_preview?_cms.db.previewId=" + itemId);
+                                page.writeStart("tr", "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", itemId));
                                     page.writeStart("td");
                                         page.writeHtml(page.getTypeLabel(item));
                                     page.writeEnd();

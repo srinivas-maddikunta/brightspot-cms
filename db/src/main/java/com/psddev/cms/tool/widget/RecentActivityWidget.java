@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import javax.servlet.ServletException;
 
 import com.psddev.dari.db.Database;
+import com.psddev.dari.util.JspUtils;
 import org.joda.time.DateTime;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -303,7 +304,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                                         && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
                                         || ViewCreator.findCreatorClass(content, null, PageFilter.EMBED_VIEW_TYPE, null) != null
                                         || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, content) != null)) {
-                                    permalink = "/_preview?_embed=true&_cms.db.previewId=" + contentState.getId();
+                                    permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", contentState.getId());
                                     embedWidth = previewWidth;
                                 }
                             }
