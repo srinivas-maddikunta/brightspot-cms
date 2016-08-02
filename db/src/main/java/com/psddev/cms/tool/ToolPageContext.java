@@ -1963,6 +1963,7 @@ public class ToolPageContext extends WebPageContext {
         }
 
         writeStart("script", "type", "text/javascript");
+            write("var ROOT_PATH = '", getRequest().getContextPath(), "';");
             write("var CONTEXT_PATH = '", cmsUrl("/"), "';");
             write("var UPLOAD_PATH = ", "'" + getRequest().getContextPath() + StringUtils.ensureStart(Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "/"), "';");
             write("var CSS_CLASS_GROUPS = ", ObjectUtils.toJson(cssClassGroups), ";");
