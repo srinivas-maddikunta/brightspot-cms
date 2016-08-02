@@ -1,4 +1,4 @@
-define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmosphere) {
+define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, tabex, atmosphere) {
   if (DISABLE_RTC) {
     return {
       restore: function () {
@@ -12,143 +12,246 @@ define([ 'jquery', 'bsp-utils', 'atmosphere' ], function($, bsp_utils, atmospher
     };
   }
 
-  var request = {
-    url: '/_rtc',
-    contentType: 'application/json',
-    fallbackTransport: 'sse',
-    maxReconnectOnClose: 0,
-    trackMessageLength: true,
-    transport: 'sse'
-  };
+  var RESTORE_CHANNEL = 'restore';
+  var BROADCAST_CHANNEL = 'broadcast';
+  var CLOSE_CHANNEL = 'close';
+  var PUSH_KEY_PREFIX = 'brightspot.rtc.push.';
+  var SESSION_ID_KEY = 'brightspot.rtc.sessionId';
+  var CLOSES_KEY_PREFIX = 'brightspot.rtc.closes.';
 
-  var socket;
-  var subscribe = bsp_utils.throttle(5000, function() {
-    socket = atmosphere.subscribe(request);
-  });
+  var share = tabex.client();
+  var master;
+  var closes = [ ];
 
-  var isOnline = false;
-
-  var offlineExecutions = [ ];
-  var onlineExecutions = {
-    push: function(message) {
-      socket.push(JSON.stringify(message));
+  share.on('!sys.master', function (data) {
+    if (data.node_id !== data.master_id) {
+      return;
     }
-  };
-  
-  var offlineRestores = [ ];
-  var onlineRestores = {
-    push: function(restore) {
-      onlineExecutions.push(restore.message);
 
-      var callback = restore.callback;
+    master = true;
 
-      if (callback) {
-        callback();
+    var request = {
+      url: '/_rtc',
+      contentType: 'application/json',
+      disableDisconnect: true,
+      fallbackTransport: 'sse',
+      reconnect: false,
+      trackMessageLength: true,
+      transport: 'sse'
+    };
+
+    var socket;
+    var subscribe = bsp_utils.throttle(5000, function () {
+      socket = atmosphere.subscribe(request);
+    });
+
+    var isOnline = false;
+
+    var offlineExecutes = [];
+    var onlineExecutes = {
+      push: function (message) {
+        socket.push(JSON.stringify(message));
       }
-    }
-  };
+    };
 
-  request.onOpen = function() {
-    isOnline = true;
+    var redoRestores = [];
+    var offlineRestores = [];
+    var onlineRestores = {
+      push: function (message) {
+        redoRestores.push(message);
+        onlineExecutes.push(message);
+        share.emit(RESTORE_CHANNEL, message.className, true);
+      }
+    };
 
-    $.each(offlineRestores, function(i, restore) {
-      onlineRestores.push(restore);
-    });
-    
-    offlineRestores = [ ];
+    var offlineCloses = [];
+    var onlineCloses = {
+      push: function (message) {
+        socket.push(JSON.stringify(message));
+      }
+    };
 
-    $.each(offlineExecutions, function(i, message) {
-      onlineExecutions.push(message);
-    });
+    request.onOpen = function () {
+      isOnline = true;
 
-    offlineExecutions = [ ];
+      for (var i = 0, length = localStorage.length; i < length; ++ i) {
+        var key = localStorage.key(i);
 
-    if (localStorage) {
-      var KEY_PREFIX = 'brightspot.rtc.socket.';
-      var INTERVAL = 1000;
+        if (key && key.indexOf(CLOSES_KEY_PREFIX) === 0) {
+          var previousCloses = JSON.parse(localStorage.getItem(key));
+          localStorage.removeItem(key);
 
-      setInterval(function() {
-        localStorage.setItem(KEY_PREFIX + socket.getUUID(), '' + $.now());
-
-        for (var i = 0, length = localStorage.length; i < length; ++ i) {
-          var key = localStorage.key(i);
-
-          if (key &&
-              key.indexOf(KEY_PREFIX) === 0 &&
-              parseInt(localStorage.getItem(key), 10) + (INTERVAL * 5) < $.now()) {
-
-            localStorage.removeItem(key);
-            (isOnline ? onlineExecutions : offlineExecutions).push({
-              type: 'disconnect',
-              sessionId: key.substring(KEY_PREFIX.length)
-            });
-          }
+          $.each(previousCloses, function (i, close) {
+            onlineCloses.push(close);
+          });
         }
-      }, INTERVAL);
-    }
-  };
+      }
 
-  request.onClose = function() {
-    isOnline = false;
-  };
+      var oldSessionId = localStorage.getItem(SESSION_ID_KEY);
 
-  request.onError = function() {
-    isOnline = false;
+      if (oldSessionId) {
+        socket.push({
+          type: 'migrate',
+          oldSessionId: oldSessionId,
+          newSessionId: socket.getUUID()
+        })
+      }
+
+      $.each(redoRestores, function (i, message) {
+        onlineExecutes.push(message);
+        share.emit(RESTORE_CHANNEL, message.className, true);
+      });
+
+      $.each(offlineRestores, function (i, message) {
+        onlineRestores.push(message);
+      });
+
+      offlineRestores = [];
+
+      $.each(offlineExecutes, function (i, message) {
+        onlineExecutes.push(message);
+      });
+
+      offlineExecutes = [];
+    };
+
+    request.onClose = function () {
+      isOnline = false;
+      subscribe();
+    };
+
+    request.onMessage = function (response) {
+      share.emit(BROADCAST_CHANNEL, response.responseBody, true);
+    };
+
+    request.onMessagePublished = function (response) {
+      $.each(response.messages, function (i, message) {
+        share.emit(BROADCAST_CHANNEL, message, true);
+      });
+    };
 
     subscribe();
-  };
+
+    share.on(CLOSE_CHANNEL, function (closes) {
+      $.each(closes, function (i, close) {
+        (isOnline ? onlineCloses : offlineCloses).push(close);
+      });
+    });
+
+    setInterval(function () {
+      if (isOnline) {
+        onlineExecutes.push({
+          type: 'ping'
+        });
+      }
+    }, 10000);
+
+    var checkRequests = bsp_utils.throttle(50, function () {
+      var minKey;
+
+      for (var j = 0; j < 100; ++j) {
+        minKey = null;
+
+        for (var i = 0, length = localStorage.length; i < length; ++i) {
+          var key = localStorage.key(i);
+
+          if (key && key.indexOf(PUSH_KEY_PREFIX) === 0 && (!minKey || minKey > key)) {
+            minKey = key;
+          }
+        }
+
+        if (!minKey) {
+          return;
+        }
+
+        var push = JSON.parse(localStorage.getItem(minKey));
+        localStorage.removeItem(minKey);
+
+        if (push.restore) {
+          (isOnline ? onlineRestores : offlineRestores).push(push.data);
+
+        } else {
+          (isOnline ? onlineExecutes : offlineExecutes).push(push.data);
+        }
+      }
+    });
+
+    setInterval(checkRequests, 50);
+    $(window).on('storage', checkRequests);
+
+    $(window).on('beforeunload', function () {
+      var sessionId = socket.getUUID();
+
+      localStorage.setItem(SESSION_ID_KEY, sessionId);
+      localStorage.setItem(CLOSES_KEY_PREFIX + sessionId, JSON.stringify(closes));
+    });
+  });
+
+  var restoreCallbacks = { };
+
+  share.on(RESTORE_CHANNEL, function (state) {
+    var callback = restoreCallbacks[state];
+
+    if (callback) {
+      callback();
+    }
+  });
 
   var broadcastCallbacks = { };
-  
-  function processMessage(message) {
-    var messageJson = JSON.parse(message);
-    var callbacks = broadcastCallbacks[messageJson.broadcast];
+
+  share.on(BROADCAST_CHANNEL, function (messageString) {
+    var message = JSON.parse(messageString);
+    var callbacks = broadcastCallbacks[message.broadcast];
 
     if (callbacks) {
       $.each(callbacks, function(i, callback) {
-        callback(messageJson.data);
+        callback(message.data);
       });
     }
+  });
+
+  function push(restore, data) {
+    localStorage.setItem(PUSH_KEY_PREFIX + $.now(), JSON.stringify({
+      restore: restore,
+      data: data
+    }));
   }
 
-  request.onMessage = function(response) {
-    processMessage(response.responseBody);
-  };
-
-  request.onMessagePublished = function(response) {
-    $.each(response.messages, function(i, message) {
-      processMessage(message);
-    });
-  };
-
-  subscribe();
-  
-  setInterval(function () {
-    if (isOnline) {
-      onlineExecutions.push({
-        type: 'ping'
-      });
+  $(window).on('beforeunload', function () {
+    if (!master) {
+      share.emit(CLOSE_CHANNEL, closes);
     }
-  }, 5000);
+  });
 
   return {
     restore: function(state, data, callback) {
-      (isOnline ? onlineRestores : offlineRestores).push({
-        callback: callback,
-        message: {
-          type: 'state',
-          className: state,
-          data: data
-        }
+      restoreCallbacks[state] = callback;
+
+      push(true, {
+        type: 'restore',
+        className: state,
+        data: data
+      });
+
+      closes.push({
+        type: 'close',
+        className: state,
+        data: data
       });
     },
 
     receive: function(broadcast, callback) {
-      (broadcastCallbacks[broadcast] = broadcastCallbacks[broadcast] || [ ]).push(callback);
+      var callbacks = broadcastCallbacks[broadcast];
+
+      if (!callbacks) {
+        callbacks = broadcastCallbacks[broadcast] = [ ];
+      }
+
+      callbacks.push(callback);
     },
 
     execute: function(action, data) {
-      (isOnline ? onlineExecutions : offlineExecutions).push({
+      push(false, {
         type: 'action',
         className: action,
         data: data

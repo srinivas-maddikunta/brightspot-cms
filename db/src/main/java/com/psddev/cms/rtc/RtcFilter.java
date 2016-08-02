@@ -45,7 +45,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
     private static final Map<String, String> DEFAULT_INIT_PARAMETERS = ImmutableMap.<String, String>builder()
             .put(ApplicationConfig.ANALYTICS, Boolean.FALSE.toString())
             .put(ApplicationConfig.ANNOTATION_PROCESSOR, VoidAnnotationProcessor.class.getName())
-            .put(ApplicationConfig.HEARTBEAT_INTERVAL_IN_SECONDS, String.valueOf(5))
+            .put(ApplicationConfig.HEARTBEAT_INTERVAL_IN_SECONDS, String.valueOf(30))
             .build();
 
     private static final String ATTRIBUTE_PREFIX = RtcFilter.class.getName() + ".";
