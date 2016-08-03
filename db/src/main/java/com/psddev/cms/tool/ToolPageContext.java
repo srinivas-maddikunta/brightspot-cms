@@ -1426,6 +1426,10 @@ public class ToolPageContext extends WebPageContext {
                 writeElement("meta", "name", "robots", "content", "noindex");
                 writeElement("meta", "name", "viewport", "content", "width=device-width, initial-scale=1");
                 writeStylesAndScripts();
+
+                for (Class<? extends ToolPageHeadEnhancer> enhancerClass : ClassFinder.findConcreteClasses(ToolPageHeadEnhancer.class)) {
+                    TypeDefinition.getInstance(enhancerClass).newInstance().writeHtml(this);
+                }
             writeEnd();
 
             Schedule currentSchedule = getUser() != null ? getUser().getCurrentSchedule() : null;
