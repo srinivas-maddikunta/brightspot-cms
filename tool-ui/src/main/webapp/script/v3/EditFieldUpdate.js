@@ -214,7 +214,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
             }
 
             $container.on('blur focus change', ':input', throttledUpdate);
-            $container.on('content-state-differences', '.contentForm', throttledUpdate);
+            $container.on('content-state-differences', throttledUpdate);
         }
     });
 });
