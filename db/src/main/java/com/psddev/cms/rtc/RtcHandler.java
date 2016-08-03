@@ -8,7 +8,6 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.State;
 import com.psddev.dari.util.IoUtils;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.TypeDefinition;
@@ -16,8 +15,6 @@ import com.psddev.dari.util.UuidUtils;
 import org.atmosphere.cpr.AtmosphereRequest;
 import org.atmosphere.cpr.AtmosphereResource;
 import org.atmosphere.cpr.AtmosphereResourceEvent;
-import org.atmosphere.cpr.AtmosphereResourceEventListener;
-import org.atmosphere.cpr.AtmosphereResourceEventListenerAdapter;
 import org.atmosphere.handler.AbstractReflectorAtmosphereHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,15 +23,9 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
@@ -59,15 +50,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                 }
             });
 
-    private final AtmosphereResourceEventListener disconnectListener = new AtmosphereResourceEventListenerAdapter.OnDisconnect() {
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public void onDisconnect(AtmosphereResourceEvent event) {
-            disconnectSession(createSessionId(event.getResource()));
-        }
-    };
-
     private UUID createSessionId(AtmosphereResource resource) {
         String resourceUuid = resource.uuid();
         UUID sessionId = ObjectUtils.to(UUID.class, resourceUuid);
@@ -77,39 +59,6 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
         }
 
         return sessionId;
-    }
-
-    private void disconnectSession(UUID sessionId) {
-        if (sessionId == null) {
-            return;
-        }
-
-        userIds.invalidate(sessionId);
-
-        RtcSession session = Query
-                .from(RtcSession.class)
-                .where("_id = ?", sessionId)
-                .first();
-
-        if (session != null) {
-            Database database = Database.Static.getDefault();
-
-            database.beginWrites();
-
-            try {
-                session.delete();
-
-                Query.from(RtcEvent.class)
-                        .where("cms.rtc.event.sessionId = ?", sessionId)
-                        .selectAll()
-                        .forEach(RtcEvent::onDisconnect);
-
-                database.commitWrites();
-
-            } finally {
-                database.endWrites();
-            }
-        }
     }
 
     @Override
@@ -137,18 +86,44 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
                 session.getState().setId(createSessionId(resource));
                 session.setUserId(userId);
-                session.setLastPing(System.currentTimeMillis());
+                session.setLastPing(Database.Static.getDefault().now());
                 session.save();
-                resource.addEventListener(disconnectListener);
 
             } else if ("post".equalsIgnoreCase(method)) {
                 try (InputStream requestInput = request.getInputStream()) {
                     String message = IoUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
+
+                    if (ObjectUtils.isBlank(message)) {
+                        return;
+                    }
+
                     Map<String, Object> messageJson = (Map<String, Object>) ObjectUtils.fromJson(message);
                     String type = (String) messageJson.get("type");
 
-                    if ("disconnect".equals(type)) {
-                        disconnectSession(ObjectUtils.to(UUID.class, messageJson.get("sessionId")));
+                    if ("migrate".equals(type)) {
+                        UUID newSessionId = ObjectUtils.to(UUID.class, messageJson.get("newSessionId"));
+
+                        if (newSessionId != null) {
+                            Database database = Database.Static.getDefault();
+
+                            database.beginWrites();
+
+                            try {
+                                Query.from(RtcEvent.class)
+                                        .where("cms.rtc.event.sessionId = ?", messageJson.get("oldSessionId"))
+                                        .selectAll()
+                                        .forEach(event -> {
+                                            event.as(RtcEvent.Data.class).setSessionId(newSessionId);
+                                            event.getState().save();
+                                        });
+
+                                database.commitWrites();
+
+                            } finally {
+                                database.endWrites();
+                            }
+                        }
+
                         return;
                     }
 
@@ -161,7 +136,7 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
                                 .first();
 
                         if (session != null) {
-                            session.setLastPing(System.currentTimeMillis());
+                            session.setLastPing(Database.Static.getDefault().now());
                             session.save();
                         }
 
@@ -178,61 +153,42 @@ class RtcHandler extends AbstractReflectorAtmosphereHandler {
 
                     switch (type) {
                         case "action" :
-                            createInstance(RtcAction.class, className)
-                                    .execute(data, userId, sessionId);
+                            createInstance(RtcAction.class, className).execute(data, userId, sessionId);
 
                             break;
 
-                        case "state" :
-                            RtcState state = createInstance(RtcState.class, className);
+                        case "restore" :
+                            Iterable<?> restores = createInstance(RtcState.class, className).create(data);
 
-                            // Find all events.
-                            List<Object> events = new ArrayList<>();
-                            state.create(data).forEach(events::add);
-
-                            // Find all sessions associated to the events.
-                            List<RtcSession> eventSessions = Query
-                                    .from(RtcSession.class)
-                                    .where("_id = ?", events.stream()
-                                            .map(event -> State.getInstance(event).as(RtcEvent.Data.class).getSessionId())
-                                            .filter(Objects::nonNull)
-                                            .collect(Collectors.toSet()))
-                                    .selectAll();
-
-                            // Delete events associated with non-existent
-                            // sessions.
-                            Set<UUID> eventSessionIds = eventSessions.stream()
-                                    .map(RtcSession::getId)
-                                    .collect(Collectors.toSet());
-
-                            for (Iterator<Object> i = events.iterator(); i.hasNext();) {
-                                State eventState = State.getInstance(i.next());
-                                UUID eventSessionId = eventState.as(RtcEvent.Data.class).getSessionId();
-
-                                if (eventSessionId != null && !eventSessionIds.contains(eventSessionId)) {
-                                    eventState.delete();
-                                    i.remove();
+                            if (restores != null) {
+                                for (Object event : restores) {
+                                    RtcBroadcast.forEachBroadcast(event, (broadcast, broadcastData) ->
+                                            writeBroadcast(broadcast, broadcastData, userId, resource));
                                 }
                             }
 
-                            // Delete expired sessions.
-                            long expiration = System.currentTimeMillis() - 30000;
+                            break;
 
-                            for (Iterator<RtcSession> i = eventSessions.iterator(); i.hasNext();) {
-                                RtcSession eventSession = i.next();
+                        case "close" :
+                            Iterable<?> closes = createInstance(RtcState.class, className).close(data, userId);
 
-                                if (eventSession.getLastPing() < expiration) {
-                                    UUID eventSessionId = eventSession.getId();
+                            if (closes != null) {
+                                Database database = Database.Static.getDefault();
 
-                                    disconnectSession(eventSessionId);
-                                    events.removeIf(event -> eventSessionId.equals(State.getInstance(event).as(RtcEvent.Data.class).getSessionId()));
-                                    i.remove();
+                                database.beginWrites();
+
+                                try {
+                                    closes.forEach(event -> {
+                                        if (event instanceof RtcEvent) {
+                                            ((RtcEvent) event).onDisconnect();
+                                        }
+                                    });
+
+                                    database.commitWrites();
+
+                                } finally {
+                                    database.endWrites();
                                 }
-                            }
-
-                            for (Object event : events) {
-                                RtcBroadcast.forEachBroadcast(event, (broadcast, broadcastData) ->
-                                        writeBroadcast(broadcast, broadcastData, userId, resource));
                             }
 
                             break;

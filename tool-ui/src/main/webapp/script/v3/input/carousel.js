@@ -689,7 +689,9 @@ function($, bsp_utils) {
                     carousel: self
                 });
 
-            } else if (layout.atMin) {
+            }
+            
+            if (layout.atMin) {
 
                 self.element.trigger(self.eventBegin, {
                     carousel: self

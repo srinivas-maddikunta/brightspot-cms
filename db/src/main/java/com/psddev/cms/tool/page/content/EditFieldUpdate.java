@@ -2,7 +2,6 @@ package com.psddev.cms.tool.page.content;
 
 import com.google.common.base.Preconditions;
 import com.psddev.cms.rtc.RtcEvent;
-import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Record;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.UuidUtils;
@@ -28,6 +27,25 @@ public class EditFieldUpdate extends Record implements RtcEvent {
     private Map<String, Set<String>> fieldNamesByObjectId;
 
     /**
+     * Returns a unique ID based on the given {@code userId} and
+     * {@code contentId}.
+     *
+     * @param userId
+     *        Can't be {@code null}.
+     *
+     * @param contentId
+     *        Can't be {@code null}.
+     *
+     * @return Never {@code null}.
+     */
+    public static UUID id(UUID userId, UUID contentId) {
+        Preconditions.checkNotNull(userId);
+        Preconditions.checkNotNull(contentId);
+
+        return UuidUtils.createVersion3Uuid(EditFieldUpdate.class.getName() + "/" + userId + "/" + contentId);
+    }
+
+    /**
      * Saves the given {@code fieldNamesByObjectId} update information and
      * associates it to the given {@code userId}, {@code sessionId},
      * and {@code contentId}.
@@ -51,7 +69,7 @@ public class EditFieldUpdate extends Record implements RtcEvent {
 
         EditFieldUpdate update = new EditFieldUpdate();
 
-        update.getState().setId(UuidUtils.createVersion3Uuid(EditFieldUpdate.class.getName() + "/" + sessionId + "/" + contentId));
+        update.getState().setId(id(userId, contentId));
         update.setUserId(userId);
         update.as(RtcEvent.Data.class).setSessionId(sessionId);
         update.setContentId(contentId);
@@ -101,18 +119,6 @@ public class EditFieldUpdate extends Record implements RtcEvent {
     public void onDisconnect() {
         setClosed(true);
         setFieldNamesByObjectId(null);
-        saveImmediately();
-
-        Database db = Database.Static.getDefault();
-
-        db.beginIsolatedWrites();
-
-        try {
-            delete();
-            db.commitWrites();
-
-        } finally {
-            db.endWrites();
-        }
+        save();
     }
 }

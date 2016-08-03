@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.psddev.cms.db.PageFilter;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
+import com.psddev.dari.util.JspUtils;
 import org.joda.time.DateTime;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Renderer;
@@ -491,7 +492,7 @@ public class SearchResultRenderer {
                         && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
                         || ViewCreator.findCreatorClass(item, null, PageFilter.EMBED_VIEW_TYPE, null) != null
                         || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, item) != null)) {
-                    permalink = "/_preview?_embed=true&_cms.db.previewId=" + itemState.getId();
+                    permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", itemState.getId());
                     embedWidth = previewWidth;
                 }
             }

@@ -12,7 +12,7 @@ define(['jquery'], function($) {
         /**
          * The URL of the spell check service
          */
-        serviceUrl: '/cms/spellCheck',
+        serviceUrl: CONTEXT_PATH + '/spellCheck',
 
         
         /** The spelling locale will be read from the HTML element in the lang attribute,

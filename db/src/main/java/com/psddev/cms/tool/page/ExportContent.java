@@ -20,6 +20,7 @@ import com.psddev.dari.util.HtmlWriter;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
+import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.TypeReference;
 import com.psddev.dari.util.UrlBuilder;
@@ -433,7 +434,7 @@ public class ExportContent extends PageServlet {
 
             htmlWriter.writeObject(item);
 
-            write(stringWriter.toString().replaceAll(CSV_BOUNDARY.toString(), CSV_BOUNDARY.toString() + CSV_BOUNDARY));
+            write(StringUtils.unescapeHtml(stringWriter.toString().replaceAll(CSV_BOUNDARY.toString(), CSV_BOUNDARY.toString() + CSV_BOUNDARY)));
         }
     }
 }

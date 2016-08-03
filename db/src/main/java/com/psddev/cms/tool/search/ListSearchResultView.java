@@ -18,6 +18,7 @@ import com.psddev.cms.tool.page.SearchResultActions;
 import com.psddev.dari.util.CollectionUtils;
 import com.psddev.dari.util.HtmlWriter;
 import com.psddev.dari.util.ImageEditor;
+import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.StorageItem;
 import com.psddev.dari.util.StringUtils;
 import org.joda.time.DateTime;
@@ -302,7 +303,7 @@ public class ListSearchResultView extends AbstractSearchResultView {
                             if (previewWidth > 0
                                     && !ObjectUtils.isBlank(rendererData.getEmbedPath())) {
 
-                                permalink = "/_preview?_embed=true&_cms.db.previewId=" + itemState.getId();
+                                permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", itemState.getId());
                                 embedWidth = previewWidth;
                             }
                         }

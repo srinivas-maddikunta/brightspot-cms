@@ -24,6 +24,7 @@ import com.psddev.cms.tool.Widget;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
+import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PaginatedResult;
 
@@ -167,7 +168,7 @@ public class ContentRevisions extends Widget {
 
                         page.writeStart("li",
                                 "class", d.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + d.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", d.getId()));
                             page.writeStart("a", "href", page.objectUrl(null, d));
                                 if (ObjectUtils.isBlank(sn)) {
                                     // TODO: LOCALIZE
@@ -206,7 +207,7 @@ public class ContentRevisions extends Widget {
 
                         page.writeStart("li",
                                 "class", d.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + d.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", d.getId()));
                         page.writeStart("a", "href", page.objectUrl(null, d));
                         // TODO: LOCALIZE
                                 if (!ObjectUtils.isBlank(name)) {
@@ -231,7 +232,7 @@ public class ContentRevisions extends Widget {
                     for (History h : namedHistories) {
                         page.writeStart("li",
                                 "class", h.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + h.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", h.getId()));
                             page.writeStart("a", "href", page.objectUrl(null, h));
                                 page.writeObjectLabel(h);
                             page.writeEnd();
@@ -270,7 +271,7 @@ public class ContentRevisions extends Widget {
 
                         page.writeStart("li",
                                 "class", h.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + h.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", h.getId()));
 
                             page.writeStart("a", "href", page.objectUrl(null, h));
                                 //TODO: LOCALIZE
