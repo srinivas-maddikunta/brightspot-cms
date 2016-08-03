@@ -7288,7 +7288,12 @@ define([
 
                             // Determine if the element maps to one of our defined styles
                             matchStyleObj = self.getStyleForElement(next);
-
+                            
+                            // Create new line if this is a block element and the previous text did not end the line.
+                            if (matchStyleObj && matchStyleObj.line && val[ val.length - 1 ] !== '\n') {
+                                // Note in this case, when exporting HTML a <br/> element will be added.
+                                val += '\n';
+                            }
                         }
 
                         // Figure out which line and character for the start of our element
@@ -7302,6 +7307,13 @@ define([
                         // Note we are treating tables as an enhancement as well.
                         if ((elementName === 'table') || ((elementName === 'span' || elementName === 'button') && $(next).hasClass('enhancement'))) {
 
+                            // End the last line if necessary
+                            if (val[ val.length - 1] !== '\n') {
+                                val += '\n';
+                                from.line++;
+                                from.ch = 0;
+                            }
+                            
                             enhancements.push({
                                 line: from.line,
                                 $content: $(next)
