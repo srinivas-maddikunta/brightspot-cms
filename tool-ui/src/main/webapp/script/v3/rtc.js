@@ -31,7 +31,7 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     master = true;
 
     var request = {
-      url: '/_rtc',
+      url: ROOT_PATH + '/_rtc',
       contentType: 'application/json',
       disableDisconnect: true,
       fallbackTransport: 'sse',
