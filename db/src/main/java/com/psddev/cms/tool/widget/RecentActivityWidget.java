@@ -93,14 +93,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                     break;
             }
 
-            Predicate visibilitiesPredicate = Search.getVisibilitiesPredicate(itemType, visibilities, null, false);
-            QueryFilter<Object> visibilitiesFilter = null;
-
-            if (visibilitiesPredicate != null) {
-                contentQuery.and(visibilitiesPredicate);
-            } else {
-                visibilitiesFilter = item -> State.getInstance(item).isVisible();
-            }
+            contentQuery.and(Search.getVisibilitiesPredicate(itemType, visibilities, null, false));
 
             if (itemType == null) {
                 contentQuery.and(page.userTypesPredicate());
@@ -108,7 +101,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
 
             QueryRestriction.updateQueryUsingAll(contentQuery, page);
 
-            result = contentQuery.and("_any matches *").selectFiltered(offset, limit, visibilitiesFilter);
+            result = contentQuery.and("_any matches *").select(offset, limit);
         }
 
         page.writeStart("div", "class", "widget");

@@ -27,6 +27,7 @@ import java.util.stream.IntStream;
 
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
+import com.psddev.cms.db.Draft;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
@@ -488,6 +489,7 @@ public class Search extends Record {
         Set<UUID> visibilityTypeIds = new HashSet<UUID>();
 
         Predicate visibilitiesPredicate = null;
+        boolean draft = false;
 
         for (String visibility : visibilities) {
             if ("p".equals(visibility)) {
@@ -521,6 +523,13 @@ public class Search extends Record {
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
                         publishedPredicate);
+
+            } else if ("d".equals(visibility)) {
+                draft = true;
+                visibilitiesPredicate = CompoundPredicate.combine(
+                        PredicateParser.OR_OPERATOR,
+                        visibilitiesPredicate,
+                        PredicateParser.Static.parse("_type = ?", Draft.class));
 
             } else if ("w".equals(visibility)) {
                 Set<String> ss = new HashSet<String>();
@@ -578,6 +587,13 @@ public class Search extends Record {
 
         if (validTypeIds != null) {
             validTypeIds.addAll(visibilityTypeIds);
+        }
+
+        if (!draft) {
+            visibilitiesPredicate = CompoundPredicate.combine(
+                    PredicateParser.AND_OPERATOR,
+                    visibilitiesPredicate,
+                    PredicateParser.Static.parse("_type != ?", Draft.class));
         }
 
         return visibilitiesPredicate;
@@ -984,43 +1000,7 @@ public class Search extends Record {
 
         Collection<String> visibilities = getVisibilities();
 
-        if (!visibilities.isEmpty()) {
-
-            Predicate visibilitiesPredicate = getVisibilitiesPredicate(selectedType, visibilities, validTypeIds, isShowDrafts());
-
-            query.and(visibilitiesPredicate);
-
-        } else if (selectedType == null
-                && isAllSearchable) {
-            Set<String> comparisonKeys = new HashSet<String>();
-            DatabaseEnvironment environment = Database.Static.getDefault().getEnvironment();
-
-            addVisibilityFields(comparisonKeys, environment);
-
-            for (ObjectType type : environment.getTypes()) {
-                addVisibilityFields(comparisonKeys, type);
-            }
-
-            for (String key : comparisonKeys) {
-                if (isShowDrafts()) {
-                    query.and(key + " = missing or " + key + " != missing or " + key + " = true");
-
-                } else {
-                    query.and(key + " = missing");
-                }
-            }
-
-        } else if (isShowDrafts()) {
-            Set<String> comparisonKeys = new HashSet<String>();
-            DatabaseEnvironment environment = Database.Static.getDefault().getEnvironment();
-
-            addVisibilityFields(comparisonKeys, environment);
-            addVisibilityFields(comparisonKeys, selectedType);
-
-            for (String key : comparisonKeys) {
-                query.and(key + " = missing or " + key + " != missing or " + key + " = true");
-            }
-        }
+        query.and(getVisibilitiesPredicate(selectedType, visibilities, validTypeIds, isShowDrafts()));
 
         if (validTypeIds != null) {
             if (page != null) {

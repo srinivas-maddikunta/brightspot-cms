@@ -2436,6 +2436,10 @@ public class ToolPageContext extends WebPageContext {
 
         statuses.put("p", "Published");
 
+        if (type == null) {
+            statuses.put("d", "Draft");
+        }
+
         boolean hasWorkflow = false;
 
         for (Workflow w : (type == null
