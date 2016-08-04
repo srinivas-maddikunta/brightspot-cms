@@ -4391,7 +4391,7 @@ define([
             self = this;
             dom = self.htmlParse(html);
             $el = $(dom);
-                        
+
             // Check if the pasted content matches a particular content type from clipboardSanitizeTypes
             $.each(self.clipboardSanitizeTypes, function(typeName, typeConf) {
                 var isType;
@@ -4445,7 +4445,11 @@ define([
                     } else {
                         $replacement = $('<span>', {'data-rte2-sanitize': style});
                         $replacement.append( $match.contents() );
-                        $match.replaceWith( $replacement );
+                        if ($match[0].tagName.toLowerCase() === 'td'){
+                            $match.append( $replacement );
+                        }else {
+                            $match.replaceWith( $replacement );
+                        } 
                     }
                 });
             });
@@ -7783,8 +7787,16 @@ define([
                         // If text node is not within an element remove leading and trailing spaces.
                         // For example, pasting content from Word has text nodes with whitespace
                         // between elements.
-                        if ($(next.parentElement).is('body,td,th')) {
+                        if ($(next.parentElement).is('body')) {
                             text = text.replace(/^\s*|\s*$/g, '');
+                        }
+                        if ($(next.parentElement).is('td,th')) {
+                            if (!next.previousSibling) {
+                                text = text.replace(/^\s+/, '');
+                            }
+                            if (!next.nextSibling) {
+                                text = text.replace(/\s+$/, '');
+                            }
                         }
 
                         val += text;
