@@ -1427,8 +1427,8 @@ public class ToolPageContext extends WebPageContext {
                 writeElement("meta", "name", "viewport", "content", "width=device-width, initial-scale=1");
                 writeStylesAndScripts();
 
-                for (Class<? extends ToolPageHeadEnhancer> enhancerClass : ClassFinder.findConcreteClasses(ToolPageHeadEnhancer.class)) {
-                    TypeDefinition.getInstance(enhancerClass).newInstance().writeHtml(this);
+                for (Class<? extends ToolPageHead> headClass : ClassFinder.findConcreteClasses(ToolPageHead.class)) {
+                    TypeDefinition.getInstance(headClass).newInstance().writeHtml(this);
                 }
             writeEnd();
 
