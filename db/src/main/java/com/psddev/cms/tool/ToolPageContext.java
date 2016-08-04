@@ -46,6 +46,7 @@ import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.tool.page.content.Edit;
+import com.psddev.cms.view.ClassResourceViewTemplateLoader;
 import com.psddev.cms.view.JsonViewRenderer;
 import com.psddev.cms.view.ViewModelCreator;
 import com.psddev.cms.view.ViewOutput;
@@ -3072,7 +3073,7 @@ public class ToolPageContext extends WebPageContext {
         String output = null;
 
         try {
-            ViewOutput result = renderer.render(viewModel, new ServletViewTemplateLoader(getRequest().getServletContext()));
+            ViewOutput result = renderer.render(viewModel, new ClassResourceViewTemplateLoader(object.getClass()));
             output = result.get();
         } catch (RuntimeException e) {
             ViewResponse vr = ViewResponse.findInExceptionChain(e);
