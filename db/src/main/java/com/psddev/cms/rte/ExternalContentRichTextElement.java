@@ -2,14 +2,22 @@ package com.psddev.cms.rte;
 
 import com.psddev.cms.db.ExternalContent;
 import com.psddev.cms.db.RichTextElement;
+import com.psddev.cms.db.RichTextViewBuilder;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.view.RawHtmlView;
+import com.psddev.cms.view.ViewBinding;
+import com.psddev.cms.view.ViewModel;
+import com.psddev.dari.util.HtmlWriter;
 import com.psddev.dari.util.ObjectUtils;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+
+@ViewBinding(value = ExternalContentRichTextElementViewModel.class, types = RichTextViewBuilder.RICH_TEXT_ELEMENT_VIEW_TYPE)
 
 @ExternalContentRichTextElement.DisplayName("External Content")
 @RichTextElement.Tag(value = "brightspot-cms-external-content", block = true, preview = true, readOnly = true)
@@ -119,5 +127,27 @@ public class ExternalContentRichTextElement extends RichTextElement {
     @Deprecated
     public void setUrl(String url) {
         this.url = url;
+    }
+}
+
+class ExternalContentRichTextElementViewModel extends ViewModel<ExternalContentRichTextElement> implements RawHtmlView {
+
+    @Override
+    public String getHtml() {
+
+        ExternalContent externalContent = model.getContent();
+        if (externalContent != null) {
+
+            StringWriter html = new StringWriter();
+            try {
+                externalContent.renderObject(null, null, new HtmlWriter(html));
+            } catch (IOException e) {
+                // do nothing
+            }
+
+            return html.toString();
+        }
+
+        return null;
     }
 }
