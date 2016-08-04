@@ -6,7 +6,7 @@ import java.io.IOException;
  * Executed by {@link ToolPageContext#writeHeader()} to add
  * additional elements to the <head> of {@link Tool} pages.
  */
-public interface ToolPageHeadEnhancer {
+public interface ToolPageHead {
 
     /**
      * Use for writing additional elements to
