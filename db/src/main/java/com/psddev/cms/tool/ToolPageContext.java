@@ -53,7 +53,6 @@ import com.psddev.cms.view.ViewOutput;
 import com.psddev.cms.view.ViewRenderer;
 import com.psddev.cms.view.ViewResponse;
 import com.psddev.cms.view.servlet.ServletViewModelCreator;
-import com.psddev.cms.view.servlet.ServletViewTemplateLoader;
 import com.psddev.dari.db.Modification;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
