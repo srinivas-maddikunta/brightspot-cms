@@ -209,8 +209,10 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
             $form.resize();
           },
 
-          'error': function () {
-            rerun = true;
+          'error': function (xhr) {
+            if (xhr.readyState === 0) {
+              rerun = true;
+            }
           },
 
           'complete': function() {
