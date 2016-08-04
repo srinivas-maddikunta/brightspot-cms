@@ -20,9 +20,4 @@ public class ClassResourceViewTemplateLoader extends UrlViewTemplateLoader {
     protected URL getTemplateUrl(String path) throws IOException {
         return context.getResource(path);
     }
-
-    @Override
-    public InputStream getTemplate(String path) throws IOException {
-        return context.getResourceAsStream(path);
-    }
 }
