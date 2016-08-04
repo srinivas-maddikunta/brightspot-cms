@@ -196,21 +196,23 @@ public class ContentState extends PageServlet {
         // Remove differences that weren't initiated by the user.
         Map<String, List<String>> fieldNamesById = (Map<String, List<String>>) ObjectUtils.fromJson(page.param(String.class, "_fns"));
 
-        for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
-            Map.Entry<String, Map<String, Object>> entry = i.next();
-            String id = entry.getKey();
-            List<String> fieldNames = fieldNamesById.get(id);
+        if (fieldNamesById != null) {
+            for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
+                Map.Entry<String, Map<String, Object>> entry = i.next();
+                String id = entry.getKey();
+                List<String> fieldNames = fieldNamesById.get(id);
 
-            if (fieldNames == null) {
-                i.remove();
-
-            } else {
-                Map<String, Object> values = entry.getValue();
-
-                values.keySet().removeIf(n -> !fieldNames.contains(n));
-
-                if (values.isEmpty()) {
+                if (fieldNames == null) {
                     i.remove();
+
+                } else {
+                    Map<String, Object> values = entry.getValue();
+
+                    values.keySet().removeIf(n -> !fieldNames.contains(n));
+
+                    if (values.isEmpty()) {
+                        i.remove();
+                    }
                 }
             }
         }
