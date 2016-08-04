@@ -1,16 +1,16 @@
 package com.psddev.cms.db;
 
+import org.jsoup.nodes.Document;
+
 /**
- * Processes String data produced by the rich text editor.
+ * Processes a Jsoup document produced by the rich text editor.
  */
 public interface RichTextProcessor {
 
     /**
-     * Performs a transformation on a String that was annotated with
-     * {@link com.psddev.cms.db.ToolUi.RichText} and returns the result.
+     * Performs a transformation on a rich text Jsoup Document.
      *
-     * @param richText the rich text to process.
-     * @return the rich text after processing.
+     * @param richText the rich text document to process.
      */
-    String process(String richText);
+    void process(Document richText);
 }

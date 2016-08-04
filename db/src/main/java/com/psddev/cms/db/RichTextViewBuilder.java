@@ -155,17 +155,9 @@ public class RichTextViewBuilder {
                     Document document = Jsoup.parseBodyFragment(html);
                     document.outputSettings().prettyPrint(false);
 
-                    html = document.body().html();
-
                     for (RichTextProcessor preProcessor : preProcessors) {
-                        String updatedHtml = preProcessor.process(html);
-                        if (updatedHtml != null) {
-                            html = updatedHtml;
-                        }
+                        preProcessor.process(document);
                     }
-
-                    document = Jsoup.parseBodyFragment(html);
-                    document.outputSettings().prettyPrint(false);
 
                     toRteNodes(document.body().childNodes(), tagTypes)
                             .stream()

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
@@ -46,11 +45,9 @@ public class RichTextLineBreakProcessor implements RichTextProcessor {
     }
 
     @Override
-    public String process(String html) {
+    public void process(Document document) {
 
-        Document document = Jsoup.parseBodyFragment(html);
         Element body = document.body();
-        document.outputSettings().prettyPrint(false);
 
         body.select(".cms-textAlign-left, .cms-textAlign-center, .cms-textAlign-right, ol, ul").forEach(element -> {
             Element next = element.nextElementSibling();
@@ -256,8 +253,6 @@ public class RichTextLineBreakProcessor implements RichTextProcessor {
                 paragraph.before(enhancement);
             }
         }
-
-        return body.html();
     }
 
     // Find the closest next tag without any intervening content.
