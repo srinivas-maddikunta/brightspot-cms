@@ -1,7 +1,6 @@
 package com.psddev.cms.db;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,9 +13,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import com.psddev.cms.view.RawHtmlView;
 import com.psddev.cms.view.ViewBinding;
-import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.HtmlWriter;
 import com.psddev.dari.util.IoUtils;
@@ -226,21 +223,5 @@ public class ExternalContent extends Content implements Renderer {
                 writer.writeRaw(response.get("html"));
             }
         }
-    }
-}
-
-class ExternalContentViewModel extends ViewModel<ExternalContent> implements RawHtmlView {
-
-    @Override
-    public String getHtml() {
-
-        StringWriter html = new StringWriter();
-        try {
-            model.renderObject(null, null, new HtmlWriter(html));
-        } catch (IOException e) {
-            // do nothing
-        }
-
-        return html.toString();
     }
 }
