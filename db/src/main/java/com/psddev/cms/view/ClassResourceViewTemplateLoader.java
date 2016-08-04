@@ -1,7 +1,6 @@
 package com.psddev.cms.view;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 
 /**
@@ -18,6 +17,15 @@ public class ClassResourceViewTemplateLoader extends UrlViewTemplateLoader {
 
     @Override
     protected URL getTemplateUrl(String path) throws IOException {
-        return context.getResource(path);
+        URL templateUrl = context.getResource(path);
+
+        if (templateUrl == null) {
+            throw new IOException(String.format(
+                    "Unable to find template given a Class context of [%s] for path [%s]",
+                    context.getClass(),
+                    path));
+        }
+
+        return templateUrl;
     }
 }
