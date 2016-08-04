@@ -485,6 +485,13 @@ public class Search extends Record {
     }
 
     public static Predicate getVisibilitiesPredicate(ObjectType selectedType, Collection<String> visibilities, Set<UUID> validTypeIds, boolean showDrafts) {
+        if (visibilities == null
+                || visibilities.isEmpty()
+                || (visibilities.size() == 1
+                && "".equals(visibilities.stream().findFirst().orElse(null)))) {
+
+            return getVisibilitiesPredicate(selectedType, Arrays.asList("p"), validTypeIds, showDrafts);
+        }
 
         Set<UUID> visibilityTypeIds = new HashSet<UUID>();
 
