@@ -197,7 +197,7 @@ public class ContentState extends PageServlet {
         Map<String, List<String>> fieldNamesById = (Map<String, List<String>>) ObjectUtils.fromJson(page.param(String.class, "_fns"));
 
         if (fieldNamesById != null) {
-            for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext(); ) {
+            for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
                 Map.Entry<String, Map<String, Object>> entry = i.next();
                 String id = entry.getKey();
                 List<String> fieldNames = fieldNamesById.get(id);
