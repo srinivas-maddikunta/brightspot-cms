@@ -47,7 +47,6 @@ import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.tool.page.content.Edit;
 import com.psddev.cms.view.ClassResourceViewTemplateLoader;
-import com.psddev.cms.view.JsonViewRenderer;
 import com.psddev.cms.view.ViewModelCreator;
 import com.psddev.cms.view.ViewOutput;
 import com.psddev.cms.view.ViewRenderer;
@@ -3053,23 +3052,7 @@ public class ToolPageContext extends WebPageContext {
                 "Failed to create a view model of type [%s] for object of type [%s] and view of type [%s]!",
                 viewModelClass.getName(), object.getClass().getName(), viewType));
 
-        ViewRenderer renderer;
-
-        if ("json".equals(getRequest().getParameter("_renderer"))) {
-            JsonViewRenderer jsonViewRenderer = new JsonViewRenderer();
-
-            jsonViewRenderer.setIndented(!Settings.isProduction());
-            jsonViewRenderer.setIncludeClassNames(!Settings.isProduction());
-
-            renderer = jsonViewRenderer;
-
-            getResponse().setContentType("application/json");
-
-        } else {
-            renderer = ViewRenderer.createRenderer(viewModel);
-        }
-
-        Preconditions.checkNotNull(renderer, String.format(
+        ViewRenderer renderer = Preconditions.checkNotNull(ViewRenderer.createRenderer(viewModel), String.format(
                 "Could not create view renderer for view of type [%s]",
                 viewModel.getClass().getName()));
 
