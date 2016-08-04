@@ -184,8 +184,8 @@ public class ExternalContent extends Content implements Renderer {
     }
 
     @Override
-    protected void beforeSave() {
-        super.beforeSave();
+    protected void beforeCommit() {
+        super.beforeCommit();
         getResponse();
     }
 
