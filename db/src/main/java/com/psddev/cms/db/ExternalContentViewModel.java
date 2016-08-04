@@ -16,7 +16,8 @@ class ExternalContentViewModel extends ViewModel<ExternalContent> implements Raw
         try {
             model.renderObject(null, null, new HtmlWriter(html));
         } catch (IOException e) {
-            // do nothing
+            // should never happen
+            throw new IllegalStateException(e);
         }
 
         return html.toString();
