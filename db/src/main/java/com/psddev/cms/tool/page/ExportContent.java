@@ -367,7 +367,7 @@ public class ExportContent extends PageServlet {
                     }
                 }
 
-                for (ObjectField field: selectedType.getFields()) {
+                for (ObjectField field : selectedType.getFields()) {
                     if (Boolean.TRUE.equals(field.as(ToolUi.class).getDefaultSearchResult())) {
                         writeRaw(CSV_DELIMITER).writeRaw(CSV_BOUNDARY);
                         writeObjectFieldCsv(field, itemState);
