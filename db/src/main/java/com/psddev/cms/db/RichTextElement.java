@@ -13,6 +13,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,6 +36,21 @@ public abstract class RichTextElement extends Record {
 
     public void writePreviewHtml(ToolPageContext page) throws IOException {
         throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Finds all the concrete RichTextElement types defined in the system and
+     * returns a map with tag name and the type.
+     *
+     * @return A Map of RichTextElement tag name to the ObjectType that defined it.
+     */
+    public static Map<String, ObjectType> getTagTypes() {
+        return ObjectType.getInstance(RichTextElement.class)
+                .findConcreteTypes()
+                .stream()
+                .collect(Collectors.toMap(
+                        type -> type.as(ToolUi.class).getRichTextElementTagName(),
+                        Function.identity()));
     }
 
     @Documented
