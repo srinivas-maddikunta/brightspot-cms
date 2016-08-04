@@ -1,6 +1,5 @@
 package com.psddev.cms.db;
 
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
@@ -12,16 +11,12 @@ import org.jsoup.nodes.Element;
 public class RichTextEditorialMarkupProcessor implements RichTextProcessor {
 
     @Override
-    public String process(String html) {
-        Document document = Jsoup.parseBodyFragment(html);
+    public void process(Document document) {
         Element body = document.body();
-        document.outputSettings().prettyPrint(false);
 
         body.getElementsByTag("del").remove();
         body.getElementsByTag("ins").unwrap();
         body.getElementsByClass("rte").remove();
         body.select("code[data-annotations]").remove();
-
-        return body.html();
     }
 }
