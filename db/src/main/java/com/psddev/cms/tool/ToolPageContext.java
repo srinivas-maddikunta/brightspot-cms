@@ -3023,6 +3023,8 @@ public class ToolPageContext extends WebPageContext {
      *
      * @param object to render using the given {@code viewType}.
      * @param viewType type from {@link com.psddev.cms.view.ViewBinding} to render the object.
+     *
+     * @throws IOException
      */
     public <T> void writeViewHtml(T object, String viewType) throws IOException {
         Preconditions.checkNotNull(object);
@@ -3030,8 +3032,24 @@ public class ToolPageContext extends WebPageContext {
         Class<? extends ViewModel<? super T>> viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
 
         Preconditions.checkNotNull(viewModelClass, String.format(
-                "Could not find view model for object of type [%s] and view of type [%s]",
-                object.getClass().getName(), viewType));
+                        "Could not find view model for object of type [%s] and view of type [%s]",
+                        object.getClass().getName(), viewType));
+
+        writeViewHtml(object, viewModelClass);
+    }
+
+    /**
+     * Given an object of type {@code T} write the HTML for the given {@code viewModelClass}/
+     *
+     * @param object Can't be {@code null.
+     * @param viewModelClass Can't be {@code null}/
+     * @param <T> model for ViewModel.
+     *
+     * @throws IOException
+     */
+
+    public <T> void writeViewHtml(T object, Class<? extends ViewModel> viewModelClass) throws IOException {
+        Preconditions.checkNotNull(object);
 
         ViewResponse viewResponse = new ViewResponse();
         ViewModelCreator viewModelCreator = new ServletViewModelCreator(getRequest());
@@ -3049,8 +3067,8 @@ public class ToolPageContext extends WebPageContext {
         }
 
         Preconditions.checkNotNull(viewModel, String.format(
-                "Failed to create a view model of type [%s] for object of type [%s] and view of type [%s]!",
-                viewModelClass.getName(), object.getClass().getName(), viewType));
+                "Failed to create a view model of type [%s] for object of type [%s] and view of class [%s]!",
+                viewModelClass.getName(), object.getClass().getName(), viewModelClass.getClass().getName()));
 
         ViewRenderer renderer = Preconditions.checkNotNull(ViewRenderer.createRenderer(viewModel), String.format(
                 "Could not create view renderer for view of type [%s]",
