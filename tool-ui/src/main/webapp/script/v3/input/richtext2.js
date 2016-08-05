@@ -2255,6 +2255,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     self.enhancementSetPosition($enhancement, config.alignment);
                 }
 
+                if (config.element) {
+                    self.enhancementSetElement($enhancement, config.element);
+                }
                 self.enhancementUpdate($enhancement);
 
             } else {
@@ -3203,6 +3206,44 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
 
         /**
+         * Get the element type (span or button) for the enhancement.
+         * @returns {String}
+         */
+        enhancementGetElement: function(el) {
+
+            var element;
+            var $enhancement;
+            var self;
+
+            self = this;
+
+            $enhancement = self.enhancementGetWrapper(el);
+
+            element = $enhancement.data('enhancementElement') || 'button';
+
+            return element;
+        },
+
+
+        /**
+         * Set the reference object for the enhancement.
+         */
+        enhancementSetElement: function(el, element) {
+
+            var $enhancement;
+            var self;
+
+            self = this;
+
+            $enhancement = self.enhancementGetWrapper(el);
+
+            $enhancement.data('enhancementElement', element);
+
+            self.rte.triggerChange();
+        },
+
+
+        /**
          * Convert an enhancement into HTML for output.
          *
          * @param {Element} el
@@ -3214,6 +3255,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
         enhancementToHTML: function(el) {
 
             var alignment;
+            var element;
             var reference;
             var $enhancement;
             var html;
@@ -3245,9 +3287,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 reference.alignment = alignment;
             }
 
+            element = self.enhancementGetElement(el);
+            
             if (id) {
 
-                $html = $('<button/>', {
+                $html = $('<' + element + '/>', {
                     'class': 'enhancement',
                     'data-id': id,
                     'data-reference': JSON.stringify(reference),
@@ -3311,6 +3355,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 config.preview = $content.attr('data-preview');
                 config.text = $content.text();
 
+                // Output html should maintain 'span' or 'button' for the enhancement
+                config.element = $content.is('span') ? 'span' : 'button';
+                
                 self.enhancementCreate(config, line);
             }
         },
