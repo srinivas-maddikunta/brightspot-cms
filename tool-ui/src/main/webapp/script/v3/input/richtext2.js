@@ -790,9 +790,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 return false;
             });
             self.$editor.on('rteBlur', function(){
+                
+                // Set a timeout before performing the blur event.
+                // This is to let other code cancel the blur before it occurs
+                // (such as clicking a toolbar button)
                 self.rteBlurTimeout = setTimeout(function(){
                     self.$el.trigger('rteBlur', [self]);
                 }, 200);
+                
                 return false;
             });
             self.$editor.on('rteChange', function(){
@@ -1347,7 +1352,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             $button.on('click', function(event) {
                 event.preventDefault();
-                clearTimeout(self.rteBlurTimeout);
+                self.blurCancel();
                 self.toolbarHandleClick(item, event);
             });
 
@@ -3521,6 +3526,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 }
             });
 
+            // Prevent the rteBlur event from occurring since technically we will still be in the RTE
+            // even though CodeMirror will lose focus
+            self.blurCancel();
+
             // Do a fake "click" on the link so it will trigger the popup
             // but first wait for the current click to finish so it doesn't interfere
             // with any popups
@@ -4633,6 +4642,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             }
         },
 
+
+        /**
+         * Cancel the rteBlur event.
+         * This is used in some instances where CodeMirror will lose focus,
+         * but we have additional work to do, so we don't want to fire a blur event.
+         */
+        blurCancel: function() {
+            var self;
+            self = this;
+            clearTimeout(self.rteBlurTimeout);
+        },
+        
+        
         refresh: function() {
             var self;
             self = this;
