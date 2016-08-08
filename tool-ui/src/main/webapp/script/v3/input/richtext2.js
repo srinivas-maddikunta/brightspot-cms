@@ -143,6 +143,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             link: {
                 className: 'rte2-style-link',
                 element: 'a',
+                keymap: ['Ctrl-K', 'Cmd-K'],
                 elementAttrAny: true, // Allow any attributes for this element
                 
                 // Do not allow links to span multiple lines
@@ -3614,6 +3615,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 
             $.each(self.styles, function(styleKey, styleObj){
                  if (styleObj.element === 'a' && styleKey !== 'link'){
+                     if (!styleObj.keymap) {
+                         styleObj.keymap = self.styles.link.keymap
+                     }
                      removeLink = true;
                      return false;
                  }
