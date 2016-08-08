@@ -1063,7 +1063,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             "class", "link icon icon-object-draft",
                                             "name", "action-newDraft",
                                             "value", "true");
-                                        wp.writeHtml(wp.localize(editingState.getType(), "action.new.draft"));
+                                        wp.writeHtml(wp.localize(
+                                                editingState.getType(),
+                                                editingState.isNew()
+                                                        ? "action.new.initialDraft"
+                                                        : "action.new.draft"));
                                     wp.writeEnd();
                                 wp.writeEnd();
 
