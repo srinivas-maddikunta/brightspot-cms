@@ -3026,10 +3026,10 @@ public class ToolPageContext extends WebPageContext {
      *
      * @throws IOException
      */
-    public <T> void writeViewHtml(T object, String viewType) throws IOException {
+    public void writeViewHtml(Object object, String viewType) throws IOException {
         Preconditions.checkNotNull(object);
 
-        Class<? extends ViewModel<? super T>> viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
+        Class<? extends ViewModel> viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
 
         Preconditions.checkNotNull(viewModelClass, String.format(
                         "Could not find view model for object of type [%s] and view of type [%s]",
@@ -3039,16 +3039,18 @@ public class ToolPageContext extends WebPageContext {
     }
 
     /**
-     * Given an object of type {@code T} write the HTML for the given {@code viewModelClass}/
+     * Writes the HTML for the view of the object using the given {@code viewModelClass}
      *
-     * @param object Can't be {@code null.
-     * @param viewModelClass Can't be {@code null}/
-     * @param <T> model for ViewModel.
+     * @param object
+     *        Can't be {@code null.
+     *
+     * @param viewModelClass
+     *        Can't be {@code null}.
      *
      * @throws IOException
      */
 
-    public <T> void writeViewHtml(T object, Class<? extends ViewModel> viewModelClass) throws IOException {
+    public void writeViewHtml(Object object, Class<? extends ViewModel> viewModelClass) throws IOException {
         Preconditions.checkNotNull(object);
 
         ViewResponse viewResponse = new ViewResponse();
