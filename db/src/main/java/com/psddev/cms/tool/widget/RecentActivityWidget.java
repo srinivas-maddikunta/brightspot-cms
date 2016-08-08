@@ -28,9 +28,7 @@ import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.db.ObjectType;
-import com.psddev.dari.db.Predicate;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PaginatedResult;
@@ -93,14 +91,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                     break;
             }
 
-            Predicate visibilitiesPredicate = Search.getVisibilitiesPredicate(itemType, visibilities, null, false);
-            QueryFilter<Object> visibilitiesFilter = null;
-
-            if (visibilitiesPredicate != null) {
-                contentQuery.and(visibilitiesPredicate);
-            } else {
-                visibilitiesFilter = item -> State.getInstance(item).isVisible();
-            }
+            contentQuery.and(Search.getVisibilitiesPredicate(itemType, visibilities, null, false));
 
             if (itemType == null) {
                 contentQuery.and(page.userTypesPredicate());
@@ -108,7 +99,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
 
             QueryRestriction.updateQueryUsingAll(contentQuery, page);
 
-            result = contentQuery.and("_any matches *").selectFiltered(offset, limit, visibilitiesFilter);
+            result = contentQuery.and("_any matches *").select(offset, limit);
         }
 
         page.writeStart("div", "class", "widget");
