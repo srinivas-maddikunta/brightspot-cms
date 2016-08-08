@@ -83,7 +83,6 @@ define(['jquery'], function($) {
          * 
          */
         init: function(el, options) {
-            
             var self;
             self = this;
             self.$el = $(el);
@@ -123,9 +122,7 @@ define(['jquery'], function($) {
          * Set up the click event for table cells.
          */
         initEvents: function() {
-
             var self;
-
             self = this;
             
             self.$tableWrapper.on('click', function(event) {
@@ -169,10 +166,12 @@ define(['jquery'], function($) {
          * Clear the active class from all cells.
          */
         activeClear: function() {
+            var $activeTableClass;
             var self;
-                self = this;
-            var $activeTableClass = self.$table.find('.' + self.activeClass);
-                $activeTableClass.removeClass(self.activeClass);
+            
+            self = this;
+            $activeTableClass = self.$table.find('.' + self.activeClass);
+            $activeTableClass.removeClass(self.activeClass);
             if ($activeTableClass.attr('class') === ""){
                 $activeTableClass.removeAttr('class');
             }
@@ -208,9 +207,7 @@ define(['jquery'], function($) {
          * Create the context menu
          */
         contextInit: function() {
-            
             var self;
-            
             self = this;
             
             self.$context = $('<div/>', {
@@ -226,9 +223,8 @@ define(['jquery'], function($) {
          * Before displaying the context menu put the appropriate links inside it.
          */
         contextUpdate: function() {
-            
-            var $el, self;
-            
+            var $el;
+            var self;
             self = this;
 
             self.$context.empty();
@@ -236,7 +232,8 @@ define(['jquery'], function($) {
             
             $.each(self.contextMenu, function(key, options){
 
-                var item, $item;
+                var item;
+                var $item;
 
                 // Set up default values for this item
                 item = {
@@ -273,9 +270,12 @@ define(['jquery'], function($) {
          * Update the position of the context menu so it appears below the active cell.
          */
         contextPosition: function() {
-            var self = this;
-            var $el = self.selectedGet();
-            var offset = $el.offset();
+            var $el;
+            var offset;
+            var self;
+            self = this;
+            $el = self.selectedGet();
+            offset = $el.offset();
 
             if (offset) {
                 self.$context.css({
@@ -294,7 +294,6 @@ define(['jquery'], function($) {
          * Context menu key for any of the built-in functions.
          */
         contextHandler: function(key) {
-            
             var self;
             self = this;
 
@@ -334,9 +333,7 @@ define(['jquery'], function($) {
          * Show the context menu for a cell.
          */
         contextShow: function() {
-            
             var self;
-            
             self = this;
 
             // Do not show the context menu when in readonly mode
@@ -397,9 +394,12 @@ define(['jquery'], function($) {
          * If not specified, defaults to the last clicked cell.
          */
         rowAdd: function(options) {
-            
-            var $cell, cols, i, $row, $rowNew, self;
-            
+            var $cell;
+            var cols;
+            var i;
+            var $row;
+            var $rowNew;
+            var self;
             self = this;
             
             options = options || {};
@@ -435,13 +435,11 @@ define(['jquery'], function($) {
          * If not specified, defaults to the last clicked cell.
          */
         rowDelete: function(options) {
-            
-            var $cell, $row, self;
-            
+            var $cell;
+            var $row;
+            var self;
             self = this;
-            
             options = options || {};
-            
             $cell = options.cell ? $(options.cell) : self.selectedGet();
             
             // Do not remove the last row
@@ -466,7 +464,9 @@ define(['jquery'], function($) {
          * If not specified, defaults to the last clicked cell.
          */
         rowCount: function(cell) {
-            var $cell, self, $table;
+            var $cell;
+            var self;
+            var $table;
             self = this;
             $cell = cell ? $(cell) : self.selectedGet();
             $table = $cell.closest('table');
@@ -489,13 +489,13 @@ define(['jquery'], function($) {
          * If not specified, defaults to the last clicked cell.
          */
         colAdd: function(options) {
-            
-            var $cell, colCount, colNumber, self, $table;
-            
+            var $cell;
+            var colCount;
+            var colNumber;
+            var self;
+            var $table;
             self = this;
-            
             options = options || {};
-            
             $cell = options.cell ? $(options.cell) : self.selectedGet();
 
             // Make sure each row has the correct number of cells
@@ -511,9 +511,8 @@ define(['jquery'], function($) {
 
             $table = $cell.closest('table');
             $table.find('> * > tr').each(function() {
-                
-                var $td, $tr;
-
+                var $td;
+                var $tr;
                 $tr = $(this);
 
                 // Now add a new cell at the insertion point
@@ -540,13 +539,13 @@ define(['jquery'], function($) {
          * If not specified, defaults to the last clicked cell.
          */
         colDelete: function(options) {
-            
-            var $cell, colCount, colNumber, self, $table;
-            
+            var $cell;
+            var colCount;
+            var colNumber;
+            var self;
+            var $table;
             self = this;
-            
             options = options || {};
-            
             $cell = options.cell ? $(options.cell) : self.selectedGet();
 
             // Make sure each row has the correct number of cells
@@ -563,7 +562,8 @@ define(['jquery'], function($) {
             $table = $cell.closest('table');
             $table.find('> * > tr').each(function() {
                 
-                var $tds, $tr;
+                var $tds;
+                var $tr;
 
                 $tr = $(this);
                 $tds = $tr.find('> td, > th');
@@ -586,15 +586,18 @@ define(['jquery'], function($) {
          * If not specified, defaults to the last clicked cell.
          */
         colCount: function(cell) {
-            
-            var $cell, count, self, $table;
+            var $cell;
+            var count;
+            var self;
+            var $table;
             self = this;
             $cell = cell ? $(cell) : self.selectedGet();
             $table = $cell.closest('table');
 
             count = 0;
             $table.find('> * > tr').each(function() {
-                var $tr, cellCount;
+                var $tr;
+                var cellCount;
                 $tr = $(this);
                 cellCount = $tr.find('> td, > th').length;
                 count = Math.max(count, cellCount);
@@ -618,13 +621,12 @@ define(['jquery'], function($) {
          * If not specified, defaults to the last clicked cell.
          */
         colNormalize: function(options) {
-            
-            var $cell, colCount, self, $table;
-            
+            var $cell;
+            var colCount;
+            var self;
+            var $table;
             self = this;
-            
             options = options || {};
-            
             $cell = options.cell ? $(options.cell) : self.selectedGet();
 
             // Get total number of columns across the entire table
@@ -632,9 +634,9 @@ define(['jquery'], function($) {
             
             $table = $cell.closest('table');
             $table.find('> * > tr').each(function() {
-                
-                var i, $tds, $tr;
-
+                var i;
+                var $tds;
+                var $tr;
                 $tr = $(this);
                 $tds = $tr.find('> td, > th');
 
@@ -687,13 +689,10 @@ define(['jquery'], function($) {
          * The cell to set. 
          */
         cellSet: function(content, options) {
-            
-            var $cell, self;
-            
+            var $cell;
+            var self;
             self = this;
-            
             options = options || {};
-            
             $cell = options.cell ? $(options.cell) : self.selectedGet();
 
             $cell.html(content);
@@ -718,15 +717,11 @@ define(['jquery'], function($) {
          * @returns {jQuery|String}
          */
         cellGet: function(options) {
-            
-            var $cell, self;
-            
+            var $cell;
+            var self;
             self = this;
-            
             options = options || {};
-            
             $cell = options.cell ? $(options.cell) : self.selectedGet();
-
             return options.html ? $cell.html() : $cell.contents();
         },
 
@@ -769,11 +764,9 @@ define(['jquery'], function($) {
          * @returns {jQuery|String}
          */
         tableGet: function(options) {
-            
-            var $cloned, self;
-            
+            var $cloned;
+            var self;
             self = this;
-            
             options = options || {};
 
             // Remove the active class first
