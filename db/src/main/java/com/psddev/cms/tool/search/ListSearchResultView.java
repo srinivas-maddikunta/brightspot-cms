@@ -203,7 +203,7 @@ public class ListSearchResultView extends AbstractSearchResultView {
                             && ObjectField.DATE_TYPE.equals(sortField.getInternalType())) {
 
                         page.writeStart("th", "colspan", 2);
-                            page.writeHtml(sortField.getDisplayName());
+                            page.writeHtml(page.localize(sortField, "field." + sortField.getInternalName()));
                         page.writeEnd();
                     }
 

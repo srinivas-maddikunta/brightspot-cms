@@ -2244,8 +2244,8 @@ public class ToolPageContext extends WebPageContext {
                 .collect(Collectors.toList()));
 
         miscTypes.removeAll(mainTypes);
-        typeGroups.put("Main Content Types", mainTypes);
-        typeGroups.put("Misc Content Types", miscTypes);
+        typeGroups.put(localize(null, "label.mainTypes"), mainTypes);
+        typeGroups.put(localize(null, "label.miscTypes"), miscTypes);
 
         for (Iterator<List<ObjectType>> i = typeGroups.values().iterator(); i.hasNext();) {
             List<ObjectType> typeGroup = i.next();
