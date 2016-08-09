@@ -2897,11 +2897,11 @@ public class ToolPageContext extends WebPageContext {
                         }
                     }
 
-                    if (object instanceof Tab) {
-                        Tab tabInstance = (Tab) object;
-                        if (tabInstance.shouldDisplay(object)) {
-                            writeStart("div", "class", "tab-custom tabs-hidden", "data-tab", tabInstance.getDisplayName());
-                                tabInstance.writeHtml(this, object);
+                    for (Class<? extends Tab> t : ClassFinder.findConcreteClasses(Tab.class)) {
+                        Tab tab = TypeDefinition.getInstance(t).newInstance();
+                        if (tab.shouldDisplay(object)) {
+                            writeStart("div", "class", "tab-custom tabs-hidden", "data-tab", tab.getDisplayName());
+                            tab.writeHtml(this, object);
                             writeEnd();
                         }
                     }
