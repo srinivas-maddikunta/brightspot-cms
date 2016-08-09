@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
+import com.psddev.cms.db.Localization;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.Tool;
 import com.psddev.dari.db.ObjectType;
@@ -23,7 +24,7 @@ public class MixedSearchResultView extends ListSearchResultView {
 
     @Override
     public String getDisplayName() {
-        return "Mixed";
+        return Localization.currentUserText(this, "displayName");
     }
 
     @Override
