@@ -1168,7 +1168,9 @@ public class ToolPageContext extends WebPageContext {
             }
 
             State state = State.getInstance(object);
-            String label = state.getLabel();
+            String label = object instanceof ObjectType
+                    ? localize(object, "displayName")
+                    : state.getLabel();
 
             if (ObjectUtils.to(UUID.class, label) != null) {
                 html.writeStart("em");
