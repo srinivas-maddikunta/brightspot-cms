@@ -5,7 +5,6 @@ import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.MachineTranslations;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.ObjectField;
-import com.psddev.dari.db.ObjectStruct;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Recordable;
@@ -21,8 +20,10 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -30,9 +31,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class LocalizationContext {
 
@@ -138,8 +141,9 @@ public class LocalizationContext {
 
         ObjectType type = ObjectType.getInstance(baseName);
         ObjectTypeResourceBundle bundle = ObjectTypeResourceBundle.getInstance(type);
+        Map<String, Object> bundleMap = bundle.getMap();
 
-        argumentsSources.add(bundle.getMap());
+        argumentsSources.add(bundleMap);
 
         if (pattern == null && Locale.getDefault().equals(source)) {
             pattern = findBundleString(bundle, key);
@@ -172,6 +176,36 @@ public class LocalizationContext {
                 String translation = (String) translations.get(key);
 
                 if (translation != null) {
+                    argumentsSources.remove(bundleMap);
+                    argumentsSources.add(new AbstractMap<String, Object>() {
+
+                        private final Set<Entry<String, Object>> entries = bundleMap.keySet().stream()
+                                .map(k -> new Entry<String, Object>() {
+
+                                    @Override
+                                    public String getKey() {
+                                        return k;
+                                    }
+
+                                    @Override
+                                    public Object getValue() {
+                                        return text(source, target, k);
+                                    }
+
+                                    @Override
+                                    public Object setValue(Object value) {
+                                        throw new UnsupportedOperationException();
+                                    }
+                                })
+                                .collect(Collectors.toSet());
+
+                        @Nonnull
+                        @Override
+                        public Set<Entry<String, Object>> entrySet() {
+                            return entries;
+                        }
+                    });
+
                     return new MessageFormat(translation, target).format(arguments);
                 }
             }
