@@ -2284,7 +2284,7 @@ public class ToolPageContext extends WebPageContext {
         String previousLabel = null;
 
         for (ObjectType type : types) {
-            String label = Static.getObjectLabel(type);
+            String label = localize(type, "displayName");
 
             writeStart("option",
                     "selected", selectedTypes.contains(type) ? "selected" : null,
