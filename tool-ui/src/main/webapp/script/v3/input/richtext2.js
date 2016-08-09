@@ -621,6 +621,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Refresh the editor after all the initialization is done.
             // We put it in a timeout to ensure the editor has displayed before doing the refresh.
             setTimeout(function(){
+                self.rte.codeMirror.setCursor(0, 0);
                 self.rte.refresh();
             }, 1);
         },
