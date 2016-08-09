@@ -2896,6 +2896,15 @@ public class ToolPageContext extends WebPageContext {
                             request.setAttribute("finalDraft", null);
                         }
                     }
+
+                    if (object instanceof Tab) {
+                        Tab tabInstance = (Tab) object;
+                        if (tabInstance.shouldDisplay(object)) {
+                            writeStart("div", "class", "tab-custom tabs-hidden", "data-tab", tabInstance.getDisplayName());
+                                tabInstance.writeHtml(this, object);
+                            writeEnd();
+                        }
+                    }
                 }
             writeEnd();
 
