@@ -3,7 +3,9 @@ package com.psddev.cms.db;
 import com.ibm.icu.text.MessageFormat;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.MachineTranslations;
+import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.ObjectField;
+import com.psddev.dari.db.ObjectStruct;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Recordable;
@@ -42,7 +44,7 @@ public class LocalizationContext {
         String baseName = null;
 
         if (context instanceof ObjectField) {
-            context = ((ObjectField) context).getParentType();
+            context = ((ObjectField) context).getParent();
         }
 
         State state = null;
@@ -53,6 +55,9 @@ public class LocalizationContext {
 
             } else if (context instanceof ObjectType) {
                 baseName = ((ObjectType) context).getInternalName();
+
+            } else if (context instanceof DatabaseEnvironment) {
+                baseName = null;
 
             } else if (context instanceof Class) {
                 ObjectType type = ObjectType.getInstance((Class<?>) context);
