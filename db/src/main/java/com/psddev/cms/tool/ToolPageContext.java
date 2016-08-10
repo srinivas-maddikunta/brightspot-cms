@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
+import com.ibm.icu.text.DateFormat;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
@@ -1324,9 +1325,15 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTimeWith(Object dateTime, String format) throws IOException {
-        return dateTime != null
-                ? toUserDateTime(dateTime).toString(format)
-                : "N/A";
+        if (dateTime != null) {
+            Locale locale = ObjectUtils.firstNonNull(getUser().getLocale(), Locale.getDefault());
+            DateFormat dateFormat = DateFormat.getPatternInstance(format, locale);
+
+            return dateFormat.format(toUserDateTime(dateTime).toDate());
+
+        } else {
+            return localize(null, "label.notAvailable");
+        }
     }
 
     /**
