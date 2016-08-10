@@ -3083,7 +3083,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", "queryRestrictions",
                 "data-bsp-autosubmit", "",
                 "method", "post",
-                "action", url(""));
+                "action", url("", Search.OFFSET_PARAMETER, null));
 
             qr.writeHtml(this);
         writeEnd();
