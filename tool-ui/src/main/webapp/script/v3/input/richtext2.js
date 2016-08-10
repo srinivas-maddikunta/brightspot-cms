@@ -592,6 +592,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             if (options) {
                 $.extend(true, self, options);
+
+                if (options.toolbarConfig) {
+                    self.toolbarConfig = options.toolbarConfig;
+                }
             }
 
             // If the RTE_INIT global variable is set to a function run it.
@@ -4724,6 +4728,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Make a copy of the object with extend so we don't
             // accidentally change any global default options
             options = $.extend(true, {}, this.option());
+
+            var toolbar = RICH_TEXT_TOOLBARS[$input.attr('data-rte-toolbar')];
+
+            if (toolbar && toolbar.length > 0) {
+                options.toolbarConfig = toolbar;
+            }
 
             var tags = $input.attr('data-rte-tags');
 
