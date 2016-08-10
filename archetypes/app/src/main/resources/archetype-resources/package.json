@@ -2,7 +2,7 @@
   "name": "${artifactId}",
   "private": true,
   "devDependencies": {
-    "bsp-grunt": "perfectsense/brightspot-js-grunt#master",
+    "bsp-grunt": "perfectsense/brightspot-js-grunt#v4.0.0",
     "bsp-styleguide": "perfectsense/brightspot-styleguide#v1.1.350-86f868",
     "grunt": "0.4.5",
     "grunt-cli": "0.1.13"

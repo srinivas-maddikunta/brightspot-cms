@@ -5,7 +5,7 @@
         http://maven.apache.org/maven-v4_0_0.xsd">
 
     <properties>
-        <bsp.handlebars.version>1.2-SNAPSHOT</bsp.handlebars.version>
+        <bsp.handlebars.version>1.2.101-12aba4</bsp.handlebars.version>
         <bsp.styleguide.version>1.1.350-86f868</bsp.styleguide.version>
         <cms.version>${project.version}</cms.version>
         <dari.version>${dari.version}</dari.version>
