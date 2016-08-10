@@ -253,13 +253,6 @@
                 </dependency>
 
                 <dependency>
-                    <groupId>com.psddev</groupId>
-                    <artifactId>dari-reloader-tomcat6</artifactId>
-                    <version>${dari.version}</version>
-                    <type>war</type>
-                </dependency>
-
-                <dependency>
                     <groupId>mysql</groupId>
                     <artifactId>mysql-connector-mxj</artifactId>
                     <version>5.0.12</version>
@@ -346,14 +339,6 @@
                                     </properties>
                                 </deployable>
                                 <deployable>
-                                    <groupId>com.psddev</groupId>
-                                    <artifactId>dari-reloader-tomcat6</artifactId>
-                                    <type>war</type>
-                                    <properties>
-                                        <context>/reloader</context>
-                                    </properties>
-                                </deployable>
-                                <deployable>
                                     <groupId>org.apache.solr</groupId>
                                     <artifactId>solr</artifactId>
                                     <type>war</type>
@@ -374,11 +359,6 @@
                                     <groupId>com.psddev</groupId>
                                     <artifactId>cms-tool-ui</artifactId>
                                     <targetPath>cms</targetPath>
-                                </overlay>
-                                <overlay>
-                                    <groupId>com.psddev</groupId>
-                                    <artifactId>dari-reloader-tomcat6</artifactId>
-                                    <skip>true</skip>
                                 </overlay>
                                 <overlay>
                                     <groupId>org.apache.solr</groupId>
