@@ -333,6 +333,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                         if (t.match(/^\s*$/)) {
                             $el.text('');
                         }
+                        // If the P element has a margin-bottom style add a blank line after
+                        // so it more closely reprents a paragraph with space after it.
+                        if ($el.is('[style*="margin-bottom"]')) {
+                            $el.after('<br/>');
+                        }
                         $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
                         $replacement.append( $el.contents() );
                         $el.replaceWith( $replacement );
