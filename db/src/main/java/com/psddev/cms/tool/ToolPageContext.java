@@ -1155,7 +1155,7 @@ public class ToolPageContext extends WebPageContext {
 
         if (object == null) {
             html.writeStart("em");
-            html.writeHtml("N/A");
+            html.writeHtml(localize(null, "label.notAvailable"));
             html.writeEnd();
 
         } else {
@@ -1237,7 +1237,7 @@ public class ToolPageContext extends WebPageContext {
      */
     public void writeTypeObjectLabel(Object object) throws IOException {
         if (object == null) {
-            writeHtml("N/A");
+            writeHtml(localize(null, "label.notAvailable"));
 
         } else {
             State state = State.getInstance(object);
