@@ -1,11 +1,9 @@
 package com.psddev.cms.tool;
 
 import java.io.IOException;
-import java.util.Collection;
 
 /**
- * Interface for displaying a custom Tab in
- * {@link ToolPageContext#writeSomeFormFields(Object, boolean, Collection, Collection)}
+ * Interface for displaying a custom Tab through {@link ToolPageContext)}
  */
 public interface Tab {
     /**
