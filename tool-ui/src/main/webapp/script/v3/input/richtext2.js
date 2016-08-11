@@ -143,6 +143,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             link: {
                 className: 'rte2-style-link',
                 element: 'a',
+                keymap: ['Ctrl-K', 'Cmd-K'],
                 elementAttrAny: true, // Allow any attributes for this element
                 
                 // Do not allow links to span multiple lines
@@ -331,6 +332,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                         t = $el.text() || '';
                         if (t.match(/^\s*$/)) {
                             $el.text('');
+                        }
+                        // If the P element has a margin-bottom style add a blank line after
+                        // so it more closely reprents a paragraph with space after it.
+                        if ($el.is('[style*="margin-bottom"]')) {
+                            $el.after('<br/>');
                         }
                         $replacement = $('<span>', {'data-rte2-sanitize': 'linebreakSingle'});
                         $replacement.append( $el.contents() );
@@ -620,6 +626,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Refresh the editor after all the initialization is done.
             // We put it in a timeout to ensure the editor has displayed before doing the refresh.
             setTimeout(function(){
+                self.rte.codeMirror.setCursor(0, 0);
                 self.rte.refresh();
             }, 1);
         },
@@ -790,9 +797,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 return false;
             });
             self.$editor.on('rteBlur', function(){
+                
+                // Set a timeout before performing the blur event.
+                // This is to let other code cancel the blur before it occurs
+                // (such as clicking a toolbar button)
                 self.rteBlurTimeout = setTimeout(function(){
                     self.$el.trigger('rteBlur', [self]);
                 }, 200);
+                
                 return false;
             });
             self.$editor.on('rteChange', function(){
@@ -1347,7 +1359,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             $button.on('click', function(event) {
                 event.preventDefault();
-                clearTimeout(self.rteBlurTimeout);
+                self.blurCancel();
                 self.toolbarHandleClick(item, event);
             });
 
@@ -2255,6 +2267,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     self.enhancementSetPosition($enhancement, config.alignment);
                 }
 
+                if (config.element) {
+                    self.enhancementSetElement($enhancement, config.element);
+                }
                 self.enhancementUpdate($enhancement);
 
             } else {
@@ -3203,6 +3218,44 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
 
         /**
+         * Get the element type (span or button) for the enhancement.
+         * @returns {String}
+         */
+        enhancementGetElement: function(el) {
+
+            var element;
+            var $enhancement;
+            var self;
+
+            self = this;
+
+            $enhancement = self.enhancementGetWrapper(el);
+
+            element = $enhancement.data('enhancementElement') || 'button';
+
+            return element;
+        },
+
+
+        /**
+         * Set the reference object for the enhancement.
+         */
+        enhancementSetElement: function(el, element) {
+
+            var $enhancement;
+            var self;
+
+            self = this;
+
+            $enhancement = self.enhancementGetWrapper(el);
+
+            $enhancement.data('enhancementElement', element);
+
+            self.rte.triggerChange();
+        },
+
+
+        /**
          * Convert an enhancement into HTML for output.
          *
          * @param {Element} el
@@ -3214,6 +3267,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
         enhancementToHTML: function(el) {
 
             var alignment;
+            var element;
             var reference;
             var $enhancement;
             var html;
@@ -3245,9 +3299,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 reference.alignment = alignment;
             }
 
+            element = self.enhancementGetElement(el);
+            
             if (id) {
 
-                $html = $('<button/>', {
+                $html = $('<' + element + '/>', {
                     'class': 'enhancement',
                     'data-id': id,
                     'data-reference': JSON.stringify(reference),
@@ -3311,6 +3367,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 config.preview = $content.attr('data-preview');
                 config.text = $content.text();
 
+                // Output html should maintain 'span' or 'button' for the enhancement
+                config.element = $content.is('span') ? 'span' : 'button';
+                
                 self.enhancementCreate(config, line);
             }
         },
@@ -3474,6 +3533,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 }
             });
 
+            // Prevent the rteBlur event from occurring since technically we will still be in the RTE
+            // even though CodeMirror will lose focus
+            self.blurCancel();
+
             // Do a fake "click" on the link so it will trigger the popup
             // but first wait for the current click to finish so it doesn't interfere
             // with any popups
@@ -3558,6 +3621,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 
             $.each(self.styles, function(styleKey, styleObj){
                  if (styleObj.element === 'a' && styleKey !== 'link'){
+                     if (!styleObj.keymap) {
+                         styleObj.keymap = self.styles.link.keymap
+                     }
                      removeLink = true;
                      return false;
                  }
@@ -4586,6 +4652,19 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             }
         },
 
+
+        /**
+         * Cancel the rteBlur event.
+         * This is used in some instances where CodeMirror will lose focus,
+         * but we have additional work to do, so we don't want to fire a blur event.
+         */
+        blurCancel: function() {
+            var self;
+            self = this;
+            clearTimeout(self.rteBlurTimeout);
+        },
+        
+        
         refresh: function() {
             var self;
             self = this;

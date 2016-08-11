@@ -523,6 +523,12 @@ li.CodeMirror-hint-active {
       }
     }
 
+    > .rte2-codemirror {
+      margin: 0 auto;
+      max-width: 100%;
+      width: 75em;
+    }
+
     .rte2-toolbar {
       a, span, .rte2-toolbar-separator {
         font-size: 12px;
@@ -536,9 +542,7 @@ li.CodeMirror-hint-active {
       display: block;
       font-size: 16px;
       line-height: 24px;
-      margin: 0 auto;
-      width: 60em;
-      
+
       .CodeMirror-lines {
         padding: 30px 0;
       }
@@ -546,6 +550,39 @@ li.CodeMirror-hint-active {
       pre {
         padding: 0 30px;
       }
+
+      pre[class*=rte2-indent-level-] {
+        padding-left: 240px;
+      }
+      pre.rte2-indent-level-1 {
+        padding-left: 60px;
+      }
+      pre.rte2-indent-level-2 {
+        padding-left: 90px;
+      }
+      pre.rte2-indent-level-3 {
+        padding-left: 120px;
+      }
+      pre.rte2-indent-level-4 {
+        padding-left: 150px;
+      }
+      pre.rte2-indent-level-5 {
+        padding-left: 180px;
+      }
+      pre.rte2-indent-level-6 {
+        padding-left: 210px;
+      }
+    }
+
+    .rte2-enhancement,
+    .rte2-table {
+      padding: 5px 30px (@lineHeight-default + 10px) 30px;
+    }
+
+    .rte2-style-enhancement-left,
+    .rte2-style-enhancement-right {
+      padding-left: 10px;
+      padding-right: 10px;
     }
   }
   
@@ -894,6 +931,9 @@ li.CodeMirror-hint-active {
 
 .rte2-placeholder-showing .CodeMirror pre {
   color: @color-placeholder;
+  span {
+    color: @color-placeholder !important;
+  }
 }
 
 .rte2-wrapper .CodeMirror {
