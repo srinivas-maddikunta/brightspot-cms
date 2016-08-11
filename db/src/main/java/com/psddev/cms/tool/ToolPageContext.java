@@ -3254,6 +3254,10 @@ public class ToolPageContext extends WebPageContext {
 
                 if (schedule != null
                         && ObjectUtils.isBlank(schedule.getName())) {
+                    if (draft.isNewContent()) {
+                        draft.delete();
+                    }
+
                     schedule.delete();
 
                 } else {
