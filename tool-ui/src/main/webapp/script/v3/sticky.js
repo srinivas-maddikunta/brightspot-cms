@@ -1,15 +1,22 @@
 define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
   function toolHeaderBottom(includeMargin) {
     var $toolHeader = $('.toolHeader');
+    return $toolHeader.offset().top - $(window).scrollTop() + $toolHeader.outerHeight(includeMargin);
+  }
 
-    return $toolHeader.is(':visible') ?
-        $toolHeader.offset().top - $(window).scrollTop() + $toolHeader.outerHeight(includeMargin) :
-        0;
+  function inFullscreen($element) {
+    return $element.closest('.popup').parent().is('body.rte-fullscreen');
   }
 
   bsp_utils.onDomInsert(document, '.withLeftNav > .leftNav, .withLeftNav > .main, .contentForm-main', {
     insert: function (element) {
-      $(element).stick_in_parent({
+      var $element = $(element);
+
+      if (inFullscreen($element)) {
+        return;
+      }
+
+      $element.stick_in_parent({
         offset_top: function () {
           return toolHeaderBottom(true);
         }
@@ -20,6 +27,11 @@ define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
   bsp_utils.onDomInsert(document, '.contentForm-aside', {
     insert: function (aside) {
       var $aside = $(aside);
+
+      if (inFullscreen($aside)) {
+        return;
+      }
+
       var $publishing = $aside.find('> .widget-publishing');
       var $widgets = $aside.find('> .contentWidgets');
       var $window = $(window);
@@ -65,7 +77,13 @@ define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
 
   bsp_utils.onDomInsert(document, '.rte2-toolbar', {
     insert: function (element) {
-      $(element).stick_in_parent({
+      var $element = $(element);
+
+      if (inFullscreen($element)) {
+        return;
+      }
+
+      $element.stick_in_parent({
         recalc_every: 100,
         offset_top: function () {
           return toolHeaderBottom(false);
