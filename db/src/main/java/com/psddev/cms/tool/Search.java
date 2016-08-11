@@ -28,6 +28,7 @@ import java.util.stream.IntStream;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Draft;
+import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
@@ -478,7 +479,7 @@ public class Search extends Record {
         if (struct != null) {
             for (ObjectField field : ObjectStruct.Static.findIndexedFields(struct)) {
                 if (field.as(ToolUi.class).isEffectivelySortable()) {
-                    sorts.put(field.getInternalName(), field.getDisplayName());
+                    sorts.put(field.getInternalName(), Localization.currentUserText(field, "field." + field.getInternalName()));
                 }
             }
         }

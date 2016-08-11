@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
+import com.ibm.icu.text.DateFormat;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
@@ -1154,7 +1155,7 @@ public class ToolPageContext extends WebPageContext {
 
         if (object == null) {
             html.writeStart("em");
-            html.writeHtml("N/A");
+            html.writeHtml(localize(null, "label.notAvailable"));
             html.writeEnd();
 
         } else {
@@ -1168,7 +1169,9 @@ public class ToolPageContext extends WebPageContext {
             }
 
             State state = State.getInstance(object);
-            String label = state.getLabel();
+            String label = object instanceof ObjectType
+                    ? localize(object, "displayName")
+                    : state.getLabel();
 
             if (ObjectUtils.to(UUID.class, label) != null) {
                 html.writeStart("em");
@@ -1234,7 +1237,7 @@ public class ToolPageContext extends WebPageContext {
      */
     public void writeTypeObjectLabel(Object object) throws IOException {
         if (object == null) {
-            writeHtml("N/A");
+            writeHtml(localize(null, "label.notAvailable"));
 
         } else {
             State state = State.getInstance(object);
@@ -1322,9 +1325,15 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTimeWith(Object dateTime, String format) throws IOException {
-        return dateTime != null
-                ? toUserDateTime(dateTime).toString(format)
-                : "N/A";
+        if (dateTime != null) {
+            Locale locale = ObjectUtils.firstNonNull(getUser().getLocale(), Locale.getDefault());
+            DateFormat dateFormat = DateFormat.getPatternInstance(format, locale);
+
+            return dateFormat.format(toUserDateTime(dateTime).toDate());
+
+        } else {
+            return localize(null, "label.notAvailable");
+        }
     }
 
     /**
@@ -2242,8 +2251,8 @@ public class ToolPageContext extends WebPageContext {
                 .collect(Collectors.toList()));
 
         miscTypes.removeAll(mainTypes);
-        typeGroups.put("Main Content Types", mainTypes);
-        typeGroups.put("Misc Content Types", miscTypes);
+        typeGroups.put(localize(null, "label.mainTypes"), mainTypes);
+        typeGroups.put(localize(null, "label.miscTypes"), miscTypes);
 
         for (Iterator<List<ObjectType>> i = typeGroups.values().iterator(); i.hasNext();) {
             List<ObjectType> typeGroup = i.next();
@@ -2282,7 +2291,7 @@ public class ToolPageContext extends WebPageContext {
         String previousLabel = null;
 
         for (ObjectType type : types) {
-            String label = Static.getObjectLabel(type);
+            String label = localize(type, "displayName");
 
             writeStart("option",
                     "selected", selectedTypes.contains(type) ? "selected" : null,

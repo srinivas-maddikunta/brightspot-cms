@@ -228,13 +228,12 @@ public abstract class AbstractSearchResultView implements SearchResultView {
                     page.writeEnd();
                 }
 
-                // TODO: LOCALIZE
                 page.writeStart("li");
-                    page.writeHtml(result.getFirstItemIndex());
-                    page.writeHtml(" to ");
-                    page.writeHtml(result.getLastItemIndex());
-                    page.writeHtml(" of ");
-                    page.writeStart("strong").writeHtml(result.getCount()).writeEnd();
+                    page.writeHtml(page.localize(getClass(), ImmutableMap.of(
+                            "firstItemIndex", result.getFirstItemIndex(),
+                            "lastItemIndex", result.getLastItemIndex(),
+                            "count", result.getCount()
+                    ), "pagination.display"));
                 page.writeEnd();
 
                 if (result.hasNext()) {
