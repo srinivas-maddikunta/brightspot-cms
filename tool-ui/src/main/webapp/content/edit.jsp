@@ -1051,9 +1051,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                         wp.writeStart("a",
                                                 "class", "icon icon-arrow-left",
                                                 "href", wp.url("", "draftId", null));
-                                            wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.backTo"));
-                                            wp.writeHtml(" ");
-                                            wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Edit", !visible ? "subtitle.initialDraft" : "subtitle.live"));
+                                            wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.Edit",
+                                                    !visible ? "action.backToInitialDraft" : "action.backToLive"));
                                         wp.writeEnd();
                                     wp.writeEnd();
                                 }
