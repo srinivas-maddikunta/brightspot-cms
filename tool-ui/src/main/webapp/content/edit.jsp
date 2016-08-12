@@ -500,7 +500,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                 wp.writeStart("div", "class", "contentDiffCurrent " + (history != null ? "contentDiffRight" : "contentDiffLeft"));
                                     wp.writeStart("h2");
                                         wp.writeHtml(wp.localize(
-                                                "com.psddev.cms.tool.page.content.Edit",
+                                                editingState.getType(),
                                                 !visible ? "subtitle.initialDraft" : "subtitle.live"));
                                     wp.writeEnd();
                                     wp.writeSomeFormFields(original.getOriginalObject(), true, null, null);
