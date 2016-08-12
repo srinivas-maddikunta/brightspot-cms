@@ -1,4 +1,4 @@
-define([ 'moment-with-locales' ], function (moment) {
+define([ 'moment-with-locales', 'moment-timezone-with-data-2010-2020' ], function (moment) {
 
 (function($, win, undef) {
 
@@ -51,7 +51,8 @@ var updateCalendarView = function(viewDate) {
 };
 
 function formatDate(date) {
-    return moment(date).locale($('html').attr('lang')).format('llll');
+    var $html = $('html');
+    return moment(date).locale($html.attr('lang')).tz($html.attr('data-time-zone')).format('llll');
 }
 
 var updateInput = function() {
