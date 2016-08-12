@@ -123,7 +123,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,
-                            page.localize(RecentActivityWidget.class, "label.anyTypes"),
+                            page.localize(RecentActivityWidget.class, "label.allTypes"),
                             "data-bsp-autosubmit", "",
                             "name", "itemType",
                             "data-searchable", "true");

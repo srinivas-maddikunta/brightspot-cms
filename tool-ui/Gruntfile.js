@@ -120,6 +120,10 @@ module.exports = function(grunt) {
                     }
                 ],
 
+                moment: [
+                    'min/moment-with-locales.js'
+                ],
+
                 'string': [
                   'dist/string.js'
                 ]
