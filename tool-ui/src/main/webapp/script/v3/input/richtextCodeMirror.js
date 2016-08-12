@@ -3161,7 +3161,7 @@ define([
 
                 if (lineInfo && lineInfo.widgets) {
                     $.each(lineInfo.widgets, function(i,mark) {
-                        if (mark.rteEnhancement) {
+                        if (mark && mark.rteEnhancement) {
                             self.enhancementMoveToLine(mark, lineNumber);
                         }
                     });
