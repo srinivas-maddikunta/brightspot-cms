@@ -142,7 +142,7 @@ public class RichTextViewBuilder {
 
         List<Object> views = new ArrayList<>();
 
-        Map<String, ObjectType> tagTypes = RichTextElement.getTagTypes();
+        Map<String, ObjectType> tagTypes = RichTextElement.getConcreteTagTypes();
 
         if (richText != null) {
 
