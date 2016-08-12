@@ -1,3 +1,5 @@
+define([ 'moment-with-locales' ], function (moment) {
+
 (function($, win, undef) {
 
 var options = {
@@ -49,23 +51,7 @@ var updateCalendarView = function(viewDate) {
 };
 
 function formatDate(date) {
-    var hour = date.getHours();
-    var meridiem = 'AM';
-
-    if (hour >= 12) {
-        hour -= 12;
-        meridiem = 'PM';
-    }
-
-    hour = hour === 0 ? 12 : padZero(hour);
-
-    return options.dayLabels[date.getDay()] + ', ' +
-            options.monthLabels[date.getMonth()].substring(0, 3) + ' ' +
-            padZero(date.getDate()) + ', ' +
-            date.getFullYear() + ', ' +
-            hour + ':' +
-            padZero(date.getMinutes()) + ' ' +
-            meridiem;
+    return moment(date).locale($('html').attr('lang')).format('llll');
 }
 
 var updateInput = function() {
@@ -349,3 +335,6 @@ $.plugin2('calendar', {
 });
 
 }(jQuery, window));
+
+    return {};
+});
