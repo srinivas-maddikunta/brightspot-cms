@@ -52,7 +52,10 @@ define(['jquery'], function($) {
             rowDelete: {},
             colAddLeft: {},
             colAddRight: {},
-            colDelete: {}
+            colDelete: {},
+            mergeBelow: {},
+            mergeRight: {},
+            unMerge: {}
         },
 
         
@@ -66,7 +69,10 @@ define(['jquery'], function($) {
             colAddRight: 'Add Column Right',
             rowDelete: 'Delete Row',
             colDelete: 'Delete Column',
-            cellClear: 'Clear Cell'
+            cellClear: 'Clear Cell',
+            mergeBelow: 'Merge Cell Below',
+            mergeRight: 'Merge Cell Right',
+            unMerge: 'Unmerge Cells'
         },
 
         
@@ -325,6 +331,15 @@ define(['jquery'], function($) {
             case 'cellClear':
                 self.cellClear();
                 break;
+            case 'mergeBelow':
+                self.rowMerge();
+                break;
+            case 'mergeRight':
+                self.colMerge();
+                break;
+            case 'unMerge':
+                self.unMerge();
+                break;
             }
         },
 
@@ -395,10 +410,15 @@ define(['jquery'], function($) {
          */
         rowAdd: function(options) {
             var $cell;
+            var cellsFound;
             var cols;
             var i;
+            var pos;
             var $row;
             var $rowNew;
+            var $rowNext;
+            var rowNumber;
+            var rowSpan;
             var self;
             self = this;
             
@@ -406,10 +426,56 @@ define(['jquery'], function($) {
             
             $cell = options.cell ? $(options.cell) : self.selectedGet();
             
+            self.tableAnalyze($cell.closest('table'));
+
+            pos = self.lookupPos($cell);
+            rowNumber = pos.row;
+            
             $row = $cell.closest('tr');
 
-            $rowNew = $('<tr/>');
+            // Special case: if this cell has a rowspan then insert the new row after the rowspan
+            if (!options.above) {
+                rowSpan = $cell[0].rowSpan;
+                if (rowSpan && rowSpan > 1) {
+                    // Get the row that ends this rowspan
+                    $rowNext = $row.nextAll().slice(rowSpan - 2, rowSpan - 1);
+                    if ($rowNext.length) {
+                        $row = $rowNext;
+                        rowNumber += rowSpan - 1;
+                    }
+                }
+            }
+            
+            // Special case: if the new row will be within some other rowspan of another column,
+            // then we must account for that: create one less cell in the new row,
+            // and add to the rowspan of the other cell.
             cols = self.colCount($cell);
+            rowNumber += options.above ? 0 : 1;
+            if (self.matrix[rowNumber]) {
+                cellsFound = [];
+                $.each(self.matrix[rowNumber], function(colNumber, cell) {
+                    var posCell;
+                    posCell = self.lookupPos(cell);
+                    // Check if the cell covering this position is actually in another row,
+                    // because that would mean it has a rowspan that covers our row
+                    // and we should not add a cell for this position for our new row. 
+                    if (posCell.row !== rowNumber) {
+
+                        // Do not create a cell for this position
+                        cols--;
+                        
+                        // Increase the rowspan so it will also cover the new row we are adding.
+                        // However, make sure we only increase the rowspan once because the cell might also
+                        // have a colspan that makes it appear in another position!
+                        if ($.inArray(cell, cellsFound) === -1) {
+                            $(cell).attr('rowSpan', cell.rowSpan + 1);
+                            cellsFound.push(cell);
+                        }
+                    }
+                });
+            }
+        
+            $rowNew = $('<tr/>');
             for (i=0; i<cols; i++) {
                 $rowNew.append( self.cellCreate() );
             }
@@ -437,17 +503,31 @@ define(['jquery'], function($) {
         rowDelete: function(options) {
             var $cell;
             var $row;
+            var rowIndex;
             var self;
+            var $table;
+            
             self = this;
             options = options || {};
             $cell = options.cell ? $(options.cell) : self.selectedGet();
+            $row = $cell.closest('tr');
+            rowIndex = $row[0].rowIndex;
+            $table = $cell.closest('table');
             
             // Do not remove the last row
             if (self.rowCount($cell) <= 1) {
                 return;
             }
             
-            $row = $cell.closest('tr');
+            self.tableAnalyze($table);
+            
+            // Find all the cells in this row (including cells from other rows that have a rowspan)
+            $.each(self.matrix[rowIndex], function(colNumber, cell) {
+                if (cell.rowSpan && cell.rowSpan > 2) {
+                    $(cell).attr('rowspan', cell.rowSpan - 1);
+                }
+            });
+                        
             $row.remove();
             
             self.triggerChange();
@@ -456,8 +536,6 @@ define(['jquery'], function($) {
 
         /**
          * Return the number of rows in the table.
-         *
-         * NOTE: does not support ROWSPAN attributes.
          *
          * @param {Element} [cell=selected cell]
          * A cell (td or th) within the table.
@@ -473,6 +551,131 @@ define(['jquery'], function($) {
             return $table.find('> * > tr').length;
         },
 
+    
+        /**
+         * Merge a cell with the cell below.
+         * @param  {[type]} cell [description]
+         * @return {[type]}      [description]
+         */
+        rowMerge: function(cell) {
+            var self;
+            var $cell;
+            var cellBelow;
+            var $table;
+            var pos;
+            var posCellBelow;
+            var rowspan;
+            var colspan;
+            
+            self = this;
+            cell = cell || self.selectedGet();
+            $cell = $(cell);
+
+            $cell = $(cell);
+            $table = $cell.closest('table');
+            
+            self.tableAnalyze($table);
+            
+            rowspan = $cell[0].rowSpan;
+            colspan = $cell[0].colSpan;
+            
+            // Determine if this cell can be merged with the one below
+            pos = self.lookupPosComputed($cell);
+            
+            cellBelow = self.lookupCellComputed(pos.row + rowspan, pos.col);
+            if (!cellBelow) {
+                return;
+            }
+            
+            // Make sure cell to be merged starts in the same column
+            // and has same width (including colspan)
+            posCellBelow = self.lookupPosComputed(cellBelow);
+            if (pos.col !== posCellBelow.col) {
+                return;
+            }
+            if (cellBelow.colSpan !== colspan) {
+                return;
+            }
+            
+            // It is okay to merge the cells
+            $cell.attr('rowspan', rowspan + cellBelow.rowSpan);
+            $cell.append('<br/>').append($(cellBelow).contents());
+            $(cellBelow).remove();
+        },
+        
+        
+        /**
+         * Unmerge a cell - remove the ROWSPAN and COLSPAN but add back empty cells to keep the same table structure.
+         * @param  {Element|jQuery} cell The table cell to be unmerged.
+         */
+        unMerge: function(cell) {
+            
+            var self;
+            var $cell;
+            var $table;
+            var pos;
+            var rowNumber;
+            var rowspan;
+            var colspan;
+            var colNumber;
+            var gotFirstCell;
+            var $tr;
+            var $insertPoint;
+            
+            self = this;
+            cell = cell || self.selectedGet();
+            $cell = $(cell);
+            $tr = $cell.closest('tr');
+            $table = $cell.closest('table');
+            
+            self.tableAnalyze($table);
+            
+            rowspan = $cell[0].rowSpan;
+            colspan = $cell[0].colSpan;
+            
+            // Get the position for this table cell (accounting for rowspan and colspan)
+            pos = self.lookupPosComputed($cell);
+            
+            // Loop through all the rows that this cell was covering
+            for (rowNumber = pos.row; rowNumber < pos.row + rowspan; rowNumber++) {
+
+                // Find the point after which we should insert cells.
+                // We cannot just count the TD elements in the current row, because previous rows might have rowspans
+                // that span into this row, so there might be fewer TD elements than actual columns in the table.
+                $insertPoint = undefined;
+                $tr.find('>td,>th').each(function(cellIndex, cell) {
+                    var posCell;
+                    posCell = self.lookupPosComputed(cell);
+                    if (posCell.col <= pos.col) {
+                        $insertPoint = $(cell);
+                    }
+                });
+                
+                // Now create one or more cells to make up for the rowspan and colspan being removed
+                for (colNumber = pos.col; colNumber < pos.col + colspan; colNumber++) {
+                    
+                    // Skip the very first cell across all rows, because the original cell
+                    // will remain (after we remove the rowspan and colspan attributes)
+                    if (!gotFirstCell) {
+                        gotFirstCell = true;
+                    } else {
+                        // Add a blank cell at the proper position
+                        if ($insertPoint) {
+                            $insertPoint.after( self.cellCreate() );
+                        } else {
+                            // If we didn't find an insert point, add the blank cell at the beginning of the row
+                            $tr.prepend( self.cellCreate() );
+                        }
+                    }
+                }
+                
+                $tr = $tr.next();
+            }
+            
+            // Finally remove the rowspan and colspan for this cell
+            $cell.removeAttr('rowspan').removeAttr('colspan');
+        },
+        
         
         /**
          * Add a column.
@@ -497,9 +700,11 @@ define(['jquery'], function($) {
             self = this;
             options = options || {};
             $cell = options.cell ? $(options.cell) : self.selectedGet();
+            $table = $cell.closest('table');
 
             // Make sure each row has the correct number of cells
-            self.colNormalize({cell:$cell});
+            self.tableAnalyze($table)
+            self.tableNormalize($table);
             
             // Get total number of columns across the entire table
             colCount = self.colCount($cell);
@@ -509,7 +714,6 @@ define(['jquery'], function($) {
                 colNumber++;
             }
 
-            $table = $cell.closest('table');
             $table.find('> * > tr').each(function() {
                 var $td;
                 var $tr;
@@ -542,14 +746,21 @@ define(['jquery'], function($) {
             var $cell;
             var colCount;
             var colNumber;
+            var pos;
             var self;
             var $table;
             self = this;
             options = options || {};
             $cell = options.cell ? $(options.cell) : self.selectedGet();
+            $table = $cell.closest('table');
 
-            // Make sure each row has the correct number of cells
-            self.colNormalize({cell:$cell});
+            // Analyze the table to compute the COLSPAN and ROWSPAN
+            self.tableAnalyze($table);
+
+            // Make sure each row has the correct number of cells before we begin
+            self.tableNormalize($table);
+            
+            pos = self.lookupPosComputed($cell);
 
             // Special case - do not delete the last column
             colCount = self.colCount($cell);
@@ -557,19 +768,29 @@ define(['jquery'], function($) {
                 return;
             }
             
-            colNumber = $cell.index();
+            colNumber = pos.col;
 
-            $table = $cell.closest('table');
-            $table.find('> * > tr').each(function() {
+            $table.find('> * > tr').each(function(rowIndex, tr) {
                 
-                var $tds;
-                var $tr;
+                var cell;
+                var $cell;
+                var colspan;
 
-                $tr = $(this);
-                $tds = $tr.find('> td, > th');
-
-                // Delete the cell for the column
-                $tds.eq(colNumber).remove();
+                // Find the cell for this colNumber
+                cell = self.lookupCellComputed(rowIndex, colNumber);
+                if (cell) {
+                    $cell = $(cell);
+                    colspan = cell.colSpan;
+                    if (colspan && colspan > 1) {
+                        if (colspan > 2) {
+                            $cell.attr('colspan', colspan - 1);
+                        } else {
+                            $cell.removeAttr('colspan');
+                        }
+                    } else {
+                        $cell.remove();
+                    }
+                }
             });
             
             self.triggerChange();
@@ -577,9 +798,59 @@ define(['jquery'], function($) {
 
         
         /**
+         * Merge a cell with the cell to the right.
+         * @param  {[type]} cell [description]
+         * @return {[type]}      [description]
+         */
+        colMerge: function(cell) {
+            var self;
+            var $cell;
+            var cellRight;
+            var $table;
+            var pos;
+            var posCellRight;
+            var rowspan;
+            var colspan;
+            
+            self = this;
+            cell = cell || self.selectedGet();
+            $cell = $(cell);
+
+            $cell = $(cell);
+            $table = $cell.closest('table');
+            
+            self.tableAnalyze($table);
+            
+            rowspan = $cell[0].rowSpan;
+            colspan = $cell[0].colSpan;
+            
+            // Determine if this cell can be merged with the one to the right
+            pos = self.lookupPosComputed($cell);
+            
+            cellRight = self.lookupCellComputed(pos.row, pos.col + colspan);
+            if (!cellRight) {
+                return;
+            }
+            
+            // Make sure cell to be merged starts in the same row
+            // and has same heigh (including rowspan)
+            posCellRight = self.lookupPosComputed(cellRight);
+            if (pos.row !== posCellRight.row) {
+                return;
+            }
+            if (cellRight.rowSpan !== rowspan) {
+                return;
+            }
+            
+            // It is okay to merge the cells
+            $cell.attr('colspan', colspan + cellRight.colSpan);
+            $cell.append('<br/>').append($(cellRight).contents());
+            $(cellRight).remove();
+        },
+
+
+        /**
          * Return the number of columns in the table.
-         *
-         * NOTE: does not support COLSPAN attributes.
          *
          * @param {Element} [cell=selected cell]
          * A cell (td or th) within the table.
@@ -599,7 +870,11 @@ define(['jquery'], function($) {
                 var $tr;
                 var cellCount;
                 $tr = $(this);
-                cellCount = $tr.find('> td, > th').length;
+                cellCount = 0;
+                $tr.find('> td, > th').each(function(cellIndex, cell) {
+                    cellCount += cell.colSpan;
+                });
+                // cellCount = $tr.find('> td, > th').length;
                 count = Math.max(count, cellCount);
             });
             
@@ -611,29 +886,21 @@ define(['jquery'], function($) {
          * Normalize all the rows in a table so they have same number of cells
          * and are not missing any columns.
          *
-         * NOTE: does not support COLSPAN attributes.
-         *
-         * @param {Object} options
-         * A set of key/value pairs to set options.
-         *
-         * @param {Element} [options.cell=selected cell]
-         * A cell (td or th) within the table.
+         * @param {Element} [table=selected cell]
+         * The table to normalize, or a cell (td or th) within the table.
          * If not specified, defaults to the last clicked cell.
          */
-        colNormalize: function(options) {
-            var $cell;
+        tableNormalize: function(table) {
             var colCount;
             var self;
             var $table;
             self = this;
-            options = options || {};
-            $cell = options.cell ? $(options.cell) : self.selectedGet();
-
-            // Get total number of columns across the entire table
-            colCount = self.colCount($cell);
+            $table = $(table || self.selectedGet()).closest('table');
             
-            $table = $cell.closest('table');
-            $table.find('> * > tr').each(function() {
+            // Get total number of columns across the entire table
+            colCount = self.colCount($table);
+            
+            $table.find('> * > tr').each(function(rowIndex, tr) {
                 var i;
                 var $tds;
                 var $tr;
@@ -642,9 +909,12 @@ define(['jquery'], function($) {
 
                 // If this row is missing cells add them first
                 for (i = $tds.length; i < colCount; i++) {
-                    $tr.append( self.cellCreate() );
+                    // Determine if this cell is covered by a rowspan from a previous row
+                    if (!self.matrix[rowIndex][i]) {
+                        // There is no cell for this row,col so create one
+                        $tr.append( self.cellCreate() );
+                    }
                 }
-                
             });
         },
 
@@ -777,6 +1047,169 @@ define(['jquery'], function($) {
             // Remove any empty 'class' attributes because jquery leaves those around after setting and removing the active classes
             $cloned.find('[class=""]').removeAttr('class');
             return options.html ? $cloned.html() : self.$table;
+        },
+        
+        
+        /**
+         * Analyze the table, and update data structures to represent the table cells
+         * to account for COLSPAN and ROWSPAN attributes.
+         * These data structures will be used by other functions to locate cells by row and column:
+         *
+         * self.matrix = an array where you can start from the calculated (row,col) position and
+         * find the cell that corresponds to that position.
+         * 
+         * self.lookup = an object where you can take a cell's (row,col), and find
+         * the calculated (col) position which accounts for ROWSPAN.
+         * For example, for '<tr><td>First</td><td>Second</td></tr>', if you take the second cell,
+         * and pass in the position row:2, col:2, then look it up using self.lookup[2][2], that
+         * would give you the calculated column (which might be (2) because of a ROWSPAN on
+         * other cells).
+         *
+         * @param {Element|jQuery} [table]
+         * The table to analyze. If not specified uses the main table of the editor.
+         * However since the table editor supports nested tables, the table should be specified.
+         */
+        tableAnalyze: function(table) {
+            
+            var lookup;
+            var matrix;
+            var self;
+            var $table;
+            self = this;
+            $table = $(table || self.$table);
+            
+            // Create a matrix to start from a calculated row/column and lead to a cell.
+            self.matrix = matrix = [];
+            
+            // Create a lookup table to start from a (row/col) and lead to a calculated (row/col) 
+            self.lookup = lookup = {};
+            
+            // Loop through all the rows in the table
+            $table.find('> * > tr').each(function(rowIndex, tr){
+                
+                // Create new row in the lookup table
+                lookup[rowIndex] = [];
+                
+                // Loop through all the cells in the row
+                $.each(tr.cells, function(cellIndex, cell) {
+                    
+                    var rowSpan;
+                    var colFirst;
+                    var colSpan;
+                    var k;
+                    var l;
+                    
+                    rowSpan = cell.rowSpan || 1;
+                    colSpan = cell.colSpan || 1;
+                    
+                    // Initalize the matrix in this row if needed.
+                    if(!matrix[rowIndex]) {
+                        matrix[rowIndex] = [];
+                    }
+                    
+                    // Find next available column in this row
+                    // This will account for a rowspan carried over from previous row
+                    for (k = 0; k < matrix[rowIndex].length + 1; k++) {
+                        if (! matrix[rowIndex][k]) {
+                            colFirst = k;
+                            break;
+                        }
+                    }
+                    
+                    // Save the calculated column in the lookup table
+                    lookup[rowIndex][cellIndex] = colFirst;
+
+                    // Create a matrix entry for each row that this cell covers.
+                    // If the cell has a ROWSPAN then create an entry for this row
+                    // plus additional rows.
+                    for (k = rowIndex; k < rowIndex + rowSpan; k++) {
+                        
+                        // Create a row in the matrix if it doesn't exist already
+                        if (!matrix[k]) {
+                            matrix[k] = [];
+                        }
+                        
+                        // If the cell has a COLSPAN then create an entry for this column
+                        // plus additional columns
+                        for (l = colFirst; l < colFirst + colSpan; l++) {
+                            matrix[k][l] = cell ; // {cell: cell, rowIndex: rowIndex};
+                        }
+                    }
+                }); // each cell
+            }); // each TR
+        },
+        
+
+        /**
+         * Given a table cell, return the (row,col) within the table.
+         * Note this does not account for ROWSPAN and COLSPAN.
+         * @param  {Element|jQuery} cell A table cell (TD or TH element).
+         * @return {Object} An object containing (row,col) numbers.
+         */
+        lookupPos: function(cell) {
+            
+            // In case cell was passed in as jquery, convert back to an element
+            cell = $(cell)[0];
+            
+            return {row: cell.parentNode.rowIndex, col: cell.cellIndex};
+        },
+        
+        
+        /**
+         * Given a table cell, return the computed (row,col) within the table.
+         * Note you must call tableAnalyze() to set up the lookup tables before calling this function.
+         * @param  {Element|jQuery} cell Table cell.
+         * @return {Object} An object containing {row,col} numbers.
+         */
+        lookupPosComputed: function(cell) {
+            var pos;
+            var self;
+            self = this;
+            
+            // In case cell was passed in as jquery, convert back to an element
+            cell = $(cell)[0];
+            
+            pos = {};
+            
+            // Start with the row,col based on the HTML
+            pos = self.lookupPos(cell);
+            
+            // Look up the calculated column to account for any ROWSPAN on previous rows
+            if (self.lookup[pos.row]) {
+                pos.col = self.lookup[pos.row][pos.col];
+            }
+            
+            return pos;
+        },
+        
+        
+        /**
+         * Given a (row,col) in the table, return the corresponding table cell.
+         * Note the (row,col) must be computed - already accounting for any
+         * ROWSPAN or COLSPAN.
+         * Note you must call tableAnalyze() to set up the lookup tables before calling this function.
+         * 
+         * @param  {Number} row The table cell row.
+         * @param  {Number} col The table cell column.
+         * @return {Element} The table cell element, or undefined.
+         */
+        lookupCellComputed: function(row, col) {
+            var self;
+            self = this;
+            return self.matrix[row] ? self.matrix[row][col] : undefined;
+        },
+
+
+        /**
+         * Given a (row,col) position where you want to insert a cell,
+         * this function returns the previous cell so you can insert the new cell after it.
+         * @param  {[type]} row [description]
+         * @param  {[type]} col [description]
+         * @return {Element} The element of the previous cell (so you can insert after it),
+         * or undefined if the new cell should be added to the front of the row.
+         */
+        lookupInsertion: function(row,col) {
+            
         },
         
         
