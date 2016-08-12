@@ -1003,7 +1003,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             "data-schedule-label", scheduleLabel,
                                             "name", "publishDate",
                                             "size", 9,
-                                            "value", publishDate != null ? publishDate.toString("yyyy-MM-dd HH:mm:ss") : "");
+                                            "value", publishDate != null ? publishDate.getMillis() : null);
                                 }
 
                                 wp.writeStart("button",
