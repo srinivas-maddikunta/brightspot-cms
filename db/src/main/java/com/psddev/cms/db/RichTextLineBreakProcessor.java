@@ -207,7 +207,7 @@ public class RichTextLineBreakProcessor implements RichTextProcessor {
             }
         }
 
-        Map<String, ObjectType> tagTypes = RichTextElement.getTagTypes();
+        Map<String, ObjectType> tagTypes = RichTextElement.getConcreteTagTypes();
 
         // <p>before [enh] after</p> -> <p>before</p> [enh] <p>after</p>
         for (Element enhancement : tagTypes.keySet()

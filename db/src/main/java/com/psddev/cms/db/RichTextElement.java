@@ -11,11 +11,13 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.slf4j.LoggerFactory;
 
 public abstract class RichTextElement extends Record {
 
@@ -44,13 +46,26 @@ public abstract class RichTextElement extends Record {
      *
      * @return A Map of RichTextElement tag name to the ObjectType that defined it.
      */
-    public static Map<String, ObjectType> getTagTypes() {
-        return ObjectType.getInstance(RichTextElement.class)
-                .findConcreteTypes()
-                .stream()
-                .collect(Collectors.toMap(
-                        type -> type.as(ToolUi.class).getRichTextElementTagName(),
-                        Function.identity()));
+    public static Map<String, ObjectType> getConcreteTagTypes() {
+
+        Map<String, ObjectType> tagTypes = new LinkedHashMap<>();
+
+        ObjectType.getInstance(RichTextElement.class).findConcreteTypes().forEach(type -> {
+
+            String tagName = type.as(ToolUi.class).getRichTextElementTagName();
+
+            if (tagName != null && type.getObjectClass() != null) {
+
+                ObjectType existingType = tagTypes.putIfAbsent(tagName, type);
+                if (existingType != null) {
+                    LoggerFactory.getLogger(RichTextElement.class).warn(String.format(
+                            "Ignoring RichTextElement [%s] with conflicting tag name [%s] as [%s].",
+                            type.getInternalName(), tagName, existingType.getInternalName()));
+                }
+            }
+        });
+
+        return tagTypes;
     }
 
     @Documented
