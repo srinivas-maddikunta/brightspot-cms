@@ -34,7 +34,7 @@ wp.writeStart("div", "class", "inputSmall");
             "class", "date",
             "name", inputName,
             "placeholder", field.as(ToolUi.class).getPlaceholder(),
-            "value", fieldValue != null ? fieldValue.getTime() : null);
+            "value", fieldValue != null ? (fieldValue.getTime() / 1000L) * 1000L : null);
 
     wp.writeElement("input",
             "type", "hidden",
