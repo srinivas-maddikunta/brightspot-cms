@@ -499,9 +499,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                                 wp.writeStart("div", "class", "contentDiffCurrent " + (history != null ? "contentDiffRight" : "contentDiffLeft"));
                                     wp.writeStart("h2");
-                                        wp.writeHtml(wp.localize(
-                                                editingState.getType(),
-                                                !visible ? "subtitle.initialDraft" : "subtitle.live"));
+                                        wp.writeHtml(wp.localize(editingState.getType(), "subtitle.current"));
                                     wp.writeEnd();
                                     wp.writeSomeFormFields(original.getOriginalObject(), true, null, null);
                                 wp.writeEnd();
