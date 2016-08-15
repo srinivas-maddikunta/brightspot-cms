@@ -2,6 +2,6 @@
   "name": "${artifactId}",
   "private": true,
   "dependencies": {
-    "brightspot-base": "perfectsense/brightspot-base#release/3.0"
+    "brightspot-base": "perfectsense/brightspot-base#v3.0.1221-cf2d73"
   }
 }
