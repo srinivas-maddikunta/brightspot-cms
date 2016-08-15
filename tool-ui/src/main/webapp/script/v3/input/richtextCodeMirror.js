@@ -2239,8 +2239,17 @@ define([
             // If this is a set of mutually exclusive styles, clear the other styles
             if (styleObj.clear) {
                 $.each(styleObj.clear, function(i, styleKey) {
-                    if (self.blockIsStyle(styleKey, range)) {
-                        self.blockRemoveStyle(styleKey, range);
+                    var lineNumber;
+                    var lineRange;
+
+                    for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
+                        lineRange = {
+                            from: {line: lineNumber, ch:0},
+                            to: {line: lineNumber, ch:0}
+                        };
+                        if (self.blockIsStyle(styleKey, lineRange)) {
+                            self.blockRemoveStyle(styleKey, lineRange);
+                        }
                     }
                 });
             }
