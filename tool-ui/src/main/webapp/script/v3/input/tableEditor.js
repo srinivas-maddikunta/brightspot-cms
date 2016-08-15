@@ -593,9 +593,9 @@ define(['jquery'], function($) {
                 if (!cellBelow) {
                     return;
                 }
-                
+
+                self.mergeContents($cell, $(cellBelow));
                 $cell.attr('rowspan', rowspan + cellBelow.rowSpan);
-                $cell.append('<br/>').append($(cellBelow).contents());
                 $(cellBelow).remove();
             }
         },
@@ -754,7 +754,7 @@ define(['jquery'], function($) {
                 }
 
                 $cell.attr('colspan', colspan + cellRight.colSpan);
-                $cell.append('<br/>').append($(cellRight).contents());
+                self.mergeContents($cell, $(cellRight));
                 $(cellRight).remove();
             }
         },
@@ -1240,6 +1240,47 @@ define(['jquery'], function($) {
             }
             
             return status;
+        },
+        
+        
+        /**
+         * Merge the contents of one cell into another.
+         * Adds a newline if both cells have existing content.
+         * @param  {Element|jQuery} $cell
+         * The cell that will remain after the merge.
+         * @param  {Element|jQuery} $cellToMerge
+         * The cell to be merged (which will be removed after the merge).
+         */
+        mergeContents($cell, $cellToMerge) {
+            var html;
+            var htmlToMerge;
+            var re;
+            
+            // In case a plain element is passed in convert to jQuery
+            $cell = $($cell);
+            $cellToMerge = $($cellToMerge);
+            
+            // Get the content of the cells so we can check if it is empty
+            html = $cell.html();
+            htmlToMerge = $cellToMerge.html();
+            
+            // Check if the cell is empty (contains just space)
+            re = /^\s*$|^&nbsp;$/;
+            html = html.replace(re, '');
+            htmlToMerge = htmlToMerge.replace(re, '');
+
+            if (htmlToMerge) {
+                if (html) {
+                    // If both cells contain content, then make sure we get a line break between
+                    $cell.append('<br/>')
+                } else {
+                    // If original cell is empty, remove spaces if necessary
+                    $cell.empty();
+                }
+                
+                // Move the content of the merged cell into the original cell
+                $cell.append( $cellToMerge.contents() );
+            }
         },
         
         
