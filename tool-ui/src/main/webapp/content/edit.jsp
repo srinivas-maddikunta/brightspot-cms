@@ -186,11 +186,12 @@ if (copy != null) {
     }
 }
 
+State editingState = State.getInstance(editing);
+
 // When a copy is specified as part of a POST, overlay the editingState on top of
 // the copyState to retain non-displaying State values from the original copy.
-if (wp.isFormPost() && copy != null) {
+if (wp.isFormPost() && copy != null && editingState.isNew()) {
 
-    State editingState = State.getInstance(editing);
     State copyState = State.getInstance(Copyable.copy(copy));
 
     if (site != null
@@ -221,7 +222,7 @@ if (wp.tryDelete(editing) ||
 
 // Only copy on a GET request to the page.  Subsequent POSTs should not overwrite
 // the editing state with the copy source state again.
-if (!wp.isFormPost() && copy != null) {
+if (!wp.isFormPost() && copy != null && editingState.isNew()) {
 
     state = State.getInstance(Copyable.copy(copy));
 
@@ -239,7 +240,6 @@ if (!wp.isFormPost() && copy != null) {
 History history = wp.getOverlaidHistory(editing);
 Draft draft = wp.getOverlaidDraft(editing);
 Set<ObjectType> compatibleTypes = ToolUi.getCompatibleTypes(State.getInstance(editing).getType());
-State editingState = State.getInstance(editing);
 ToolUser user = wp.getUser();
 ContentLock contentLock = null;
 boolean lockedOut = false;
