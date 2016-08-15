@@ -500,7 +500,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                 wp.writeStart("div", "class", "contentDiffCurrent " + (history != null ? "contentDiffRight" : "contentDiffLeft"));
                                     wp.writeStart("h2");
                                         wp.writeHtml(wp.localize(
-                                                "com.psddev.cms.tool.page.content.Edit",
+                                                editingState.getType(),
                                                 !visible ? "subtitle.initialDraft" : "subtitle.live"));
                                     wp.writeEnd();
                                     wp.writeSomeFormFields(original.getOriginalObject(), true, null, null);
@@ -1051,8 +1051,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                         wp.writeStart("a",
                                                 "class", "icon icon-arrow-left",
                                                 "href", wp.url("", "draftId", null));
-                                            wp.writeHtml("Back to ");
-                                            wp.writeHtml(!visible ? "Initial Draft" : "Live");
+                                            wp.writeHtml(wp.localize(editingState.getType(),
+                                                    !visible ? "action.backToInitialDraft" : "action.backToLive"));
                                         wp.writeEnd();
                                     wp.writeEnd();
                                 }
