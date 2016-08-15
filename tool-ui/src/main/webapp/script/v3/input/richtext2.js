@@ -181,12 +181,14 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                                 // Update the link attributes
                                 mark.attributes = attributes;
                             }
+                            self.rte.triggerChange();
                         }).fail(function(){
 
                             // If the popup was closed without saving and there is no href already the link,
                             // then remove the link.
                             if (!mark.attributes) {
                                 mark.clear();
+                                self.rte.triggerChange();
                             }
                         });
                         
