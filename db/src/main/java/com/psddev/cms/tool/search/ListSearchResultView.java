@@ -194,7 +194,7 @@ public class ListSearchResultView extends AbstractSearchResultView {
                                 "type", "checkbox",
                                 "class", "searchResult-checkAll",
                                 "value", "",
-                                "data-frame-target", "searchResultActions",
+                                "data-frame-target", search.createFrameName("SearchResultActions"),
                                 "data-frame-check", StringUtils.addQueryParameters(selectAllUrl, SearchResultActions.ACTION_PARAMETER, SearchResultActions.ACTION_ADD),
                                 "data-frame-uncheck", StringUtils.addQueryParameters(selectAllUrl, SearchResultActions.ACTION_PARAMETER, SearchResultActions.ACTION_REMOVE));
                     page.writeEnd();

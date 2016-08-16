@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.google.common.base.Preconditions;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Draft;
@@ -121,6 +122,8 @@ public class Search extends Record {
     private int limit;
     private Set<UUID> newItemIds;
     private boolean ignoreSite;
+
+    private transient String frameNameSuffix;
 
     public Search() {
     }
@@ -417,6 +420,24 @@ public class Search extends Record {
 
     public void setIgnoreSite(boolean ignoreSite) {
         this.ignoreSite = ignoreSite;
+    }
+
+    /**
+     * Creates a unique frame name that starts with the given {@code prefix}.
+     *
+     * @param prefix
+     *        Can't be {@code null}.
+     *
+     * @return Never {@code null}.
+     */
+    public String createFrameName(String prefix) {
+        Preconditions.checkNotNull(prefix);
+
+        if (ObjectUtils.isBlank(frameNameSuffix)) {
+            frameNameSuffix = UUID.randomUUID().toString().replace("-", "");
+        }
+
+        return prefix + "-" + frameNameSuffix;
     }
 
     public Set<ObjectType> findValidTypes() {
@@ -1281,7 +1302,7 @@ public class Search extends Record {
                 page.writeEnd();
 
                 if (viewWritten) {
-                    page.writeStart("div", "class", "frame searchResult-actions", "name", "searchResultActions");
+                    page.writeStart("div", "class", "frame searchResult-actions", "name", createFrameName("SearchResultActions"));
                         page.writeStart("a",
                                 "href", page.toolUrl(CmsTool.class, "/searchResultActions",
                                         "search", ObjectUtils.toJson(getState().getSimpleValues())));
