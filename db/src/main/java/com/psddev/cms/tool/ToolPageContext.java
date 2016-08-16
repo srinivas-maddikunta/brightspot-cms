@@ -3378,12 +3378,22 @@ public class ToolPageContext extends WebPageContext {
             Draft draft = getOverlaidDraft(object);
 
             if (draft != null) {
+                Map<String, Object> diffs = draft.getDifferences().get(state.getId().toString());
+
+                if (diffs != null) {
+                    diffs.remove("cms.content.scheduleDate");
+                }
+
                 Schedule schedule = draft.getSchedule();
 
                 if (schedule != null
                         && ObjectUtils.isBlank(schedule.getName())) {
+
                     if (draft.isNewContent()) {
                         draft.delete();
+
+                    } else {
+                        draft.save();
                     }
 
                     schedule.delete();
