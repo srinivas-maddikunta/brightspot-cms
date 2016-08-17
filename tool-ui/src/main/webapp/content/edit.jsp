@@ -186,11 +186,12 @@ if (copy != null) {
     }
 }
 
+State editingState = State.getInstance(editing);
+
 // When a copy is specified as part of a POST, overlay the editingState on top of
 // the copyState to retain non-displaying State values from the original copy.
-if (wp.isFormPost() && copy != null) {
+if (wp.isFormPost() && copy != null && editingState.isNew()) {
 
-    State editingState = State.getInstance(editing);
     State copyState = State.getInstance(Copyable.copy(copy));
 
     if (site != null
@@ -221,7 +222,7 @@ if (wp.tryDelete(editing) ||
 
 // Only copy on a GET request to the page.  Subsequent POSTs should not overwrite
 // the editing state with the copy source state again.
-if (!wp.isFormPost() && copy != null) {
+if (!wp.isFormPost() && copy != null && editingState.isNew()) {
 
     state = State.getInstance(Copyable.copy(copy));
 
@@ -239,7 +240,6 @@ if (!wp.isFormPost() && copy != null) {
 History history = wp.getOverlaidHistory(editing);
 Draft draft = wp.getOverlaidDraft(editing);
 Set<ObjectType> compatibleTypes = ToolUi.getCompatibleTypes(State.getInstance(editing).getType());
-State editingState = State.getInstance(editing);
 ToolUser user = wp.getUser();
 ContentLock contentLock = null;
 boolean lockedOut = false;
@@ -499,9 +499,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                                 wp.writeStart("div", "class", "contentDiffCurrent " + (history != null ? "contentDiffRight" : "contentDiffLeft"));
                                     wp.writeStart("h2");
-                                        wp.writeHtml(wp.localize(
-                                                "com.psddev.cms.tool.page.content.Edit",
-                                                !visible ? "subtitle.initialDraft" : "subtitle.live"));
+                                        wp.writeHtml(wp.localize(editingState.getType(), "subtitle.current"));
                                     wp.writeEnd();
                                     wp.writeSomeFormFields(original.getOriginalObject(), true, null, null);
                                 wp.writeEnd();
@@ -1003,7 +1001,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                             "data-schedule-label", scheduleLabel,
                                             "name", "publishDate",
                                             "size", 9,
-                                            "value", publishDate != null ? publishDate.toString("yyyy-MM-dd HH:mm:ss") : "");
+                                            "value", publishDate != null ? publishDate.getMillis() : null);
                                 }
 
                                 wp.writeStart("button",
@@ -1051,8 +1049,8 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                         wp.writeStart("a",
                                                 "class", "icon icon-arrow-left",
                                                 "href", wp.url("", "draftId", null));
-                                            wp.writeHtml("Back to ");
-                                            wp.writeHtml(!visible ? "Initial Draft" : "Live");
+                                            wp.writeHtml(wp.localize(editingState.getType(),
+                                                    !visible ? "action.backToInitialDraft" : "action.backToLive"));
                                         wp.writeEnd();
                                     wp.writeEnd();
                                 }

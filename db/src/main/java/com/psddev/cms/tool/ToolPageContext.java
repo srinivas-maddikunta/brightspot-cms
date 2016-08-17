@@ -46,6 +46,8 @@ import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.WorkInProgress;
+import com.psddev.cms.rte.RichTextToolbar;
+import com.psddev.cms.rte.RichTextToolbarItem;
 import com.psddev.cms.tool.page.content.Edit;
 import com.psddev.cms.view.ClassResourceViewTemplateLoader;
 import com.psddev.cms.view.ViewModelCreator;
@@ -1422,6 +1424,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", site != null ? site.getCmsCssClass() : null,
                 "data-user-id", user != null ? user.getId() : null,
                 "data-user-label", user != null ? user.getLabel() : null,
+                "data-time-zone", getUserDateTimeZone().getID(),
                 "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag());
             writeStart("head");
                 writeStart("title");
@@ -1821,6 +1824,23 @@ public class ToolPageContext extends WebPageContext {
             commonTimes.add(commonTimeMap);
         }
 
+        Map<String, List<Map<String, Object>>> richTextToolbars = ClassFinder.findConcreteClasses(RichTextToolbar.class).stream()
+                .collect(Collectors.toMap(
+                        Class::getName,
+                        c -> {
+                            RichTextToolbar toolbar = TypeDefinition.getInstance(c).newInstance();
+                            List<RichTextToolbarItem> items = toolbar.getItems();
+
+                            if (items != null) {
+                                return items.stream()
+                                        .map(RichTextToolbarItem::toMap)
+                                        .collect(Collectors.toList());
+
+                            } else {
+                                return Collections.emptyList();
+                            }
+                        }));
+
         List<Map<String, Object>> richTextElements = new ArrayList<>();
 
         Map<String, Set<String>> contextMap = new HashMap<>();
@@ -1992,6 +2012,7 @@ public class ToolPageContext extends WebPageContext {
             write("var RTE_ENABLE_ANNOTATIONS = ", getCmsTool().isEnableAnnotations(), ';');
             write("var DISABLE_TOOL_CHECKS = ", getCmsTool().isDisableToolChecks(), ';');
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
+            write("var RICH_TEXT_TOOLBARS = ", ObjectUtils.toJson(richTextToolbars), ';');
             write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
             write("var ENABLE_PADDED_CROPS = ", getCmsTool().isEnablePaddedCrop(), ';');
             write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ",
@@ -3377,12 +3398,22 @@ public class ToolPageContext extends WebPageContext {
             Draft draft = getOverlaidDraft(object);
 
             if (draft != null) {
+                Map<String, Object> diffs = draft.getDifferences().get(state.getId().toString());
+
+                if (diffs != null) {
+                    diffs.remove("cms.content.scheduleDate");
+                }
+
                 Schedule schedule = draft.getSchedule();
 
                 if (schedule != null
                         && ObjectUtils.isBlank(schedule.getName())) {
+
                     if (draft.isNewContent()) {
                         draft.delete();
+
+                    } else {
+                        draft.save();
                     }
 
                     schedule.delete();
