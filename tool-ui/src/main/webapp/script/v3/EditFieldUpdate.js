@@ -196,7 +196,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
                 }
             }
 
-            rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
+            rtc.initialize('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
                 contentId: contentId
             }, update);
 

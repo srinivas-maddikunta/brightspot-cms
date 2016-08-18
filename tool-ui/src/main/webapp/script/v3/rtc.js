@@ -210,8 +210,12 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     }
   });
 
+  var pushId = 0;
+
   function push(restore, data) {
-    localStorage.setItem(PUSH_KEY_PREFIX + $.now(), JSON.stringify({
+    ++ pushId;
+
+    localStorage.setItem(PUSH_KEY_PREFIX + $.now() + pushId, JSON.stringify({
       restore: restore,
       data: data
     }));
@@ -223,21 +227,29 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     }
   });
 
-  return {
-    restore: function(state, data, callback) {
-      restoreCallbacks[state] = callback;
+  function initialize(state, data, callback) {
+    restoreCallbacks[state] = callback;
 
-      push(true, {
-        type: 'restore',
-        className: state,
-        data: data
-      });
+    push(true, {
+      type: 'restore',
+      className: state,
+      data: data
+    });
+  }
+
+  return {
+    initialize: function (state, data, callback) {
+      initialize(state, data, callback);
 
       closes.push({
         type: 'close',
         className: state,
         data: data
       });
+    },
+
+    restore: function(state, data, callback) {
+      initialize(state, data, callback);
     },
 
     receive: function(broadcast, callback) {
