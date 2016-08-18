@@ -236,16 +236,16 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
   return {
     initialize: function (state, data, callback) {
       initialize(state, data, callback);
-    },
-
-    restore: function(state, data, callback) {
-      initialize(state, data, callback);
 
       closes.push({
         type: 'close',
         className: state,
         data: data
       });
+    },
+
+    restore: function(state, data, callback) {
+      initialize(state, data, callback);
     },
 
     receive: function(broadcast, callback) {
