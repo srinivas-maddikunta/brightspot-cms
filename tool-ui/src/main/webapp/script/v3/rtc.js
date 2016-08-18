@@ -223,15 +223,23 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     }
   });
 
-  return {
-    restore: function(state, data, callback) {
-      restoreCallbacks[state] = callback;
+  function initialize(state, data, callback) {
+    restoreCallbacks[state] = callback;
 
-      push(true, {
-        type: 'restore',
-        className: state,
-        data: data
-      });
+    push(true, {
+      type: 'restore',
+      className: state,
+      data: data
+    });
+  }
+
+  return {
+    initialize: function (state, data, callback) {
+      initialize(state, data, callback);
+    },
+
+    restore: function(state, data, callback) {
+      initialize(state, data, callback);
 
       closes.push({
         type: 'close',
