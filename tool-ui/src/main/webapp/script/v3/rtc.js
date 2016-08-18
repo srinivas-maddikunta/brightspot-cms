@@ -1,6 +1,9 @@
 define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, tabex, atmosphere) {
   if (DISABLE_RTC) {
     return {
+      initialize: function () {
+      },
+
       restore: function () {
       },
 
