@@ -650,6 +650,9 @@ public class ToolUi extends Modification<Object> {
         Boolean sortable = getSortable();
 
         if (sortable != null) {
+            if (Boolean.TRUE.equals(sortable) && !isSortAscending() && !isSortDescending()) {
+                return false;
+            }
             return sortable;
         }
 
