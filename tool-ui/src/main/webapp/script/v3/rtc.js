@@ -210,8 +210,12 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     }
   });
 
+  var pushId = 0;
+
   function push(restore, data) {
-    localStorage.setItem(PUSH_KEY_PREFIX + $.now(), JSON.stringify({
+    ++ pushId;
+
+    localStorage.setItem(PUSH_KEY_PREFIX + $.now() + pushId, JSON.stringify({
       restore: restore,
       data: data
     }));
