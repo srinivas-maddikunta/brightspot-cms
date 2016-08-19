@@ -6712,7 +6712,11 @@ define([
                 }
 
                 // Now add the html for the beginning of the line.
-                html += htmlStartOfLine;
+                if (htmlStartOfLine) {
+                    // Kill the last <br> since it's not needed before a block element
+                    html = html.replace(/<br\/?>$/, '');
+                    html += htmlStartOfLine;
+                }
                 
                 // Get the start/end points of all the marks on this line
                 // For these objects the key is the character number,
@@ -7370,9 +7374,8 @@ define([
                             // Determine if the element maps to one of our defined styles
                             matchStyleObj = self.getStyleForElement(next);
                             
-                            // Create new line if this is a block element and the previous text did not end the line.
-                            if (matchStyleObj && matchStyleObj.line && val[ val.length - 1 ] !== '\n') {
-                                // Note in this case, when exporting HTML a <br/> element will be added.
+                            // Create new line if this is a block element
+                            if (matchStyleObj && matchStyleObj.line) {
                                 val += '\n';
                             }
                         }
