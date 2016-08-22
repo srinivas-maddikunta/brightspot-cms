@@ -3399,6 +3399,8 @@ define([
             self = this;
             editor = self.codeMirror;
             list = [];
+            
+            // Get all the block enhancements
             lineHandle = editor.getLineHandle(lineNumber);
             if (lineHandle && lineHandle.widgets) {
                 $.each(lineHandle.widgets, function(i,widget) {
@@ -3411,6 +3413,18 @@ define([
                     }
                 });
             }
+            
+            // Get all the enhancements that are align left and right
+            $.each(self.enhancementCache, function(i, mark) {
+                
+                // Make sure this is not a block enhancement
+                if (mark && mark.options && mark.options.block === false) {
+                    if (self.enhancementGetLineNumber(mark) === lineNumber) {
+                        list.push(mark);
+                    }
+                }
+            });
+            
             return list;
         },
         
