@@ -1712,9 +1712,10 @@ public class ToolUi extends Modification<Object> {
 
         @Override
         public void process(ObjectType type, ObjectField field, Sortable annotation) {
-            field.as(ToolUi.class).setSortable(annotation.value());
-            field.as(ToolUi.class).setSortAscending(annotation.ascending());
-            field.as(ToolUi.class).setSortDescending(annotation.descending());
+            ToolUi ui = field.as(ToolUi.class);
+            ui.setSortable(annotation.value());
+            ui.setSortAscending(annotation.ascending());
+            ui.setSortDescending(annotation.descending());
         }
     }
 

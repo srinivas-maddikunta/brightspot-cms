@@ -173,6 +173,7 @@ public abstract class AbstractSearchResultView implements SearchResultView {
                             if (value.endsWith(Search.ASCENDING_SORT_VALUE_SUFFIX)) {
                                 page.writeHtml(" " + page.localize(
                                         AbstractSearchResultView.class, "sort.ascending"));
+
                             } else if (value.endsWith(Search.DESCENDING_SORT_VALUE_SUFFIX)) {
                                 page.writeHtml(" " + page.localize(
                                         AbstractSearchResultView.class, "sort.descending"));
