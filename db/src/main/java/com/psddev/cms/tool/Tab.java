@@ -3,7 +3,7 @@ package com.psddev.cms.tool;
 import java.io.IOException;
 
 /**
- * Custom tab display within {@link ToolPageContext#writeSomeFormFields}.
+ * Tab display within {@link ToolPageContext#writeSomeFormFields}.
  */
 public interface Tab {
 
@@ -15,15 +15,15 @@ public interface Tab {
     String getDisplayName();
 
     /**
-     * Returns {@code true} if the custom tab should be displayed for the
-     * given {@code content}.
+     * Returns {@code true} if the tab should be displayed for the given
+     * {@code content}.
      *
      * @param content Nonnull.
      */
     boolean shouldDisplay(Object content);
 
     /**
-     * Writes the custom tab display to the given {@code page} for the given
+     * Writes the tab display to the given {@code page} for the given
      * {@code content}.
      *
      * @param page Nonnull.
