@@ -346,6 +346,26 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     }
 
                 }
+            },
+            
+            'adobeReader': {
+                // Adobe Reader pastes html that is mostly junk: each word is surrounded by a P element.
+                // The best we can do is put a space between each word and output all words without line breaks.
+                isType: function(content, html) {
+                    return Boolean(html && html.indexOf('Cocoa HTML Writer') !== -1);
+                },
+                
+                rules: {
+                    'p': function($el) {
+                        var $replacement;
+                        $replacement = $('<span>');
+                        $replacement.append( $el.contents() );
+                        if ($el.is(':not(:last-child)')) {
+                            $replacement.append(' ');
+                        }
+                        $el.replaceWith( $replacement );
+                    }
+                }
             }
         },
 
