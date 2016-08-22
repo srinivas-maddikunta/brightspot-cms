@@ -3,24 +3,31 @@ package com.psddev.cms.tool;
 import java.io.IOException;
 
 /**
- * Interface for displaying a custom Tab through {@link ToolPageContext)}
+ * Custom tab display within {@link ToolPageContext#writeSomeFormFields}.
  */
 public interface Tab {
+
     /**
-     * @return Never {@code null}.
+     * Returns the display name.
+     *
+     * @return Nonnull.
      */
     String getDisplayName();
 
     /**
-     * @param content Can't be {@code null}
-     * @return Never {@code null}.
+     * Returns {@code true} if the custom tab should be displayed for the
+     * given {@code content}.
+     *
+     * @param content Nonnull.
      */
     boolean shouldDisplay(Object content);
 
     /**
-     * @param page Can't be {@code null}
-     * @param content Can't be {@code null}
-     * @throws IOException if unable to write to the given {@code page}.
+     * Writes the custom tab display to the given {@code page} for the given
+     * {@code content}.
+     *
+     * @param page Nonnull.
+     * @param content Nonnull.
      */
     void writeHtml(ToolPageContext page, Object content) throws IOException;
 }
