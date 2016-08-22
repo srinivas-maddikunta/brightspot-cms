@@ -2933,6 +2933,15 @@ public class ToolPageContext extends WebPageContext {
                             request.setAttribute("finalDraft", null);
                         }
                     }
+
+                    for (Class<? extends Tab> t : ClassFinder.findConcreteClasses(Tab.class)) {
+                        Tab tab = TypeDefinition.getInstance(t).newInstance();
+                        if (tab.shouldDisplay(object)) {
+                            writeStart("div", "class", "Tab", "data-tab", tab.getDisplayName(), "data-tab-class", t.getName());
+                            tab.writeHtml(this, object);
+                            writeEnd();
+                        }
+                    }
                 }
             writeEnd();
 
