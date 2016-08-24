@@ -2794,7 +2794,8 @@ define([
 
             // Create DOM for the preview HTML
             $preview = $('<div>', {
-                'class': 'rte2-block-preview'
+                'class': 'rte2-block-preview',
+                'data-style-key': styleKey
             }).html(previewHTML);
 
             if (attributes) {
