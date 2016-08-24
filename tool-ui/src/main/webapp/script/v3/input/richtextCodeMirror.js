@@ -2800,7 +2800,7 @@ define([
 
             if (attributes) {
                 $.each(attributes, function (key, value) {
-                    $preview.attr(key, value);
+                    $preview.attr('data-attr-' + key, value);
                 });
             }
 
