@@ -2771,8 +2771,9 @@ define([
          * @param {String} styleKey
          * @param {Number} lineNumber
          * @param {String} previewHTML
+         * @param {Object} attributes
          */
-        blockSetPreview: function(styleKey, lineNumber, previewHTML) {
+        blockSetPreview: function(styleKey, lineNumber, previewHTML, attributes) {
             
             var data;
             var editor;
@@ -2793,8 +2794,15 @@ define([
 
             // Create DOM for the preview HTML
             $preview = $('<div>', {
-                'class': 'rte2-block-preview'
+                'class': 'rte2-block-preview',
+                'data-style-key': styleKey
             }).html(previewHTML);
+
+            if (attributes) {
+                $.each(attributes, function (key, value) {
+                    $preview.attr('data-attr-' + key, value);
+                });
+            }
 
             // Save the DOM node in the line data
             data.$preview = $preview;
@@ -2841,7 +2849,7 @@ define([
             range = mark.find();
             lineNumber = range.from.line;
             
-            return self.blockSetPreview(styleKey, lineNumber, previewHTML);
+            return self.blockSetPreview(styleKey, lineNumber, previewHTML, mark.attributes);
         },
 
 
