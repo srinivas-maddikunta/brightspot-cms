@@ -87,7 +87,9 @@ public class ToolUser extends Record implements ToolEntity {
     @ToolUi.Hidden
     private UUID currentPreviewId;
 
+    @ToolUi.TestSms
     private String phoneNumber;
+
     private Set<NotificationMethod> notifyVia;
 
     @ToolUi.Hidden

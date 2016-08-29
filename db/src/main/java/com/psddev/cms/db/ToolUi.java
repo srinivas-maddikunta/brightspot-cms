@@ -94,6 +94,7 @@ public class ToolUi extends Modification<Object> {
     private String tab;
     private String storageSetting;
     private String defaultSortField;
+    private Boolean testSms;
 
     public boolean isBulkUpload() {
         return Boolean.TRUE.equals(bulkUpload);
@@ -743,6 +744,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setMain(boolean main) {
         this.main = main;
+    }
+
+    public boolean isTestSms() {
+        return Boolean.TRUE.equals(testSms);
+    }
+
+    public void setTestSms(boolean testSms) {
+        this.testSms = testSms ? Boolean.TRUE : null;
     }
 
     /**
@@ -2022,6 +2031,26 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, DefaultSortField annotation) {
             type.as(ToolUi.class).setDefaultSortField(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies whether the target field should display the test sms option.
+     * Package private.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(TestSmsProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface TestSms {
+        boolean value() default true;
+    }
+
+    private static class TestSmsProcessor implements ObjectField.AnnotationProcessor<TestSms> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, TestSms annotation) {
+            field.as(ToolUi.class).setTestSms(annotation.value());
         }
     }
 
