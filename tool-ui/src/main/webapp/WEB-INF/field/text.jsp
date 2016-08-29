@@ -29,6 +29,7 @@ String inputName = (String) request.getAttribute("inputName");
 String placeholder = Edit.createPlaceholderText(wp, field);
 Number suggestedMinimum = ui.getSuggestedMinimum();
 Number suggestedMaximum = ui.getSuggestedMaximum();
+boolean testSms = ui.isEffectivelyTestSms();
 
 if ((Boolean) request.getAttribute("isFormPost")) {
     String newValue = wp.param(String.class, inputName);
@@ -54,6 +55,10 @@ if ((Boolean) request.getAttribute("isFormPost")) {
 }
 
 // --- Presentation ---
+
+if (testSms) {
+    wp.writeStart("div", "class", "phoneNumberWrapper");
+}
 
 wp.write("<div class=\"inputSmall inputSmall-text\">");
 
@@ -118,4 +123,15 @@ if (validValues != null) {
 }
 
 wp.write("</div>");
+
+if (testSms) {
+    wp.writeStart("button", "class", "smsButton"); {
+        wp.writeHtml("Send Test Message");
+    }
+    wp.writeEnd();
+    wp.writeStart("div", "class", "smsResponseText").writeEnd();
+
+    // phoneNumberWrapper.
+    wp.writeEnd();
+}
 %>

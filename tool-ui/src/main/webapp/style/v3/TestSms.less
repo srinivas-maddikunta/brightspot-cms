@@ -1,0 +1,41 @@
+.phoneNumberWrapper {
+  display: flex;
+
+  .inputSmall {
+    flex: auto;
+    margin-left: 5px;
+  }
+
+  ~ .inputWordCount {
+    right: 174.42px;
+  }
+}
+
+.smsButton {
+  margin-left: 5px;
+}
+
+.smsResponseText {
+  display: none;
+  font-size: 11px;
+  font-weight: bold;
+  margin-left: 5px;
+  padding-top: 6px;
+  text-align: center;
+  width: 163.42px;
+}
+
+.smsPendingResponse {
+  background: url(icon/ajax-loader.gif) no-repeat 50%;
+  display: block;
+}
+
+.smsErrorResponse {
+  color: #FF0000;
+  display: block;
+}
+
+.smsSuccessResponse {
+  color: #008000;
+  display: block;
+}
