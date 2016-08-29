@@ -28,6 +28,7 @@ import com.psddev.dari.db.ObjectMethod;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Reference;
 import com.psddev.dari.util.ObjectUtils;
+import com.psddev.dari.util.SmsProvider;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 
@@ -752,6 +753,23 @@ public class ToolUi extends Modification<Object> {
 
     public void setTestSms(boolean testSms) {
         this.testSms = testSms ? Boolean.TRUE : null;
+    }
+
+    /**
+     * Checks if a default {@link SmsProvider} exists, and disallows use of {@link TestSms} in
+     * conjunction with any other text Ui.
+     *
+     * @return {@code true} if default {@link SmsProvider} exists and {@link TestSms} is singular
+     * text Ui annotation, {@code false} otherwise.
+     */
+    public boolean isEffectivelyTestSms() {
+        try {
+            SmsProvider.Static.getDefault();
+        } catch (IllegalStateException e) {
+            return false;
+        }
+
+        return isTestSms() && !isColorPicker() && !isSecret();
     }
 
     /**
