@@ -55,6 +55,7 @@ require([
   'v3/input/richtext2',
   'v3/input/secret',
   'input/table',
+  'v3/input/TestSms',
   'input/workflow',
 
   'jquery.calendar',
