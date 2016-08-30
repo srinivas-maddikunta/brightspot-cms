@@ -33,8 +33,8 @@ public class TestSmsServlet extends HttpServlet {
         try {
             if (!StringUtils.isBlank(phoneNumber)) {
                 String testSms = "This is a test message.";
-                String siteUrl = Application.Static.getInstance(CmsTool.class).getDefaultToolUrl();
-                testSms += !StringUtils.isBlank(siteUrl) ? "\nCMS Url: " + siteUrl : "";
+                String cmsUrl = Application.Static.getInstance(CmsTool.class).getDefaultToolUrl();
+                testSms += !StringUtils.isBlank(cmsUrl) ? "\nCMS Url: " + cmsUrl : "";
                 SmsProvider.Static.getDefault().send(null, phoneNumber, testSms);
                 response.getWriter().write(SUCCESS_RESPONSE);
 
