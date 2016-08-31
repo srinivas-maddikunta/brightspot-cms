@@ -361,17 +361,14 @@ define([
             self.spellcheckInit();
             self.modeInit();
 
-            var $window = $(window);
-            var windowWidth = $window.width();
-            var windowHeight = $window.height();
+            var $wrapper = $(self.codeMirror.getWrapperElement());
+            var wrapperWidth = $wrapper.width();
 
-            $window.resize(bsp_utils.throttle(500, function () {
-                var newWindowWidth = $window.width();
-                var newWindowHeight = $window.height();
+            $(window).resize(bsp_utils.throttle(500, function () {
+                var newWrapperWidth = $wrapper.width();
 
-                if (windowWidth !== newWindowWidth || windowHeight !== newWindowHeight) {
-                    windowWidth = newWindowWidth;
-                    windowHeight = newWindowHeight;
+                if (wrapperWidth !== newWrapperWidth) {
+                    wrapperWidth = newWrapperWidth;
 
                     self.refresh();
                 }
