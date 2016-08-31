@@ -891,6 +891,8 @@ li.CodeMirror-hint-active {
 
   .rte2-dropdown-label,
   .rte2-dropdown-edit,
+  .rte2-dropdown-move-up,
+  .rte2-dropdown-move-down,
   .rte2-dropdown-clear {
     display: table-cell;
   }
@@ -903,10 +905,17 @@ li.CodeMirror-hint-active {
     }
   }
 
-  .rte2-dropdown-edit {
+  .rte2-dropdown-edit,
+  .rte2-dropdown-move-up,
+  .rte2-dropdown-move-down {
     border-right: 1px solid @color-separator;
     margin-right: 5px;
     padding-right: 5px;
+  }
+
+  .rte2-dropdown-move-up,
+  .rte2-dropdown-move-down {
+    padding-left: 5px;
   }
 
   .rte2-dropdown-clear {

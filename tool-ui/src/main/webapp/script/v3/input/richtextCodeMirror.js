@@ -3604,6 +3604,127 @@ define([
             return marks;
         },
 
+
+        moveMark: function (mark, direction) {
+            if (!mark || direction === 0) {
+                return;
+            }
+
+            var markRange = mark.find();
+
+            if (!markRange) {
+                return;
+            }
+
+            var self = this;
+            var cm = self.codeMirror;
+            var from = markRange.from.line;
+
+            // Find the number of blank lines after the mark to include in the
+            // move.
+            var to = markRange.to.line + 1;
+            var blanksAfter = -1;
+
+            while (to < cm.lineCount() && cm.getLine(to) === '') {
+                ++ to;
+                ++ blanksAfter;
+            }
+
+            // Make sure that the move is possible.
+            var move = -1;
+
+            if (direction < 0) {
+                move = from - 1;
+
+                // Skip over the blank lines right above the mark.
+                while (move >= 0 && cm.getLine(move) === '') {
+                    -- move;
+                }
+
+                if (move !== 0) {
+                    -- move;
+                }
+
+            } else if (to < cm.lineCount()) {
+                move = from + 1;
+            }
+
+            // Move isn't possible so restore cursor and do nothing.
+            if (move < 0) {
+                cm.setCursor(cm.getCursor());
+                cm.focus();
+                return;
+            }
+
+            // Move the mark.
+            cm.operation(function () {
+                var initialTop = cm.charCoords({ line: from, ch: 0 }).top;
+                var html = self.toHTML(markRange);
+                var cursor = cm.getCursor();
+                var movePosition = { line: move, ch: 0 };
+
+                // Delete the existing mark.
+                cm.replaceRange('', { line: from, ch: 0 }, { line: to, ch: 0 });
+
+                // Insert an extra blank line if moving to the beginning or
+                // the end of the text and there isn't already a blank line
+                // there. This is done to improve the spacing display.
+                if ((move === 0 && cm.getLine(move) !== '') || move === cm.lineCount()) {
+                    cm.replaceRange('\n', { line: move, ch: 0 }, { line: move, ch: 0 });
+                }
+
+                // Insert the blank lines found previously.
+                for (var i = 0; i < blanksAfter; ++ i) {
+                    cm.replaceRange('\n', movePosition, movePosition);
+                }
+
+                // Insert the mark at the new position.
+                self.fromHTML(html, { from: movePosition, to: movePosition });
+
+                // Move the cursor to the newly created mark.
+                var cursorLine = move + blanksAfter + cursor.line - from + 1;
+
+                cm.setCursor({ line: cursorLine, ch: cursor.ch });
+                cm.focus();
+
+                // Scroll the window so that the mouse is over the same
+                // area as before.
+                $(window).scrollTop($(window).scrollTop() + (cm.charCoords({ line: cursorLine, ch: 0 }).top - initialTop));
+
+                // Remove all blanks lines above the mark if there aren't any
+                // other texts.
+                var first = move;
+
+                for (; first >= 0; -- first) {
+                    if (cm.getLine(first) !== '') {
+                        break;
+                    }
+                }
+
+                if (first === -1) {
+                    cm.replaceRange('', { line: 0, ch: 0 }, { line: move + 1, ch: 0 });
+
+                } else {
+
+                    // Remove all blanks lines below the mark if there aren't
+                    // any other texts.
+                    var lastInitial = move + (to - from) + blanksAfter;
+                    var last = lastInitial;
+                    var lineCount = cm.lineCount();
+
+                    for (; last < lineCount; ++ last) {
+                        if (cm.getLine(last) !== '') {
+                            break;
+                        }
+                    }
+
+                    if (last === lineCount) {
+                        cm.replaceRange('', { line: lastInitial, ch: 0 }, { line: lineCount, ch: 0 });
+                    }
+                }
+            });
+        },
+
         
         /**
          * @param {Array} marks 
@@ -3654,6 +3775,26 @@ define([
                         self.onClickDoMark(event, mark);
                         return false;
                     }).appendTo($div);
+                }
+
+                if (styleObj.line) {
+                    $div.append($('<a/>', {
+                        'class': 'rte2-dropdown-move-up',
+                        text: 'Move Up',
+                        click: function () {
+                            self.moveMark(mark, -1);
+                            return false;
+                        }
+                    }));
+
+                    $div.append($('<a/>', {
+                        'class': 'rte2-dropdown-move-down',
+                        text: 'Move Down',
+                        click: function () {
+                            self.moveMark(mark, 1);
+                            return false;
+                        }
+                    }));
                 }
 
                 $('<a/>', {
