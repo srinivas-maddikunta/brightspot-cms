@@ -127,7 +127,9 @@ function() {
 
       $frame.iFrameResize({
         resizedCallback: function () {
-          $frame.resize();
+          setTimeout(function () {
+            $frame.resize();
+          }, 0);
         }
       });
     }
