@@ -1558,8 +1558,43 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 var initialBody = styleObj.initialBody;
 
                 if (initialBody) {
+
+                    // Move the cursor between lines when adding line marks.
+                    if (styleObj.line) {
+                        var cm = rte.codeMirror;
+                        var curr = cm.getCursor('from').line;
+                        var prev = curr - 1;
+
+                        if (prev < 0 || cm.getLine(prev) !== '') {
+                            cm.replaceRange('\n', { line: curr, ch: 0 }, { line: curr, ch: 0 });
+                            cm.setCursor(curr, 0);
+
+                        } else {
+                            cm.setCursor(prev, 0);
+                        }
+                    }
+
                     mark = rte.insert(initialBody, item.style);
+
                     if (mark) {
+
+                        // Make sure that there are blank lines around line
+                        // marks.
+                        if (styleObj.line) {
+                            var from = mark.find().from.line;
+                            var prev = from - 1;
+
+                            if (prev < 0 || cm.getLine(prev) !== '') {
+                                cm.replaceRange('\n', { line: from, ch: 0 }, { line: from, ch: 0 });
+                            }
+
+                            var next = mark.find().to.line + 1;
+
+                            if (next >= cm.lineCount() || cm.getLine(next) !== '') {
+                                cm.replaceRange('\n', { line: next, ch: 0 }, { line: next, ch: 0 });
+                            }
+                        }
+
                         self.inlineEnhancementHandleClick(event, mark);
                     }
 

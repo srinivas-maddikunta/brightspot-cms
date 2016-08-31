@@ -3,12 +3,13 @@ package com.psddev.cms.rte;
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.RichTextElement;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.dari.util.ObjectUtils;
 
 import java.io.IOException;
 import java.util.Map;
 
 @ExternalContentRichTextElement.DisplayName("External Content")
-@RichTextElement.Tag(value = "brightspot-cms-external-content", block = true, preview = true, readOnly = true)
+@RichTextElement.Tag(value = "brightspot-cms-external-content", initialBody = "...", block = true, preview = true, readOnly = true)
 public class ExternalContentRichTextElement extends RichTextElement {
 
     private String url;
@@ -35,12 +36,12 @@ public class ExternalContentRichTextElement extends RichTextElement {
 
     @Override
     public void fromBody(String body) {
-        setUrl(body);
+        setUrl("...".equals(body) ? null : body);
     }
 
     @Override
     public String toBody() {
-        return getUrl();
+        return ObjectUtils.firstNonBlank(getUrl(), "...");
     }
 
     @Override
