@@ -2170,6 +2170,21 @@ define([
             return mark;
         },
 
+
+        blockMarkReadOnly: function (mark, range) {
+            if (mark.rteReadOnly) {
+                this.codeMirror.markText(
+                        { line: range.from.line, ch: 0 },
+                        { line: range.to.line + 1, ch: 0 },
+                        {
+                            atomic: true,
+                            clearWhenEmpty: true,
+                            inclusiveLeft: false,
+                            inclusiveRight: false
+                        });
+            }
+        },
+
         
         /**
          * @param String classname
@@ -2218,6 +2233,7 @@ define([
                 
                 // just in case we need to distinguish this is our fake mark...
                 rteLineStyle: true,
+                rteReadOnly: styleObj.readOnly,
                 
                 // other code checks for className on the mark so we'll save it here too
                 className: className 
@@ -2256,6 +2272,7 @@ define([
 
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
+            self.blockMarkReadOnly(mark, range);
             self.refresh();
 
             if (options.triggerChange !== false) {
@@ -6180,7 +6197,8 @@ define([
                 
                 // Replace the content of the mark
                 if (!self.historyIsExecuting()) {
-                    self.fromHTML(html, range, true, true);                    
+                    self.fromHTML(html, range, true, true);
+                    self.blockMarkReadOnly(mark, range);
                     reset();
                 }
             };
