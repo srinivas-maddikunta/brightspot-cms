@@ -3350,7 +3350,7 @@ public class ToolPageContext extends WebPageContext {
 
             if (overlay != null) {
                 overlay.getState().delete();
-                redirectOnSave("");//
+                redirectOnSave("");
 
             } else if (param(UUID.class, "draftId") != null) {
                 Draft draft = getOverlaidDraft(object);
