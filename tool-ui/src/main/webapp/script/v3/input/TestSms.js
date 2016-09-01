@@ -2,7 +2,7 @@ require(['jquery'], function($) {
     $(window).load(function() {
 
         const SUCCESS_RESPONSE = 'Test message sent!';
-        const FAILURE_RESPONSE = 'Unable to send test message!';
+        const ERROR_RESPONSE = 'Unable to send test message!';
 
         var $smsButton = $('.smsButton');
         var $smsResponseText = $('.smsResponseText');
@@ -23,13 +23,13 @@ require(['jquery'], function($) {
                 error: function () {
                     $smsResponseText.removeClass('smsPendingResponse');
                     $smsResponseText.addClass('smsErrorResponse');
-                    $smsResponseText.text(FAILURE_RESPONSE);
+                    $smsResponseText.text(ERROR_RESPONSE);
                 },
                 success: function (data) {
                     $smsResponseText.removeClass('smsPendingResponse');
                     if (data == SUCCESS_RESPONSE) {
                         $smsResponseText.addClass('smsSuccessResponse');
-                    } else if (data == FAILURE_RESPONSE) {
+                    } else if (data == ERROR_RESPONSE) {
                         $smsResponseText.addClass('smsErrorResponse');
                     }
                     $smsResponseText.text(data);
