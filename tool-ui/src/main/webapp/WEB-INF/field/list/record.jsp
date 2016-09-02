@@ -558,6 +558,7 @@ if (!isValueExternal) {
     Map<ObjectType, String> weightedTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> toggleTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> progressTypesAndFieldsMap = new CompactMap<ObjectType, String>();
+    int weightedAndDraggableFieldsCount = 0;
 
     for (ObjectType t : validTypes) {
         for (ObjectField f : t.getFields()) {
@@ -569,6 +570,9 @@ if (!isValueExternal) {
             }
             if (ui.isCollectionItemWeight()) {
                 weightedTypesAndFieldsMap.put(t, f.getInternalName());
+                if (ui.isCollectionItemWeightDraggable()) {
+                    weightedAndDraggableFieldsCount ++;
+                }
             }
             if (ui.isCollectionItemToggle()) {
                 toggleTypesAndFieldsMap.put(t, f.getInternalName());
@@ -582,7 +586,9 @@ if (!isValueExternal) {
     boolean displayGrid = field.as(ToolUi.class).isDisplayGrid();
 
     // Only display weights if all valid types have a @ToolUi.CollectionItemWeight annotated field
-    boolean displayWeights = weightedTypesAndFieldsMap.size() == validTypes.size();
+    int validTypesSize = validTypes.size();
+    boolean displayWeights = weightedTypesAndFieldsMap.size() == validTypesSize;
+    boolean weightsDraggable = weightedAndDraggableFieldsCount == validTypesSize;
     boolean displayAlternateListUi = displayWeights || toggleTypesAndFieldsMap.size() > 0 || progressTypesAndFieldsMap.size() > 0;
 
     StringBuilder genericArgumentsString = new StringBuilder();
@@ -607,7 +613,8 @@ if (!isValueExternal) {
 
         if (displayWeights) {
             wp.writeStart("div",
-                    "class", "repeatableForm-itemWeights");
+                    "class", "repeatableForm-itemWeights",
+                    "data-draggable", weightsDraggable);
 
             wp.writeEnd();
         }
@@ -643,6 +650,8 @@ if (!isValueExternal) {
                         // so if that field is changed the front-end knows that the thumbnail should also be updated
                         "data-preview", wp.getPreviewThumbnailUrl(item),
                         "data-preview-field", itemType.getPreviewField(),
+
+                        // Add additional data attributes for customizing embedded item display
                         "data-toggle-field", !StringUtils.isBlank(toggleFieldName) ? toggleFieldName : null,
                         "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
                         "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? ObjectUtils.to(int.class, ObjectUtils.to(double.class, itemState.get(progressFieldName)) * 100) : null,
