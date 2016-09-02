@@ -99,8 +99,8 @@ public class Search extends Record {
     public static final String RELEVANT_SORT_LABEL = "Relevant";
     public static final String RELEVANT_SORT_VALUE = "_relevant";
 
-    public static final String ASCENDING_SORT_VALUE_SUFFIX = "/sortAscending";
-    public static final String DESCENDING_SORT_VALUE_SUFFIX = "/sortDescending";
+    public static final String ASCENDING_SORT_VALUE_SUFFIX = "/sa";
+    public static final String DESCENDING_SORT_VALUE_SUFFIX = "/sd";
 
     public static final double RELEVANT_SORT_LABEL_BOOST = 10.0;
 
