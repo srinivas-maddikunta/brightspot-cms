@@ -555,7 +555,7 @@ UUID containerObjectId = State.getInstance(request.getAttribute("containerObject
 
 if (!isValueExternal) {
     Set<ObjectType> bulkUploadTypes = new HashSet<ObjectType>();
-    Map<ObjectType, String> weightedTypesandFieldsMap = new CompactMap<ObjectType, String>();
+    Map<ObjectType, String> weightedTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> toggleTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> progressTypesAndFieldsMap = new CompactMap<ObjectType, String>();
 
@@ -568,7 +568,7 @@ if (!isValueExternal) {
                 }
             }
             if (ui.isCollectionItemWeight()) {
-                weightedTypesandFieldsMap.put(t, f.getInternalName());
+                weightedTypesAndFieldsMap.put(t, f.getInternalName());
             }
             if (ui.isCollectionItemToggle()) {
                 toggleTypesAndFieldsMap.put(t, f.getInternalName());
@@ -582,7 +582,7 @@ if (!isValueExternal) {
     boolean displayGrid = field.as(ToolUi.class).isDisplayGrid();
 
     // Only display weights if all valid types have a @ToolUi.CollectionItemWeight annotated field
-    boolean displayWeights = weightedTypesandFieldsMap.size() == validTypes.size();
+    boolean displayWeights = weightedTypesAndFieldsMap.size() == validTypes.size();
     boolean displayAlternateListUi = displayWeights || toggleTypesAndFieldsMap.size() > 0 || progressTypesAndFieldsMap.size() > 0;
 
     StringBuilder genericArgumentsString = new StringBuilder();
@@ -630,7 +630,7 @@ if (!isValueExternal) {
 
                 String progressFieldName = progressTypesAndFieldsMap.get(itemType);
                 String toggleFieldName = toggleTypesAndFieldsMap.get(itemType);
-                String weightFieldName = weightedTypesandFieldsMap.get(itemType);
+                String weightFieldName = weightedTypesAndFieldsMap.get(itemType);
 
                 wp.writeStart("li",
                         "class", expanded ? "expanded" : null,
@@ -692,7 +692,7 @@ if (!isValueExternal) {
 
                 String progressFieldName = progressTypesAndFieldsMap.get(type);
                 String toggleFieldName = toggleTypesAndFieldsMap.get(type);
-                String weightFieldName = weightedTypesandFieldsMap.get(type);
+                String weightFieldName = weightedTypesAndFieldsMap.get(type);
 
                 wp.writeStart("script", "type", "text/template");
                     wp.writeStart("li",
