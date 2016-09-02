@@ -83,6 +83,11 @@ define([
          * styles like trackInsert and trackDelete.
          * However, an internal style can still output HTML elements.
          *
+         * Boolean [trackChanges=true]
+         * Set this to false if the style should not allow track changes marks within it.
+         * For example, a comment style where you do not want to track changes.
+         * Defaults to true if not set.
+         * 
          * Function [fromHTML($el, mark)]
          * A function that extracts additional information from the HTML element
          * and adds it to the mark object for future use.
@@ -4173,6 +4178,13 @@ define([
                     }
                 }
             }
+            
+            // After performing the change, clean up track changes marks
+            // to remove them from styles that don't allow them (like comments)
+            // after a timeout so the change event has time to complete first
+            setTimeout(function(){
+                self.trackAfterCleanup(changeObj);
+            }, 1);
         },
 
 
@@ -4214,6 +4226,47 @@ define([
             
         },
 
+
+        /**
+         * Clean up certain styles that don't allow track changes (like comments)
+         * @param  {Object} range
+         * The change object which contains the from/to range to be checked.
+         */
+        trackAfterCleanup: function(range) {
+
+            var editor;
+            var marks;
+            var marksToClean;
+            var self;
+            
+            self = this;
+            editor = self.codeMirror;
+            
+            // Find all the marks within this range
+            marks = editor.findMarks(range.from, range.to);
+            marksToClean = [];
+            
+            // Determine which marks do not allow tracked changes
+            $.each(marks, function(i, mark) {
+                var markPos;
+                var styleObj;
+                if (mark.className && mark.find) {
+                    styleObj = self.classes[mark.className];
+                    if (styleObj && styleObj.trackChanges === false) {
+                        marksToClean.push(mark);
+                    }
+                }
+            });
+            
+            // Loop through the marks to clean, and remove track changes marks within
+            $.each(marksToClean, function(i,mark) {
+                var markPos;
+                markPos = mark.find();
+                self.inlineRemoveStyle('trackDelete', {from:markPos.from, to:markPos.to}, {deleteText:true, triggerChange:false});
+                self.inlineRemoveStyle('trackInsert', {from:markPos.from, to:markPos.to}, {triggerChange:false});
+            });
+        },
+        
         
         /**
          * For a given range, mark everything as deleted.
