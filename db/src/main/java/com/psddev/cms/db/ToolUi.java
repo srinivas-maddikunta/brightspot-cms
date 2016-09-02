@@ -650,9 +650,6 @@ public class ToolUi extends Modification<Object> {
         Boolean sortable = getSortable();
 
         if (sortable != null) {
-            if (Boolean.TRUE.equals(sortable) && !isSortAscending() && !isSortDescending()) {
-                return false;
-            }
             return sortable;
         }
 
@@ -1704,7 +1701,7 @@ public class ToolUi extends Modification<Object> {
     @Target({ ElementType.FIELD, ElementType.METHOD })
     public @interface Sortable {
         boolean value() default true;
-        boolean ascending() default true;
+        boolean ascending() default false;
         boolean descending() default false;
     }
 
