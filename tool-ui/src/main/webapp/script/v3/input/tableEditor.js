@@ -617,8 +617,11 @@ define(['jquery'], function($) {
          */
         colAdd: function(options) {
             var $cell;
+            var cellsFound;
             var colCount;
             var colNumber;
+            var colSpan;
+            var posCell;
             var self;
             var $table;
             self = this;
@@ -633,22 +636,47 @@ define(['jquery'], function($) {
             // Get total number of columns across the entire table
             colCount = self.colCount($cell);
             
-            colNumber = $cell.index();
+            // Determine which column number we will be adding
+            posCell = self.lookupPosComputed($cell[0]);
+            colNumber = posCell.col;
+            colSpan = $cell[0].colSpan;
             if (!options.left) {
-                colNumber++;
+                colNumber += colSpan;
             }
-
-            $table.find('> * > tr').each(function() {
+            
+            cellsFound = [];
+                        
+            // Loop through all the table rows so we can add a column to each
+            $table.find('> * > tr').each(function(rowNumber, tr) {
+                var cell;
                 var $td;
                 var $tr;
-                $tr = $(this);
+                $tr = $(tr);
 
-                // Now add a new cell at the insertion point
+                // Find the actual cell that corresponds to this row/col
+                cell = self.matrix[rowNumber][colNumber];
+                if (cell) {
+                    
+                    // Check if the cell covering this position is actually in another column,
+                    // because that would mean it has a colspan that covers our cell
+                    // and we should not add a cell for this position 
+                    posCell = self.lookupPosComputed(cell);
+                    if (posCell.col !== colNumber) {
+                        // Make sure we don't modify the colspan more than once
+                        if ($.inArray(cell, cellsFound) === -1) {
+                            $(cell).attr('colSpan', cell.colSpan + 1);
+                            cellsFound.push(cell);
+                        }
+                        return;
+                    }
+                }
+                
+                // We are not inside a colspan range, so create a new cell
                 $td = self.cellCreate();
-                if (colNumber >= colCount) {
+                if (!cell || colNumber >= colCount) {
                     $td.appendTo($tr);
                 } else {
-                    $td.insertBefore( $tr.find('> td, > th').eq(colNumber) );
+                    $td.insertBefore(cell);
                 }
             });
             
