@@ -110,11 +110,11 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
       var oldSessionId = localStorage.getItem(SESSION_ID_KEY);
 
       if (oldSessionId) {
-        socket.push({
+        socket.push(JSON.stringify({
           type: 'migrate',
           oldSessionId: oldSessionId,
           newSessionId: socket.getUUID()
-        })
+        }));
       }
 
       $.each(redoRestores, function (i, message) {
