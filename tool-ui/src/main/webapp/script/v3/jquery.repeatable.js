@@ -711,6 +711,14 @@ The HTML within the repeatable element must conform to these standards:
                     self.repositionCollectionItemWeight(oldIndex, newIndex);
 
                 });
+                 
+                var $itemWeightsContainer = self.dom.$list.parent().find('.repeatableForm-itemWeights');
+
+                if ($itemWeightsContainer.data('draggable')) {
+                    self.collectionItemWeightsCalculated = false;
+                } else {
+                    self.collectionItemWeightsCalculated = true;
+                }
               
                 self.initCollectionItemWeightResetButton();
           
@@ -803,7 +811,10 @@ The HTML within the repeatable element must conform to these standards:
                     $itemWeightContainer.children().eq(itemIndex - 1).after($itemWeight);
                 }
 
-                $itemWeight.prepend(self.createCollectionItemWeightHandle($item));
+                // Avoid creating handles if draggable is false
+                if (!self.collectionItemWeightsCalculated) {
+                    $itemWeight.prepend(self.createCollectionItemWeightHandle($item));
+                }
 
                 var itemWeightDoubleValue = $itemWeight.attr('data-weight');
                 
@@ -887,6 +898,11 @@ The HTML within the repeatable element must conform to these standards:
 
             initCollectionItemWeightResetButton: function () {
                 var self = this;
+
+                if (self.collectionItemWeightsCalculated) {
+                    return;
+                }
+
                 self.dom.$list.parent().prepend(
                   $('<a>', {
                       'class': 'repeatableForm-weightResetButton',
