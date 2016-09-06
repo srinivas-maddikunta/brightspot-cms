@@ -50,6 +50,7 @@ public class FieldAccessFilter extends AbstractFilter {
         THREAD_DEFAULT_LAZY_WRITER.with(lazyWriter, () -> {
             try {
                 consumer.accept(lazyWriter);
+                lazyWriter.writePending();
 
             } catch (IOException error) {
                 throw new IllegalStateException(error);
