@@ -41,7 +41,7 @@ public class ToolUi extends Modification<Object> {
     private Boolean collectionItemProgress;
     private Boolean collectionItemToggle;
     private Boolean collectionItemWeight;
-    private Boolean collectionItemWeightDraggable;
+    private Boolean collectionItemWeightCalculated;
     private Boolean colorPicker;
     private String cssClass;
     private Boolean defaultSearchResult;
@@ -136,12 +136,12 @@ public class ToolUi extends Modification<Object> {
         this.collectionItemWeight = collectionItemWeight ? Boolean.TRUE : null;
     }
 
-    public boolean isCollectionItemWeightDraggable() {
-        return Boolean.TRUE.equals(collectionItemWeightDraggable);
+    public boolean isCollectionItemWeightCalculated() {
+        return Boolean.TRUE.equals(collectionItemWeightCalculated);
     }
 
-    public void setCollectionItemWeightDraggable(boolean collectionItemWeightDraggable) {
-        this.collectionItemWeightDraggable = collectionItemWeightDraggable ? Boolean.TRUE : null;
+    public void setCollectionItemWeightCalculated(boolean collectionItemWeightCalculated) {
+        this.collectionItemWeightCalculated = collectionItemWeightCalculated ? Boolean.TRUE : null;
     }
 
     public boolean isColorPicker() {
@@ -891,7 +891,9 @@ public class ToolUi extends Modification<Object> {
 
     /**
      * Specifies whether the target field should be displayed using the weighted collection UI.
-     * Expected field values are between 0.0 and 1.0.
+     * Expected field values are between 0.0 and 1.0. Fields that are {@code calculated} will
+     * not allow weights to be edited through the default UI.
+     *
      */
     @Documented
     @ObjectField.AnnotationProcessorClass(CollectionItemWeightProcessor.class)
@@ -899,7 +901,7 @@ public class ToolUi extends Modification<Object> {
     @Target(ElementType.FIELD)
     public @interface CollectionItemWeight {
         boolean value() default true;
-        boolean draggable() default true;
+        boolean calculated() default false;
     }
 
     private static class CollectionItemWeightProcessor implements ObjectField.AnnotationProcessor<CollectionItemWeight> {
@@ -907,7 +909,7 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, ObjectField field, CollectionItemWeight annotation) {
             field.as(ToolUi.class).setCollectionItemWeight(annotation.value());
-            field.as(ToolUi.class).setCollectionItemWeightDraggable(annotation.draggable());
+            field.as(ToolUi.class).setCollectionItemWeightCalculated(annotation.calculated());
         }
     }
 

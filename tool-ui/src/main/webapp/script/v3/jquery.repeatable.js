@@ -713,12 +713,7 @@ The HTML within the repeatable element must conform to these standards:
                 });
                  
                 var $itemWeightsContainer = self.dom.$list.parent().find('.repeatableForm-itemWeights');
-
-                if ($itemWeightsContainer.data('draggable')) {
-                    self.collectionItemWeightsCalculated = false;
-                } else {
-                    self.collectionItemWeightsCalculated = true;
-                }
+                self.collectionItemWeightsCalculated = $itemWeightsContainer.data('calculated');
               
                 self.initCollectionItemWeightResetButton();
           

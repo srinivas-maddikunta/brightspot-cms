@@ -53,7 +53,7 @@
     <difference>
         <className>com/psddev/cms/db/ToolUi$CollectionItemWeight</className>
         <differenceType>7012</differenceType>
-        <method>boolean draggable()</method>
+        <method>boolean calculated()</method>
     </difference>
 
     <difference>
