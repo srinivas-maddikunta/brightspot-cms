@@ -49,6 +49,7 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     });
 
     var isOnline = false;
+    var pingInterval;
 
     var offlineExecutes = [];
     var onlineExecutes = {
@@ -76,6 +77,14 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
 
     request.onOpen = function () {
       isOnline = true;
+
+      pingInterval = setInterval(function () {
+        if (isOnline) {
+          onlineExecutes.push({
+            type: 'ping'
+          });
+        }
+      }, 10000);
 
       for (var i = 0, length = localStorage.length; i < length; ++ i) {
         var key = localStorage.key(i);
@@ -120,6 +129,12 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
 
     request.onClose = function () {
       isOnline = false;
+
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
+
       subscribe();
     };
 
@@ -140,14 +155,6 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
         (isOnline ? onlineCloses : offlineCloses).push(close);
       });
     });
-
-    setInterval(function () {
-      if (isOnline) {
-        onlineExecutes.push({
-          type: 'ping'
-        });
-      }
-    }, 10000);
 
     var checkRequests = bsp_utils.throttle(50, function () {
       var minKey;
