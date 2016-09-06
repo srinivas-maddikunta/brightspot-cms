@@ -27,11 +27,19 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
   var closes = [ ];
 
   share.on('!sys.master', function (data) {
-    if (data.node_id !== data.master_id) {
+    if (data.node_id === data.master_id) {
+      if (master) {
+        return;
+
+      } else {
+        master = true;
+      }
+
+    } else {
+      master = false;
+      atmosphere.unsubscribe();
       return;
     }
-
-    master = true;
 
     var request = {
       url: ROOT_PATH + '/_rtc',
