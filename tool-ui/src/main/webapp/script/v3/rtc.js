@@ -108,14 +108,17 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
       }
 
       var oldSessionId = localStorage.getItem(SESSION_ID_KEY);
+      var newSessionId = socket.getUUID();
 
       if (oldSessionId) {
         socket.push(JSON.stringify({
           type: 'migrate',
           oldSessionId: oldSessionId,
-          newSessionId: socket.getUUID()
+          newSessionId: newSessionId
         }));
       }
+
+      localStorage.setItem(SESSION_ID_KEY, newSessionId);
 
       $.each(redoRestores, function (i, message) {
         onlineExecutes.push(message);
@@ -198,10 +201,7 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     $(window).on('storage', checkRequests);
 
     $(window).on('beforeunload', function () {
-      var sessionId = socket.getUUID();
-
-      localStorage.setItem(SESSION_ID_KEY, sessionId);
-      localStorage.setItem(CLOSES_KEY_PREFIX + sessionId, JSON.stringify(closes));
+      localStorage.setItem(CLOSES_KEY_PREFIX + socket.getUUID(), JSON.stringify(closes));
     });
   });
 
