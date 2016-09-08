@@ -608,7 +608,6 @@ if (!isValueExternal) {
                     + (displayGrid ? " repeatableForm-previewable" : "")
                     + (displayWeights ? " repeatableForm-weighted" : "")
                     + (displayAlternateListUi ? " repeatableForm-alt" : ""),
-            "foo", "bar",
             "data-generic-arguments", genericArgumentsString);
 
         if (displayWeights) {
