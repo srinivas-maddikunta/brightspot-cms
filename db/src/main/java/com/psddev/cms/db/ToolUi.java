@@ -42,6 +42,7 @@ public class ToolUi extends Modification<Object> {
     private Boolean collectionItemToggle;
     private Boolean collectionItemWeight;
     private Boolean collectionItemWeightCalculated;
+    private Boolean collectionItemWeightMarker;
     private Boolean colorPicker;
     private String cssClass;
     private Boolean defaultSearchResult;
@@ -142,6 +143,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setCollectionItemWeightCalculated(boolean collectionItemWeightCalculated) {
         this.collectionItemWeightCalculated = collectionItemWeightCalculated ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemWeightMarker() {
+        return Boolean.TRUE.equals(collectionItemWeightMarker);
+    }
+
+    public void setCollectionItemWeightMarker(boolean collectionItemWeightMarker) {
+        this.collectionItemWeightMarker = collectionItemWeightMarker ? Boolean.TRUE : null;
     }
 
     public boolean isColorPicker() {
@@ -910,6 +919,27 @@ public class ToolUi extends Modification<Object> {
         public void process(ObjectType type, ObjectField field, CollectionItemWeight annotation) {
             field.as(ToolUi.class).setCollectionItemWeight(annotation.value());
             field.as(ToolUi.class).setCollectionItemWeightCalculated(annotation.calculated());
+        }
+    }
+
+    /**
+     * Specifies a field to be used as markers in the UI produced by repeatable objects with
+     * a {@link CollectionItemWeight} annotation. The field may be a {@link Collection} or single
+     * field value of a {@code double} with expected value(s) between 0.0 and 1.0.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemWeightMarkerProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemWeightMarker {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemWeightMarkerProcessor implements ObjectField.AnnotationProcessor<CollectionItemWeightMarker> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemWeightMarker annotation) {
+            field.as(ToolUi.class).setCollectionItemWeightMarker(annotation.value());
         }
     }
 
