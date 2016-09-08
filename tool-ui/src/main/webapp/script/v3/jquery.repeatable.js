@@ -100,6 +100,7 @@ The HTML within the repeatable element must conform to these standards:
 
                 // Initialize the repeatable utility to get things started
                 repeatable.init($container, options);
+                $container.data('repeatable', repeatable);
             },
 
 
@@ -1546,6 +1547,20 @@ The HTML within the repeatable element must conform to these standards:
                 self.removeItemToggle(item, true);
             },
 
+           /**
+            * Immediately removes an item from
+            * the DOM. Invoked by objectIdResult.jsp.
+            */
+            removeItemImmediately: function(item) {
+                var self = this;
+                var $item = $(item);
+
+                if (self.modeIsWeighted) {
+                    self.removeCollectionItemWeight($item);
+                }
+            
+                $item.remove();
+            },
             
             /**
              * Unmark an item to be removed (that is, restore the item).
