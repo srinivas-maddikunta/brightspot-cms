@@ -558,6 +558,7 @@ if (!isValueExternal) {
     Map<ObjectType, String> weightedTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> toggleTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> progressTypesAndFieldsMap = new CompactMap<ObjectType, String>();
+    Map<ObjectType, String> weightMarkerTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     int calculatedWeightsFieldCount = 0;
 
     for (ObjectType t : validTypes) {
@@ -572,6 +573,10 @@ if (!isValueExternal) {
                 weightedTypesAndFieldsMap.put(t, f.getInternalName());
                 if (ui.isCollectionItemWeightCalculated()) {
                     calculatedWeightsFieldCount ++;
+                }
+
+                if (ui.isCollectionItemWeightMarker()) {
+                    weightMarkerTypesAndFieldsMap.put(t, f.getInternalName());
                 }
             }
             if (ui.isCollectionItemToggle()) {
@@ -637,6 +642,7 @@ if (!isValueExternal) {
                 String progressFieldName = progressTypesAndFieldsMap.get(itemType);
                 String toggleFieldName = toggleTypesAndFieldsMap.get(itemType);
                 String weightFieldName = weightedTypesAndFieldsMap.get(itemType);
+                String weightMarkerFieldName = weightedTypesAndFieldsMap.get(itemType);
 
                 wp.writeStart("li",
                         "class", expanded ? "expanded" : null,
@@ -655,9 +661,9 @@ if (!isValueExternal) {
                         "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
                         "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? ObjectUtils.to(int.class, ObjectUtils.to(double.class, itemState.get(progressFieldName)) * 100) : null,
                         "data-toggle-field-value", !StringUtils.isBlank(toggleFieldName) ? ObjectUtils.to(boolean.class, itemState.get(toggleFieldName)) : null,
-                        "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? ObjectUtils.to(double.class, itemState.get(weightFieldName)) : null
+                        "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? ObjectUtils.to(double.class, itemState.get(weightFieldName)) : null,
+                        "data-weight-markers", !StringUtils.isBlank(weightMarkerFieldName) ? ObjectUtils.toJson(itemState.get(weightMarkerFieldName)) : null);
 
-                        );
                     wp.writeElement("input",
                             "type", "hidden",
                             "name", idName,
