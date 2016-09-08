@@ -164,7 +164,9 @@ String removeId = wp.createId();
                     if (!$input.val()) {
                         var $li = $input.closest('li');
                         var repeatable = $li.closest('.plugin-repeatable').data('repeatable');
-                        repeatable.removeItemImmediately($li);
+                        if (repeatable) {
+                            repeatable.removeItemImmediately($li);
+                        }
 
                         var $itemEdit = $input.closest('.itemEdit');
 
