@@ -351,13 +351,13 @@ define([
             // Create a mapping from self.styles so we can perform quick lookups on the classname
             self.classes = self.getClassNameMap();
 
+            self.trackInit();
             self.historyInit();
             self.enhancementInit();
             self.initListListeners();
             self.dropdownInit();
             self.initEvents();
             self.clipboardInit();
-            self.trackInit();
             self.spellcheckInit();
             self.modeInit();
 
@@ -2090,6 +2090,7 @@ define([
                 var mark;
                 var markNext;
                 var markNew;
+                var options;
                 var pos;
                 var posNext;
 
@@ -2110,21 +2111,22 @@ define([
 
                         if (posNext.from.ch <= pos.to.ch) {
 
+                            options = self.historyGetOptions(mark);
+                            
+                            // Clear the original two marks
+                            self.historyRemoveMark(mark);
+                            self.historyRemoveMark(markNext);
+
                             // The marks are overlapping or adjacent, so combine them into a new mark
-                            markNew = editor.markText(
+                            markNew = self.historyCreateMark(
                                 { line: pos.from.line, ch: pos.from.ch },
                                 { line: pos.from.line, ch: Math.max(pos.to.ch, posNext.to.ch) },
-                                mark
+                                options
                             );
-
-                            // Clear the original two marks
-                            mark.clear();
-                            markNext.clear();
-
+                            
                             // Replace markNext with markNew so the next loop will start with the new mark
                             // and we can check to see if the following mark needs to be combined again
                             marks[i + 1] = markNew;
-                            
                         }
                     }
 
@@ -5404,7 +5406,10 @@ define([
 
             // Listen for CodeMirror change events and add to our history.
             self.codeMirror.on('beforeChange', function(instance, beforeChange) {
-                self.historyHandleCodeMirrorEvent(beforeChange);
+                // Check to see if this event was canceled, which sometime happens when trackChanges is on
+                if (!beforeChange.canceled) {
+                    self.historyHandleCodeMirrorEvent(beforeChange);
+                }
             });
         },
 
