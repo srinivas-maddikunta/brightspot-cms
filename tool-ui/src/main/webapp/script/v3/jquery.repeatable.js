@@ -794,6 +794,8 @@ The HTML within the repeatable element must conform to these standards:
                     'data-weight': weightFieldValue
                 });
 
+                self.addCollectionItemWeightMarkers($item, $itemWeight);
+
                 // Filter items that have been toggled off
                 var itemIndex = $item.parent()
                                      .children(':not([data-toggle-field-value="false"], .toBeRemoved)')
@@ -838,6 +840,24 @@ The HTML within the repeatable element must conform to these standards:
                     self.fixCollectionItemWeights();
                 } else {
                     self.updateCollectionItemWeightData($itemWeight, (itemWeightDoubleValue * 100).toFixed());
+                }
+            },
+
+           /**
+            * Adds markers to repeatableForm-itemWeight.
+            */
+            addCollectionItemWeightMarkers: function(item, itemWeight) {
+                var self = this;
+                var $item = $(item);
+                var $itemWeight = $(itemWeight);
+                var markerValues = $item.data('weight-markers');
+                if (markerValues) {
+                    Array.prototype.forEach.call(markerValues, function(markerValue, i) {
+                        $itemWeight.append($('<div/>', {
+                            'class': 'repeatableForm-itemWeight-marker',
+                            'style': 'left:' + markerValue * 100 + "%;"
+                        }));
+                    });
                 }
             },
 

@@ -1254,10 +1254,26 @@
   }
 }
 
-.repeatableForm-weightResetButton {
-  position: absolute;
-  top: -20px;
-  right: 0;
-  .icon();
-  .icon-refresh();
+.repeatableForm {
+
+  &-weightResetButton {
+    position: absolute;
+    top: -20px;
+    right: 0;
+    .icon();
+    .icon-refresh();
+  }
+
+  &-itemWeight {
+
+    &-marker {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      background: white;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: 100%;
+    }
+  }
 }
