@@ -31,6 +31,7 @@ import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.SearchResultField;
+import com.psddev.dari.db.Application;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Metric;
 import com.psddev.dari.db.MetricInterval;
@@ -285,6 +286,16 @@ public class ListSearchResultView extends AbstractSearchResultView {
                             }
                         }
                     }
+
+                    boolean showViewers = false;
+
+                    if (Application.Static.getInstance(CmsTool.class).isEnableSearchResultsViewers()) {
+                        showViewers = true;
+                        page.writeStart("th");
+                            page.writeHtml(page.localize(ListSearchResultView.class, "label.viewers"));
+                        page.writeEnd();
+                    }
+
                 page.writeEnd();
             page.writeEnd();
 
@@ -516,6 +527,20 @@ public class ListSearchResultView extends AbstractSearchResultView {
                                 }
                             }
                         }
+
+                        if (showViewers) {
+                            page.writeStart("td", "class", "viewers");
+                            {
+                                page.writeStart("div", "data-rtc-content-id", itemState.getId().toString());
+                                {
+                                    page.writeStart("div", "data-rtc-edit-field-update-viewers", "");
+                                    page.writeEnd();
+                                }
+                                page.writeEnd();
+                            }
+                            page.writeEnd();
+                        }
+
                     page.writeEnd();
                 }
             page.writeEnd();

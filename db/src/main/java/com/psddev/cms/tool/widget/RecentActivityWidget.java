@@ -20,6 +20,7 @@ import com.psddev.cms.db.Renderer;
 import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
+import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DefaultDashboardWidget;
 import com.psddev.cms.tool.QueryRestriction;
@@ -27,6 +28,7 @@ import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
+import com.psddev.dari.db.Application;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
@@ -328,6 +330,16 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                             page.writeStart("td");
                                 page.writeObjectLabel(updateUser);
                             page.writeEnd();
+
+                            if (Application.Static.getInstance(CmsTool.class).isEnableRecentActivityViewers()) {
+                                page.writeStart("td", "class", "viewers");
+                                    page.writeStart("div", "data-rtc-content-id", contentState.getId().toString()); {
+                                        page.writeStart("div", "data-rtc-edit-field-update-viewers", "");
+                                        page.writeEnd();
+                                    } page.writeEnd();
+                                page.writeEnd();
+                            }
+
                         page.writeEnd();
                     }
 
