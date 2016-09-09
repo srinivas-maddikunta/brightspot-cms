@@ -1645,10 +1645,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 }
             }
 
-            // Certain styles like comments look strange when there are two
-            // adjacent marks, so combine adjacent marks if possible.
-            rte.inlineCombineAdjacentMarks();
-            
             // Update the toolbar so it makes the buttons active or inactive
             // based on the cursor position or selection
             self.toolbarUpdate();
