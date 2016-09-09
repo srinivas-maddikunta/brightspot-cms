@@ -16,7 +16,7 @@ import org.apache.log4j.Logger;
 @ViewBinding(value = ExternalContentRichTextElementViewModel.class, types = RichTextViewBuilder.RICH_TEXT_ELEMENT_VIEW_TYPE)
 
 @ExternalContentRichTextElement.DisplayName("External Content")
-@RichTextElement.Tag(value = "brightspot-cms-external-content", block = true, preview = true, readOnly = true)
+@RichTextElement.Tag(value = "brightspot-cms-external-content", initialBody = "...", block = true, preview = true, readOnly = true)
 public class ExternalContentRichTextElement extends RichTextElement {
 
     @Required
@@ -99,11 +99,12 @@ public class ExternalContentRichTextElement extends RichTextElement {
 
     @Override
     public void fromBody(String body) {
+        setUrl("...".equals(body) ? null : body);
     }
 
     @Override
     public String toBody() {
-        return getUrl();
+        return ObjectUtils.firstNonBlank(getUrl(), "...");
     }
 
     @Override

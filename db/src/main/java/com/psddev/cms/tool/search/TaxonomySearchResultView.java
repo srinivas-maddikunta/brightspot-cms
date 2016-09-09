@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
 
+import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.Taxon;
 import com.psddev.cms.tool.Search;
@@ -27,7 +28,7 @@ public class TaxonomySearchResultView extends AbstractSearchResultView {
 
     @Override
     public String getDisplayName() {
-        return "Taxonomy";
+        return Localization.currentUserText(this, "displayName");
     }
 
     @Override

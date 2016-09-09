@@ -2,6 +2,7 @@ define('jquery', [ ], function() { return $; });
 define('jquery.extra', [ ], function() { });
 define('jquery.handsontable.full', [ ], function() { });
 define('d3', [ ], function() { return d3; });
+define('moment', [ 'moment-with-locales' ], function(moment) { return moment; });
 
 requirejs.config({
   shim: {
@@ -126,7 +127,9 @@ function() {
 
       $frame.iFrameResize({
         resizedCallback: function () {
-          $frame.resize();
+          setTimeout(function () {
+            $frame.resize();
+          }, 0);
         }
       });
     }

@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.psddev.cms.rte.DefaultRichTextToolbar;
+import com.psddev.cms.rte.RichTextToolbar;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.Modification;
@@ -80,6 +82,7 @@ public class ToolUi extends Modification<Object> {
     private Boolean readOnly;
     private boolean richText;
     private boolean richTextInline;
+    private String richTextToolbarClassName;
     private String richTextElementTagName;
     private Set<String> richTextElementClassNames;
     private boolean secret;
@@ -560,6 +563,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setRichTextInline(boolean richTextInline) {
         this.richTextInline = richTextInline;
+    }
+
+    public String getRichTextToolbarClassName() {
+        return richTextToolbarClassName;
+    }
+
+    public void setRichTextToolbarClassName(String richTextToolbarClassName) {
+        this.richTextToolbarClassName = richTextToolbarClassName;
     }
 
     public String getRichTextElementTagName() {
@@ -1643,14 +1654,18 @@ public class ToolUi extends Modification<Object> {
     public @interface RichText {
         boolean value() default true;
         boolean inline() default true;
+        Class<? extends RichTextToolbar> toolbar() default DefaultRichTextToolbar.class;
     }
 
     private static class RichTextProcessor implements ObjectField.AnnotationProcessor<RichText> {
 
         @Override
         public void process(ObjectType type, ObjectField field, RichText annotation) {
-            field.as(ToolUi.class).setRichText(annotation.value());
-            field.as(ToolUi.class).setRichTextInline(annotation.inline());
+            ToolUi ui = field.as(ToolUi.class);
+
+            ui.setRichText(annotation.value());
+            ui.setRichTextInline(annotation.inline());
+            ui.setRichTextToolbarClassName(annotation.toolbar().getName());
         }
     }
 

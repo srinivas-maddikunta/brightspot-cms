@@ -237,4 +237,31 @@ public interface ExternalContentProvider {
             page.writeEnd();
         }
     }
+
+    class Tableau extends RichExternalContentProvider {
+
+        private static final Pattern URL_PATTERN = Pattern.compile("(?i)https?://public.tableau.com/([^?]+).*");
+        private static final int WIDTH = 815;
+        private static final int HEIGHT = 690;
+
+        @Override
+        protected Pattern getUrlPattern() {
+            return URL_PATTERN;
+        }
+
+        @Override
+        protected void updateHtml(Matcher matcher, HtmlWriter html) throws IOException {
+            html.writeStart("iframe",
+                    "src", "https://public.tableau.com/" + matcher.group(1) + "?:embed=y&:showVizHome=n",
+                    "width", WIDTH,
+                    "height", HEIGHT);
+            html.writeEnd();
+        }
+
+        @Override
+        protected void updateResponse(Map<String, Object> response) {
+            response.put("width", WIDTH);
+            response.put("height", HEIGHT);
+        }
+    }
 }

@@ -25,8 +25,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.google.common.base.Preconditions;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
+import com.psddev.cms.db.Draft;
+import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
@@ -119,6 +122,8 @@ public class Search extends Record {
     private int limit;
     private Set<UUID> newItemIds;
     private boolean ignoreSite;
+
+    private transient String frameNameSuffix;
 
     public Search() {
     }
@@ -417,6 +422,24 @@ public class Search extends Record {
         this.ignoreSite = ignoreSite;
     }
 
+    /**
+     * Creates a unique frame name that starts with the given {@code prefix}.
+     *
+     * @param prefix
+     *        Can't be {@code null}.
+     *
+     * @return Never {@code null}.
+     */
+    public String createFrameName(String prefix) {
+        Preconditions.checkNotNull(prefix);
+
+        if (ObjectUtils.isBlank(frameNameSuffix)) {
+            frameNameSuffix = UUID.randomUUID().toString().replace("-", "");
+        }
+
+        return prefix + "-" + frameNameSuffix;
+    }
+
     public Set<ObjectType> findValidTypes() {
         Set<ObjectType> types = getTypes();
         List<ObjectType> validTypes = new ArrayList<ObjectType>();
@@ -477,17 +500,25 @@ public class Search extends Record {
         if (struct != null) {
             for (ObjectField field : ObjectStruct.Static.findIndexedFields(struct)) {
                 if (field.as(ToolUi.class).isEffectivelySortable()) {
-                    sorts.put(field.getInternalName(), field.getDisplayName());
+                    sorts.put(field.getInternalName(), Localization.currentUserText(field, "field." + field.getInternalName()));
                 }
             }
         }
     }
 
     public static Predicate getVisibilitiesPredicate(ObjectType selectedType, Collection<String> visibilities, Set<UUID> validTypeIds, boolean showDrafts) {
+        if (visibilities == null
+                || visibilities.isEmpty()
+                || (visibilities.size() == 1
+                && "".equals(visibilities.stream().findFirst().orElse(null)))) {
+
+            return getVisibilitiesPredicate(selectedType, Arrays.asList("p"), validTypeIds, showDrafts);
+        }
 
         Set<UUID> visibilityTypeIds = new HashSet<UUID>();
 
         Predicate visibilitiesPredicate = null;
+        boolean draft = false;
 
         for (String visibility : visibilities) {
             if ("p".equals(visibility)) {
@@ -521,6 +552,13 @@ public class Search extends Record {
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
                         publishedPredicate);
+
+            } else if ("d".equals(visibility)) {
+                draft = true;
+                visibilitiesPredicate = CompoundPredicate.combine(
+                        PredicateParser.OR_OPERATOR,
+                        visibilitiesPredicate,
+                        PredicateParser.Static.parse("_type = ?", Draft.class));
 
             } else if ("w".equals(visibility)) {
                 Set<String> ss = new HashSet<String>();
@@ -578,6 +616,13 @@ public class Search extends Record {
 
         if (validTypeIds != null) {
             validTypeIds.addAll(visibilityTypeIds);
+        }
+
+        if (!draft) {
+            visibilitiesPredicate = CompoundPredicate.combine(
+                    PredicateParser.AND_OPERATOR,
+                    visibilitiesPredicate,
+                    PredicateParser.Static.parse("_type != ?", Draft.class));
         }
 
         return visibilitiesPredicate;
@@ -984,43 +1029,7 @@ public class Search extends Record {
 
         Collection<String> visibilities = getVisibilities();
 
-        if (!visibilities.isEmpty()) {
-
-            Predicate visibilitiesPredicate = getVisibilitiesPredicate(selectedType, visibilities, validTypeIds, isShowDrafts());
-
-            query.and(visibilitiesPredicate);
-
-        } else if (selectedType == null
-                && isAllSearchable) {
-            Set<String> comparisonKeys = new HashSet<String>();
-            DatabaseEnvironment environment = Database.Static.getDefault().getEnvironment();
-
-            addVisibilityFields(comparisonKeys, environment);
-
-            for (ObjectType type : environment.getTypes()) {
-                addVisibilityFields(comparisonKeys, type);
-            }
-
-            for (String key : comparisonKeys) {
-                if (isShowDrafts()) {
-                    query.and(key + " = missing or " + key + " != missing or " + key + " = true");
-
-                } else {
-                    query.and(key + " = missing");
-                }
-            }
-
-        } else if (isShowDrafts()) {
-            Set<String> comparisonKeys = new HashSet<String>();
-            DatabaseEnvironment environment = Database.Static.getDefault().getEnvironment();
-
-            addVisibilityFields(comparisonKeys, environment);
-            addVisibilityFields(comparisonKeys, selectedType);
-
-            for (String key : comparisonKeys) {
-                query.and(key + " = missing or " + key + " != missing or " + key + " = true");
-            }
-        }
+        query.and(getVisibilitiesPredicate(selectedType, visibilities, validTypeIds, isShowDrafts()));
 
         if (validTypeIds != null) {
             if (page != null) {
@@ -1293,7 +1302,7 @@ public class Search extends Record {
                 page.writeEnd();
 
                 if (viewWritten) {
-                    page.writeStart("div", "class", "frame searchResult-actions", "name", "searchResultActions");
+                    page.writeStart("div", "class", "frame searchResult-actions", "name", createFrameName("SearchResultActions"));
                         page.writeStart("a",
                                 "href", page.toolUrl(CmsTool.class, "/searchResultActions",
                                         "search", ObjectUtils.toJson(getState().getSimpleValues())));

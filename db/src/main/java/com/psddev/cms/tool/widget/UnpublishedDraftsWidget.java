@@ -165,7 +165,7 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             type,
-                            page.localize(UnpublishedDraftsWidget.class, "label.anyTypes"),
+                            page.localize(UnpublishedDraftsWidget.class, "label.allTypes"),
                             "name", "typeId",
                             "data-bsp-autosubmit", "",
                             "data-searchable", true);

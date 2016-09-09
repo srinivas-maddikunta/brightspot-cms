@@ -26,7 +26,7 @@
 
     if (savedSearches.isEmpty()) {
         wp.writeStart("div", "class", "message");
-            wp.writeHtml("No saved searches yet.");
+            wp.writeHtml(wp.localize(Search.class, "message.noSavedSearches"));
         wp.writeEnd();
     }
     else {

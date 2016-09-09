@@ -39,12 +39,22 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
+import com.google.common.base.Preconditions;
+import com.ibm.icu.text.DateFormat;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.WorkInProgress;
+import com.psddev.cms.rte.RichTextToolbar;
+import com.psddev.cms.rte.RichTextToolbarItem;
 import com.psddev.cms.tool.page.content.Edit;
+import com.psddev.cms.view.ClassResourceViewTemplateLoader;
+import com.psddev.cms.view.ViewModelCreator;
+import com.psddev.cms.view.ViewOutput;
+import com.psddev.cms.view.ViewRenderer;
+import com.psddev.cms.view.ViewResponse;
+import com.psddev.cms.view.servlet.ServletViewModelCreator;
 import com.psddev.dari.db.Modification;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -1154,7 +1164,7 @@ public class ToolPageContext extends WebPageContext {
 
         if (object == null) {
             html.writeStart("em");
-            html.writeHtml("N/A");
+            html.writeHtml(localize(null, "label.notAvailable"));
             html.writeEnd();
 
         } else {
@@ -1168,7 +1178,9 @@ public class ToolPageContext extends WebPageContext {
             }
 
             State state = State.getInstance(object);
-            String label = state.getLabel();
+            String label = object instanceof ObjectType
+                    ? localize(object, "displayName")
+                    : state.getLabel();
 
             if (ObjectUtils.to(UUID.class, label) != null) {
                 html.writeStart("em");
@@ -1234,7 +1246,7 @@ public class ToolPageContext extends WebPageContext {
      */
     public void writeTypeObjectLabel(Object object) throws IOException {
         if (object == null) {
-            writeHtml("N/A");
+            writeHtml(localize(null, "label.notAvailable"));
 
         } else {
             State state = State.getInstance(object);
@@ -1322,9 +1334,15 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTimeWith(Object dateTime, String format) throws IOException {
-        return dateTime != null
-                ? toUserDateTime(dateTime).toString(format)
-                : "N/A";
+        if (dateTime != null) {
+            Locale locale = ObjectUtils.firstNonNull(getUser().getLocale(), Locale.getDefault());
+            DateFormat dateFormat = DateFormat.getPatternInstance(format, locale);
+
+            return dateFormat.format(toUserDateTime(dateTime).toDate());
+
+        } else {
+            return localize(null, "label.notAvailable");
+        }
     }
 
     /**
@@ -1406,6 +1424,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", site != null ? site.getCmsCssClass() : null,
                 "data-user-id", user != null ? user.getId() : null,
                 "data-user-label", user != null ? user.getLabel() : null,
+                "data-time-zone", getUserDateTimeZone().getID(),
                 "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag());
             writeStart("head");
                 writeStart("title");
@@ -1426,6 +1445,10 @@ public class ToolPageContext extends WebPageContext {
                 writeElement("meta", "name", "robots", "content", "noindex");
                 writeElement("meta", "name", "viewport", "content", "width=device-width, initial-scale=1");
                 writeStylesAndScripts();
+
+                for (Class<? extends ToolPageHead> headClass : ClassFinder.findConcreteClasses(ToolPageHead.class)) {
+                    TypeDefinition.getInstance(headClass).newInstance().writeHtml(this);
+                }
             writeEnd();
 
             Schedule currentSchedule = getUser() != null ? getUser().getCurrentSchedule() : null;
@@ -1801,6 +1824,23 @@ public class ToolPageContext extends WebPageContext {
             commonTimes.add(commonTimeMap);
         }
 
+        Map<String, List<Map<String, Object>>> richTextToolbars = ClassFinder.findConcreteClasses(RichTextToolbar.class).stream()
+                .collect(Collectors.toMap(
+                        Class::getName,
+                        c -> {
+                            RichTextToolbar toolbar = TypeDefinition.getInstance(c).newInstance();
+                            List<RichTextToolbarItem> items = toolbar.getItems();
+
+                            if (items != null) {
+                                return items.stream()
+                                        .map(RichTextToolbarItem::toMap)
+                                        .collect(Collectors.toList());
+
+                            } else {
+                                return Collections.emptyList();
+                            }
+                        }));
+
         List<Map<String, Object>> richTextElements = new ArrayList<>();
 
         Map<String, Set<String>> contextMap = new HashMap<>();
@@ -1972,6 +2012,7 @@ public class ToolPageContext extends WebPageContext {
             write("var RTE_ENABLE_ANNOTATIONS = ", getCmsTool().isEnableAnnotations(), ';');
             write("var DISABLE_TOOL_CHECKS = ", getCmsTool().isDisableToolChecks(), ';');
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
+            write("var RICH_TEXT_TOOLBARS = ", ObjectUtils.toJson(richTextToolbars), ';');
             write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
             write("var ENABLE_PADDED_CROPS = ", getCmsTool().isEnablePaddedCrop(), ';');
             write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ",
@@ -2238,8 +2279,8 @@ public class ToolPageContext extends WebPageContext {
                 .collect(Collectors.toList()));
 
         miscTypes.removeAll(mainTypes);
-        typeGroups.put("Main Content Types", mainTypes);
-        typeGroups.put("Misc Content Types", miscTypes);
+        typeGroups.put(localize(null, "label.mainTypes"), mainTypes);
+        typeGroups.put(localize(null, "label.miscTypes"), miscTypes);
 
         for (Iterator<List<ObjectType>> i = typeGroups.values().iterator(); i.hasNext();) {
             List<ObjectType> typeGroup = i.next();
@@ -2278,7 +2319,7 @@ public class ToolPageContext extends WebPageContext {
         String previousLabel = null;
 
         for (ObjectType type : types) {
-            String label = Static.getObjectLabel(type);
+            String label = localize(type, "displayName");
 
             writeStart("option",
                     "selected", selectedTypes.contains(type) ? "selected" : null,
@@ -2435,6 +2476,10 @@ public class ToolPageContext extends WebPageContext {
         Map<String, String> statuses = new HashMap<String, String>();
 
         statuses.put("p", "Published");
+
+        if (type == null) {
+            statuses.put("d", "Draft");
+        }
 
         boolean hasWorkflow = false;
 
@@ -2888,6 +2933,15 @@ public class ToolPageContext extends WebPageContext {
                             request.setAttribute("finalDraft", null);
                         }
                     }
+
+                    for (Class<? extends Tab> t : ClassFinder.findConcreteClasses(Tab.class)) {
+                        Tab tab = TypeDefinition.getInstance(t).newInstance();
+                        if (tab.shouldDisplay(object)) {
+                            writeStart("div", "class", "Tab", "data-tab", tab.getDisplayName(), "data-tab-class", t.getName());
+                            tab.writeHtml(this, object);
+                            writeEnd();
+                        }
+                    }
                 }
             writeEnd();
 
@@ -3008,6 +3062,117 @@ public class ToolPageContext extends WebPageContext {
     }
 
     /**
+     * Given an object of type {@code T} write the HTML for the given {@code viewType}.
+     *
+     * @param object to render using the given {@code viewType}.
+     * @param viewType type from {@link com.psddev.cms.view.ViewBinding} to render the object.
+     *
+     * @throws IOException
+     */
+    public void writeViewHtml(Object object, String viewType) throws IOException {
+        Preconditions.checkNotNull(object);
+
+        Class<? extends ViewModel> viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
+
+        Preconditions.checkNotNull(viewModelClass, String.format(
+                        "Could not find view model for object of type [%s] and view of type [%s]",
+                        object.getClass().getName(), viewType));
+
+        writeViewHtml(object, viewModelClass);
+    }
+
+    /**
+     * Writes the HTML for the view of the object using the given {@code viewModelClass}
+     *
+     * @param object
+     *        Can't be {@code null.
+     *
+     * @param viewModelClass
+     *        Can't be {@code null}.
+     *
+     * @throws IOException
+     */
+
+    public void writeViewHtml(Object object, Class<? extends ViewModel> viewModelClass) throws IOException {
+        Preconditions.checkNotNull(object);
+
+        ViewResponse viewResponse = new ViewResponse();
+        ViewModelCreator viewModelCreator = new ServletViewModelCreator(getRequest());
+
+        ViewModel<?> viewModel = null;
+        try {
+            viewModel = viewModelCreator.createViewModel(viewModelClass, object, viewResponse);
+        } catch (RuntimeException e) {
+            ViewResponse vr = ViewResponse.findInExceptionChain(e);
+            if (vr != null) {
+                viewResponse = vr;
+            } else {
+                throw e;
+            }
+        }
+
+        Preconditions.checkNotNull(viewModel, String.format(
+                "Failed to create a view model of type [%s] for object of type [%s] and view of class [%s]!",
+                viewModelClass.getName(), object.getClass().getName(), viewModelClass.getClass().getName()));
+
+        ViewRenderer renderer = Preconditions.checkNotNull(ViewRenderer.createRenderer(viewModel), String.format(
+                "Could not create view renderer for view of type [%s]",
+                viewModel.getClass().getName()));
+
+        String output = null;
+
+        try {
+            ViewOutput result = renderer.render(viewModel, new ClassResourceViewTemplateLoader(object.getClass()));
+            output = result.get();
+        } catch (RuntimeException e) {
+            ViewResponse vr = ViewResponse.findInExceptionChain(e);
+            if (vr != null) {
+                viewResponse = vr;
+            } else {
+                throw e;
+            }
+        }
+
+        ToolPageContext.updateViewResponse(getRequest(), (HttpServletResponse) JspUtils.getHeaderResponse(getRequest(), getResponse()), viewResponse);
+
+        if (output != null) {
+            write(output);
+        }
+    }
+
+    // Duplicated from PageFilter, should probably live somewhere reusable
+    // Copies the information on the ViewResponse to the actual http servlet response.
+    private static void updateViewResponse(HttpServletRequest request, HttpServletResponse response, ViewResponse viewResponse) {
+
+        Integer status = viewResponse.getStatus();
+        if (status != null) {
+            response.setStatus(status);
+        }
+
+        for (Map.Entry<String, List<String>> entry : viewResponse.getHeaders().entrySet()) {
+
+            String name = entry.getKey();
+            List<String> values = entry.getValue();
+
+            for (String value : values) {
+                response.addHeader(name, value);
+            }
+        }
+
+        viewResponse.getCookies().forEach(response::addCookie);
+        viewResponse.getSignedCookies().forEach(cookie -> JspUtils.setSignedCookie(response, cookie));
+
+        String redirectUrl = viewResponse.getRedirectUri();
+        if (redirectUrl != null) {
+            try {
+                JspUtils.redirect(request, response, redirectUrl);
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+    }
+
+    /**
      * Writes a standard form for the given {@code object} with the trash
      * action.
      *
@@ -3075,7 +3240,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", "queryRestrictions",
                 "data-bsp-autosubmit", "",
                 "method", "post",
-                "action", url(""));
+                "action", url("", Search.OFFSET_PARAMETER, null));
 
             qr.writeHtml(this);
         writeEnd();
@@ -3181,7 +3346,13 @@ public class ToolPageContext extends WebPageContext {
         }
 
         try {
-            if (param(UUID.class, "draftId") != null) {
+            Overlay overlay = Edit.getOverlay(object);
+
+            if (overlay != null) {
+                overlay.getState().delete();
+                redirectOnSave("");
+
+            } else if (param(UUID.class, "draftId") != null) {
                 Draft draft = getOverlaidDraft(object);
 
                 if (draft != null) {
@@ -3242,10 +3413,24 @@ public class ToolPageContext extends WebPageContext {
             Draft draft = getOverlaidDraft(object);
 
             if (draft != null) {
+                Map<String, Object> diffs = draft.getDifferences().get(state.getId().toString());
+
+                if (diffs != null) {
+                    diffs.remove("cms.content.scheduleDate");
+                }
+
                 Schedule schedule = draft.getSchedule();
 
                 if (schedule != null
                         && ObjectUtils.isBlank(schedule.getName())) {
+
+                    if (draft.isNewContent()) {
+                        draft.delete();
+
+                    } else {
+                        draft.save();
+                    }
+
                     schedule.delete();
 
                 } else {

@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.ImageTag;
+import com.psddev.cms.db.Localization;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.tool.page.SearchResultActions;
 import com.psddev.dari.util.CollectionUtils;
@@ -62,7 +63,7 @@ public class ListSearchResultView extends AbstractSearchResultView {
 
     @Override
     public String getDisplayName() {
-        return "List";
+        return Localization.currentUserText(this, "displayName");
     }
 
     @Override
@@ -193,7 +194,7 @@ public class ListSearchResultView extends AbstractSearchResultView {
                                 "type", "checkbox",
                                 "class", "searchResult-checkAll",
                                 "value", "",
-                                "data-frame-target", "searchResultActions",
+                                "data-frame-target", search.createFrameName("SearchResultActions"),
                                 "data-frame-check", StringUtils.addQueryParameters(selectAllUrl, SearchResultActions.ACTION_PARAMETER, SearchResultActions.ACTION_ADD),
                                 "data-frame-uncheck", StringUtils.addQueryParameters(selectAllUrl, SearchResultActions.ACTION_PARAMETER, SearchResultActions.ACTION_REMOVE));
                     page.writeEnd();
@@ -202,7 +203,7 @@ public class ListSearchResultView extends AbstractSearchResultView {
                             && ObjectField.DATE_TYPE.equals(sortField.getInternalType())) {
 
                         page.writeStart("th", "colspan", 2);
-                            page.writeHtml(sortField.getDisplayName());
+                            page.writeHtml(page.localize(sortField, "field." + sortField.getInternalName()));
                         page.writeEnd();
                     }
 
