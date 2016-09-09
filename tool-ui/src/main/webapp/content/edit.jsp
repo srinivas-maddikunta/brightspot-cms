@@ -1111,7 +1111,21 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                         }
                     wp.writeEnd();
 
-                    if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
+                    if (isWritable && overlay != null && !overlay.getState().isNew()) {
+                        wp.writeStart("ul", "class", "widget-publishingExtra-right");
+                            wp.writeStart("li");
+                                wp.writeStart("button",
+                                        "class", "link icon icon-action-delete",
+                                        "name", "action-delete",
+                                        "value", "true");
+                                wp.writeHtml(wp.localize(
+                                        overlay.getState().getType(),
+                                        "action.delete.type"));
+                                wp.writeEnd();
+                            wp.writeEnd();
+                        wp.writeEnd();
+
+                    } else if (overlay == null && (!lockedOut || editAnyway) && isWritable) {
                         wp.writeStart("ul", "class", "widget-publishingExtra-right");
                             if (isWritable && isDraft) {
                                 if (schedule != null) {
