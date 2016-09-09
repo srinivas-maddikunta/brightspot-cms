@@ -193,31 +193,48 @@ public class ContentState extends PageServlet {
                 oldValues,
                 state.getSimpleValues());
 
-        // Remove differences that weren't initiated by the user.
+        // Split user initiated differences and other differences
+        Map<String, Map<String, Object>> userDifferences = new CompactMap<>();
+        Map<String, Map<String, Object>> extraDifferences = new CompactMap<>();
         Map<String, List<String>> fieldNamesById = (Map<String, List<String>>) ObjectUtils.fromJson(page.param(String.class, "_fns"));
+        if (fieldNamesById == null) {
+            fieldNamesById = new CompactMap<String, List<String>>();
+        }
 
-        if (fieldNamesById != null) {
-            for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
-                Map.Entry<String, Map<String, Object>> entry = i.next();
-                String id = entry.getKey();
-                List<String> fieldNames = fieldNamesById.get(id);
+        for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
+            Map.Entry<String, Map<String, Object>> entry = i.next();
+            String id = entry.getKey();
+            List<String> fieldNames = fieldNamesById.get(id);
 
-                if (fieldNames == null) {
-                    i.remove();
+            if (fieldNames == null) {
+                extraDifferences.put(id, entry.getValue());
+                i.remove();
 
-                } else {
-                    Map<String, Object> values = entry.getValue();
+            } else {
+                Map<String, Object> valuesByField = entry.getValue();
 
-                    values.keySet().removeIf(n -> !fieldNames.contains(n));
-
-                    if (values.isEmpty()) {
-                        i.remove();
+                Map<String, Object> userDiffs = new CompactMap<>();
+                Map<String, Object> extraDiffs = new CompactMap<>();
+                for (Map.Entry<String, Object> valueByField : valuesByField.entrySet()) {
+                    if (fieldNames.contains(valueByField.getKey())) {
+                        userDiffs.put(valueByField.getKey(), valueByField.getValue());
+                    } else {
+                        extraDiffs.put(valueByField.getKey(), valueByField.getValue());
                     }
+                }
+
+                if (!ObjectUtils.isBlank(userDiffs)) {
+                    userDifferences.put(id, userDiffs);
+                }
+
+                if (!ObjectUtils.isBlank(extraDiffs)) {
+                    extraDifferences.put(id, extraDiffs);
                 }
             }
         }
 
-        jsonResponse.put("_differences", differences);
+        jsonResponse.put("_differences", userDifferences);
+        jsonResponse.put("_extraDifferences", extraDifferences);
 
         if (page.getOverlaidHistory(object) == null
                 && page.param(boolean.class, "wip")
@@ -233,7 +250,7 @@ public class ContentState extends PageServlet {
                     .and("contentId = ?", contentId)
                     .first();
 
-            if (differences.isEmpty()) {
+            if (userDifferences.isEmpty()) {
                 if (wip != null) {
                     jsonResponse.put("_wip", page.localize(getClass(), "message.wipDeleted"));
                     wip.delete();
@@ -254,7 +271,7 @@ public class ContentState extends PageServlet {
 
                 wip.setContentLabel(state.getLabel());
                 wip.setUpdateDate(new Date());
-                wip.setDifferences(differences);
+                wip.setDifferences(userDifferences);
                 wip.save();
 
                 List<WorkInProgress> more = Query.from(WorkInProgress.class)
