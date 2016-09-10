@@ -127,10 +127,7 @@ public class CmsTool extends Tool {
     private boolean enableFrontEndUploader;
 
     @ToolUi.Tab("UI")
-    private boolean enableRecentActivityViewers;
-
-    @ToolUi.Tab("UI")
-    private boolean enableSearchResultsViewers;
+    private boolean enableViewers;
 
     @ToolUi.Tab("Debug")
     private boolean displayTypesNotAssociatedWithJavaClasses;
@@ -676,20 +673,12 @@ public class CmsTool extends Tool {
         this.enableFrontEndUploader = enableFrontEndUploader;
     }
 
-    public boolean isEnableSearchResultsViewers() {
-        return enableSearchResultsViewers;
+    public boolean isEnableViewers() {
+        return enableViewers;
     }
 
-    public void setEnableSearchResultsViewers(boolean enableSearchResultsViewers) {
-        this.enableSearchResultsViewers = enableSearchResultsViewers;
-    }
-
-    public boolean isEnableRecentActivityViewers() {
-        return enableRecentActivityViewers;
-    }
-
-    public void setEnableRecentActivityViewers(boolean enableRecentActivityViewers) {
-        this.enableRecentActivityViewers = enableRecentActivityViewers;
+    public void setEnableViewers(boolean enableViewers) {
+        this.enableViewers = enableViewers;
     }
 
     public boolean isDisplayTypesNotAssociatedWithJavaClasses() {

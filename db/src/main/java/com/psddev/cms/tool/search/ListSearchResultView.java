@@ -31,7 +31,6 @@ import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.SearchResultField;
-import com.psddev.dari.db.Application;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Metric;
 import com.psddev.dari.db.MetricInterval;
@@ -287,10 +286,9 @@ public class ListSearchResultView extends AbstractSearchResultView {
                         }
                     }
 
-                    boolean showViewers = false;
+                    boolean showViewers = page.getCmsTool().isEnableViewers();
 
-                    if (Application.Static.getInstance(CmsTool.class).isEnableSearchResultsViewers()) {
-                        showViewers = true;
+                    if (showViewers) {
                         page.writeStart("th");
                             page.writeHtml(page.localize(ListSearchResultView.class, "label.viewers"));
                         page.writeEnd();
