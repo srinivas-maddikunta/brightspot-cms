@@ -715,65 +715,73 @@ The HTML within the repeatable element must conform to these standards:
                     self.repositionCollectionItemWeight(oldIndex, newIndex);
 
                 });
-
-                // Update dynamically calculated weights/markers
-                // TODO: Make this functionality generic, using meta tags or hidden fields
-                self.dom.$form.on('cms-updateContentState', (function(self) {
-                    return function(event, data) {
-
-                        var allDiffs = $.extend({}, data._differences, data._hiddenDifferences);
-                        if (!allDiffs) {
-                            return;
-                        }
-
-                        $.each(allDiffs, function (id, fields) {
-                            if (fields.length === 0) {
-                                return;
-                            }
-                            
-                            var $inputs = self.dom.$list.find('.objectInputs[data-object-id="' + id + '"]');
-
-                            if (!$inputs) {
-                                return;
-                            }
-
-                            $item = $inputs.closest('li');
-
-                            if (!$item) {
-                                return;
-                            }
-
-                            var weightsChanged = false;
-                            var weightMarkersChanged = false;
-                            $.each(fields, function(name, value) {
-                                if ($item.attr('data-weight-field') === name 
-                                        && $item.data('weight-field-value') !== value) {
-
-                                    $item.data('weight-field-value', value);
-                                    weightsChanged = true;
-                                } else if ($item.attr('data-weight-markers-field') === name 
-                                                && $item.data('weight-markers-field-value') !== value) {
-                                                    
-                                    $item.data('weight-markers-field-value', value);
-                                    weightMarkersChanged = true;
-                                }
-                            });
-
-                            if (weightsChanged) {
-                                //TODO;
-                            }
-
-                            if (weightMarkersChanged) {
-                                self.setCollectionItemWeightMarkers($item);
-                            }
-                        
-                        });
-                      };
-                    }(self)
-                ));
                  
                 var $itemWeightsContainer = self.dom.$list.parent().find('.repeatableForm-itemWeights');
                 self.collectionItemWeightsCalculated = $itemWeightsContainer.data('calculated');
+
+                // If values are calculated, handle updates from cms-updateContentState event
+                if (self.collectionItemWeightsCalculated) {
+                    // TODO: Make this functionality generic, using meta tags or hidden fields
+                    self.dom.$form.on('cms-updateContentState', (function(self) {
+                        return function(event, data) {
+
+                            var allDiffs = $.extend({}, data._differences, data._hiddenDifferences);
+                            if (!allDiffs) {
+                                return;
+                            }
+
+                            $.each(allDiffs, function (id, fields) {
+                                if (fields.length === 0) {
+                                    return;
+                                }
+                                
+                                var $inputs = self.dom.$list.find('.objectInputs[data-object-id="' + id + '"]');
+
+                                if (!$inputs) {
+                                    return;
+                                }
+
+                                $item = $inputs.closest('li');
+
+                                if (!$item) {
+                                    return;
+                                }
+
+                                var weightFieldName = $item.attr('data-weight-field');
+                                if (!weightFieldName){
+                                    return;
+                                }
+
+                                var newWeightFieldValue = fields[weightFieldName];
+                                if (newWeightFieldValue 
+                                        && $item.data('weight-field-value') !== newWeightFieldValue) {
+
+                                    $item.data('weight-field-value', newWeightFieldValue);
+                                    //TODO: update
+                                    self.updateCollectionItemWeightData($(self.dom.$list
+                                        .siblings('.repeatableForm-itemWeights')
+                                        .find('.repeatableForm-itemWeight')
+                                        .get($item.index())), Math.round(newWeightFieldValue * 100));
+                                    self.fixCollectionItemWeights();
+                                }
+
+                                var weightMarkersFieldName = $item.attr('data-weight-markers-field');
+                                if (!weightMarkersFieldName) {
+                                    return;
+                                }
+
+                                var newWeightMarkersFieldValue = fields[weightMarkersFieldName];
+                                if (newWeightMarkersFieldValue 
+                                        && $item.data('weight-markers-field-value') !== newWeightMarkersFieldValue) {
+                                    
+                                    $item.data('weight-markers-field-value', newWeightMarkersFieldValue);
+                                    self.setCollectionItemWeightMarkers($item); 
+                                }
+                            });
+                        };
+                        }(self)
+                    ));
+                }
               
                 self.initCollectionItemWeightResetButton();
           
