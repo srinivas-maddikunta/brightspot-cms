@@ -330,8 +330,8 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                             page.writeEnd();
 
                             if (page.getCmsTool().isEnableViewers()) {
-                                page.writeStart("td", "class", "viewers");
-                                    page.writeStart("div", "data-rtc-content-id", contentState.getId().toString()); {
+                                page.writeStart("td");
+                                    page.writeStart("div", "class", "EditFieldUpdateViewers", "data-rtc-content-id", contentState.getId().toString()); {
                                         page.writeStart("div", "data-rtc-edit-field-update-viewers", "");
                                         page.writeEnd();
                                     } page.writeEnd();

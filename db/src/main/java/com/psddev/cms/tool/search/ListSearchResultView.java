@@ -527,9 +527,9 @@ public class ListSearchResultView extends AbstractSearchResultView {
                         }
 
                         if (showViewers) {
-                            page.writeStart("td", "class", "viewers");
+                            page.writeStart("td");
                             {
-                                page.writeStart("div", "data-rtc-content-id", itemState.getId().toString());
+                                page.writeStart("div", "class", "EditFieldUpdateViewers", "data-rtc-content-id", itemState.getId().toString());
                                 {
                                     page.writeStart("div", "data-rtc-edit-field-update-viewers", "");
                                     page.writeEnd();
