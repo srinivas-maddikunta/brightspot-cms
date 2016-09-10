@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -202,17 +201,15 @@ public class ContentState extends PageServlet {
             fieldNamesById = new CompactMap<>();
         }
 
-        for (Iterator<Map.Entry<String, Map<String, Object>>> i = allDifferences.entrySet().iterator(); i.hasNext();) {
-            Map.Entry<String, Map<String, Object>> entry = i.next();
+        for (Map.Entry<String, Map<String, Object>> entry : allDifferences.entrySet()) {
             String id = entry.getKey();
+            Map<String, Object> allValues = entry.getValue();
             List<String> fieldNames = fieldNamesById.get(id);
 
             if (fieldNames == null) {
-                hiddenDifferences.put(id, entry.getValue());
-                i.remove();
+                hiddenDifferences.put(id, allValues);
 
             } else {
-                Map<String, Object> allValues = entry.getValue();
                 Map<String, Object> values = new CompactMap<>();
                 Map<String, Object> hiddenValues = new CompactMap<>();
 
