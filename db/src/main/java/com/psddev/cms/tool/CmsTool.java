@@ -126,6 +126,9 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("UI")
     private boolean enableFrontEndUploader;
 
+    @ToolUi.Tab("UI")
+    private boolean enableViewers;
+
     @ToolUi.Tab("Debug")
     private boolean displayTypesNotAssociatedWithJavaClasses;
 
@@ -668,6 +671,14 @@ public class CmsTool extends Tool {
 
     public void setEnableFrontEndUploader(boolean enableFrontEndUploader) {
         this.enableFrontEndUploader = enableFrontEndUploader;
+    }
+
+    public boolean isEnableViewers() {
+        return enableViewers;
+    }
+
+    public void setEnableViewers(boolean enableViewers) {
+        this.enableViewers = enableViewers;
     }
 
     public boolean isDisplayTypesNotAssociatedWithJavaClasses() {
