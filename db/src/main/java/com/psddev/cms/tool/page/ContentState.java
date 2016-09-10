@@ -188,53 +188,51 @@ public class ContentState extends PageServlet {
         Map<String, Object> jsonResponse = new CompactMap<String, Object>();
 
         // Differences between existing and pending content.
-        Map<String, Map<String, Object>> differences = Draft.findDifferences(
+        Map<String, Map<String, Object>> allDifferences = Draft.findDifferences(
                 state.getDatabase().getEnvironment(),
                 oldValues,
                 state.getSimpleValues());
 
-        // Split user initiated differences and other differences
-        Map<String, Map<String, Object>> userDifferences = new CompactMap<>();
-        Map<String, Map<String, Object>> extraDifferences = new CompactMap<>();
+        // Split differences that are visible and hidden in the UI.
+        Map<String, Map<String, Object>> differences = new CompactMap<>();
+        Map<String, Map<String, Object>> hiddenDifferences = new CompactMap<>();
         Map<String, List<String>> fieldNamesById = (Map<String, List<String>>) ObjectUtils.fromJson(page.param(String.class, "_fns"));
+
         if (fieldNamesById == null) {
-            fieldNamesById = new CompactMap<String, List<String>>();
+            fieldNamesById = new CompactMap<>();
         }
 
-        for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
+        for (Iterator<Map.Entry<String, Map<String, Object>>> i = allDifferences.entrySet().iterator(); i.hasNext();) {
             Map.Entry<String, Map<String, Object>> entry = i.next();
             String id = entry.getKey();
             List<String> fieldNames = fieldNamesById.get(id);
 
             if (fieldNames == null) {
-                extraDifferences.put(id, entry.getValue());
+                hiddenDifferences.put(id, entry.getValue());
                 i.remove();
 
             } else {
-                Map<String, Object> valuesByField = entry.getValue();
+                Map<String, Object> allValues = entry.getValue();
+                Map<String, Object> values = new CompactMap<>();
+                Map<String, Object> hiddenValues = new CompactMap<>();
 
-                Map<String, Object> userDiffs = new CompactMap<>();
-                Map<String, Object> extraDiffs = new CompactMap<>();
-                for (Map.Entry<String, Object> valueByField : valuesByField.entrySet()) {
-                    if (fieldNames.contains(valueByField.getKey())) {
-                        userDiffs.put(valueByField.getKey(), valueByField.getValue());
-                    } else {
-                        extraDiffs.put(valueByField.getKey(), valueByField.getValue());
-                    }
+                for (Map.Entry<String, Object> allValue : allValues.entrySet()) {
+                    String key = allValue.getKey();
+                    (fieldNames.contains(key) ? values : hiddenValues).put(key, allValue.getValue());
                 }
 
-                if (!ObjectUtils.isBlank(userDiffs)) {
-                    userDifferences.put(id, userDiffs);
+                if (!values.isEmpty()) {
+                    differences.put(id, values);
                 }
 
-                if (!ObjectUtils.isBlank(extraDiffs)) {
-                    extraDifferences.put(id, extraDiffs);
+                if (!hiddenValues.isEmpty()) {
+                    hiddenDifferences.put(id, hiddenValues);
                 }
             }
         }
 
-        jsonResponse.put("_differences", userDifferences);
-        jsonResponse.put("_extraDifferences", extraDifferences);
+        jsonResponse.put("_differences", differences);
+        jsonResponse.put("_hiddenDifferences", hiddenDifferences);
 
         if (page.getOverlaidHistory(object) == null
                 && page.param(boolean.class, "wip")
@@ -250,7 +248,7 @@ public class ContentState extends PageServlet {
                     .and("contentId = ?", contentId)
                     .first();
 
-            if (userDifferences.isEmpty()) {
+            if (differences.isEmpty()) {
                 if (wip != null) {
                     jsonResponse.put("_wip", page.localize(getClass(), "message.wipDeleted"));
                     wip.delete();
@@ -271,7 +269,7 @@ public class ContentState extends PageServlet {
 
                 wip.setContentLabel(state.getLabel());
                 wip.setUpdateDate(new Date());
-                wip.setDifferences(userDifferences);
+                wip.setDifferences(differences);
                 wip.save();
 
                 List<WorkInProgress> more = Query.from(WorkInProgress.class)
