@@ -241,6 +241,9 @@ The HTML within the repeatable element must conform to these standards:
                     $template.remove();
                 });
 
+                // Save form for later use
+                self.dom.$form = self.dom.$list.closest('form');
+
                 // Save templates for later use
                 self.dom.$templates = $templates;
                 
@@ -712,6 +715,62 @@ The HTML within the repeatable element must conform to these standards:
                     self.repositionCollectionItemWeight(oldIndex, newIndex);
 
                 });
+
+                // Update dynamically calculated weights/markers
+                // TODO: Make this functionality generic, using meta tags or hidden fields
+                self.dom.$form.on('cms-updateContentState', (function(self) {
+                    return function(event, data) {
+
+                        var allDiffs = $.extend({}, data._differences, data._hiddenDifferences);
+                        if (!allDiffs) {
+                            return;
+                        }
+
+                        $.each(allDiffs, function (id, fields) {
+                            if (fields.length === 0) {
+                                return;
+                            }
+                            
+                            var $inputs = self.dom.$list.find('.objectInputs[data-object-id="' + id + '"]');
+
+                            if (!$inputs) {
+                                return;
+                            }
+
+                            $item = $inputs.closest('li');
+
+                            if (!$item) {
+                                return;
+                            }
+
+                            var weightsChanged = false;
+                            var weightMarkersChanged = false;
+                            $.each(fields, function(name, value) {
+                                if ($item.attr('data-weight-field') === name 
+                                        && $item.data('weight-field-value') !== value) {
+
+                                    $item.data('weight-field-value', value);
+                                    weightsChanged = true;
+                                } else if ($item.attr('data-weight-markers-field') === name 
+                                                && $item.data('weight-markers-field-value') !== value) {
+                                                    
+                                    $item.data('weight-markers-field-value', value);
+                                    weightMarkersChanged = true;
+                                }
+                            });
+
+                            if (weightsChanged) {
+                                //TODO;
+                            }
+
+                            if (weightMarkersChanged) {
+                                self.setCollectionItemWeightMarkers($item);
+                            }
+                        
+                        });
+                      };
+                    }(self)
+                ));
                  
                 var $itemWeightsContainer = self.dom.$list.parent().find('.repeatableForm-itemWeights');
                 self.collectionItemWeightsCalculated = $itemWeightsContainer.data('calculated');
@@ -795,8 +854,6 @@ The HTML within the repeatable element must conform to these standards:
                     'data-weight': weightFieldValue
                 });
 
-                self.addCollectionItemWeightMarkers($item, $itemWeight);
-
                 // Filter items that have been toggled off
                 var itemIndex = $item.parent()
                                      .children(':not([data-toggle-field-value="false"], .toBeRemoved)')
@@ -808,6 +865,8 @@ The HTML within the repeatable element must conform to these standards:
                 } else {
                     $itemWeightContainer.children().eq(itemIndex - 1).after($itemWeight);
                 }
+
+                self.setCollectionItemWeightMarkers($item);
 
                 // Avoid creating handles if draggable is false
                 if (!self.collectionItemWeightsCalculated) {
@@ -845,13 +904,19 @@ The HTML within the repeatable element must conform to these standards:
             },
 
            /**
-            * Adds markers to repeatableForm-itemWeight.
+            * Sets markers to repeatableForm-itemWeight.
             */
-            addCollectionItemWeightMarkers: function(item, itemWeight) {
+            setCollectionItemWeightMarkers: function(item) {
                 var self = this;
                 var $item = $(item);
-                var $itemWeight = $(itemWeight);
-                var markerValues = $item.data('weight-markers');
+                var $itemWeight = $(self.dom.$list
+                                    .siblings('.repeatableForm-itemWeights')
+                                    .find('.repeatableForm-itemWeight')
+                                    .get($item.index()));
+
+                $itemWeight.find('.repeatableForm-itemWeight-marker').remove();
+
+                var markerValues = $item.data('weight-markers-field-value');
                 if (markerValues) {
                     Array.prototype.forEach.call(markerValues, function(markerValue, i) {
                         $itemWeight.append($('<div/>', {
