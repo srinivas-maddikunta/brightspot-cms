@@ -757,7 +757,6 @@ The HTML within the repeatable element must conform to these standards:
                                         && $item.data('weight-field-value') !== newWeightFieldValue) {
 
                                     $item.data('weight-field-value', newWeightFieldValue);
-                                    //TODO: update
                                     self.updateCollectionItemWeightData($(self.dom.$list
                                         .siblings('.repeatableForm-itemWeights')
                                         .find('.repeatableForm-itemWeight')
