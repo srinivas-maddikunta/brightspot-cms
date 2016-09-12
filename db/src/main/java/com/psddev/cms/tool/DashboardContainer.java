@@ -3,15 +3,12 @@ package com.psddev.cms.tool;
 import com.psddev.dari.db.Record;
 import com.psddev.dari.db.Recordable;
 
-/**
- * Dashboard wrapper interface to provide capability to share dashboard.
- */
-public interface DashboardWrapper extends Recordable {
+@Recordable.Embedded
+public abstract class DashboardContainer extends Record {
 
-    Dashboard getDashboard();
+    public abstract Dashboard getDashboard();
 
-    @Embedded
-    class SharedDashboard extends Record implements DashboardWrapper {
+    public static class Shared extends DashboardContainer {
 
         @Required
         private Dashboard dashboard;
@@ -26,8 +23,7 @@ public interface DashboardWrapper extends Recordable {
         }
     }
 
-    @Embedded
-    class EmbeddedDashboard extends Record implements DashboardWrapper {
+    public static class OneOff extends DashboardContainer {
 
         @Embedded
         @Required

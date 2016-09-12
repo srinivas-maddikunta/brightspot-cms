@@ -79,12 +79,12 @@ public class CmsTool extends Tool {
 
     @DisplayName("Default Dashboard")
     @ToolUi.Tab("Dashboard")
-    private DashboardWrapper dashboardWrapper;
+    private DashboardContainer dashboardContainer;
 
     @Deprecated
     @DisplayName("Legacy Dashboard")
     @ToolUi.Tab("Dashboard")
-    @ToolUi.Note("Deprecated. Please use the `Default Dashboard` field above instead.")
+    @ToolUi.Note("Deprecated. Please use the Default Dashboard field above instead.")
     @Embedded
     private Dashboard defaultDashboard;
 
@@ -526,17 +526,19 @@ public class CmsTool extends Tool {
         return commonTimes;
     }
 
-    public DashboardWrapper getDashboardWrapper() {
-        if (dashboardWrapper == null && getDefaultDashboard() != null) {
-            DashboardWrapper.EmbeddedDashboard dashboard = new DashboardWrapper.EmbeddedDashboard();
-            dashboard.setDashboard(getDefaultDashboard());
-            return dashboard;
+    public DashboardContainer getDashboardContainer() {
+        if (dashboardContainer == null && defaultDashboard != null) {
+            DashboardContainer.OneOff oneOff = new DashboardContainer.OneOff();
+            oneOff.setDashboard(defaultDashboard);
+            return oneOff;
+
+        } else {
+            return dashboardContainer;
         }
-        return dashboardWrapper;
     }
 
-    public void setDashboardWrapper(DashboardWrapper dashboardWrapper) {
-        this.dashboardWrapper = dashboardWrapper;
+    public void setDashboardContainer(DashboardContainer dashboardContainer) {
+        this.dashboardContainer = dashboardContainer;
     }
 
     @Deprecated

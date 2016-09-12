@@ -8,7 +8,7 @@ import javax.servlet.ServletException;
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DashboardColumn;
 import com.psddev.cms.tool.DashboardWidget;
-import com.psddev.cms.tool.DashboardWrapper;
+import com.psddev.cms.tool.DashboardContainer;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.Query;
@@ -35,19 +35,19 @@ public class DashboardWidgetPage extends PageServlet {
         pathInfo = StringUtils.removeEnd(pathInfo, "/");
         String[] pathInfoParts = pathInfo.split("/");
         Dashboard dashboard = null;
-        DashboardWrapper dashboardWrapper = null;
+        DashboardContainer dashboardContainer = null;
 
         switch (pathInfoParts[0]) {
             case "user" :
-                dashboardWrapper = page.getUser().getDashboardWrapper();
+                dashboardContainer = page.getUser().getDashboardContainer();
                 break;
 
             case "role" :
-                dashboardWrapper = page.getUser().getRole().getDashboardWrapper();
+                dashboardContainer = page.getUser().getRole().getDashboardContainer();
                 break;
 
             case "tool" :
-                dashboardWrapper = page.getCmsTool().getDashboardWrapper();
+                dashboardContainer = page.getCmsTool().getDashboardContainer();
                 break;
 
             case "default" :
@@ -58,8 +58,8 @@ public class DashboardWidgetPage extends PageServlet {
                 throw new IllegalArgumentException();
         }
 
-        if (dashboardWrapper != null) {
-            dashboard = dashboardWrapper.getDashboard();
+        if (dashboardContainer != null) {
+            dashboard = dashboardContainer.getDashboard();
         }
 
         DashboardWidget widget = null;

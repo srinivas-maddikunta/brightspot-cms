@@ -13,7 +13,7 @@ import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DashboardColumn;
 import com.psddev.cms.tool.DashboardWidget;
-import com.psddev.cms.tool.DashboardWrapper;
+import com.psddev.cms.tool.DashboardContainer;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.Query;
@@ -33,11 +33,11 @@ public class DashboardPage extends PageServlet {
     public void doService(ToolPageContext page) throws IOException, ServletException {
         ToolUser user = page.getUser();
         Dashboard dashboard = null;
-        DashboardWrapper dashboardWrapper = user.getDashboardWrapper();
+        DashboardContainer dashboardContainer = user.getDashboardContainer();
         String dashboardId = null;
 
-        if (dashboardWrapper != null) {
-            dashboard = dashboardWrapper.getDashboard();
+        if (dashboardContainer != null) {
+            dashboard = dashboardContainer.getDashboard();
             dashboardId = "user";
         }
 
@@ -45,20 +45,20 @@ public class DashboardPage extends PageServlet {
             ToolRole role = user.getRole();
 
             if (role != null) {
-                dashboardWrapper = role.getDashboardWrapper();
+                dashboardContainer = role.getDashboardContainer();
 
-                if (dashboardWrapper != null) {
-                    dashboard = dashboardWrapper.getDashboard();
+                if (dashboardContainer != null) {
+                    dashboard = dashboardContainer.getDashboard();
                     dashboardId = "role";
                 }
             }
         }
 
         if (dashboard == null) {
-            dashboardWrapper = page.getCmsTool().getDashboardWrapper();
+            dashboardContainer = page.getCmsTool().getDashboardContainer();
 
-            if (dashboardWrapper != null) {
-                dashboard = dashboardWrapper.getDashboard();
+            if (dashboardContainer != null) {
+                dashboard = dashboardContainer.getDashboard();
                 dashboardId = "tool";
             }
         }

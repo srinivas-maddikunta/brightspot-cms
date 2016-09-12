@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.google.common.io.BaseEncoding;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Dashboard;
-import com.psddev.cms.tool.DashboardWrapper;
+import com.psddev.cms.tool.DashboardContainer;
 import com.psddev.cms.tool.SearchResultSelection;
 import com.psddev.cms.tool.ToolEntityTfaRequired;
 import com.psddev.dari.db.Application;
@@ -76,12 +76,12 @@ public class ToolUser extends Record implements ToolEntity {
 
     @DisplayName("Dashboard")
     @ToolUi.Tab("Dashboard")
-    private DashboardWrapper dashboardWrapper;
+    private DashboardContainer dashboardContainer;
 
     @Deprecated
     @DisplayName("Legacy Dashboard")
     @ToolUi.Tab("Dashboard")
-    @ToolUi.Note("Deprecated. Please use the `Dashboard` field above instead.")
+    @ToolUi.Note("Deprecated. Please use the Dashboard field above instead.")
     @Embedded
     private Dashboard dashboard;
 
@@ -255,17 +255,19 @@ public class ToolUser extends Record implements ToolEntity {
         this.avatar = avatar;
     }
 
-    public DashboardWrapper getDashboardWrapper() {
-        if (dashboardWrapper == null && getDashboard() != null) {
-            DashboardWrapper.EmbeddedDashboard dashboard = new DashboardWrapper.EmbeddedDashboard();
-            dashboard.setDashboard(getDashboard());
-            return dashboard;
+    public DashboardContainer getDashboardContainer() {
+        if (dashboardContainer == null && dashboard != null) {
+            DashboardContainer.OneOff oneOff = new DashboardContainer.OneOff();
+            oneOff.setDashboard(dashboard);
+            return oneOff;
+
+        } else {
+            return dashboardContainer;
         }
-        return dashboardWrapper;
     }
 
-    public void setDashboardWrapper(DashboardWrapper dashboardWrapper) {
-        this.dashboardWrapper = dashboardWrapper;
+    public void setDashboardContainer(DashboardContainer dashboardContainer) {
+        this.dashboardContainer = dashboardContainer;
     }
 
     @Deprecated
