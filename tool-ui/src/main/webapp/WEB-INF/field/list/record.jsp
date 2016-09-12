@@ -36,7 +36,7 @@ java.util.Map,
 java.util.Set,
 java.util.UUID,
 java.util.stream.Collectors
-, com.psddev.cms.tool.page.UploadFiles" %><%
+, com.psddev.cms.tool.page.UploadFiles, com.psddev.dari.util.TypeReference" %><%
 
 // --- Logic ---
 
@@ -558,6 +558,7 @@ if (!isValueExternal) {
     Map<ObjectType, String> weightedTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> toggleTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     Map<ObjectType, String> progressTypesAndFieldsMap = new CompactMap<ObjectType, String>();
+    Map<ObjectType, String> weightMarkersTypesAndFieldsMap = new CompactMap<ObjectType, String>();
     int calculatedWeightsFieldCount = 0;
 
     for (ObjectType t : validTypes) {
@@ -573,6 +574,9 @@ if (!isValueExternal) {
                 if (ui.isCollectionItemWeightCalculated()) {
                     calculatedWeightsFieldCount ++;
                 }
+            }
+            if (ui.isCollectionItemWeightMarker()) {
+                weightMarkersTypesAndFieldsMap.put(t, f.getInternalName());
             }
             if (ui.isCollectionItemToggle()) {
                 toggleTypesAndFieldsMap.put(t, f.getInternalName());
@@ -608,7 +612,6 @@ if (!isValueExternal) {
                     + (displayGrid ? " repeatableForm-previewable" : "")
                     + (displayWeights ? " repeatableForm-weighted" : "")
                     + (displayAlternateListUi ? " repeatableForm-alt" : ""),
-            "foo", "bar",
             "data-generic-arguments", genericArgumentsString);
 
         if (displayWeights) {
@@ -638,6 +641,7 @@ if (!isValueExternal) {
                 String progressFieldName = progressTypesAndFieldsMap.get(itemType);
                 String toggleFieldName = toggleTypesAndFieldsMap.get(itemType);
                 String weightFieldName = weightedTypesAndFieldsMap.get(itemType);
+                String weightMarkersFieldName = weightMarkersTypesAndFieldsMap.get(itemType);
 
                 wp.writeStart("li",
                         "class", expanded ? "expanded" : null,
@@ -654,11 +658,13 @@ if (!isValueExternal) {
                         // Add additional data attributes for customizing embedded item display
                         "data-toggle-field", !StringUtils.isBlank(toggleFieldName) ? toggleFieldName : null,
                         "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
+                        "data-weight-markers-field", !StringUtils.isBlank(weightMarkersFieldName) ? weightMarkersFieldName : null,
                         "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? ObjectUtils.to(int.class, ObjectUtils.to(double.class, itemState.get(progressFieldName)) * 100) : null,
                         "data-toggle-field-value", !StringUtils.isBlank(toggleFieldName) ? ObjectUtils.to(boolean.class, itemState.get(toggleFieldName)) : null,
-                        "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? ObjectUtils.to(double.class, itemState.get(weightFieldName)) : null
+                        "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? ObjectUtils.to(double.class, itemState.get(weightFieldName)) : null,
+                        "data-weight-markers-field-value", !StringUtils.isBlank(weightMarkersFieldName) ? ObjectUtils.to(new TypeReference<List<Double>>() {}, itemState.get(weightMarkersFieldName)) : null
+                );
 
-                        );
                     wp.writeElement("input",
                             "type", "hidden",
                             "name", idName,
@@ -702,6 +708,7 @@ if (!isValueExternal) {
                 String progressFieldName = progressTypesAndFieldsMap.get(type);
                 String toggleFieldName = toggleTypesAndFieldsMap.get(type);
                 String weightFieldName = weightedTypesAndFieldsMap.get(type);
+                String weightMarkersFieldName = weightMarkersTypesAndFieldsMap.get(type);
 
                 wp.writeStart("script", "type", "text/template");
                     wp.writeStart("li",
@@ -713,6 +720,7 @@ if (!isValueExternal) {
                             "data-preview-field", type.getPreviewField(),
                             "data-toggle-field", !StringUtils.isBlank(toggleFieldName) ? toggleFieldName : null,
                             "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
+                            "data-weight-markers-field", !StringUtils.isBlank(weightMarkersFieldName) ? weightMarkersFieldName : null,
                             "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? 0.0 : null,
                             "data-toggle-field-value", !StringUtils.isBlank(toggleFieldName) ? true : null,
                             "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? "" : null
