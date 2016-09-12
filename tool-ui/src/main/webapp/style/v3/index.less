@@ -14,6 +14,11 @@
 @import 'element.less';
 @import 'reset.less';
 
+* {
+  // Solve problem of certain font-ligatures like "fi" from messing up cursor positions in input fields
+  font-variant-ligatures: no-common-ligatures !important;
+}
+
 .repeatableForm > ol > li > .inputLabel > .inputSmall,
 .repeatableForm > ul > li > .inputLabel > .inputSmall {
   display: inline-block;
@@ -43,6 +48,7 @@
 @import 'repeatable.less';
 @import 'rte.less';
 @import 'rte2.less';
+@import 'tableEditor.less';
 @import 'scheduled-events.less';
 @import 'search.less';
 @import 'taxonomy.less';
@@ -52,8 +58,14 @@
 @import 'work-streams.less';
 @import 'workflow.less';
 
+@import 'EditFieldUpdateViewers.less';
+@import 'ExternalPreviewFrame.less';
+@import 'OverlayProviderSelect.less';
+@import 'Tab.less';
+@import 'ToolUserAvatar.less';
+
 // From Bower.
-@import '../jquery.handsontable.full.css';
+@import '../handsontable.full.css';
 @import '../leaflet/leaflet.css';
 @import '../leaflet/leaflet.draw.css';
 @import '../leaflet/l.geosearch.css';
@@ -236,6 +248,7 @@
 .contentForm-main {
   float: left;
   width: 100%;
+  z-index: 2;
 
   > .pagination {
     margin-bottom: 15px;
@@ -247,6 +260,11 @@
   float: left;
   margin: 0 -330px 0 10px;
   width: 320px;
+
+  .contentWidgets {
+    border-bottom: 1px solid transparent;
+    margin-bottom: -1px;
+  }
 
   @media @media-tablet {
     margin-right: -200px;
@@ -439,14 +457,27 @@
 .widget-previewFrameContainer {
   bottom: 20px;
   left: 20px;
-  overflow: auto;
+  overflow: hidden;
+  padding-right: 20px;
   position: absolute;
   right: 0;
   top: 110px;
+
+  iframe {
+    border: none;
+    height: 100%;
+    transform-origin: top left;
+    width: 100%;
+  }
 }
 
 .widget-publishing {
   margin-bottom: 10px;
+  z-index: 1;
+
+  > h1 {
+    position: relative;
+  }
 
   [name='workflowComment'] {
     margin-bottom: 5px;
@@ -479,7 +510,7 @@
 }
 
 .widget-publishingWorkflowLog {
-  margin-bottom: -5px;
+  padding-bottom: 10px;
 
   h2 {
     display: none;
@@ -536,24 +567,36 @@
       }
     }
   }
-
-  [name='action-trash'] {
-    bottom: 20px;
-    margin-top: 16px;
-    position: absolute;
-    right: 20px;
-  }
 }
 
 .widget-publishingExtra {
-  list-style-type: none;
-  margin: 15px 70px 0 0;
   overflow: hidden;
 
-  li {
-    float: left;
-    margin-right: 20px;
+  &-left,
+  &-right {
+    list-style-type: none;
+    margin: 0;
   }
+
+  &-left {
+    float: left;
+  }
+
+  &-right {
+    float: right;
+  }
+}
+
+.widget-publishingPublish + .widget-publishingExtra {
+  .widget-publishingExtra-left,
+  .widget-publishingExtra-right {
+    margin-top: 15px;
+  }
+}
+
+.DraftAndReturnAction,
+.NewDraftAndReturnAction {
+  display: none;
 }
 
 .inputContainer .permissions select {
@@ -624,7 +667,7 @@
 }
 
 .inputContainer.state-focus {
-  > .inputWordCount {
+  .inputWordCount {
     .background-flat(@color-placeholder);
 
     display: block;
@@ -668,6 +711,7 @@
   .icon-only;
   .link;
 
+  box-sizing: content-box;
   color: fade(@color-text, 30%);
   display: none;
   padding: 5px;
@@ -798,16 +842,17 @@ form[data-type='com.psddev.cms.db.ContentType'] {
   line-height: 50px;
   margin: -10px 0 10px 0;
   padding: 0;
+  text-shadow: none;
   width: 90%;
+
+  .visibilityLabel {
+    margin-top: -2px;
+    vertical-align: middle;
+  }
 
   .icon:before {
     display: none !important;
   }
-}
-
-.noToolUser .toolTitle {
-  position: relative;
-  top: 200px;
 }
 
 .widget-logIn {

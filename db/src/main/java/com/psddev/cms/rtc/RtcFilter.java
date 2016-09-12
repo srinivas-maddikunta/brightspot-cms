@@ -1,7 +1,9 @@
 package com.psddev.cms.rtc;
 
 import com.google.common.collect.ImmutableMap;
+import com.psddev.cms.tool.CmsTool;
 import com.psddev.dari.db.Database;
+import com.psddev.dari.db.Query;
 import com.psddev.dari.util.AbstractFilter;
 import org.atmosphere.client.TrackMessageSizeInterceptor;
 import org.atmosphere.cpr.ApplicationConfig;
@@ -10,6 +12,7 @@ import org.atmosphere.cpr.AtmosphereFrameworkInitializer;
 import org.atmosphere.cpr.AtmosphereRequest;
 import org.atmosphere.cpr.AtmosphereResponse;
 import org.atmosphere.interceptor.AtmosphereResourceLifecycleInterceptor;
+import org.atmosphere.interceptor.IdleResourceInterceptor;
 import org.atmosphere.util.VoidAnnotationProcessor;
 
 import javax.servlet.Filter;
@@ -28,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Filter that handles the real-time communication between the server
@@ -42,11 +46,23 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
     private static final Map<String, String> DEFAULT_INIT_PARAMETERS = ImmutableMap.<String, String>builder()
             .put(ApplicationConfig.ANALYTICS, Boolean.FALSE.toString())
             .put(ApplicationConfig.ANNOTATION_PROCESSOR, VoidAnnotationProcessor.class.getName())
-            .put(ApplicationConfig.HEARTBEAT_INTERVAL_IN_SECONDS, String.valueOf(5))
+            .put(ApplicationConfig.HEARTBEAT_INTERVAL_IN_SECONDS, String.valueOf(30))
+            .put(ApplicationConfig.MAX_INACTIVE, String.valueOf(90000))
             .build();
+
+    private static final String ATTRIBUTE_PREFIX = RtcFilter.class.getName() + ".";
+    private static final String USER_ID_ATTRIBUTE = ATTRIBUTE_PREFIX + "userId";
 
     private AtmosphereFrameworkInitializer initializer;
     private RtcObjectUpdateNotifier notifier;
+
+    public static void setUserId(HttpServletRequest request, UUID uuid) {
+        request.setAttribute(USER_ID_ATTRIBUTE, uuid);
+    }
+
+    public static UUID getUserId(HttpServletRequest request) {
+        return (UUID) request.getAttribute(USER_ID_ATTRIBUTE);
+    }
 
     @Override
     public void updateDependencies(Class<? extends AbstractFilter> filterClass, List<Class<? extends Filter>> dependencies) {
@@ -94,6 +110,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
                 new RtcHandler(),
                 Arrays.asList(
                         new AtmosphereResourceLifecycleInterceptor(),
+                        new IdleResourceInterceptor(),
                         new TrackMessageSizeInterceptor()
                 )
         );
@@ -128,12 +145,17 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
     @Override
     protected void doRequest(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
         if (request.getServletPath().startsWith(PATH)) {
-            initializer.framework().doCometSupport(
-                    AtmosphereRequest.wrap(request),
-                    AtmosphereResponse.wrap(response));
+            CmsTool cms = Query.from(CmsTool.class).first();
 
-        } else {
-            chain.doFilter(request, response);
+            if (cms == null || !cms.isDisableRtc()) {
+                initializer.framework().doCometSupport(
+                        AtmosphereRequest.wrap(request),
+                        AtmosphereResponse.wrap(response));
+
+                return;
+            }
         }
+
+        chain.doFilter(request, response);
     }
 }

@@ -10,6 +10,7 @@ import com.psddev.dari.util.RoutingFilter;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 @RoutingFilter.Path(application = "cms", value = "/contentEditBulkSubmissionStatus")
@@ -64,10 +65,43 @@ public class ContentEditBulkSubmissionStatus extends PageServlet {
                         page.writeEnd();
                     }
 
-                    page.writeStart("div", "class", "message message-success");
+                    String status;
+
+                    if (submission.getSuccesses() == 0) {
+                        status = "error";
+
+                    } else if (submission.getFailures() > 0) {
+                        status = "warning";
+
+                    } else {
+                        status = "success";
+                    }
+
+                    page.writeStart("div", "class", "message message-" + status);
                     page.writeHtml(page.localize(ContentEditBulkSubmissionStatus.class, "message.finished"));
+                    page.writeHtml(' ');
                     writeSubmission(page, submission);
                     page.writeEnd();
+
+                    if (!ObjectUtils.isBlank(submission.getErrors())) {
+                        page.writeStart("h2");
+                            page.writeHtml(page.localize("com.psddev.cms.tool.page.content.Errors", "error.bulkSave"));
+                        page.writeEnd();
+
+                        page.writeStart("div", "class", "message message-error");
+                        page.write("<br/>");
+                            for (Map.Entry<String, ContentEditBulkSubmissionError> entry : submission.getErrors().entrySet()) {
+                                page.writeStart("ul", "class", "exception");
+                                    page.writeStart("li");
+                                        page.write(entry.getKey());
+                                        page.writeStart("ul", "class", "stackTrace");
+                                            page.write(entry.getValue() != null ? entry.getValue().getStackTrace() : "");
+                                        page.writeEnd();
+                                    page.writeEnd();
+                                page.writeEnd();
+                            }
+                        page.writeEnd();
+                    }
                 }
             }
             page.writeEnd();

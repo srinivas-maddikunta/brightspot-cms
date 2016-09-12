@@ -304,11 +304,24 @@ ul {
   margin-left: @list-marginLeft;
 }
 
+:focus {
+  outline: none;
+}
+
 .state-placeholder {
   color: @color-placeholder;
-  font-style: italic;
+
+  &:not([data-editable-placeholder]) {
+    font-style: italic;
+  }
 }
 
 ::placeholder {
   .state-placeholder;
+
+  opacity: 1;
+}
+
+[data-editable-placeholder]::placeholder {
+  font-style: normal;
 }

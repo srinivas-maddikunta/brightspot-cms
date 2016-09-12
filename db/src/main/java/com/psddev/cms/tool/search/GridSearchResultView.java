@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
+import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.CmsTool;
@@ -24,14 +26,32 @@ public class GridSearchResultView extends ListSearchResultView {
 
     @Override
     public String getDisplayName() {
-        return "Grid";
+        return Localization.currentUserText(this, "displayName");
     }
 
     @Override
     public boolean isSupported(Search search) {
         ObjectType selectedType = search.getSelectedType();
 
-        return selectedType != null && selectedType.getPreviewField() != null;
+        if (selectedType != null) {
+            return selectedType.getPreviewField() != null;
+
+        } else {
+            Set<ObjectType> types = search.getTypes();
+
+            if (types.isEmpty()) {
+                return false;
+
+            } else {
+                for (ObjectType type : types) {
+                    if (type.getPreviewField() == null) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
     }
 
     @Override

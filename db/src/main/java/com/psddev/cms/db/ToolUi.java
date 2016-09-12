@@ -16,7 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.psddev.cms.rte.DefaultRichTextToolbar;
+import com.psddev.cms.rte.RichTextToolbar;
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.DatabaseEnvironment;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.ObjectField;
@@ -34,6 +38,11 @@ public class ToolUi extends Modification<Object> {
 
     private Boolean bulkUpload;
     private String codeType;
+    private Boolean collectionItemProgress;
+    private Boolean collectionItemToggle;
+    private Boolean collectionItemWeight;
+    private Boolean collectionItemWeightCalculated;
+    private Boolean collectionItemWeightMarker;
     private Boolean colorPicker;
     private String cssClass;
     private Boolean defaultSearchResult;
@@ -61,16 +70,23 @@ public class ToolUi extends Modification<Object> {
     private String languageTag;
     private ToolUiLayoutElement layoutField;
     private List<ToolUiLayoutElement> layoutPlaceholders;
+    private Boolean main;
     private String noteHtml;
     private String noteRendererClassName;
     private String placeholder;
+    private Boolean placeholderClearOnChange;
     private String placeholderDynamicText;
     private Boolean placeholderEditable;
+    private Boolean publishable;
     private String publishButtonText;
     private Boolean referenceable;
     private String referenceableViaClassName;
     private Boolean readOnly;
     private boolean richText;
+    private boolean richTextInline;
+    private String richTextToolbarClassName;
+    private String richTextElementTagName;
+    private Set<String> richTextElementClassNames;
     private boolean secret;
     private Boolean sortable;
     private Set<String> standardImageSizes;
@@ -95,6 +111,46 @@ public class ToolUi extends Modification<Object> {
 
     public void setCodeType(String codeType) {
         this.codeType = codeType;
+    }
+
+    public boolean isCollectionItemProgress() {
+        return Boolean.TRUE.equals(collectionItemProgress);
+    }
+
+    public void setCollectionItemProgress(boolean collectionItemProgress) {
+        this.collectionItemProgress = collectionItemProgress ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemToggle() {
+        return Boolean.TRUE.equals(collectionItemToggle);
+    }
+
+    public void setCollectionItemToggle(boolean collectionItemToggle) {
+        this.collectionItemToggle = collectionItemToggle ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemWeight() {
+        return Boolean.TRUE.equals(collectionItemWeight);
+    }
+
+    public void setCollectionItemWeight(boolean collectionItemWeight) {
+        this.collectionItemWeight = collectionItemWeight ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemWeightCalculated() {
+        return Boolean.TRUE.equals(collectionItemWeightCalculated);
+    }
+
+    public void setCollectionItemWeightCalculated(boolean collectionItemWeightCalculated) {
+        this.collectionItemWeightCalculated = collectionItemWeightCalculated ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemWeightMarker() {
+        return Boolean.TRUE.equals(collectionItemWeightMarker);
+    }
+
+    public void setCollectionItemWeightMarker(boolean collectionItemWeightMarker) {
+        this.collectionItemWeightMarker = collectionItemWeightMarker ? Boolean.TRUE : null;
     }
 
     public boolean isColorPicker() {
@@ -457,6 +513,14 @@ public class ToolUi extends Modification<Object> {
         this.placeholder = placeholder;
     }
 
+    public boolean isPublishable() {
+        return Boolean.TRUE.equals(publishable);
+    }
+
+    public void setPublishable(boolean publishable) {
+        this.publishable = publishable ? Boolean.TRUE : null;
+    }
+
     public String getPublishButtonText() {
         return publishButtonText;
     }
@@ -477,6 +541,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
+    }
+
+    public boolean isPlaceholderClearOnChange() {
+        return Boolean.TRUE.equals(placeholderClearOnChange);
+    }
+
+    public void setPlaceholderClearOnChange(boolean placeholderClearOnChange) {
+        this.placeholderClearOnChange = Boolean.TRUE.equals(placeholderClearOnChange) ? Boolean.TRUE : null;
     }
 
     public boolean isPlaceholderEditable() {
@@ -501,6 +573,51 @@ public class ToolUi extends Modification<Object> {
 
     public void setRichText(boolean richText) {
         this.richText = richText;
+    }
+
+    public boolean isRichTextInline() {
+        return richTextInline;
+    }
+
+    public void setRichTextInline(boolean richTextInline) {
+        this.richTextInline = richTextInline;
+    }
+
+    public String getRichTextToolbarClassName() {
+        return richTextToolbarClassName;
+    }
+
+    public void setRichTextToolbarClassName(String richTextToolbarClassName) {
+        this.richTextToolbarClassName = richTextToolbarClassName;
+    }
+
+    public String getRichTextElementTagName() {
+        return richTextElementTagName;
+    }
+
+    public void setRichTextElementTagName(String richTextElementTagName) {
+        this.richTextElementTagName = richTextElementTagName;
+    }
+
+    public Set<String> getRichTextElementClassNames() {
+        if (richTextElementClassNames == null) {
+            richTextElementClassNames = new LinkedHashSet<>();
+        }
+        return richTextElementClassNames;
+    }
+
+    public void setRichTextElementClassNames(Set<String> richTextElementClassNames) {
+        this.richTextElementClassNames = richTextElementClassNames;
+    }
+
+    public Set<String> findRichTextElementTags() {
+        Set<String> classNames = getRichTextElementClassNames();
+
+        return Database.Static.getDefault().getEnvironment().getTypes().stream()
+                .filter(t -> !Collections.disjoint(t.getGroups(), classNames))
+                .map(t -> t.as(ToolUi.class).getRichTextElementTagName())
+                .filter(n -> !ObjectUtils.isBlank(n))
+                .collect(Collectors.toSet());
     }
 
     public boolean isReferenceable() {
@@ -583,6 +700,14 @@ public class ToolUi extends Modification<Object> {
     }
 
     public boolean isEffectivelySuggestions() {
+        Object object = getOriginalObject();
+
+        if (object instanceof ObjectField
+                && !ObjectUtils.isBlank(((ObjectField) object).getPredicate())) {
+
+            return false;
+        }
+
         return !Boolean.FALSE.equals(suggestions);
     }
 
@@ -628,6 +753,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setDefaultSortField(String defaultSortField) {
         this.defaultSortField = defaultSortField;
+    }
+
+    public boolean isMain() {
+        return Boolean.TRUE.equals(main);
+    }
+
+    public void setMain(boolean main) {
+        this.main = main;
     }
 
     /**
@@ -723,6 +856,90 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, ObjectField field, CodeType annotation) {
             field.as(ToolUi.class).setCodeType(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies whether target field should be displayed using the progress bar and label.
+     * Expected field values are between 0.0 and 1.0.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemProgressProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemProgress {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemProgressProcessor implements ObjectField.AnnotationProcessor<CollectionItemProgress> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemProgress annotation) {
+            field.as(ToolUi.class).setCollectionItemProgress(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies whether the target field should be displayed using a toggle on the collection item.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemToggleProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemToggle {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemToggleProcessor implements ObjectField.AnnotationProcessor<CollectionItemToggle> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemToggle annotation) {
+            field.as(ToolUi.class).setCollectionItemToggle(annotation.value());
+        }
+    }
+
+    /**
+     * Specifies whether the target field should be displayed using the weighted collection UI.
+     * Expected field values are between 0.0 and 1.0. Fields that are {@code calculated} will
+     * not allow weights to be edited through the default UI.
+     *
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemWeightProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemWeight {
+        boolean value() default true;
+        boolean calculated() default false;
+    }
+
+    private static class CollectionItemWeightProcessor implements ObjectField.AnnotationProcessor<CollectionItemWeight> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemWeight annotation) {
+            field.as(ToolUi.class).setCollectionItemWeight(annotation.value());
+            field.as(ToolUi.class).setCollectionItemWeightCalculated(annotation.calculated());
+        }
+    }
+
+    /**
+     * Specifies a field to be used as markers in the UI produced by repeatable objects with
+     * a {@link CollectionItemWeight} annotation. The field may be a {@link Collection} or single
+     * field value of a {@code double} with expected value(s) between 0.0 and 1.0.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemWeightMarkerProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemWeightMarker {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemWeightMarkerProcessor implements ObjectField.AnnotationProcessor<CollectionItemWeightMarker> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemWeightMarker annotation) {
+            field.as(ToolUi.class).setCollectionItemWeightMarker(annotation.value());
         }
     }
 
@@ -897,6 +1114,7 @@ public class ToolUi extends Modification<Object> {
     }
 
     @Documented
+    @Inherited
     @ObjectType.AnnotationProcessorClass(FieldDisplayOrderProcessor.class)
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.TYPE)
@@ -1216,6 +1434,27 @@ public class ToolUi extends Modification<Object> {
         }
     }
 
+    /**
+     * Specifies whether the class will be listed as a main content type.
+     */
+    @Documented
+    @Inherited
+    @ObjectType.AnnotationProcessorClass(MainProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Main {
+
+        boolean value() default true;
+    }
+
+    private static class MainProcessor implements ObjectType.AnnotationProcessor<Main> {
+
+        @Override
+        public void process(ObjectType objectType, Main annotation) {
+            objectType.as(ToolUi.class).setMain(annotation.value());
+        }
+    }
+
     /** Specifies the note displayed along with the target in the UI. */
     @Documented
     @Inherited
@@ -1322,6 +1561,12 @@ public class ToolUi extends Modification<Object> {
         String value() default "";
 
         /**
+         * {@code true} if the target field should be cleared when the
+         * placeholder text changes.
+         */
+        boolean clearOnChange() default false;
+
+        /**
          * Dynamic placeholder text.
          */
         String dynamicText() default "";
@@ -1346,9 +1591,28 @@ public class ToolUi extends Modification<Object> {
                 Placeholder placeholder = (Placeholder) annotation;
 
                 ui.setPlaceholder(placeholder.value());
+                ui.setPlaceholderClearOnChange(placeholder.clearOnChange());
                 ui.setPlaceholderDynamicText(placeholder.dynamicText());
                 ui.setPlaceholderEditable(placeholder.editable());
             }
+        }
+    }
+
+    @Documented
+    @Inherited
+    @ObjectType.AnnotationProcessorClass(PublishableProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Publishable {
+
+        boolean value() default true;
+    }
+
+    private static class PublishableProcessor implements ObjectType.AnnotationProcessor<Publishable> {
+
+        @Override
+        public void process(ObjectType type, Publishable annotation) {
+            type.as(ToolUi.class).setPublishable(annotation.value());
         }
     }
 
@@ -1374,6 +1638,7 @@ public class ToolUi extends Modification<Object> {
 
     /** Specifies whether the target is read-only. */
     @Documented
+    @Inherited
     @ObjectField.AnnotationProcessorClass(ReadOnlyProcessor.class)
     @ObjectType.AnnotationProcessorClass(ReadOnlyProcessor.class)
     @Retention(RetentionPolicy.RUNTIME)
@@ -1422,7 +1687,8 @@ public class ToolUi extends Modification<Object> {
 
     /**
      * Specifies whether the target field should offer rich-text editing
-     * options.
+     * options. Optionally enable block elements by setting {@code inline}
+     * to {@code} false.
      */
     @Documented
     @ObjectField.AnnotationProcessorClass(RichTextProcessor.class)
@@ -1430,13 +1696,19 @@ public class ToolUi extends Modification<Object> {
     @Target({ ElementType.FIELD, ElementType.METHOD })
     public @interface RichText {
         boolean value() default true;
+        boolean inline() default true;
+        Class<? extends RichTextToolbar> toolbar() default DefaultRichTextToolbar.class;
     }
 
     private static class RichTextProcessor implements ObjectField.AnnotationProcessor<RichText> {
 
         @Override
         public void process(ObjectType type, ObjectField field, RichText annotation) {
-            field.as(ToolUi.class).setRichText(annotation.value());
+            ToolUi ui = field.as(ToolUi.class);
+
+            ui.setRichText(annotation.value());
+            ui.setRichTextInline(annotation.inline());
+            ui.setRichTextToolbarClassName(annotation.toolbar().getName());
         }
     }
 

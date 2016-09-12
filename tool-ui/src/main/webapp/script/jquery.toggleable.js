@@ -46,7 +46,7 @@ $.plugin2('toggleable', {
                         'url': url,
                         'data': { 'data': data },
                         'complete': function(response) {
-                            $div.append(response.responseText);
+                            $div.html(response.responseText);
                             $div.trigger('create');
                             $div.trigger('load');
                             $div.resize();
@@ -67,6 +67,8 @@ $.plugin2('toggleable', {
             if (!disable) {
                 $matching.rte('enable');
             }
+
+            $matching.find('.plugin-toggleable').trigger('toggle');
         }
     },
 

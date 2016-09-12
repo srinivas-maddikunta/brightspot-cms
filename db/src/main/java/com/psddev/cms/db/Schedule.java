@@ -124,11 +124,11 @@ public class Schedule extends Record {
 
                     if (!state.isVisible()) {
                         state.getExtras().put(FIRST_TRIGGER_EXTRA, Boolean.TRUE);
+                        contentData.setPublishDate(triggerDate);
+                        contentData.setPublishUser(triggerUser);
                     }
 
                     contentData.setDraft(false);
-                    contentData.setPublishDate(triggerDate);
-                    contentData.setPublishUser(triggerUser);
                     state.as(BulkUploadDraft.class).setRunAfterSave(true);
                     Content.Static.publish(object, getTriggerSite(), triggerUser);
                 }

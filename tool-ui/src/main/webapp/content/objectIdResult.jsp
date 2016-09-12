@@ -27,9 +27,12 @@ String removeId = wp.createId();
 
         @Override
         public void renderBeforeItem(Object item) throws IOException {
+            State itemState = State.getInstance(item);
+
             writer.start("span",
                     "class", "link",
-                    "data-objectId", State.getInstance(item).getId());
+                    "data-type-id", itemState.getTypeId(),
+                    "data-objectId", itemState.getId());
         }
 
         @Override
@@ -41,8 +44,9 @@ String removeId = wp.createId();
 
 <script type="text/javascript">
     if (typeof jQuery !== 'undefined') (function(win, $) {
-        var $win = $(win),
-                $page = $('#<%= pageId %>');
+        var $win = $(win);
+        var $page = $('#<%= pageId %>');
+        var $addedInputs = $();
 
         $page.delegate('[data-objectId]', 'click', function() {
             var $source = $page.popup('source'),
@@ -54,13 +58,28 @@ String removeId = wp.createId();
                     fieldName,
                     $added;
 
-            $input.attr('data-label', $link.text());
+            var $label = $link.find('figcaption');
+
+            if ($label.length === 0) {
+                $label = $link;
+            }
+
+            $input.attr('data-label', $label.clone().find('span.visibilityLabel').remove().end().text().trim());
+            $input.attr('data-label-html', $label.html().trim());
             $input.attr('data-preview', $link.find('img').attr('src'));
+            $input.attr('data-visibility', $link.find('span.visibilityLabel').text());
             $input.val($link.attr('data-objectId'));
             $input.change();
 
+            if ($repeatableForm.length > 0 &&
+                    $repeatableForm[0] === $source.closest('.objectInputs').parent().closest('.objectInputs').closest('.repeatableForm')[0]) {
+                $repeatableForm = $();
+            }
+
             if ($repeatableObjectId.length > 0) {
                 $sourceContainer = $source.closest('li');
+
+                $sourceContainer.attr('data-sortable-item-type', $link.attr('data-type-id'));
 
                 if ($sourceContainer.nextAll('li').length === 0) {
                     $repeatableObjectId.find('.addButton').click();
@@ -68,6 +87,8 @@ String removeId = wp.createId();
                     $added = $sourceContainer.nextAll('li').eq(0);
 
                     if ($added.length > 0) {
+                        $addedInputs = $addedInputs.add($added.find(':input.objectId'));
+
                         $page.popup('source', $added.find('a.objectId-select'));
                         $win.scrollTop($win.scrollTop() + $sourceContainer.outerHeight(true));
                         return false;
@@ -80,14 +101,17 @@ String removeId = wp.createId();
                 if ($sourceContainer.length > 0 && $sourceContainer.nextAll('li').length === 0) {
                     fieldName = $source.closest('.inputContainer').attr('data-field-name');
 
-                    $repeatableForm.find('.addButton').eq(-1).trigger('click', [
+                    $repeatableForm.find('.addButton[data-sortable-item-type="' + $sourceContainer.attr('data-sortable-item-type') + '"]').eq(-1).trigger('click', [
                         function () {
                             var added = this;
 
                             require([ 'bsp-utils' ], function (bsp_utils) {
                                 bsp_utils.onDomInsert(added, '.inputContainer[data-field-name="' + fieldName + '"] > .inputSmall > a.objectId-select', {
                                     'insert': function (select) {
-                                        $page.popup('source', $(select));
+                                        var $select = $(select);
+
+                                        $addedInputs = $addedInputs.add($select.closest('.inputSmall').find('> :input.objectId'));
+                                        $page.popup('source', $select);
                                         $win.scrollTop($win.scrollTop() + $sourceContainer.outerHeight(true));
                                     }
                                 })
@@ -103,7 +127,7 @@ String removeId = wp.createId();
                     if ($sourceContainer.length > 0 && $sourceContainer.nextAll('.itemEdit').length === 0) {
                         fieldName = $source.closest('.inputContainer').attr('data-field-name');
 
-                        $repeatableForm.find('.addButton').eq(-1).trigger('click', [
+                        $repeatableForm.find('.addButton[data-sortable-item-type="' + $sourceContainer.attr('data-sortable-item-type') + '"]').eq(-1).trigger('click', [
                             function () {
                                 var added = this;
                                 var id = $(added).find('> :hidden[name$=".id"]').val();
@@ -111,7 +135,10 @@ String removeId = wp.createId();
                                 require([ 'bsp-utils' ], function (bsp_utils) {
                                     bsp_utils.onDomInsert($sourceContainer.parent()[0], '.objectInputs[data-object-id="' + id + '"] > .inputContainer[data-field-name="' + fieldName + '"] > .inputSmall > a.objectId-select', {
                                         'insert': function (select) {
-                                            $page.popup('source', $(select));
+                                            var $select = $(select);
+
+                                            $addedInputs = $addedInputs.add($select.closest('.inputSmall').find('> :input.objectId'));
+                                            $page.popup('source', $select);
                                         }
                                     })
                                 });
@@ -125,6 +152,34 @@ String removeId = wp.createId();
 
             $page.popup('close');
             return false;
+        });
+
+        var $popup = $page.closest('.popup');
+
+        $popup.on('close', function (event) {
+            if ($popup[0] === event.target) {
+                $addedInputs.each(function () {
+                    var $input = $(this);
+
+                    if (!$input.val()) {
+                        var $li = $input.closest('li');
+                        var repeatable = $li.closest('.plugin-repeatable').data('repeatable');
+                        if (repeatable) {
+                            repeatable.removeItemImmediately($li);
+                        }
+
+                        var $itemEdit = $input.closest('.itemEdit');
+
+                        if ($itemEdit.length > 0) {
+                            var index = $itemEdit.parent().index($itemEdit);
+
+                            $itemEdit.closest('.viewCarousel').find('.carousel-tiles > li').eq(index).remove();
+                            $itemEdit.closest('.repeatableForm').find('> ol, > ul').find('> li').eq(index).remove();
+                            $itemEdit.remove();
+                        }
+                    }
+                });
+            }
         });
     })(window, jQuery);
 </script>

@@ -26,6 +26,7 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
+import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.PaginatedResult;
 
 public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
@@ -45,6 +46,9 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
     @Override
     public void writeHtml(ToolPageContext page, Dashboard dashboard) throws IOException, ServletException {
         Query<Workflow> workflowQuery = Query.from(Workflow.class);
+        if (page.getSite() != null) {
+            workflowQuery.where("sites is missing or sites = ?", page.getSite());
+        }
         Map<String, String> workflowStateLabels = new TreeMap<>();
 
         workflowStateLabels.put("draft", "Initial Draft");
@@ -161,7 +165,7 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             type,
-                            page.localize(UnpublishedDraftsWidget.class, "label.anyTypes"),
+                            page.localize(UnpublishedDraftsWidget.class, "label.allTypes"),
                             "name", "typeId",
                             "data-bsp-autosubmit", "",
                             "data-searchable", true);
@@ -312,25 +316,18 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
 
                                 UUID draftId = draft.getId();
 
-                                page.writeStart("tr", "data-preview-url", "/_preview?_cms.db.previewId=" + draftId);
+                                page.writeStart("tr", "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", draftId));
                                     page.writeStart("td");
                                         page.writeHtml(page.getTypeLabel(item));
                                     page.writeEnd();
 
-                                    page.writeStart("td", "data-preview-anchor", "");
+                                    page.writeStart("td");
                                         page.writeStart("a",
                                                 "target", "_top",
                                                 "href", page.url("/content/edit.jsp",
                                                         "id", itemState.getId(),
                                                         "draftId", draftId));
-                                            // TODO: LOCALIZE
-                                            page.writeStart("span", "class", "visibilityLabel");
-                                                page.writeHtml("Content Update");
-                                            page.writeEnd();
-
-                                            page.writeHtml(" ");
-
-                                            page.writeObjectLabel(itemState);
+                                            page.writeObjectLabel(draft);
                                         page.writeEnd();
                                     page.writeEnd();
 
@@ -343,12 +340,12 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
                                 State itemState = State.getInstance(item);
                                 UUID itemId = itemState.getId();
 
-                                page.writeStart("tr", "data-preview-url", "/_preview?_cms.db.previewId=" + itemId);
+                                page.writeStart("tr", "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", itemId));
                                     page.writeStart("td");
                                         page.writeHtml(page.getTypeLabel(item));
                                     page.writeEnd();
 
-                                    page.writeStart("td", "data-preview-anchor", "");
+                                    page.writeStart("td");
                                         page.writeStart("a", "href", page.url("/content/edit.jsp", "id", itemId), "target", "_top");
                                             page.writeObjectLabel(itemState);
                                         page.writeEnd();

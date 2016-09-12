@@ -3,7 +3,21 @@
 @-actions-width: 200px;
 
 .searchResult-container {
-  padding-right: (@-actions-width + (@-actions-padding * 2));
+  display: flex;
+}
+
+.searchResult-items {
+  flex: 1 1 auto;
+  margin-right: (@-actions-padding - 1px);
+  width: calc(100% - 259px);
+}
+
+.searchResult-views {
+  margin-bottom: 10px;
+
+  .piped {
+    margin-bottom: 0;
+  }
 }
 
 .searchResult-view {
@@ -17,6 +31,7 @@
   }
 }
 
+.searchSorter,
 .queryRestrictions,
 .searchResult-fields,
 .searchResult-sorts,
@@ -33,6 +48,7 @@
   display: none;
 }
 
+.searchPagination,
 .searchResult-pagination {
   float: right;
   margin: 0 0 10px 10px;
@@ -41,23 +57,32 @@
     display: block;
     margin: 0;
   }
+
+  .infiniteScroll & {
+    display: none;
+  }
 }
 
+.searchResultImages,
+.searchResultList,
 .searchResult-list {
   float: left;
   margin-top: 10px;
   width: 100%;
   overflow-x: hidden;
+  &.fixedScrollableArea {
+      overflow-x: auto;
+  }
+}
+
+.searchResultList > .frame {
+  clear: both;
 }
 
 .searchResult-actions {
   border-left: @-actions-borderWidth solid @color-separator;
-  box-sizing: border-box;
-  overflow: auto;
+  flex: 0 0 auto;
   padding-left: (@-actions-padding - (@-actions-borderWidth / 2));
-  position: absolute;
-  right: 0;
-  top: 0;
   width: (@-actions-width + @-actions-padding + (@-actions-borderWidth / 2));
 }
 
@@ -147,10 +172,6 @@
   }
 }
 
-.searchSaved {
-  display: none;
-}
-
 .searchFilters {
   @-length-top: @input-height + 20px;
 
@@ -177,6 +198,52 @@
     left: 50px;
     position: absolute;
     top: 20px;
+  }
+}
+
+.searchHistory {
+  display: none;
+}
+
+.searchRecentSelect {
+  position: relative;
+  padding-bottom: 40px;
+
+  &:after {
+    bottom: 19px;
+    border-top: 2px solid @color-separator;
+    content: '';
+    left: 0;
+    position: absolute;
+    right: 0;
+  }
+}
+
+.savedSearches {
+  .links {
+    li {
+      position: relative;
+
+      &:hover {
+        .savedSearches-remove {
+          display: block;
+        }
+      }
+    }
+  }
+
+  .savedSearches-remove {
+    .icon;
+    .icon-action-delete;
+
+    display: none;
+    position: absolute;
+    right: 19px;
+    top: 10px;
+
+    &:hover {
+      opacity: 0.8;
+    }
   }
 }
 
@@ -236,16 +303,17 @@
       border-top-left-radius: 0;
       border-top-right-radius: 0;
       margin-top: -1px;
-    }
+      position: relative;
 
-    &:before {
-      border-top: 1px solid @color-separator;
-      content: '';
-      height: 0;
-      left: 10px;
-      position: absolute;
-      top: 29px;
-      right: 35px;
+      &:after {
+        border-top: 1px solid @color-separator;
+        content: '';
+        height: 0;
+        left: 10px;
+        position: absolute;
+        top: 0;
+        right: 10px;
+      }
     }
   }
 
@@ -359,6 +427,15 @@
   margin-left: (@search-controls-width-large + 42);
   position: relative;
 
+  &:before {
+    border-left: 2px solid @color-separator;
+    bottom: 0;
+    content: '';
+    left: -22px;
+    position: absolute;
+    top: 0;
+  }
+
   .searchForm[max-width^='700px'] & {
     margin-left: (@search-controls-width-small + 42);
   }
@@ -372,26 +449,7 @@
   margin-bottom: 20px;
 }
 
-.searchSorter {
-  margin-bottom: 20px;
-  margin-right: 170px;
-
-  form {
-    display: inline;
-  }
-}
-
-.searchPagination {
-  margin-bottom: 20px;
-  position: absolute;
-  right: 0;
-  top: (@lineHeight-default + @gap-large);
-}
-
 .searchResultImages {
-  margin-bottom: 10px;
-  overflow: hidden;
-
   figure {
     border: 1px solid darken(white, 20%);
     box-sizing: border-box;
@@ -413,6 +471,7 @@
 }
 
 .searchResult-selectionPreview {
+  margin-bottom: 5px;
   overflow: hidden;
 }
 
@@ -431,60 +490,107 @@
   height: 30px;
 }
 
-.widget[name="searchAdvancedFull"] {
-  position: fixed;
-  top: 90px;
-  right: 20px;
-  bottom: 50px;
-  left: 20px;
-  height: auto; /* necessary? */
+.searchResultFields {
 
-  > .searchForm {
-    position: absolute;
-    top: 56px;
-    right: 20px;
-    bottom: 20px;
-    left: 20px;
+  .searchResultFields-container {
+    display: flex;
+  }
 
-    .searchControls,
-    .searchResult,
-    .searchResult-container,
-    .searchResult-view,
-    .searchResult-list {
-      position: absolute;
+  input[name="fieldNames"] {
+    display: none;
+    width: 0;
+  }
+
+  label {
+    display: block;
+    position: relative;
+    margin: 4px 0;
+    padding: 8px;
+    width: 100%;
+
+    span {
+      display: block;
+      width: 90%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  //.searchResultFields-default {
+  //  .icon;
+  //  .icon-lock;
+  //
+  //  &:before {
+  //    position: absolute;
+  //    right: 4px;
+  //  }
+  //}
+
+  .searchResultFields-display, .searchResultFields-hide {
+    width: 50%;
+  }
+
+  .searchResultFields-divider {
+    border-right: 1px solid @color-border;
+    margin: 24px 16px 0px 16px;
+  }
+
+  .searchResultFields-filter {
+    margin-top: 8px;
+    display: block;
+    width: 100%;
+  }
+
+  ul {
+    margin: 4px 0 0 0;
+    overflow-y: auto;
+    max-height: 240px;
+
+    &:empty:before {
+      content: "No additional fields selected.";
+      color: @color-border;
+      font-style: italic;
+    }
+  }
+
+  li {
+    list-style-type: none;
+  }
+
+  .searchResultFields-hide li {
+    background: fade(@color-heading, 45%);
+  }
+
+  .searchResultFields-display {
+
+    li {
+      background: mix(@color-focus, white, 10%);
     }
 
-    .searchControls,
-    .searchResult,
-    .searchResult-container {
-      top: 0;
-      right: 0;
-      bottom: 0;
-      left: 0;
-    }
+    label {
+        .icon;
+        .icon-check;
 
-    .searchResult-view {
-      top: 36px;
-      right: 242px;
-      bottom: 0;
-      left: 0;
-    }
-
-    .searchResult-list {
-      float: none;
-      top: 40px;
-      right: 0;
-      bottom: 0;
-      left: 0;
-    }
-
-    .searchControls,
-    .searchResult-list {
-      overflow-y: auto;
-    }
-
-    .searchResult-actions {
-      bottom: 0;
+        &:before {
+          position: absolute;
+          right: 4px;
+          opacity: 0.5;
+        }
     }
   }
 }
+
+.widget[name="searchAdvancedFull"] {
+  left: 20px;
+  margin-bottom: 40px;
+  position: fixed;
+  right: 20px;
+  top: 90px;
+
+  .searchFilters {
+    margin-bottom: 0;
+  }
+}
+
+

@@ -74,7 +74,7 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
         var $leftInput = $(this);
         var $rightInput = $right.find('> .objectInputs > .inputContainer[data-field="' + $leftInput.attr('data-field') + '"]');
 
-        if (getValues($leftInput) === getValues($rightInput)) {
+        if ($rightInput.length === 0 || getValues($leftInput) === getValues($rightInput)) {
           $leftInput.addClass('contentDiffSame');
           $rightInput.addClass('contentDiffSame');
         }
@@ -83,25 +83,102 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
       $left.find('> .objectInputs > .inputContainer > .inputSmall > textarea').each(function() {
         var $leftText = $(this);
         var $rightText = $right.find('> .objectInputs > .inputContainer[data-field="' + $leftText.closest('.inputContainer').attr('data-field') + '"] textarea');
+        
+        if ($rightText.length === 0) {
+          return;
+        }
+        
         var left = $leftText.val().replace(new RegExp('[\\r\\n]', 'g'), ' ').replace(new RegExp('<br[^>]*\/?>', 'ig'), '\n');
         var right = $rightText.val().replace(new RegExp('[\\r\\n]', 'g'), ' ').replace(new RegExp('<br[^>]*\/?>', 'ig'), '\n');
-        var diffs = JsDiff.diffWords(left, right);
+        var rich = $leftText.is('.richtext');
+
+        if (rich) {
+          function preprocess(html, enhancements) {
+            return html.
+                replace(new RegExp('<[^>]*class="[^"]*enhancement[^"]*"[^>]*>.*?</[^>]*>', 'ig'), function (match) {
+                  var id = match.replace(/\s/g, '');
+                  enhancements[id] = match;
+
+                  return '\n\u2603' + id + '\u2603\n';
+                }).
+                replace(new RegExp('<([^>\\s]+)[^>]*>', 'ig'), function (match, tag) {
+                  return '<' + tag + '>';
+                });
+          }
+
+          var leftEnhancements = { };
+          var rightEnhancements = { };
+
+          left = preprocess(left, leftEnhancements);
+          right = preprocess(right, rightEnhancements);
+        }
+
+        var diffs = JsDiff.diffWordsWithSpace(left, right);
         var $leftCopy = $('<div/>', { 'class': 'contentDiffCopy' });
         var $rightCopy = $('<div/>', { 'class': 'contentDiffCopy' });
 
+        function postprocess(enhancements, value) {
+          return  value.replace(new RegExp('\u2603(\\S+)\u2603', 'ig'), function (match, id) {
+            var $wrapper = $('<div/>', { html: enhancements[id] });
+            var ref = $wrapper.find('> .enhancement').attr('data-reference');
+            var label;
+            var preview;
+
+            if (ref) {
+              ref = JSON.parse(ref);
+              label = ref.label;
+              preview = ref.preview;
+            }
+
+            var $placeholder = $('<div/>', {
+              'class': 'contentDiffEnhancement'
+            });
+
+            if (preview) {
+              $placeholder.append($('<div/>', {
+                'class': 'contentDiffEnhancement-preview',
+                html: $('<img/>', {
+                  src: preview
+                })
+              }));
+            }
+
+            if (label) {
+              $placeholder.append($('<div/>', {
+                'class': 'contentDiffEnhancement-label',
+                text: label
+              }));
+            }
+
+            return $('<div/>').html($placeholder).html();
+          });
+        }
+
         $.each(diffs, function(i, diff) {
+          var value = diff.value;
+
+          if (rich) {
+            value = postprocess(leftEnhancements, value);
+          }
+
           if (!diff.added) {
             $leftCopy.append(diff.removed ?
-                $('<span/>', { 'class': 'contentDiffRemoved', 'text': diff.value }) :
-                $('<span/>', { 'text': diff.value }));
+                $('<span/>', { 'class': 'contentDiffRemoved', 'html': value }) :
+                $('<span/>', { 'html': value }));
           }
         });
 
         $.each(diffs, function(i, diff) {
+          var value = diff.value;
+
+          if (rich) {
+            value = postprocess(rightEnhancements, value);
+          }
+
           if (!diff.removed) {
             $rightCopy.append(diff.added ?
-                $('<span/>', { 'class': 'contentDiffAdded', 'text': diff.value }) :
-                $('<span/>', { 'text': diff.value }));
+                $('<span/>', { 'class': 'contentDiffAdded', 'html': value }) :
+                $('<span/>', { 'html': value }));
           }
         });
 
@@ -127,6 +204,16 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
           $right.find(':input').prop('disabled', true);
         }
       });
+    }
+  });
+
+  bsp_utils.onDomInsert(document, '.contentDiff > .contentDiffLeft > .objectInputs > .tabs-wrapper > .tabs > li, .contentDiff > .contentDiffRight > .objectInputs > .tabs-wrapper > .tabs > li', {
+    'insert': function (item) {
+      var $item = $(item);
+
+      if ($item.closest('.objectInputs').find('> .inputContainer[data-tab="' + $item.text() + '"]:not(.contentDiffSame)').length === 0) {
+        $item.attr('data-diff-same', '');
+      }
     }
   });
 });

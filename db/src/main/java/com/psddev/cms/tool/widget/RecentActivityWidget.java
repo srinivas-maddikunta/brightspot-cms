@@ -8,23 +8,29 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
+import com.psddev.dari.db.Database;
+import com.psddev.dari.util.JspUtils;
 import org.joda.time.DateTime;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
+import com.psddev.cms.db.PageFilter;
+import com.psddev.cms.db.Renderer;
 import com.psddev.cms.db.ToolRole;
+import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DefaultDashboardWidget;
 import com.psddev.cms.tool.QueryRestriction;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.view.ViewCreator;
+import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.db.ObjectType;
-import com.psddev.dari.db.Predicate;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
+import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PaginatedResult;
 
 public class RecentActivityWidget extends DefaultDashboardWidget {
@@ -85,18 +91,15 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                     break;
             }
 
-            Predicate visibilitiesPredicate = Search.getVisibilitiesPredicate(itemType, visibilities, null, false);
-            QueryFilter<Object> visibilitiesFilter = null;
+            contentQuery.and(Search.getVisibilitiesPredicate(itemType, visibilities, null, false));
 
-            if (visibilitiesPredicate != null) {
-                contentQuery.and(visibilitiesPredicate);
-            } else {
-                visibilitiesFilter = item -> State.getInstance(item).isVisible();
+            if (itemType == null) {
+                contentQuery.and(page.userTypesPredicate());
             }
 
             QueryRestriction.updateQueryUsingAll(contentQuery, page);
 
-            result = contentQuery.and("_any matches *").selectFiltered(offset, limit, visibilitiesFilter);
+            result = contentQuery.and("_any matches *").select(offset, limit);
         }
 
         page.writeStart("div", "class", "widget");
@@ -114,12 +117,13 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                         "action", page.url(null));
 
                     page.writeTypeSelect(
-                            com.psddev.cms.db.Template.Static.findUsedTypes(page.getSite())
-                                    .stream()
+                            Database.Static.getDefault().getEnvironment().getTypesByGroup(Content.SEARCHABLE_GROUP).stream()
+                                    .flatMap(t -> t.as(ToolUi.class).findDisplayTypes().stream())
+                                    .distinct()
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,
-                            page.localize(RecentActivityWidget.class, "label.anyTypes"),
+                            page.localize(RecentActivityWidget.class, "label.allTypes"),
                             "data-bsp-autosubmit", "",
                             "name", "itemType",
                             "data-searchable", "true");
@@ -278,8 +282,26 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                         DateTime updateDateTime = page.toUserDateTime(contentData.getUpdateDate());
                         String updateDate = page.formatUserDate(updateDateTime);
                         ToolUser updateUser = contentData.getUpdateUser();
+                        Integer embedWidth = null;
 
-                        page.writeStart("tr", "data-preview-url", permalink);
+                        if (ObjectUtils.isBlank(permalink)) {
+                            ObjectType contentStateType = contentState.getType();
+
+                            if (contentStateType != null) {
+                                Renderer.TypeModification rendererData = contentStateType.as(Renderer.TypeModification.class);
+                                int previewWidth = rendererData.getEmbedPreviewWidth();
+
+                                if (previewWidth > 0
+                                        && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
+                                        || ViewCreator.findCreatorClass(content, null, PageFilter.EMBED_VIEW_TYPE, null) != null
+                                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, content) != null)) {
+                                    permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", contentState.getId());
+                                    embedWidth = previewWidth;
+                                }
+                            }
+                        }
+
+                        page.writeStart("tr", "data-preview-url", permalink, "data-preview-embed-width", embedWidth);
                             page.writeStart("td", "class", "date");
                                 if (!updateDate.equals(lastUpdateDate)) {
                                     page.writeHtml(updateDate);
@@ -295,7 +317,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                                 page.writeTypeLabel(content);
                             page.writeEnd();
 
-                            page.writeStart("td", "data-preview-anchor", "");
+                            page.writeStart("td");
                                 page.writeStart("a",
                                         "href", page.objectUrl("/content/edit.jsp", content),
                                         "target", "_top");
@@ -306,6 +328,16 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                             page.writeStart("td");
                                 page.writeObjectLabel(updateUser);
                             page.writeEnd();
+
+                            if (page.getCmsTool().isEnableViewers()) {
+                                page.writeStart("td");
+                                    page.writeStart("div", "class", "EditFieldUpdateViewers", "data-rtc-content-id", contentState.getId().toString()); {
+                                        page.writeStart("div", "data-rtc-edit-field-update-viewers", "");
+                                        page.writeEnd();
+                                    } page.writeEnd();
+                                page.writeEnd();
+                            }
+
                         page.writeEnd();
                     }
 

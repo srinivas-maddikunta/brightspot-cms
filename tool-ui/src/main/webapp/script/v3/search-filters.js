@@ -21,6 +21,8 @@ define([ 'jquery' ], function ($) {
         $clone.find('.objectId-select, .objectId-edit, .objectId-clear').remove();
         $cloneInput.removeClass('plugin-objectId');
         $cloneInput.removeAttr('data-label');
+        $cloneInput.removeAttr('data-label-html');
+        $cloneInput.removeAttr('data-preview');
         $cloneInput.val('');
         $item.after($clone);
         $clone.trigger('create');

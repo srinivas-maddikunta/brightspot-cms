@@ -2,7 +2,7 @@
   .input;
 
   height: auto;
-  min-height: 26px;
+  min-height: 30px;
   width: 100%;
 }
 
@@ -12,6 +12,25 @@
 
 .contentDiffRemoved {
   background-color: lighten(@color-remove, 21%);
+}
+
+.contentDiffEnhancement {
+  .background-striped(@color-heading);
+  margin-bottom: @lineHeight-default;
+  min-height: (@lineHeight-default + 20px);
+  padding: 10px;
+
+  img {
+    max-height: 100px;
+  }
+
+  .contentDiffAdded & {
+    .background-striped(@color-publish);
+  }
+
+  .contentDiffRemoved & {
+    .background-striped(@color-remove);
+  }
 }
 
 .contentDiff-edit {
@@ -37,6 +56,12 @@
     margin-left: 50%;
     overflow: hidden;
     padding-left: 5px;
+  }
+
+  .tabs {
+    [data-diff-same] {
+      display: none;
+    }
   }
 
   .inputContainer {

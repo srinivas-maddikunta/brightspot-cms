@@ -1,6 +1,7 @@
 package com.psddev.cms.rtc;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * For sending the current state of something back to the client when it
@@ -21,12 +22,29 @@ import java.util.Map;
 public interface RtcState {
 
     /**
-     * Creates the broadcast data based on the given {@code data}.
+     * Returns objects that should be restored based on the given
+     * {@code data}.
      *
      * @param data
      *        Can't be {@code null}.
      *
-     * @return Never {@code null}.
+     * @return May be {@code null}.
      */
     Iterable<?> create(Map<String, Object> data);
+
+    /**
+     * Returns objects that should be closed based on the given {@code data}
+     * and {@code userId}.
+     *
+     * @param data
+     *        Can't be {@code null}.
+     *
+     * @param userId
+     *        Can't be {@code null}.
+     *
+     * @return May be {@code null}.
+     */
+    default Iterable<?> close(Map<String, Object> data, UUID userId) {
+        return null;
+    }
 }

@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
 
+import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.Taxon;
 import com.psddev.cms.tool.Search;
@@ -27,7 +28,7 @@ public class TaxonomySearchResultView extends AbstractSearchResultView {
 
     @Override
     public String getDisplayName() {
-        return "Taxonomy";
+        return Localization.currentUserText(this, "displayName");
     }
 
     @Override
@@ -102,14 +103,12 @@ public class TaxonomySearchResultView extends AbstractSearchResultView {
         if (!items.isEmpty()) {
             String target = page.createId();
 
-            page.writeStart("div", "class", "searchResultList");
+            if (parent == null) {
+                page.writeStart("div", "class", "searchResultTaxonomy");
+            }
 
-                if (parent == null) {
-                    page.writeStart("div", "class", "taxonomyContainer");
-                    page.writeStart("div", "class", "searchTaxonomy");
-                }
-
-                        page.writeStart("ul", "class", "taxonomy");
+                    page.writeStart("div", "class", "searchResultTaxonomyColumn");
+                        page.writeStart("ul");
                             for (Taxon item : items) {
                                 page.writeStart("li");
                                     if (item.as(Taxon.Data.class).isSelectable()) {
@@ -138,11 +137,19 @@ public class TaxonomySearchResultView extends AbstractSearchResultView {
                                         itemWriter.writeAfterHtml(page, search, item);
                                     }
 
-                                    Collection<? extends Taxon> children = Taxon.Static.getChildren(item, predicate);
+                                    boolean childrenEmpty;
 
-                                    if (children != null && !children.isEmpty()) {
+                                    if (page.getCmsTool().isUseOldTaxonomyChildrenDetection()) {
+                                        Collection<? extends Taxon> children = Taxon.Static.getChildren(item, predicate);
+                                        childrenEmpty = children == null || children.isEmpty();
+
+                                    } else {
+                                        childrenEmpty = item.as(Taxon.Data.class).isChildrenEmpty();
+                                    }
+
+                                    if (!childrenEmpty) {
                                         page.writeStart("a",
-                                                "class", "taxonomyExpand",
+                                                "class", "searchResultTaxonomyExpand",
                                                 "target", target,
                                                 "href", page.url("", PARENT_ID_PARAMETER, item.getState().getId()));
                                         page.writeEnd();
@@ -150,18 +157,16 @@ public class TaxonomySearchResultView extends AbstractSearchResultView {
                                 page.writeEnd();
                             }
                         page.writeEnd();
-
-                        page.writeStart("div",
-                                "class", "frame taxonChildren",
-                                "name", target);
-                        page.writeEnd();
-
-                if (parent == null) {
                     page.writeEnd();
-                    page.writeEnd();
-                }
 
-            page.writeEnd();
+                    page.writeStart("div",
+                            "class", "frame searchResultTaxonomyChildren",
+                            "name", target);
+                    page.writeEnd();
+
+            if (parent == null) {
+                page.writeEnd();
+            }
         }
     }
 }

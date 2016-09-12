@@ -1,0 +1,77 @@
+.EditFieldUpdateViewers {
+    height: 36px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1s;
+
+    &-some,
+    &-none {
+        backface-visibility: hidden;
+        height: 100%;
+        left: 0;
+        position: absolute;
+        top: 0;
+        width: 100%;
+
+        .widget-publishing & {
+            background: @color-heading;
+        }
+    }
+
+    &-some {
+        overflow: hidden;
+        position: relative;
+        transform: rotateX(180deg);
+
+        .widget-publishing & {
+            margin-left: -8px;
+        }
+    }
+
+    &[data-some] {
+        transform: rotateX(180deg);
+    }
+
+    &-viewer {
+        .icon;
+        .icon-action-edit;
+
+        background: @color-change;
+        border-radius: 12px;
+        float: left;
+        font-weight: normal;
+        height: 24px;
+        margin: 6px 5px 0 0;
+        position: relative;
+        text-shadow: none;
+        transition: width .4s;
+        width: 24px;
+
+        &:before {
+            color: black;
+            height: 24px;
+            line-height: 24px;
+            position: absolute;
+            right: -4px;
+            top: 0;
+            transform: rotate(-40deg) scale(.95);
+        }
+
+        .ToolUserAvatar {
+            display: block;
+            height: 24px;
+            font-size: 10px;
+            line-height: 24px;
+            width: 24px;
+        }
+
+        &[data-editing] {
+            width: 36px;
+
+            &:after {
+                border-radius: 12px;
+                content: '';
+            }
+        }
+    }
+}

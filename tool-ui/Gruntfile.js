@@ -35,9 +35,13 @@ module.exports = function(grunt) {
                     }
                 ],
 
+                'javascript-undo-manager': [
+                    'lib/undomanager.js'
+                ],
+                
                 'handsontable': [
-                    'dist/jquery.handsontable.full.css',
-                    'dist/jquery.handsontable.full.js'
+                    'dist/handsontable.full.css',
+                    'dist/handsontable.full.js'
                 ],
 
                 'husl': [
@@ -114,6 +118,10 @@ module.exports = function(grunt) {
                         expand: true,
                         src: '*.js'
                     }
+                ],
+
+                moment: [
+                    'min/moment-with-locales.js'
                 ],
 
                 'string': [

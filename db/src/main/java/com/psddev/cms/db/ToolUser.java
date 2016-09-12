@@ -1,5 +1,7 @@
 package com.psddev.cms.db;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -34,10 +36,13 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Record;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.CompactMap;
+import com.psddev.dari.util.HtmlWriter;
+import com.psddev.dari.util.ImageEditor;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.Password;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
+import com.psddev.dari.util.StringUtils;
 
 /** User that uses the CMS and other related tools. */
 @ToolUi.DefaultSortField("name")
@@ -134,8 +139,8 @@ public class ToolUser extends Record implements ToolEntity {
     @ToolUi.Hidden
     private boolean external;
 
+    @ToolUi.Hidden
     @ToolUi.FieldDisplayType("toolUserSavedSearches")
-    @ToolUi.Tab("Search")
     private Map<String, String> savedSearches;
 
     @ToolUi.Placeholder("All Contents")
@@ -145,7 +150,16 @@ public class ToolUser extends Record implements ToolEntity {
     private boolean returnToDashboardOnSave;
 
     @ToolUi.Tab("Advanced")
+    private boolean returnToDashboardOnWorkflow;
+
+    @ToolUi.Tab("Advanced")
     private boolean disableNavigateAwayAlert;
+
+    @ToolUi.Tab("Advanced")
+    private boolean disableCodeMirrorRichTextEditor;
+
+    @ToolUi.Tab("Advanced")
+    private boolean disableWorkInProgress;
 
     @ToolUi.Note("Force the user to change the password on next log in.")
     private boolean changePasswordOnLogIn;
@@ -803,6 +817,14 @@ public class ToolUser extends Record implements ToolEntity {
         this.returnToDashboardOnSave = returnToDashboardOnSave;
     }
 
+    public boolean isReturnToDashboardOnWorkflow() {
+        return returnToDashboardOnWorkflow;
+    }
+
+    public void setReturnToDashboardOnWorkflow(boolean returnToDashboardOnWorkflow) {
+        this.returnToDashboardOnWorkflow = returnToDashboardOnWorkflow;
+    }
+
     /**
      * @return the disableNavigateAwayAlert
      */
@@ -815,6 +837,22 @@ public class ToolUser extends Record implements ToolEntity {
      */
     public void setDisableNavigateAwayAlert(boolean disableNavigateAwayAlert) {
         this.disableNavigateAwayAlert = disableNavigateAwayAlert;
+    }
+
+    public boolean isDisableCodeMirrorRichTextEditor() {
+        return disableCodeMirrorRichTextEditor;
+    }
+
+    public void setDisableCodeMirrorRichTextEditor(boolean disableCodeMirrorRichTextEditor) {
+        this.disableCodeMirrorRichTextEditor = disableCodeMirrorRichTextEditor;
+    }
+
+    public boolean isDisableWorkInProgress() {
+        return disableWorkInProgress;
+    }
+
+    public void setDisableWorkInProgress(boolean disableWorkInProgress) {
+        this.disableWorkInProgress = disableWorkInProgress;
     }
 
     public boolean isChangePasswordOnLogIn() {
@@ -997,6 +1035,61 @@ public class ToolUser extends Record implements ToolEntity {
         }
 
         return null;
+    }
+
+    public String createAvatarHtml() {
+        StringWriter string = new StringWriter();
+        HtmlWriter html = new HtmlWriter(string);
+
+        try {
+            String name = getName();
+
+            html.writeStart("span", "class", "ToolUserAvatar", "title", name);
+            {
+                StringBuilder initials = new StringBuilder();
+                String[] nameParts = name.split("\\s+");
+
+                for (int i = 0, length = nameParts.length; i < length; ++ i) {
+                    char initial = nameParts[i].charAt(0);
+
+                    if (Character.isLetter(initial)) {
+                        initials.append(initial);
+
+                        if (initials.length() >= 2) {
+                            break;
+                        }
+                    }
+                }
+
+                html.writeHtml(initials);
+
+                StorageItem avatar = getAvatar();
+
+                if (avatar != null) {
+                    html.writeElement("img",
+                            "src", ImageEditor.Static.resize(ImageEditor.Static.getDefault(), avatar, null, 100, 100).getPublicUrl());
+
+                } else {
+                    String email = getEmail();
+
+                    if (!ObjectUtils.isBlank(email)) {
+                        String hash = StringUtils.hex(StringUtils.md5(email.trim().toLowerCase(Locale.ENGLISH)));
+
+                        html.writeElement("img",
+                                "src", StringUtils.addQueryParameters(
+                                        "https://www.gravatar.com/avatar/" + hash,
+                                        "s", 100,
+                                        "d", "blank"));
+                    }
+                }
+            }
+            html.writeEnd();
+
+            return string.toString();
+
+        } catch (IOException error) {
+            throw new IllegalStateException(error);
+        }
     }
 
     public static class LoginToken extends Record {

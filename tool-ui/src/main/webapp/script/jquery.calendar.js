@@ -1,3 +1,5 @@
+define([ 'moment-with-locales', 'moment-timezone-with-data-2010-2020' ], function (moment) {
+
 (function($, win, undef) {
 
 var options = {
@@ -48,39 +50,20 @@ var updateCalendarView = function(viewDate) {
     });
 };
 
-var updateInput = function() {
+function formatDate(date) {
+    var $html = $('html');
+    return moment(date).locale($html.attr('lang')).tz($html.attr('data-time-zone')).format('llll');
+}
 
+var updateInput = function() {
     var $calendar = getCalendar();
     var selectedDate = $calendar.data('selectedDate');
-
-    var dayNumber = padZero(selectedDate.getDate());
-    var hour = selectedDate.getHours();
-    var minute = padZero(selectedDate.getMinutes());
-    var meridiem = 'AM';
-    if (hour >= 12) {
-        hour -= 12;
-        meridiem = 'PM';
-    }
-    hour = hour === 0 ? 12 : padZero(hour);
-
     var $input = $calendar.data('$input');
-    $input.val(
-            selectedDate.getFullYear() + '-' +
-            padZero(selectedDate.getMonth() + 1) + '-' +
-            padZero(selectedDate.getDate()) + ' ' +
-            padZero(selectedDate.getHours()) + ':' +
-            padZero(selectedDate.getMinutes()) + ':00');
-    $input.change();
 
+    $input.val(selectedDate.getTime());
+    $input.change();
     $calendar.data('$calendarButton').toggleClass('calendarButton-empty', !$input.val());
-    $calendar.data('$calendarButton').text(
-            options.dayLabels[selectedDate.getDay()] + ', ' +
-            options.monthLabels[selectedDate.getMonth()].substring(0, 3) + ' ' +
-            dayNumber + ', ' +
-            selectedDate.getFullYear() + ', ' +
-            hour + ':' +
-            minute + ' ' +
-            meridiem);
+    $calendar.data('$calendarButton').text(formatDate(selectedDate));
 };
 
 getCalendar = function() {
@@ -124,6 +107,7 @@ getCalendar = function() {
                         newDate.setDate(1);
                         newDate.setYear(newYear);
                         updateCalendarView(newDate);
+                        $calendar.data('selectedDate').setYear(newYear);
                         $year.removeClass('invalid');
                     }
                 }
@@ -266,7 +250,7 @@ getCalendar = function() {
                 $input.val('');
                 $input.change();
                 $calendar.data('$calendarButton').toggleClass('calendarButton-empty', !$input.val());
-                $calendar.data('$calendarButton').text($input.val() || $input.attr('placeholder') || $input.attr('data-emptylabel') || 'N/A');
+                $calendar.data('$calendarButton').text($input.attr('placeholder') || $input.attr('data-emptylabel') || 'N/A');
                 $calendar.popup('close');
             }
         }));
@@ -293,9 +277,17 @@ $.plugin2('calendar', {
     '_create': function(input) {
         var $input = $(input);
         var $calendarButton = $('<span/>', {
-            'class': 'calendarButton',
-            'text': $input.val() || $input.attr('placeholder') || $input.attr('data-emptylabel') || 'N/A'
+            'class': 'calendarButton'
         });
+
+        var inputValue = parseInt($input.val(), 10);
+
+        if (inputValue) {
+            $calendarButton.text(formatDate(new Date(inputValue)));
+
+        } else {
+            $calendarButton.text($input.attr('placeholder') || $input.attr('data-emptylabel') || 'N/A');
+        }
 
         $input.bind('input-disable', function(event, disable) {
             $calendarButton.toggleClass('state-disabled', disable);
@@ -313,19 +305,8 @@ $.plugin2('calendar', {
             $calendar.data('$calendarButton', $calendarButton);
 
             // Switch to the correct month using the input date.
-            var inputDateString = $input.val();
-            var inputDate = new Date();
-            if (inputDateString) {
-                var match = /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)?$/.exec(inputDateString);
-                if (match) {
-                    inputDate.setFullYear(parseInt(match[1], 10));
-                    inputDate.setMonth(parseInt(match[2], 10) - 1);
-                    inputDate.setDate(parseInt(match[3], 10));
-                    inputDate.setHours(parseInt(match[4], 10));
-                    inputDate.setMinutes(parseInt(match[5], 10));
-                    inputDate.setSeconds(parseInt(match[6], 10));
-                }
-            }
+            var inputValue = parseInt($input.val(), 10);
+            var inputDate = inputValue ? new Date(inputValue) : new Date();
             $calendar.data('selectedDate', inputDate);
             updateCalendarView(inputDate);
 
@@ -355,3 +336,6 @@ $.plugin2('calendar', {
 });
 
 }(jQuery, window));
+
+    return {};
+});

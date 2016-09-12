@@ -6,6 +6,7 @@ com.psddev.cms.db.Renderer,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.tool.PageWriter,
 com.psddev.cms.tool.ToolPageContext,
+com.psddev.cms.tool.page.content.Edit,
 
 com.psddev.dari.db.Database,
 com.psddev.dari.db.Query,
@@ -35,7 +36,7 @@ java.util.Map,
 java.util.Set,
 java.util.UUID,
 java.util.stream.Collectors
-, com.psddev.cms.tool.page.UploadFiles" %><%
+, com.psddev.cms.tool.page.UploadFiles, com.psddev.dari.util.TypeReference" %><%
 
 // --- Logic ---
 
@@ -48,6 +49,13 @@ String fieldName = field.getInternalName();
 List<Object> fieldValue = (List<Object>) state.getValue(fieldName);
 if (fieldValue == null) {
     fieldValue = new ArrayList<Object>();
+
+} else {
+    for (Iterator<Object> i = fieldValue.iterator(); i.hasNext();) {
+        if (i.next() == null) {
+            i.remove();
+        }
+    }
 }
 
 final List<ObjectType> validTypes = field.as(ToolUi.class).findDisplayTypes();
@@ -547,18 +555,45 @@ UUID containerObjectId = State.getInstance(request.getAttribute("containerObject
 
 if (!isValueExternal) {
     Set<ObjectType> bulkUploadTypes = new HashSet<ObjectType>();
+    Map<ObjectType, String> weightedTypesAndFieldsMap = new CompactMap<ObjectType, String>();
+    Map<ObjectType, String> toggleTypesAndFieldsMap = new CompactMap<ObjectType, String>();
+    Map<ObjectType, String> progressTypesAndFieldsMap = new CompactMap<ObjectType, String>();
+    Map<ObjectType, String> weightMarkersTypesAndFieldsMap = new CompactMap<ObjectType, String>();
+    int calculatedWeightsFieldCount = 0;
 
     for (ObjectType t : validTypes) {
         for (ObjectField f : t.getFields()) {
-            if (f.as(ToolUi.class).isBulkUpload()) {
+            ToolUi ui = f.as(ToolUi.class);
+            if (ui.isBulkUpload()) {
                 for (ObjectType ft : f.getTypes()) {
                     bulkUploadTypes.add(ft);
                 }
+            }
+            if (ui.isCollectionItemWeight()) {
+                weightedTypesAndFieldsMap.put(t, f.getInternalName());
+                if (ui.isCollectionItemWeightCalculated()) {
+                    calculatedWeightsFieldCount ++;
+                }
+            }
+            if (ui.isCollectionItemWeightMarker()) {
+                weightMarkersTypesAndFieldsMap.put(t, f.getInternalName());
+            }
+            if (ui.isCollectionItemToggle()) {
+                toggleTypesAndFieldsMap.put(t, f.getInternalName());
+            }
+            if (ui.isCollectionItemProgress()) {
+                progressTypesAndFieldsMap.put(t, f.getInternalName());
             }
         }
     }
 
     boolean displayGrid = field.as(ToolUi.class).isDisplayGrid();
+
+    // Only display weights if all valid types have a @ToolUi.CollectionItemWeight annotated field
+    int validTypesSize = validTypes.size();
+    boolean displayWeights = weightedTypesAndFieldsMap.size() == validTypesSize;
+    boolean weightsCalculated = calculatedWeightsFieldCount == validTypesSize;
+    boolean displayAlternateListUi = displayWeights || toggleTypesAndFieldsMap.size() > 0 || progressTypesAndFieldsMap.size() > 0;
 
     StringBuilder genericArgumentsString = new StringBuilder();
     List<ObjectType> genericArguments = field.getGenericArguments();
@@ -573,9 +608,19 @@ if (!isValueExternal) {
     }
 
     wp.writeStart("div",
-            "class", "inputLarge repeatableForm" + (displayGrid ? " repeatableForm-previewable" : ""),
-            "foo", "bar",
+            "class", "inputLarge repeatableForm"
+                    + (displayGrid ? " repeatableForm-previewable" : "")
+                    + (displayWeights ? " repeatableForm-weighted" : "")
+                    + (displayAlternateListUi ? " repeatableForm-alt" : ""),
             "data-generic-arguments", genericArgumentsString);
+
+        if (displayWeights) {
+            wp.writeStart("div",
+                    "class", "repeatableForm-itemWeights",
+                    "data-calculated", weightsCalculated);
+
+            wp.writeEnd();
+        }
 
         wp.writeStart("ol",
                 "data-sortable-input-name", inputName,
@@ -588,20 +633,38 @@ if (!isValueExternal) {
                 State itemState = State.getInstance(item);
                 ObjectType itemType = itemState.getType();
                 Date itemPublishDate = itemState.as(Content.ObjectModification.class).getPublishDate();
-                boolean expanded = itemType.getFields().stream().anyMatch(f -> f.as(ToolUi.class).isExpanded());
+
+                boolean expanded = field.as(ToolUi.class).isExpanded()
+                        || itemType.getFields().stream().anyMatch(f -> f.as(ToolUi.class).isExpanded())
+                        || Edit.isWorkInProgressRestored(wp, item);
+
+                String progressFieldName = progressTypesAndFieldsMap.get(itemType);
+                String toggleFieldName = toggleTypesAndFieldsMap.get(itemType);
+                String weightFieldName = weightedTypesAndFieldsMap.get(itemType);
+                String weightMarkersFieldName = weightMarkersTypesAndFieldsMap.get(itemType);
 
                 wp.writeStart("li",
                         "class", expanded ? "expanded" : null,
                         "data-sortable-item-type", itemType.getId(),
                         "data-type", wp.getObjectLabel(itemType),
                         "data-label", wp.getObjectLabel(item),
-                        
+                        "data-label-html", item != null ? wp.createObjectLabelHtml(item) : null,
+
                         // Add the image url for the preview thumbnail, plus the field name that provided the thumbnail
                         // so if that field is changed the front-end knows that the thumbnail should also be updated
                         "data-preview", wp.getPreviewThumbnailUrl(item),
-                        "data-preview-field", itemType.getPreviewField()
-                        
-                        );
+                        "data-preview-field", itemType.getPreviewField(),
+
+                        // Add additional data attributes for customizing embedded item display
+                        "data-toggle-field", !StringUtils.isBlank(toggleFieldName) ? toggleFieldName : null,
+                        "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
+                        "data-weight-markers-field", !StringUtils.isBlank(weightMarkersFieldName) ? weightMarkersFieldName : null,
+                        "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? ObjectUtils.to(int.class, ObjectUtils.to(double.class, itemState.get(progressFieldName)) * 100) : null,
+                        "data-toggle-field-value", !StringUtils.isBlank(toggleFieldName) ? ObjectUtils.to(boolean.class, itemState.get(toggleFieldName)) : null,
+                        "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? ObjectUtils.to(double.class, itemState.get(weightFieldName)) : null,
+                        "data-weight-markers-field-value", !StringUtils.isBlank(weightMarkersFieldName) ? ObjectUtils.to(new TypeReference<List<Double>>() {}, itemState.get(weightMarkersFieldName)) : null
+                );
+
                     wp.writeElement("input",
                             "type", "hidden",
                             "name", idName,
@@ -617,7 +680,9 @@ if (!isValueExternal) {
                             "name", publishDateName,
                             "value", itemPublishDate != null ? itemPublishDate.getTime() : null);
 
-                    if (!expanded && !itemState.hasAnyErrors()) {
+                    if (!expanded && !itemState.hasAnyErrors()
+                            && StringUtils.isBlank(toggleFieldName)
+                            && StringUtils.isBlank(weightFieldName)) {
                         wp.writeElement("input",
                                 "type", "hidden",
                                 "name", dataName,
@@ -639,6 +704,12 @@ if (!isValueExternal) {
             }
 
             for (ObjectType type : validTypes) {
+
+                String progressFieldName = progressTypesAndFieldsMap.get(type);
+                String toggleFieldName = toggleTypesAndFieldsMap.get(type);
+                String weightFieldName = weightedTypesAndFieldsMap.get(type);
+                String weightMarkersFieldName = weightMarkersTypesAndFieldsMap.get(type);
+
                 wp.writeStart("script", "type", "text/template");
                     wp.writeStart("li",
                             "class", displayGrid ? "collapsed" : null,
@@ -646,7 +717,14 @@ if (!isValueExternal) {
                             "data-type", wp.getObjectLabel(type),
                             // Add the name of the preview field so the front end knows
                             // if that field is updated it should update the thumbnail
-                            "data-preview-field", type.getPreviewField());
+                            "data-preview-field", type.getPreviewField(),
+                            "data-toggle-field", !StringUtils.isBlank(toggleFieldName) ? toggleFieldName : null,
+                            "data-weight-field", !StringUtils.isBlank(weightFieldName) ? weightFieldName : null,
+                            "data-weight-markers-field", !StringUtils.isBlank(weightMarkersFieldName) ? weightMarkersFieldName : null,
+                            "data-progress-field-value", !StringUtils.isBlank(progressFieldName) ? 0.0 : null,
+                            "data-toggle-field-value", !StringUtils.isBlank(toggleFieldName) ? true : null,
+                            "data-weight-field-value", !StringUtils.isBlank(weightFieldName) ? "" : null
+                    );
                         wp.writeStart("a",
                                 "href", wp.cmsUrl("/content/repeatableObject.jsp",
                                         "inputName", inputName,
@@ -666,10 +744,13 @@ if (!isValueExternal) {
 
             typeIdsQuery.setLength(typeIdsQuery.length() - 1);
 
+            String uploadFilesPath = wp.getCmsTool().isEnableFrontEndUploader()
+                    ? "/content/upload"
+                    : "/content/uploadFiles";
+
             wp.writeStart("a",
                     "class", "action-upload",
-                    "href", wp.url(
-                            "/content/uploadFiles?" + typeIdsQuery,
+                    "href", wp.url(uploadFilesPath + "?" + typeIdsQuery,
                             "containerId", containerObjectId,
                             "context", UploadFiles.Context.FIELD),
                     "target", "uploadFiles");

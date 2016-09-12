@@ -2,6 +2,7 @@ package com.psddev.cms.tool.widget;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,8 +11,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
@@ -51,6 +52,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
         String redirect = page.param(String.class, "redirect");
         CmsTool.CommonContentSettings settings = null;
         ToolUser user = page.getUser();
+        List<String> includeFields = Arrays.asList("toolUserCreateNewSettings.editExistingContents");
 
         if (user != null) {
             ToolRole role = user.getRole();
@@ -72,8 +74,30 @@ public class CreateNewWidget extends DefaultDashboardWidget {
             settings = page.getCmsTool().getCommonContentSettings();
         }
 
+        if (page.isFormPost()) {
+            try {
+                Set<Content> defaultContents = findCascadedEditExistingContents(page.getSite(), null, settings);
+                Set<Content> oldUserContents = user.as(ToolUserCreateNewSettings.class).getEditExistingContents();
+
+                oldUserContents.removeAll(defaultContents);
+
+                List<String> selectedContentIds = page.params(String.class, user.getId().toString() + "/toolUserCreateNewSettings.editExistingContents");
+                if (!ObjectUtils.isBlank(selectedContentIds)) {
+                    Set<Content> selectedContents = new HashSet<>(
+                            Query.from(Content.class).where("_id = ?", selectedContentIds).and(page.siteItemsPredicate()).selectAll());
+
+                    if (!selectedContents.equals(defaultContents)) {
+                        oldUserContents.removeIf(content -> page.getSite() == null || (page.getSite() != null && Site.Static.isObjectAccessible(page.getSite(), content)));
+                        oldUserContents.addAll(selectedContents);
+                    }
+                }
+
+            } catch (Exception ex) {
+                page.getErrors().add(ex);
+            }
+        }
+
         Set<ObjectType> createNewTypes = settings.getCreateNewTypes();
-        Set<Content> editExistingContents = new TreeSet<Content>(settings.getEditExistingContents());
         List<TypeTemplate> typeTemplates = new ArrayList<TypeTemplate>();
         Map<ObjectType, Integer> typeCounts = new HashMap<ObjectType, Integer>();
 
@@ -119,7 +143,8 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                         && type.getGroups().contains(Directory.Item.class.getName())
                         && !type.getGroups().contains(Singleton.class.getName())
                         && !typeCounts.containsKey(type)
-                        && page.hasPermission("type/" + type.getId() + "/write")) {
+                        && page.hasPermission("type/" + type.getId() + "/write")
+                        && !type.as(ToolUi.class).isHidden()) {
                     TypeTemplate typeTemplate = new TypeTemplate(type, null);
 
                     if (typeTemplate.getCollapsedId().equals(redirect)) {
@@ -182,6 +207,10 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                         "method", "post",
                         "action", page.url(null));
 
+                    page.writeStart("h2");
+                    page.writeHtml("\"Create New\" Types");
+                    page.writeEnd();
+
                     page.writeStart("table", "class", "table-striped");
                         page.writeStart("thead");
                             page.writeStart("tr");
@@ -209,6 +238,14 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                             }
                         page.writeEnd();
                     page.writeEnd();
+
+                    page.writeStart("h2");
+                        page.writeHtml("\"Edit Existing\" Contents");
+                    page.writeEnd();
+
+                    page.include("/WEB-INF/errors.jsp");
+                    user.as(ToolUserCreateNewSettings.class).setEditExistingContents(findCascadedEditExistingContents(page.getSite(), user, settings));
+                    page.writeSomeFormFields(user, false, includeFields, null);
 
                     page.writeStart("div", "class", "actions");
                         page.writeStart("button",
@@ -333,16 +370,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                     }
                 page.writeEnd();
 
-                if (editExistingContents.isEmpty()) {
-                    for (Object item : Query
-                            .from(Object.class)
-                            .where("_type = ?", Database.Static.getDefault().getEnvironment().getTypesByGroup(Singleton.class.getName()))
-                            .selectAll()) {
-                        if (item instanceof Content) {
-                            editExistingContents.add((Content) item);
-                        }
-                    }
-                }
+                Set<Content> editExistingContents = findCascadedEditExistingContents(page.getSite(), user, settings);
 
                 if (!editExistingContents.isEmpty()) {
                     page.writeStart("div", "class", "p-commonContent-existing", "style", page.cssString(
@@ -357,7 +385,9 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                         page.writeEnd();
 
                         page.writeStart("ul", "class", "links pageThumbnails");
-                            for (Object content : editExistingContents) {
+                            for (Iterator<Content> i = editExistingContents.stream().sorted().iterator(); i.hasNext();) {
+                                Content content = i.next();
+
                                 page.writeStart("li");
                                     page.writeStart("a",
                                             "target", "_top",
@@ -377,11 +407,45 @@ public class CreateNewWidget extends DefaultDashboardWidget {
         page.writeEnd();
     }
 
+    private Set<Content> findCascadedEditExistingContents(Site site, ToolUser user, CmsTool.CommonContentSettings settings) {
+        Set<Content> editExistingContents = new HashSet<>();
+
+        if (user != null) {
+            Set<Content> existingContentList = user.as(ToolUserCreateNewSettings.class).getEditExistingContents();
+            if (site != null) {
+                existingContentList = existingContentList.stream()
+                        .filter(content -> Site.Static.isObjectAccessible(site, content))
+                        .collect(Collectors.toSet());
+            }
+            editExistingContents.addAll(existingContentList);
+        }
+
+        if (editExistingContents.isEmpty()) {
+            editExistingContents.addAll(settings.getEditExistingContents());
+        }
+
+        if (editExistingContents.isEmpty()) {
+            for (Object item : Query
+                    .from(Object.class)
+                    .where("_type = ?", Database.Static.getDefault().getEnvironment().getTypesByGroup(Singleton.class.getName()))
+                    .selectAll()) {
+                if (item instanceof Content) {
+                    editExistingContents.add((Content) item);
+                }
+            }
+        }
+
+        return editExistingContents;
+    }
+
     @FieldInternalNamePrefix("toolUserCreateNewSettings.")
     private static class ToolUserCreateNewSettings extends Modification<ToolUser> {
 
         @ToolUi.Hidden
         private Set<String> collapsedIds;
+
+        @ToolUi.Tab("Dashboard")
+        private Set<Content> editExistingContents;
 
         public Set<String> getCollapsedIds() {
             if (collapsedIds == null) {
@@ -392,6 +456,17 @@ public class CreateNewWidget extends DefaultDashboardWidget {
 
         public void setCollapsedIds(Set<String> collapsedIds) {
             this.collapsedIds = collapsedIds;
+        }
+
+        public Set<Content> getEditExistingContents() {
+            if (editExistingContents == null) {
+                editExistingContents = new LinkedHashSet<>();
+            }
+            return editExistingContents;
+        }
+
+        public void setEditExistingContents(Set<Content> editExistingContents) {
+            this.editExistingContents = editExistingContents;
         }
     }
 

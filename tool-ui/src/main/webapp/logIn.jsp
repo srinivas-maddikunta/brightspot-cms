@@ -70,6 +70,10 @@ private static String getIpAddress(String xForReqParam, String remoteAddrReqPara
 
 ToolPageContext wp = new ToolPageContext(pageContext);
 
+if (AuthenticationFilter.Static.requireToolUrlPrefix(wp.getServletContext(), request, response)) {
+    return;
+}
+
 if (wp.getUser() != null) {
     AuthenticationFilter.Static.logOut(response);
     response.sendRedirect(new UrlBuilder(request).
@@ -134,9 +138,9 @@ if (wp.isFormPost()) {
 
         AuthenticationFilter.Static.logIn(request, response, user);
 
-        if (!StringUtils.isBlank(returnPath)) {
+        if (!StringUtils.isBlank(returnPath) && returnPath.startsWith("/")) {
             try {
-                wp.redirect(new URL(JspUtils.getAbsoluteUrl(request, returnPath)).toString());
+                response.sendRedirect(returnPath);
             } catch (MalformedURLException e) {
                 wp.redirect("/");
             }
@@ -166,7 +170,9 @@ if (wp.isFormPost()) {
     float: none;
     height: 100px;
     margin: 30px 0 0 0;
+    position: relative;
     text-align: center;
+    top: 200px;
     width: auto;
 }
 .toolTitle a img {

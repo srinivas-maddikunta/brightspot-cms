@@ -4,6 +4,7 @@ com.psddev.cms.db.Content,
 com.psddev.cms.db.Template,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.db.ToolUser,
+com.psddev.cms.db.ToolUserSearch,
 com.psddev.cms.db.WorkStream,
 com.psddev.cms.tool.PageWriter,
 com.psddev.cms.tool.Search,
@@ -20,7 +21,10 @@ com.psddev.dari.db.Query,
 com.psddev.dari.db.Singleton,
 com.psddev.dari.db.State,
 com.psddev.dari.util.ObjectUtils,
+com.psddev.dari.util.StringUtils,
 com.psddev.dari.util.Utf8Filter,
+com.psddev.dari.util.UrlBuilder,
+com.psddev.dari.util.UuidUtils,
 
 java.util.ArrayList,
 java.util.Collections,
@@ -110,7 +114,7 @@ if (selectedType != null) {
         for (ObjectType t : selectedType.as(ToolUi.class).findDisplayTypes()) {
             Map<String, ObjectField> ff = new LinkedHashMap<>();
 
-            addFieldFilters(ff, "", t);
+            addFieldFilters(ff, "", t, selectedType);
 
             for (Map.Entry<String, ObjectField> entry : ff.entrySet()) {
                 String n = entry.getKey();
@@ -177,33 +181,69 @@ writer.writeStart("h1", "class", "icon icon-action-search");
     }
 writer.writeEnd();
 
-ToolUser user = wp.getUser();
-Map<String, String> savedSearches = user.getSavedSearches();
+wp.writeStart("div", "class", "searchHistory");
+    ToolUser user = wp.getUser();
+    Map<String, Object> searchValues = search.getState().getSimpleValues();
 
-if (!savedSearches.isEmpty()) {
-    wp.writeStart("div", "class", "widget-contentCreate searchSaved");
-        List<String> savedSearchNames = new ArrayList<String>(savedSearches.keySet());
+    searchValues.remove("name");
+    searchValues.remove("parentId");
 
-        Collections.sort(savedSearchNames, String.CASE_INSENSITIVE_ORDER);
+    for (Iterator<Map.Entry<String, Object>> i = searchValues.entrySet().iterator(); i.hasNext();) {
+        Map.Entry<String, Object> entry = i.next();
 
-        wp.writeStart("div", "class", "action action-create icon-action-search");
-            wp.writeHtml("Saved Searches");
+        if (entry.getKey().startsWith("_")) {
+            i.remove();
+        }
+    }
+
+    String context = wp.paramOrDefault(String.class, Search.CONTEXT_PARAMETER, StringUtils.hex(StringUtils.md5(ObjectUtils.toJson(searchValues))));
+    String sessionId = wp.paramOrDefault(String.class, Search.SESSION_ID_PARAMETER, UuidUtils.createSequentialUuid().toString());
+    String recentSearchesKeyPrefix = user.getId().toString() + context;
+    List<ToolUserSearch> recentSearches = Query.from(ToolUserSearch.class)
+                .where("key startsWith ?", recentSearchesKeyPrefix)
+                .and("key != ?", recentSearchesKeyPrefix + sessionId)
+                .sortDescending("key")
+                .selectAll();
+
+    if (!recentSearches.isEmpty()) {
+        wp.writeStart("div", "class", "searchRecent");
+        wp.writeStart("h2");
+        wp.writeHtml(wp.localize(Search.class, "label.recentSearches"));
         wp.writeEnd();
 
-        wp.writeStart("ul");
-            for (String savedSearchName : savedSearchNames) {
-                String savedSearch = savedSearches.get(savedSearchName);
+        wp.writeStart("ul", "class", "links");
+            for (ToolUserSearch recentSearch : recentSearches) {
+                String localizedLabel = recentSearch.toLocalizedLabel(wp);
 
-                wp.writeStart("li");
-                    wp.writeStart("a",
-                            "href", wp.url(null) + "?" + savedSearch);
-                        wp.writeHtml(savedSearchName);
+                if (localizedLabel != null) {
+                    wp.writeStart("li");
+                        wp.writeStart("a", "href", StringUtils.addQueryParameters(
+                                wp.url(null) + "?" + recentSearch.getSearch(),
+                                Search.PARENT_PARAMETER, search.getParentId(),
+                                Search.SESSION_ID_PARAMETER, UuidUtils.createSequentialUuid()));
+                            wp.writeHtml(localizedLabel);
+                        wp.writeEnd();
                     wp.writeEnd();
-                wp.writeEnd();
+                }
             }
         wp.writeEnd();
+
+        wp.writeStart("a", "href", wp.cmsUrl("/misc/savedSearches.jsp"));
+        wp.writeEnd();
+        wp.writeEnd();
+    }
+
+    wp.writeStart("div", "class", "searchSaved");
+        wp.writeStart("h2");
+            wp.writeHtml(wp.localize(Search.class, "label.savedSearches"));
+        wp.writeEnd();
+
+        wp.writeStart("div", "class", "frame savedSearches", "name", "savedSearches");
+            wp.writeStart("a", "href", wp.cmsUrl("/misc/savedSearches.jsp", Search.CONTEXT_PARAMETER, context));
+            wp.writeEnd();
+        wp.writeEnd();
     wp.writeEnd();
-}
+wp.writeEnd();
 
 writer.start("div", "class", "searchForm");
     writer.start("div", "class", "searchControls");
@@ -225,6 +265,8 @@ writer.start("div", "class", "searchForm");
                 writer.writeElement("input", "type", "hidden", "name", Utf8Filter.CHECK_PARAMETER, "value", Utf8Filter.CHECK_VALUE);
                 writer.writeElement("input", "type", "hidden", "name", "reset", "value", "true");
                 writer.writeElement("input", "type", "hidden", "name", Search.NAME_PARAMETER, "value", search.getName());
+                writer.writeElement("input", "type", "hidden", "name", Search.CONTEXT_PARAMETER, "value", context, "disabled", "disabled");
+                writer.writeElement("input", "type", "hidden", "name", Search.SESSION_ID_PARAMETER, "value", sessionId, "disabled", "disabled");
 
                 for (ObjectType type : search.getTypes()) {
                     writer.writeElement("input", "type", "hidden", "name", Search.TYPES_PARAMETER, "value", type.getId());
@@ -235,6 +277,10 @@ writer.start("div", "class", "searchForm");
                 writer.writeElement("input", "type", "hidden", "name", Search.PARENT_PARAMETER, "value", search.getParentId());
                 writer.writeElement("input", "type", "hidden", "name", Search.PARENT_TYPE_PARAMETER, "value", search.getParentTypeId());
                 writer.writeElement("input", "type", "hidden", "name", Search.SUGGESTIONS_PARAMETER, "value", search.isSuggestions());
+
+                for (UUID newItemId : search.getNewItemIds()) {
+                    writer.writeElement("input", "type", "hidden", "name", Search.NEW_ITEM_IDS_PARAMETER, "value", newItemId);
+                }
 
                 writer.writeElement("input",
                         "type", "hidden",
@@ -247,7 +293,7 @@ writer.start("div", "class", "searchForm");
                                 .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                 .collect(Collectors.<ObjectType>toSet()),
                             selectedType,
-                            "Any Types",
+                            wp.localize(Search.class, "label.allTypes"),
                             "name", Search.SELECTED_TYPE_PARAMETER,
                             "data-bsp-autosubmit", "",
                             "data-searchable", true);
@@ -264,6 +310,8 @@ writer.start("div", "class", "searchForm");
 
                 writer.writeElement("input", "type", "hidden", "name", Utf8Filter.CHECK_PARAMETER, "value", Utf8Filter.CHECK_VALUE);
                 writer.writeElement("input", "type", "hidden", "name", Search.NAME_PARAMETER, "value", search.getName());
+                writer.writeElement("input", "type", "hidden", "name", Search.CONTEXT_PARAMETER, "value", context, "disabled", "disabled");
+                writer.writeElement("input", "type", "hidden", "name", Search.SESSION_ID_PARAMETER, "value", sessionId, "disabled", "disabled");
                 writer.writeElement("input", "type", "hidden", "name", Search.SORT_PARAMETER, "value", search.getSort());
 
                 for (ObjectType type : search.getTypes()) {
@@ -279,8 +327,14 @@ writer.start("div", "class", "searchForm");
                 writer.writeElement("input", "type", "hidden", "name", Search.LIMIT_PARAMETER, "value", search.getLimit());
                 writer.writeElement("input", "type", "hidden", "name", Search.SELECTED_TYPE_PARAMETER, "value", selectedType != null ? selectedType.getId() : null);
 
+                for (UUID newItemId : search.getNewItemIds()) {
+                    writer.writeElement("input", "type", "hidden", "name", Search.NEW_ITEM_IDS_PARAMETER, "value", newItemId);
+                }
+
+                writer.writeElement("input", "type", "hidden", "name", Search.IGNORE_SITE_PARAMETER, "value", search.isIgnoreSite());
+
                 writer.start("div", "class", "searchInput");
-                    writer.start("label", "for", wp.createId()).html("Search").end();
+                    writer.start("label", "for", wp.createId()).html(wp.localize(Search.class, "action.search")).end();
                     writer.writeElement("input",
                             "type", "text",
                             "class", "autoFocus",
@@ -294,15 +348,41 @@ writer.start("div", "class", "searchForm");
                     writer.start("div", "class", "searchFiltersGlobal");
                         for (ObjectType filter : globalFilters) {
                             String filterId = filter.getId().toString();
+
+                            if (search.getGlobalFilters().containsKey(filterId + "#")) {
+                                writer.start("div",
+                                        "class", "searchFilter searchFilter-multiple",
+                                        "data-type-name", filter.getInternalName());
+
+                                    for (int i = 0; i < Integer.parseInt(search.getGlobalFilters().get(filterId + "#")); i++) {
+                                        State filterState = State.getInstance(Query.from(Object.class).where("_id = ?", search.getGlobalFilters().get(filterId + i)).first());
+                                        writer.writeStart("div", "class", "searchFilterItem");
+                                        writer.writeElement("input",
+                                                "type", "text",
+                                                "class", "objectId",
+                                                "name", "gf." + filterId,
+                                                "placeholder", wp.localize(filter, "label.globalFilter"),
+                                                "data-editable", false,
+                                                "data-label", filterState != null ? filterState.getLabel() : null,
+                                                "data-restorable", false,
+                                                "data-typeIds", filterId,
+                                                "value", filterState != null ? filterState.getId() : null);
+                                        writer.writeEnd();
+                                    }
+                                writer.end();
+
+                            } else {
                             State filterState = State.getInstance(Query.from(Object.class).where("_id = ?", search.getGlobalFilters().get(filterId)).first());
 
-                            writer.start("div", "class", "searchFilter");
+                            writer.start("div",
+                                    "class", "searchFilter",
+                                    "data-type-name", filter.getInternalName());
                                 writer.writeStart("div", "class", "searchFilterItem");
                                 writer.writeElement("input",
                                         "type", "text",
                                         "class", "objectId",
                                         "name", "gf." + filterId,
-                                        "placeholder", "Filter: " + filter.getDisplayName(),
+                                        "placeholder", wp.localize(filter, "label.globalFilter"),
                                         "data-editable", false,
                                         "data-label", filterState != null ? filterState.getLabel() : null,
                                         "data-restorable", false,
@@ -310,6 +390,7 @@ writer.start("div", "class", "searchForm");
                                         "value", filterState != null ? filterState.getId() : null);
                                 writer.writeEnd();
                             writer.end();
+                            }
                         }
                     writer.end();
                 }
@@ -317,13 +398,13 @@ writer.start("div", "class", "searchForm");
                 writer.start("div", "class", "searchFiltersLocal");
                     if (!fieldFilters.isEmpty()) {
                         writer.start("div", "class", "searchMissing");
-                            writer.html("Missing?");
+                            writer.html(wp.localize(Search.class, "label.missing"));
                         writer.end();
                     }
 
                     if (selectedType != null) {
                         if (selectedType.getGroups().contains(ColorImage.class.getName())) {
-                            writer.writeStart("div", "class", "searchFilter");
+                            writer.writeStart("div", "class", "searchFilter searchFilter-color");
                                 writer.writeElement("input",
                                         "type", "text",
                                         "class", "color",
@@ -349,13 +430,19 @@ writer.start("div", "class", "searchForm");
                         }
 
                         String inputName = "f." + fieldName;
-                        String displayName = field.getDisplayName();
+                        String displayName = wp.localize(field, "field." + field.getInternalName());
                         String displayPrefix = (displayName.endsWith("?") ? displayName : displayName + ":") + " ";
                         Map<String, String> filterValue = search.getFieldFilters().get(fieldName);
                         String fieldValue = filterValue != null ? filterValue.get("") : null;
                         String fieldInternalItemType = field.getInternalItemType();
 
-                        writer.start("div", "class", "searchFilter searchFilter-" + fieldInternalItemType);
+                        boolean searchFilterMultiple = filterValue != null && filterValue.containsKey("#");
+                        ObjectType fieldParentType = field.getParentType();
+
+                        writer.start("div",
+                                "class", "searchFilter searchFilter-" + fieldInternalItemType + (searchFilterMultiple ? " searchFilter-multiple" : ""),
+                                "data-type-name", fieldParentType != null ? fieldParentType.getInternalName() : null,
+                                "data-field-name", field.getInternalName());
                             if (ObjectField.BOOLEAN_TYPE.equals(fieldInternalItemType)) {
                                 writer.writeStart("select", "name", inputName);
                                     writer.writeStart("option", "value", "").writeHtml(displayName).writeEnd();
@@ -391,7 +478,7 @@ writer.start("div", "class", "searchForm");
                                         "type", "text",
                                         "class", "date",
                                         "name", inputName + ".x",
-                                        "placeholder", "(End)",
+                                        "placeholder", wp.localize(Search.class, "label.end"),
                                         "value", filterValue != null ? filterValue.get("x") : null);
 
                                 writer.writeElement("input",
@@ -456,6 +543,26 @@ writer.start("div", "class", "searchForm");
                                         "value", true,
                                         "checked", filterValue != null && ObjectUtils.to(boolean.class, filterValue.get("m")) ? "checked" : null);
 
+                            } else if (searchFilterMultiple) {
+                                for (int i = 0; i < Integer.parseInt(filterValue.get("#")); i++) {
+                                    State fieldState = State.getInstance(Query.from(Object.class).where("_id = ?", filterValue.get(Integer.toString(i))).first());
+
+                                    wp.writeStart("div", "class", "searchFilterItem");
+                                    wp.writeObjectSelect(field, fieldState,
+                                            "name", inputName,
+                                            "placeholder", displayName,
+                                            "data-dynamic-placeholder", "",
+                                            "data-editable", false,
+                                            "data-restorable", false);
+                                    wp.writeEnd();
+
+                                    writer.writeElement("input",
+                                            "type", "checkbox",
+                                            "name", inputName + ".m",
+                                            "value", true,
+                                            "checked", filterValue != null && ObjectUtils.to(boolean.class, filterValue.get("m")) ? "checked" : null);
+                                }
+
                             } else {
                                 State fieldState = State.getInstance(Query.from(Object.class).where("_id = ?", fieldValue).first());
 
@@ -478,7 +585,7 @@ writer.start("div", "class", "searchForm");
                     }
                 writer.end();
 
-                writer.writeStart("div", "class", "searchFilter");
+                writer.writeStart("div", "class", "searchFilter searchFilter-visibilities");
                     wp.writeMultipleVisibilitySelect(
                             selectedType,
                             search.getVisibilities(),
@@ -494,7 +601,7 @@ writer.start("div", "class", "searchForm");
                             "type", "text",
                             "class", "code",
                             "name", Search.ADVANCED_QUERY_PARAMETER,
-                            "placeholder", "Advanced Query",
+                            "placeholder", wp.localize(Search.class, "label.advancedQuery"),
                             "value", search.getAdvancedQuery());
 
                     writer.writeStart("a",
@@ -506,13 +613,19 @@ writer.start("div", "class", "searchForm");
                 writer.writeEnd();
             writer.end();
 
+            if (request.getAttribute("name") != null && request.getAttribute("name").equals("fullScreen")) {
+                writer.start("a", "class", "action action-cancel",
+                                  "href", new UrlBuilder(request).currentScheme().currentHost().currentPath());
+                    writer.html("Reset");
+                writer.end();
+
+            } else {
             writer.start("a",
                     "class", "action action-cancel search-reset",
                     "onclick",
                             "var $source = $(this).popup('source');" +
                             "if ($source) {" +
                                 "if ($source.is('a')) {" +
-                                    "console.log($source[0]);" +
                                     "$source.click();" +
                                 "} else if ($source.is('form')) {" +
                                     "$source[0].reset();" +
@@ -522,14 +635,17 @@ writer.start("div", "class", "searchForm");
                             "return false;");
                 writer.html("Reset");
             writer.end();
+            }
 
         writer.end();
 
-        if (!ObjectUtils.isBlank(newJsp) && (selectedType == null || !selectedType.isAbstract())) {
+        if (!ObjectUtils.isBlank(newJsp)
+                && (!singleType || !selectedType.as(ToolUi.class).isReadOnly())) {
             writer.start("div", "class", "searchCreate");
-                writer.start("h2").html("Create").end();
+                writer.start("h2").html(wp.localize(Search.class, "label.create")).end();
 
                 writer.start("form",
+                        "class", "objectId-create",
                         "method", "get",
                         "action", wp.url(newJsp),
                         "target", ObjectUtils.isBlank(newTarget) ? null : newTarget);
@@ -539,7 +655,7 @@ writer.start("div", "class", "searchForm");
                                 !selectedType.getGroups().contains(Singleton.class.getName())) {
                             writer.writeElement("input", "type", "hidden", "name", "typeId", "value", selectedType.getId());
                             writer.writeStart("button", "class", "action action-create", "style", "width: auto;");
-                                writer.writeHtml("New " + wp.getObjectLabel(selectedType));
+                                writer.writeHtml(wp.localize(selectedType, "action.newType"));
                             writer.writeEnd();
                         }
 
@@ -552,8 +668,9 @@ writer.start("div", "class", "searchForm");
                             }
                         }
 
-                        wp.writeTypeSelect(
+                        wp.writeCreateTypeSelect(
                                 creatableTypes.stream()
+                                    .filter(t -> !t.as(ToolUi.class).isReadOnly())
                                     .filter(wp.createTypeDisplayPredicate(ImmutableSet.of("write", "read")))
                                     .collect(Collectors.<ObjectType>toSet()),
                                 selectedType,
@@ -561,7 +678,7 @@ writer.start("div", "class", "searchForm");
                                 "name", "typeId",
                                 "data-searchable", true);
                         writer.writeStart("button", "class", "action action-create");
-                            writer.writeHtml("New");
+                            writer.writeHtml(wp.localize(Search.class, "action.new"));
                         writer.writeEnd();
                     }
 
@@ -580,8 +697,14 @@ writer.end();
 private static void addFieldFilters(
         Map<String, ObjectField> fieldFilters,
         String prefix,
-        ObjectStruct struct) {
+        ObjectStruct struct,
+        ObjectType selectedType) {
+
     for (ObjectField field : ObjectStruct.Static.findIndexedFields(struct)) {
+        if (selectedType != null && selectedType.getField(field.getInternalName()) != null) {
+            continue;
+        }
+
         ToolUi fieldUi = field.as(ToolUi.class);
 
         if (!fieldUi.isEffectivelyFilterable()) {
@@ -614,5 +737,13 @@ private static void addFieldFilters(
 
         fieldFilters.put(prefix + fieldName, field);
     }
+}
+
+private static void addFieldFilters(
+        Map<String, ObjectField> fieldFilters,
+        String prefix,
+        ObjectStruct struct) {
+
+    addFieldFilters(fieldFilters, prefix, struct, null);
 }
 %>

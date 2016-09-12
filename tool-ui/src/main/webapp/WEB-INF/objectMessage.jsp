@@ -3,6 +3,7 @@
 com.psddev.cms.db.Content,
 com.psddev.cms.db.Draft,
 com.psddev.cms.db.History,
+com.psddev.cms.db.Site,
 com.psddev.cms.db.Schedule,
 com.psddev.cms.db.Template,
 com.psddev.cms.db.Trash,
@@ -16,7 +17,9 @@ com.psddev.dari.db.Query,
 com.psddev.dari.db.State,
 com.psddev.dari.util.ObjectUtils,
 
+java.io.IOException,
 java.util.Date,
+java.util.Iterator,
 java.util.List,
 
 org.joda.time.DateTime
@@ -32,14 +35,22 @@ if (wp.getOverlaidDraft(object) == null) {
     List<Object> contentUpdates = Query
             .fromAll()
             .and("com.psddev.cms.db.Draft/objectId = ?", state.getId())
+            .and("cms.content.updateDate > ?", new DateTime().minusDays(1).getMillis())
             .sortDescending("cms.content.updateDate")
             .selectAll();
+
+    for (Iterator<Object> i = contentUpdates.iterator(); i.hasNext();) {
+        Draft contentUpdate = (Draft) i.next();
+
+        if (contentUpdate.isNewContent()) {
+            i.remove();
+        }
+    }
 
     if (!contentUpdates.isEmpty()) {
         wp.writeStart("div", "class", "message message-info");
         wp.writeStart("p");
-        wp.writeObjectLabel(ObjectType.getInstance(Draft.class));
-        wp.writeHtml(" Items:");
+        wp.writeHtml("Recent Drafts:");
         wp.writeEnd();
 
         wp.writeStart("ul");
@@ -53,7 +64,7 @@ if (wp.getOverlaidDraft(object) == null) {
 
                 if (!ObjectUtils.isBlank(contentUpdateName)) {
                     wp.writeHtml(contentUpdateName);
-                    wp.writeHtml(" - ");
+                    wp.writeHtml(" last saved ");
                 }
 
                 wp.writeHtml(wp.formatUserDateTime(contentUpdate.as(Content.ObjectModification.class).getUpdateDate()));
@@ -84,11 +95,11 @@ if (deleted != null) {
 }
 
 Draft draft = wp.getOverlaidDraft(object);
-Content.ObjectModification contentData = draft != null
+Content.ObjectModification contentData = draft != null && !draft.isNewContent()
         ? draft.as(Content.ObjectModification.class)
         : state.as(Content.ObjectModification.class);
 
-if (wp.getUser().equals(contentData.getUpdateUser())) {
+if (!state.isNew() && !contentData.isTrash() && wp.getUser().equals(contentData.getUpdateUser())) {
     Date tenSecondsAgo = new DateTime(Database.Static.getDefault().now()).minusSeconds(10).toDate();
     Date updateDate = contentData.getUpdateDate();
 
@@ -101,12 +112,15 @@ if (wp.getUser().equals(contentData.getUpdateUser())) {
 
         wp.write("<div class=\"message message-success\"><p>");
             if (log != null && !ObjectUtils.isBlank(log.getNewWorkflowState())) {
+                Workflow workflow = Workflow.findWorkflow(state.as(Site.ObjectModification.class).getOwner(), state);
+                String workflowStateDisplayName = workflow == null ? log.getNewWorkflowState() : workflow.getStateDisplayName(log.getNewWorkflowState());
                 wp.writeHtml(wp.localize(
                         "com.psddev.cms.tool.page.content.ObjectMessage",
                         ImmutableMap.of(
-                                "state", log.getNewWorkflowState(),
+                                "state", workflowStateDisplayName,
                                 "date", wp.formatUserDateTime(log.getDate())),
                         "message.transition"));
+                writeReturnToDashboard(wp);
 
             } else {
 
@@ -114,8 +128,9 @@ if (wp.getUser().equals(contentData.getUpdateUser())) {
                         "com.psddev.cms.tool.page.content.ObjectMessage",
                         ImmutableMap.of("date", wp.formatUserDateTime(updateDate)),
                         draft != null || !state.isVisible() ? "message.saved" : "message.published"));
+                writeReturnToDashboard(wp);
             }
-        wp.write(".</p>");
+        wp.write("</p>");
         wp.write("</div>");
 
         return;
@@ -129,7 +144,16 @@ if (saved != null) {
             "com.psddev.cms.tool.page.content.ObjectMessage",
             ImmutableMap.of("date", saved),
             "message.saved"));
-    wp.write(".</p></div>");
+    writeReturnToDashboard(wp);
+    wp.write("</p></div>");
     return;
+}
+%><%!
+
+private static void writeReturnToDashboard(ToolPageContext wp) throws IOException {
+    wp.writeHtml(' ');
+    wp.writeStart("a", "class", "Message-returnToDashboard", "href", wp.cmsUrl("/"));
+    wp.writeHtml(wp.localize("com.psddev.cms.tool.page.content.ObjectMessage", "action.returnToDashboard"));
+    wp.writeEnd();
 }
 %>

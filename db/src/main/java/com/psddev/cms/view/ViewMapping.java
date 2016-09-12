@@ -8,11 +8,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Defines a ViewCreator class that can be used to create views from the
- * annotated model class. The ViewCreator class implicitly specifies the View
- * type that it creates as well as the model it creates the view from. Multiple
- * mappings can be placed on the model.
+ * @deprecated Use {@link ViewBinding} instead.
  */
+@Deprecated
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
@@ -24,4 +22,6 @@ public @interface ViewMapping {
      * annotated model class.
      */
     Class<? extends ViewCreator> value();
+
+    String[] types() default { };
 }

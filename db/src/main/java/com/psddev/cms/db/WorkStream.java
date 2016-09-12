@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.Predicate;
@@ -36,6 +38,9 @@ public class WorkStream extends Record {
     @ToolUi.Hidden
     private Map<String, UUID> currentItems;
 
+    @Indexed
+    private Set<ToolEntity> assignedEntities;
+
     @ToolUi.Hidden
     private Map<String, List<UUID>> skippedItems;
 
@@ -55,6 +60,14 @@ public class WorkStream extends Record {
 
     public void setInstructions(String instructions) {
         this.instructions = instructions;
+    }
+
+    public Set<ToolEntity> getAssignedEntities() {
+        return assignedEntities;
+    }
+
+    public void setAssignedEntities(Set<ToolEntity> assignedEntities) {
+        this.assignedEntities = assignedEntities;
     }
 
     /** Returns the tool search that can return all items to be worked on. */
@@ -122,7 +135,7 @@ public class WorkStream extends Record {
     /** Returns the number of remaining items to be worked on. */
     public long countIncomplete() {
         return getQuery().clone()
-                .not("cms.workstream.completeIds ^= ?", getId().toString() + ",")
+                .and("id != ?", Query.from(Object.class).where("cms.workstream.completeIds ^= ?", getId().toString() + ","))
                 .count();
     }
 
@@ -218,18 +231,34 @@ public class WorkStream extends Record {
 
         if (next == null) {
             Query<?> query = getQuery().clone()
-                    .not("cms.workstream.completeIds ^= ?", getId().toString() + ",");
+                    .and("id != ?", Query.from(Object.class).where("cms.workstream.completeIds ^= ?", getId().toString() + ","));
 
             if (siteItemsPredicate != null) {
                 query.and(siteItemsPredicate);
             }
 
             if (currentItems != null) {
-                query.and("_id != ?", currentItems.values());
+                Set<UUID> currentItemIds = currentItems.values().stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+
+                if (!currentItemIds.isEmpty()) {
+                    query.and("_id != ?", currentItemIds);
+                }
             }
 
             if (skippedItems != null) {
-                query.and("_id != ?", skippedItems.get(userId));
+                List<UUID> skippedItemIds = skippedItems.get(userId);
+
+                if (skippedItemIds != null) {
+                    Set<UUID> uniqueNonNullSkippedItemIds = skippedItemIds.stream()
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toSet());
+
+                    if (!skippedItemIds.isEmpty()) {
+                        query.and("_id != ?", uniqueNonNullSkippedItemIds);
+                    }
+                }
             }
 
             next = State.getInstance(query.first());

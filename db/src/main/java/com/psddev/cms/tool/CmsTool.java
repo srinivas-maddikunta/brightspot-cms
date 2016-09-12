@@ -102,9 +102,11 @@ public class CmsTool extends Tool {
     @Embedded
     private Template modulePreviewTemplate;
 
+    @ToolUi.Secret
     @ToolUi.Tab("Integrations")
     private String dropboxApplicationKey;
 
+    @ToolUi.Secret
     @ToolUi.Tab("Integrations")
     private String googleServerApiKey;
 
@@ -124,7 +126,16 @@ public class CmsTool extends Tool {
     private boolean disableAutomaticallySavingDrafts;
 
     @ToolUi.Tab("Debug")
+    @ToolUi.Note(
+            "This feature is only available for backward compatibility while"
+            + " it's being phased out. Please do not use if at all possible.")
+    private boolean enableAjaxSaves;
+
+    @ToolUi.Tab("UI")
     private boolean enableFrontEndUploader;
+
+    @ToolUi.Tab("UI")
+    private boolean enableViewers;
 
     @ToolUi.Tab("Debug")
     private boolean displayTypesNotAssociatedWithJavaClasses;
@@ -135,11 +146,16 @@ public class CmsTool extends Tool {
     @ToolUi.Tab("RTE")
     private boolean enableAnnotations;
 
-    @ToolUi.Tab("Debug")
+    @ToolUi.Tab("UI")
     private boolean disableContentLocking;
 
-    @ToolUi.Tab("Debug")
+    @ToolUi.DisplayName("Manual Content Locking?")
+    @ToolUi.NoteHtml("<span data-dynamic-text='${content.createManualContentLockingNoteText()}'></span>")
+    @ToolUi.Tab("UI")
     private boolean optInContentLocking;
+
+    @ToolUi.Tab("UI")
+    private boolean disableFieldLocking;
 
     @ToolUi.Tab("Debug")
     private boolean removeTrailingSlashes;
@@ -174,8 +190,29 @@ public class CmsTool extends Tool {
 
     private boolean enableCrossDomainInlineEditing;
 
-    @ToolUi.Tab("Debug")
+    @ToolUi.Tab("UI")
+    private boolean enablePaddedCrop;
+
+    @ToolUi.Tab("RTE")
     private boolean disableCodeMirrorRichTextEditor;
+
+    @ToolUi.Tab("Debug")
+    private boolean disableRtc;
+
+    @ToolUi.Tab("Debug")
+    private boolean disableInvisibleContentPreview;
+
+    @ToolUi.Tab("Debug")
+    private boolean disableWorkInProgress;
+
+    @ToolUi.Tab("Debug")
+    private boolean horizontalSearchCarousel;
+
+    @ToolUi.Tab("Debug")
+    private boolean useOldHistoryIndex;
+
+    @ToolUi.Tab("Debug")
+    private boolean useOldTaxonomyChildrenDetection;
 
     @Embedded
     public static class CommonTime extends Record {
@@ -643,12 +680,28 @@ public class CmsTool extends Tool {
         this.disableAutomaticallySavingDrafts = disableAutomaticallySavingDrafts;
     }
 
+    public boolean isDisableAjaxSaves() {
+        return !enableAjaxSaves;
+    }
+
+    public void setDisableAjaxSaves(boolean disableAjaxSaves) {
+        this.enableAjaxSaves = !disableAjaxSaves;
+    }
+
     public boolean isEnableFrontEndUploader() {
         return enableFrontEndUploader;
     }
 
     public void setEnableFrontEndUploader(boolean enableFrontEndUploader) {
         this.enableFrontEndUploader = enableFrontEndUploader;
+    }
+
+    public boolean isEnableViewers() {
+        return enableViewers;
+    }
+
+    public void setEnableViewers(boolean enableViewers) {
+        this.enableViewers = enableViewers;
     }
 
     public boolean isDisplayTypesNotAssociatedWithJavaClasses() {
@@ -689,6 +742,14 @@ public class CmsTool extends Tool {
 
     public void setOptInContentLocking(boolean optInContentLocking) {
         this.optInContentLocking = optInContentLocking;
+    }
+
+    public boolean isDisableFieldLocking() {
+        return disableFieldLocking;
+    }
+
+    public void setDisableFieldLocking(boolean disableFieldLocking) {
+        this.disableFieldLocking = disableFieldLocking;
     }
 
     public boolean isRemoveTrailingSlashes() {
@@ -777,12 +838,74 @@ public class CmsTool extends Tool {
         this.enableCrossDomainInlineEditing = enableCrossDomainInlineEditing;
     }
 
+    public boolean isEnablePaddedCrop() {
+        return enablePaddedCrop;
+    }
+
+    public void setEnablePaddedCrop(boolean enablePaddedCrop) {
+        this.enablePaddedCrop = enablePaddedCrop;
+    }
+
     public boolean isDisableCodeMirrorRichTextEditor() {
         return disableCodeMirrorRichTextEditor;
     }
 
     public void setDisableCodeMirrorRichTextEditor(boolean disableCodeMirrorRichTextEditor) {
         this.disableCodeMirrorRichTextEditor = disableCodeMirrorRichTextEditor;
+    }
+
+    public boolean isDisableRtc() {
+        return disableRtc;
+    }
+
+    public void setDisableRtc(boolean disableRtc) {
+        this.disableRtc = disableRtc;
+    }
+
+    public boolean isDisableInvisibleContentPreview() {
+        return disableInvisibleContentPreview;
+    }
+
+    public void setDisableInvisibleContentPreview(boolean disableInvisibleContentPreview) {
+        this.disableInvisibleContentPreview = disableInvisibleContentPreview;
+    }
+
+    public boolean isDisableWorkInProgress() {
+        return disableWorkInProgress;
+    }
+
+    public void setDisableWorkInProgress(boolean disableWorkInProgress) {
+        this.disableWorkInProgress = disableWorkInProgress;
+    }
+
+    public boolean isHorizontalSearchCarousel() {
+        return horizontalSearchCarousel;
+    }
+
+    public void setHorizontalSearchCarousel(boolean horizontalSearchCarousel) {
+        this.horizontalSearchCarousel = horizontalSearchCarousel;
+    }
+
+    public boolean isUseOldHistoryIndex() {
+        return useOldHistoryIndex;
+    }
+
+    public void setUseOldHistoryIndex(boolean useOldHistoryIndex) {
+        this.useOldHistoryIndex = useOldHistoryIndex;
+    }
+
+    public boolean isUseOldTaxonomyChildrenDetection() {
+        return useOldTaxonomyChildrenDetection;
+    }
+
+    public void setUseOldTaxonomyChildrenDetection(boolean useOldTaxonomyChildrenDetection) {
+        this.useOldTaxonomyChildrenDetection = useOldTaxonomyChildrenDetection;
+    }
+
+    public String createManualContentLockingNoteText() {
+        return isDisableContentLocking()
+                ? "Content locking is completely disabled, so this setting has no effect."
+                : "If checked, user must lock each content manually.";
     }
 
     /** Returns the preview URL. */

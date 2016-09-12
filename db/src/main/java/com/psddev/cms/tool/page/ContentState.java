@@ -20,16 +20,22 @@ import javax.servlet.jsp.PageContext;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Draft;
+import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.Preview;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
+import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.db.Workflow;
+import com.psddev.cms.db.WorkflowLog;
 import com.psddev.cms.tool.AuthenticationFilter;
+import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.tool.page.content.Edit;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.PredicateParser;
+import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.CompactMap;
@@ -55,6 +61,7 @@ public class ContentState extends PageServlet {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void doService(ToolPageContext page) throws IOException, ServletException {
         Object object = page.findOrReserve();
 
@@ -64,6 +71,21 @@ public class ContentState extends PageServlet {
 
         // Pretend to update the object.
         State state = State.getInstance(object);
+        String oldValuesString = page.param(String.class, state.getId() + "/oldValues");
+        Map<String, Object> oldValues = !ObjectUtils.isBlank(oldValuesString)
+                ? (Map<String, Object>) ObjectUtils.fromJson(oldValuesString)
+                : Draft.findOldValues(object);
+
+        // Change the old values to include the overlay differences so that
+        // the change detection during overlay edit work correctly.
+        Overlay overlay = Edit.getOverlay(object);
+
+        if (overlay != null) {
+            oldValues = Draft.mergeDifferences(
+                    state.getDatabase().getEnvironment(),
+                    oldValues,
+                    overlay.getDifferences());
+        }
 
         if (state.isNew()
                 || object instanceof Draft
@@ -72,10 +94,22 @@ public class ContentState extends PageServlet {
             page.setContentFormScheduleDate(object);
         }
 
+        WorkflowLog log = null;
+
         try {
             state.beginWrites();
             page.updateUsingParameters(object);
             page.updateUsingAllWidgets(object);
+
+            UUID workflowLogId = page.param(UUID.class, "workflowLogId");
+
+            if (workflowLogId != null) {
+                log = new WorkflowLog();
+
+                log.getState().setId(workflowLogId);
+                page.updateUsingParameters(log);
+            }
+
             page.publish(object);
 
         } catch (IOException error) {
@@ -96,13 +130,13 @@ public class ContentState extends PageServlet {
 
         // Expensive operations that should only trigger occasionally.
         boolean idle = page.param(boolean.class, "idle");
+        ToolUser user = page.getUser();
 
         if (idle) {
             boolean saveUser = false;
 
             // Automatically save newly created drafts when the user is idle.
             Content.ObjectModification contentData = state.as(Content.ObjectModification.class);
-            ToolUser user = page.getUser();
 
             if (idle
                     && (state.isNew() || contentData.isDraft())
@@ -151,6 +185,105 @@ public class ContentState extends PageServlet {
         }
 
         Map<String, Object> jsonResponse = new CompactMap<String, Object>();
+
+        // Differences between existing and pending content.
+        Map<String, Map<String, Object>> allDifferences = Draft.findDifferences(
+                state.getDatabase().getEnvironment(),
+                oldValues,
+                state.getSimpleValues());
+
+        // Split differences that are visible and hidden in the UI.
+        Map<String, Map<String, Object>> differences = new CompactMap<>();
+        Map<String, Map<String, Object>> hiddenDifferences = new CompactMap<>();
+        Map<String, List<String>> fieldNamesById = (Map<String, List<String>>) ObjectUtils.fromJson(page.param(String.class, "_fns"));
+
+        if (fieldNamesById == null) {
+            fieldNamesById = new CompactMap<>();
+        }
+
+        for (Map.Entry<String, Map<String, Object>> entry : allDifferences.entrySet()) {
+            String id = entry.getKey();
+            Map<String, Object> allValues = entry.getValue();
+            List<String> fieldNames = fieldNamesById.get(id);
+
+            if (fieldNames == null) {
+                hiddenDifferences.put(id, allValues);
+
+            } else {
+                Map<String, Object> values = new CompactMap<>();
+                Map<String, Object> hiddenValues = new CompactMap<>();
+
+                for (Map.Entry<String, Object> allValue : allValues.entrySet()) {
+                    String key = allValue.getKey();
+                    (fieldNames.contains(key) ? values : hiddenValues).put(key, allValue.getValue());
+                }
+
+                if (!values.isEmpty()) {
+                    differences.put(id, values);
+                }
+
+                if (!hiddenValues.isEmpty()) {
+                    hiddenDifferences.put(id, hiddenValues);
+                }
+            }
+        }
+
+        jsonResponse.put("_differences", differences);
+        jsonResponse.put("_hiddenDifferences", hiddenDifferences);
+
+        if (page.getOverlaidHistory(object) == null
+                && page.param(boolean.class, "wip")
+                && !user.isDisableWorkInProgress()
+                && !Query.from(CmsTool.class).first().isDisableWorkInProgress()) {
+
+            ObjectType contentType = state.getType();
+            UUID contentId = state.getId();
+
+            WorkInProgress wip = Query.from(WorkInProgress.class)
+                    .where("owner = ?", user)
+                    .and("contentType = ?", contentType)
+                    .and("contentId = ?", contentId)
+                    .first();
+
+            if (differences.isEmpty()) {
+                if (wip != null) {
+                    jsonResponse.put("_wip", page.localize(getClass(), "message.wipDeleted"));
+                    wip.delete();
+                }
+
+            } else {
+                if (wip == null) {
+                    wip = new WorkInProgress();
+
+                    wip.setOwner(user);
+                    wip.setContentType(contentType);
+                    wip.setContentId(contentId);
+                    jsonResponse.put("_wip", page.localize(getClass(), "message.wipCreated"));
+
+                } else {
+                    jsonResponse.put("_wip", page.localize(getClass(), "message.wipUpdated"));
+                }
+
+                wip.setContentLabel(state.getLabel());
+                wip.setUpdateDate(new Date());
+                wip.setDifferences(differences);
+                wip.save();
+
+                List<WorkInProgress> more = Query.from(WorkInProgress.class)
+                        .where("owner = ?", user)
+                        .and("updateDate != missing")
+                        .sortDescending("updateDate")
+                        .select(50, 1)
+                        .getItems();
+
+                if (!more.isEmpty()) {
+                    Query.from(WorkInProgress.class)
+                            .where("owner = ?", user)
+                            .and("updateDate < ?", more.get(0).getUpdateDate())
+                            .deleteAll();
+                }
+            }
+        }
 
         // HTML display for the URL widget.
         @SuppressWarnings("unchecked")
@@ -209,7 +342,13 @@ public class ContentState extends PageServlet {
                 Object content = null;
 
                 try {
-                    content = i < contentIdsSize ? findContent(object, contentIds.get(i)) : null;
+                    if (i < contentIdsSize) {
+                        UUID contentId = contentIds.get(i);
+                        content = log != null && log.getId().equals(contentId)
+                                ? log
+                                : findContent(object, contentId);
+                    }
+
                 } catch (RuntimeException e) {
                     // Ignore.
                 }
@@ -220,7 +359,7 @@ public class ContentState extends PageServlet {
                 if (content != null) {
 
                     try {
-
+                        pageContext.setAttribute("toolPageContext", page);
                         pageContext.setAttribute("content", content);
 
                         ObjectField field = null;

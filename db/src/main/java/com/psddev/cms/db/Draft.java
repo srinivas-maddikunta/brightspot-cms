@@ -2,12 +2,13 @@ package com.psddev.cms.db;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -21,13 +22,14 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.ObjectUtils;
+import com.psddev.dari.util.UuidUtils;
 
 /** Unpublished object or unsaved changes to an existing object. */
-@Draft.DisplayName("Content Update")
 @ToolUi.Hidden
 public class Draft extends Content {
 
     private static final String OLD_VALUES_EXTRA = "cms.draft.oldValues";
+    private static final Object REMOVED = new Object();
 
     @Indexed
     private DraftStatus status;
@@ -51,6 +53,10 @@ public class Draft extends Content {
     @Deprecated
     private Map<String, Object> objectChanges;
 
+    @Indexed
+    private boolean newContent;
+
+    @Raw
     private Map<String, Map<String, Object>> differences;
 
     /**
@@ -68,10 +74,14 @@ public class Draft extends Content {
      *
      * @return Never {@code null}.
      */
+    @SuppressWarnings("unchecked")
     public static Map<String, Map<String, Object>> findDifferences(
             DatabaseEnvironment environment,
             Map<String, Object> oldValues,
             Map<String, Object> newValues) {
+
+        oldValues = (Map<String, Object>) ObjectUtils.fromJson(ObjectUtils.toJson(oldValues));
+        newValues = (Map<String, Object>) ObjectUtils.fromJson(ObjectUtils.toJson(newValues));
 
         Map<String, Map<String, Object>> newIdMaps = newValues != null
                 ? findIdMaps(newValues)
@@ -84,52 +94,38 @@ public class Draft extends Content {
         Map<String, Map<String, Object>> oldIdMaps = findIdMaps(oldValues);
         Map<String, Map<String, Object>> differences = new CompactMap<>();
 
-        oldIdMaps.keySet().stream().filter(newIdMaps::containsKey).forEach(id -> {
+        newIdMaps.keySet().stream().forEach(id -> {
             Map<String, Object> oldIdMap = oldIdMaps.get(id);
             Map<String, Object> newIdMap = newIdMaps.get(id);
             Map<String, Object> changes = new CompactMap<>();
             ObjectType type = environment.getTypeById(ObjectUtils.to(UUID.class, newIdMap.get(State.TYPE_KEY)));
+            Set<String> keys = new LinkedHashSet<>(newIdMap.keySet());
 
-            Stream.concat(oldIdMap.keySet().stream(), newIdMap.keySet().stream()).forEach(key -> {
-                Object oldValue = oldIdMap.get(key);
-                Object newValue = newIdMap.get(key);
+            if (oldIdMap != null) {
+                keys.addAll(oldIdMap.keySet());
+            }
 
-                if (ObjectUtils.equals(oldValue, newValue)) {
-                    return;
-                }
-
-                if (ObjectUtils.isBlank(oldValue)
-                        && ObjectUtils.isBlank(newValue)) {
-
-                    return;
-                }
+            keys.forEach(key -> {
+                ObjectField field = null;
 
                 if (type != null) {
-                    ObjectField field = type.getField(key);
+                    field = type.getField(key);
 
                     if (field == null) {
                         field = environment.getField(key);
                     }
-
-                    if (field != null
-                            && field.getInternalType().startsWith(ObjectField.SET_TYPE + "/")
-                            && ObjectUtils.equals(ObjectUtils.to(Set.class, oldValue), ObjectUtils.to(Set.class, newValue))) {
-
-                        return;
-                    }
                 }
 
-                changes.put(key, newValue);
+                Object oldValue = oldIdMap != null ? oldIdMap.get(key) : null;
+                Object newValue = newIdMap.get(key);
+
+                if (!roughlyEquals(field, oldValue, newValue)) {
+                    changes.put(key, newValue);
+                }
             });
 
             if (!changes.isEmpty()) {
                 differences.put(id, changes);
-            }
-        });
-
-        newIdMaps.forEach((id, newIdMap) -> {
-            if (!oldIdMaps.containsKey(id)) {
-                differences.put(id, newIdMap);
             }
         });
 
@@ -157,6 +153,12 @@ public class Draft extends Content {
             String id = ObjectUtils.to(String.class, map.get(State.ID_KEY));
 
             if (id != null) {
+                if (valuesById.containsKey(id)) {
+                    id = UuidUtils.createSequentialUuid().toString();
+
+                    map.put(State.ID_KEY, id);
+                }
+
                 valuesById.put(id, new CompactMap<>(map));
             }
 
@@ -197,12 +199,78 @@ public class Draft extends Content {
         } else if (value instanceof Collection) {
             return ((Collection<Object>) value)
                     .stream()
-                    .map(Draft::minifyValue)
+                    .map(v -> minifyValue(v))
                     .collect(Collectors.toList());
 
         } else {
             return value;
         }
+    }
+
+    private static boolean roughlyEquals(ObjectField field, Object x, Object y) {
+        if (field != null && field.getInternalType().startsWith(ObjectField.SET_TYPE + "/")) {
+            x = ObjectUtils.to(Set.class, x);
+            y = ObjectUtils.to(Set.class, y);
+        }
+
+        if (ObjectUtils.equals(x, y)) {
+            return true;
+        }
+
+        // null equals false.
+        if (x instanceof Boolean) {
+            if (Boolean.TRUE.equals(x)) {
+                return Boolean.TRUE.equals(y);
+
+            } else {
+                return !Boolean.TRUE.equals(y);
+            }
+
+        } else if (y instanceof Boolean) {
+            if (Boolean.TRUE.equals(y)) {
+                return Boolean.TRUE.equals(x);
+
+            } else {
+                return !Boolean.TRUE.equals(x);
+            }
+        }
+
+        // null equals [ ], etc.
+        if (ObjectUtils.isBlank(x)) {
+            return ObjectUtils.isBlank(y);
+
+        } else if (ObjectUtils.isBlank(y)) {
+            return ObjectUtils.isBlank(x);
+        }
+
+        // Compare list items using roughlyEquals.
+        if (x instanceof List && y instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Object> xList = (List<Object>) x;
+            @SuppressWarnings("unchecked")
+            List<Object> yList = (List<Object>) y;
+            int xSize = xList.size();
+            int ySize = yList.size();
+
+            return xSize == ySize
+                    && IntStream.range(0, xSize).allMatch(i -> roughlyEquals(field, xList.get(i), yList.get(i)));
+        }
+
+        // Compare map values using roughlyEquals.
+        if (x instanceof Map && y instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> xMap = (Map<String, Object>) x;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> yMap = (Map<String, Object>) y;
+            Set<String> xKeys = xMap.keySet();
+            Set<String> yKeys = yMap.keySet();
+
+            return xKeys.equals(yKeys)
+                    && xKeys.stream().allMatch(k -> roughlyEquals(field, xMap.get(k), yMap.get(k)));
+
+        }
+
+        return false;
     }
 
     /**
@@ -227,9 +295,32 @@ public class Draft extends Content {
 
         Preconditions.checkNotNull(oldValues);
 
+        oldValues = (Map<String, Object>) cloneValue(oldValues);
+
         return differences != null && !differences.isEmpty()
                 ? (Map<String, Object>) mergeValue(environment, findIdMaps(oldValues), differences, oldValues)
                 : oldValues;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object cloneValue(Object value) {
+        if (value instanceof List) {
+            return ((List<Object>) value).stream()
+                    .map(v -> cloneValue(v))
+                    .collect(Collectors.toList());
+
+        } else if (value instanceof Map) {
+            Map<String, Object> clone = new CompactMap<>();
+
+            for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
+                clone.put(entry.getKey(), cloneValue(entry.getValue()));
+            }
+
+            return clone;
+
+        } else {
+            return value;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -260,6 +351,10 @@ public class Draft extends Content {
                     entry.setValue(mergeValue(environment, oldIdMaps, differences, entry.getValue()));
                 }
 
+                if (newIdMap.get(State.ID_KEY) == null) {
+                    return REMOVED;
+                }
+
             } else {
                 valueMap.forEach((k, v) -> newIdMap.put(k, mergeValue(environment, oldIdMaps, differences, v)));
             }
@@ -270,6 +365,7 @@ public class Draft extends Content {
             return ((List<Object>) value)
                     .stream()
                     .map(item -> mergeValue(environment, oldIdMaps, differences, item))
+                    .filter(item -> item != REMOVED)
                     .collect(Collectors.toList());
         }
 
@@ -378,6 +474,14 @@ public class Draft extends Content {
     @Deprecated
     public void setObjectChanges(Map<String, Object> values) {
         this.objectChanges = values;
+    }
+
+    public boolean isNewContent() {
+        return newContent;
+    }
+
+    public void setNewContent(boolean newContent) {
+        this.newContent = newContent;
     }
 
     /**
@@ -533,12 +637,11 @@ public class Draft extends Content {
         Preconditions.checkNotNull(object);
 
         State state = State.getInstance(object);
-        Map<String, Object> oldValues = state.getSimpleValues();
 
-        state.getExtras().put(OLD_VALUES_EXTRA, oldValues);
+        state.getExtras().put(OLD_VALUES_EXTRA, state.getSimpleValues());
         state.setValues(mergeDifferences(
                 state.getDatabase().getEnvironment(),
-                oldValues,
+                state.getSimpleValues(),
                 getDifferences()));
     }
 

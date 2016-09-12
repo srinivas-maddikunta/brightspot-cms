@@ -1,3 +1,5 @@
+define([ 'string', 'bsp-utils' ], function (S, bsp_utils) {
+    
 /** Better drop-down list than standard SELECT. */
 (function($, win, undef) {
 
@@ -7,8 +9,6 @@
       $openOriginal,
       $openList;
   
-  require(['string'], function (S) {    
-
   $.plugin2('dropDown', {
     '_defaultOptions': {
       'classPrefix': 'dropDown-'
@@ -18,9 +18,8 @@
       return this.option('classPrefix') + name;
     },
 
-    '_create': function(original) {
+    _initVisible: function ($original) {
       var plugin = this,
-          $original = $(original),
           isFixedPosition = $original.isFixedPosition(),
           isMultiple = $original.is('[multiple]'),
           isSearchable = $original.is('[data-searchable="true"]'),
@@ -45,6 +44,12 @@
       $original.bind('input-disable', function(event, disable) {
         $input.toggleClass('state-disabled', disable);
       });
+      
+      var width = $original.outerWidth();
+      
+      if (isMultiple) {
+        width = width * 2;
+      }
 
       $input = $('<div/>', {
         'class': plugin.className('input'),
@@ -53,8 +58,9 @@
           'margin-left': $original.css('margin-left'),
           'margin-right': $original.css('margin-right'),
           'margin-top': $original.css('margin-top'),
+          'max-width': '100%',
           'position': 'relative',
-          'width': isMultiple ? 'auto' : $original.outerWidth()
+          'width': width
         }
       });
 
@@ -140,7 +146,7 @@
 
       $label.bind('dropDown-update', function() {
         var newLabel = $.map($original.find('option:selected'), function(option) {
-          return $(option).text();
+          return $(option).attr("data-drop-down-html") || $(option).text();
         }).join(', ');
 
         $label.html(newLabel || dynamicPlaceholderHtml || placeholder || '&nbsp;');
@@ -152,7 +158,7 @@
       containerCss = {
         'display': 'none',
         'position': isFixedPosition ? 'fixed' : 'absolute',
-        'z-index': $original.zIndex()
+        'z-index': $original.zIndex() + 1000000
       };
 
       $markerContainer = $('<div/>', {
@@ -165,6 +171,7 @@
 
       $listContainer = $('<div/>', {
         'class': plugin.className('container'),
+        'data-original-class': $original.attr('class'),
         'css': containerCss
       });
 
@@ -243,7 +250,7 @@
 
         $item = $('<div/>', {
           'class': plugin.className('listItem'),
-          'html': $option.text() || '&nbsp;'
+          'html': $option.attr("data-drop-down-html") || $option.text() || '&nbsp;'
         });
 
         $check = $('<input/>', {
@@ -384,6 +391,21 @@
         $search.hide();
         $input.append($search);
       }
+    },
+
+    '_create': function(original) {
+      var plugin = this;
+      var $original = $(original);
+      var init = function () {
+        plugin._initVisible($original);
+      };
+
+      $win.resize(function () {
+        if ($original.is(':visible')) {
+          $win.unbind('resize', init);
+          init();
+        }
+      })
     }
   });
 
@@ -451,6 +473,10 @@
     return true;
   });
   
-  });
-
 }(jQuery, window));
+
+    // Return an empty object just for the benefit of the AMD module.
+    // Not expected to be used since we just set up a jquery plugin.
+    return {};
+    
+}); // define()

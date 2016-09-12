@@ -1,11 +1,12 @@
 package com.psddev.cms.tool.page;
 
 import com.psddev.cms.db.Site;
+import com.psddev.cms.db.SiteCategory;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.util.JspUtils;
+import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 
 import javax.servlet.ServletException;
@@ -15,6 +16,8 @@ import java.util.UUID;
 
 @RoutingFilter.Path(application = "cms", value = "/siteSwitch")
 public class SiteSwitch extends PageServlet {
+
+    private static final String SITE_CATEGORY_INPUT_NAME = "siteCategory";
 
     @Override
     protected String getPermissionId() {
@@ -30,7 +33,14 @@ public class SiteSwitch extends PageServlet {
 
             user.setCurrentSite(Query.from(Site.class).where("_id = ?", page.param(UUID.class, "id")).first());
             user.save();
-            JspUtils.redirect(page.getRequest(), page.getResponse(), page.cmsUrl("/"));
+
+            String returnUrl = page.param(String.class, "returnUrl");
+
+            if (ObjectUtils.isBlank(returnUrl)) {
+                returnUrl = page.cmsUrl("/");
+            }
+
+            page.getResponse().sendRedirect(returnUrl);
             return;
         }
 
@@ -52,28 +62,50 @@ public class SiteSwitch extends PageServlet {
                     page.writeEnd();
 
                     page.writeStart("div", "class", "siteSwitch-content fixedScrollable");
-                        page.writeStart("ul", "class", "links");
-                            if (currentSite != null && page.hasPermission("site/global")) {
-                                page.writeStart("li");
-                                    page.writeStart("a",
-                                            "href", page.cmsUrl("/siteSwitch", "switch", true),
-                                            "target", "_top");
-                                        page.writeHtml(page.localize(SiteSwitch.class, "label.global"));
+                        page.writeStart("form",
+                                "action", page.cmsUrl("/siteSwitchResults"),
+                                "method", "get",
+                                "data-bsp-autosubmit", "",
+                                "target", "siteSwitchResults");
+
+                            page.writeElement("input",
+                                    "type", "hidden",
+                                    "name", "returnUrl",
+                                    "value", page.param(String.class, "returnUrl"));
+
+                            if (Query.from(SiteCategory.class).hasMoreThan(0)) {
+                                page.writeStart("select",
+                                        "data-searchable", true,
+                                        "name", SITE_CATEGORY_INPUT_NAME,
+                                        "style", "display: block;");
+
+                                    page.writeStart("option", "value", "");
+                                        page.writeHtml(page.localize(SiteSwitch.class, "label.noCategory"));
                                     page.writeEnd();
+
+                                    for (SiteCategory siteCategory : Query.from(SiteCategory.class).selectAll()) {
+                                        page.writeStart("option", "value", siteCategory.getId());
+                                            page.writeHtml(siteCategory.getLabel());
+                                        page.writeEnd();
+                                    }
                                 page.writeEnd();
                             }
 
-                            for (Site site : sites) {
-                                page.writeStart("li");
-                                    page.writeStart("a",
-                                            "href", page.cmsUrl("/siteSwitch", "switch", true, "id", site.getId()),
-                                            "target", "_top");
-                                        page.writeObjectLabel(site);
-                                    page.writeEnd();
+                            page.writeStart("div", "class", "searchInput");
+                                page.writeStart("label", "for", page.createId());
+                                    page.write(page.localize(SiteSwitch.class, "label.search"));
                                 page.writeEnd();
-                            }
+                                page.writeTag("input", "id", page.getId(),
+                                        "class", "autoFocus",
+                                        "name", "query",
+                                        "type", "text",
+                                        "value", "");
+                            page.writeEnd();
                         page.writeEnd();
-                    page.writeEnd();
+
+                        page.writeStart("div", "class", "frame", "name", "siteSwitchResults");
+                        page.writeEnd();
+
                 page.writeEnd();
             }
         }

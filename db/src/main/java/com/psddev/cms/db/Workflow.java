@@ -253,6 +253,15 @@ public class Workflow extends Record {
         return transitions;
     }
 
+    public String getStateDisplayName(String workflowState) {
+        return getStates()
+                .stream()
+                .filter(st -> st != null && workflowState.equals(st.getName()))
+                .map(WorkflowState::getDisplayName)
+                .findFirst()
+                .orElse(workflowState);
+    }
+
     @Override
     protected void beforeSave() {
         super.beforeSave();
@@ -264,6 +273,45 @@ public class Workflow extends Record {
                 siteContentTypeIds.add(site.getId() + ":" + contentType.getId());
             }
         }
+    }
+
+    public static Workflow findWorkflow(Site site, State state) {
+
+        if (state == null) {
+            return null;
+        }
+
+        Workflow workflow = null;
+        ObjectType type = state.getType();
+
+        if (site != null) {
+            workflow = Query
+                    .from(Workflow.class)
+                    .and("sites = ?", site)
+                    .and("contentTypes = ?", type)
+                    .first();
+        }
+
+        if (workflow == null) {
+            workflow = Query
+                    .from(Workflow.class)
+                    .and("sites = missing")
+                    .and("contentTypes = ?", type)
+                    .first();
+        }
+
+        if (workflow == null) {
+            Site owner = state.as(Site.ObjectModification.class).getOwner();
+            if (owner != null) {
+                workflow = Query
+                        .from(Workflow.class)
+                        .and("sites = ?", owner)
+                        .and("contentTypes = ?", type)
+                        .first();
+            }
+        }
+
+        return workflow;
     }
 
     @FieldInternalNamePrefix("cms.workflow.")
@@ -358,10 +406,7 @@ public class Workflow extends Record {
             String currentState = getCurrentState();
 
             if (currentState != null) {
-                Workflow workflow = Query
-                        .from(Workflow.class)
-                        .where("contentTypes = ?", getState().getType())
-                        .first();
+                Workflow workflow = findWorkflow(as(Site.ObjectModification.class).getOwner(), getState());
 
                 if (workflow != null) {
                     for (WorkflowState s : workflow.getStates()) {

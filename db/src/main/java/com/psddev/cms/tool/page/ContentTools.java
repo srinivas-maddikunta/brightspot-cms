@@ -19,8 +19,8 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
-import com.psddev.cms.db.Draft;
-import com.psddev.cms.db.History;
+import com.psddev.cms.tool.CmsTool;
+import com.psddev.dari.db.Application;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -28,12 +28,16 @@ import org.joda.time.format.DateTimeFormat;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.ContentLock;
 import com.psddev.cms.db.Directory;
+import com.psddev.cms.db.Draft;
+import com.psddev.cms.db.History;
+import com.psddev.cms.db.PageFilter;
 import com.psddev.cms.db.Renderer;
+import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
-import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
-import com.psddev.dari.db.Application;
+import com.psddev.cms.view.ViewCreator;
+import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
@@ -255,7 +259,7 @@ public class ContentTools extends PageServlet {
                                                 "type", "text",
                                                 "class", "date",
                                                 "name", "publishDate",
-                                                "value", page.formatUserDateTimeWith(publishDate, "yyyy-MM-dd HH:mm:ss"));
+                                                "value", publishDate != null ? publishDate.getTime() : null);
                                     page.writeEnd();
                                 page.writeEnd();
 
@@ -422,7 +426,7 @@ public class ContentTools extends PageServlet {
                                             page.writeElement("input",
                                                     "type", "text",
                                                     "id", page.getId(),
-                                                    "value", JspUtils.getAbsoluteUrl(page.getRequest(), page.cmsUrl("/content/edit.jsp", "id", state.getId())),
+                                                    "value", JspUtils.getHostUrl(page.getRequest()) + page.cmsUrl("/content/edit.jsp", "id", state.getId()),
                                                     "readonly", "readonly",
                                                     "style", "width:100%;",
                                                     "onclick", "this.select();");
@@ -436,16 +440,34 @@ public class ContentTools extends PageServlet {
                             ObjectType type = state.getType();
 
                             if (type != null) {
-                                if (!ObjectUtils.isBlank(type.as(Renderer.TypeModification.class).getEmbedPath())) {
-                                    String permalink = state.as(Directory.ObjectModification.class).getPermalink();
+                                if (!ObjectUtils.isBlank(type.as(Renderer.TypeModification.class).getEmbedPath())
+                                        || ViewCreator.findCreatorClass(object, null, PageFilter.EMBED_VIEW_TYPE, null) != null
+                                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, object) != null) {
+
+                                    Site site = page.getSite();
+                                    String permalink;
+
+                                    if (site != null) {
+                                        permalink = state.as(Directory.ObjectModification.class).getSitePermalink(site);
+
+                                    } else {
+                                        permalink = state.as(Directory.ObjectModification.class).getSitePermalink(null);
+
+                                        if (!ObjectUtils.isBlank(permalink)) {
+                                            String siteUrl = Application.Static.getInstance(CmsTool.class).getDefaultSiteUrl();
+
+                                            if (!ObjectUtils.isBlank(siteUrl)) {
+                                                permalink = StringUtils.removeEnd(siteUrl, "/") + permalink;
+                                            }
+                                        }
+                                    }
 
                                     if (!ObjectUtils.isBlank(permalink)) {
-                                        String siteUrl = Application.Static.getInstance(CmsTool.class).getDefaultSiteUrl();
                                         StringBuilder embedCode = new StringBuilder();
 
                                         embedCode.append("<script type=\"text/javascript\" src=\"");
                                         embedCode.append(StringUtils.addQueryParameters(
-                                                StringUtils.removeEnd(siteUrl, "/") + permalink,
+                                                permalink,
                                                 "_embed", true,
                                                 "_format", "js"));
                                         embedCode.append("\"></script>");

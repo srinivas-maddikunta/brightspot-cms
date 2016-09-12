@@ -1,12 +1,16 @@
+/* global clearTimeout define DOMParser navigator setTimeout window */
+
 define([
     'jquery',
+    'bsp-utils',
     'v3/spellcheck',
+    'undomanager',
     'codemirror/lib/codemirror',
     'codemirror/addon/hint/show-hint',
     'codemirror/addon/dialog/dialog',
     'codemirror/addon/search/searchcursor',
     'codemirror/addon/search/search'
-], function($, spellcheckAPI, CodeMirror) {
+], function($, bsp_utils, spellcheckAPI, UndoManager, CodeMirror) {
     
     var CodeMirrorRte;
 
@@ -66,6 +70,10 @@ define([
          * A list of styles that should be cleared if the style is selected.
          * Use this to make mutually-exclusive styles.
          *
+         * Boolean [void]
+         * Set this to true if the element is a "void" element, meaning it cannot
+         * contain any text or other elements within it.
+         *
          * Boolean [internal]
          * Set this to true if the style is used internally (for track changes).
          * When internal is true, then the style will not be removed by the RemoveStyle functions
@@ -87,6 +95,28 @@ define([
          * A function that handles clicks on the mark. It can read additional information
          * saved on the mark, and modify that information.
          * Note at this time an onClick can be used only for inline styles.
+         *
+         * String [enhancementType]
+         * If this is an "inline enhancement" you can specify the enhancement type here.
+         * Normally this is set only by the Brightspot back-end, and this value is used
+         * to display a popup form that is used to modify the attributes on the element.
+         * For example: "00000152-eb09-d919-abd2-ffcd34530004"
+         * 
+         * Boolean [popup=true]
+         * This value is used only for a style that has an enhancementType.
+         * Set this to false if the style should not popup a form to edit the element.
+         * Defaults to true.
+         *
+         * Boolean [toggle=false]
+         * This value is used only for a style that has an enhancementType.
+         * Set this to true if the style should act as a toggle (the user can click
+         * a toolbar button to toggle the style on the selected characters), for example
+         * a simple style like bold or italic that the user can turn on or off.
+         * By default this is false for enhancementType styles, which means each
+         * time the user clicks the toolbar button for the style, a new mark is inserted.
+         * Note if this is set to true, then you cannot nest an enhancmentType style
+         * inside the same enhancementType style.
+         * Note that styles that do not have enhancementType always allow user to toggle.
          */
         styles: {
 
@@ -147,20 +177,64 @@ define([
 
             linebreak: {
                 line:true
+            },
+
+            linebreakSingle:{
+                line:true
             }
+            
         }, // styles
+
+        indentClassPrefix: 'rte2-indent-level-',
+        
+        /**
+         * Rules for cleaning up the clipboard data when content is pasted
+         * from outside the RTE, based on the type of content. These rules
+         * are applied before the general clipboardSanitizeRules.
+         *
+         * This is an object of key/value pairs, where the key is a type identifier,
+         * and value is an object which contains an isType() function and a set of rules.
+         * {
+         *   'typename': {
+         *     isType: function(content) { return Boolean },
+         *     rules: { } // same format as clipboardSanitizeRules
+         *   },
+         *   ...
+         * }
+         *
+         * @example
+         * {
+         *    'googledocs': {
+         *       isType: function(content) { return Boolean($(content).find('b[id^=docs-internal-guid]').length); }
+         *       rules: { }
+         *    },
+         *    'msword': {
+         *       isType: function(content) { return Boolean($(content).find('[class^=Mso]').length); },
+         *       rules: { }
+         *    }
+         */
+        clipboardSanitizeTypes: {},
 
         
         /**
          * Rules for cleaning up the clipboard data when content is pasted
-         * from outside the RTE.
+         * from outside the RTE. These rules are *always* applied to the content.
+         * See clipboardSanitizeTypes to set up rules based on the type of content
+         * that is pasted in.
          *
          * This is an object of key/value pairs, where the key is a jQuery selector,
-         * and value is a style name from the styles object.
+         * and value is one of the following:
+         * - A string that is the style name from the styles object.
+         * - An empty string to indicate the matched elements should be removed.
+         * - A function that directly modifies the matched element content.
          *
          * @example
          * {'span[style*="font-style:italic"]': 'italic',
-         *  'span[style*="font-weight:700"]': 'bold'}
+         *  'span[style*="font-weight:700"]': 'bold',
+         *  'table', function($el) {
+         *    // Modify $el which is the table element
+         *  }
+         * }
          */
         clipboardSanitizeRules: {},
 
@@ -249,6 +323,7 @@ define([
          */
         init: function(element, options) {
 
+            var codeMirrorOptions;
             var self;
 
             self = this;
@@ -260,7 +335,6 @@ define([
             self.$el = $(element).first();
 
             codeMirrorOptions = {
-                readOnly: $(element).closest('.inputContainer-readOnly').length,
                 lineWrapping: true,
                 dragDrop: false,
                 mode:null,
@@ -277,13 +351,28 @@ define([
             // Create a mapping from self.styles so we can perform quick lookups on the classname
             self.classes = self.getClassNameMap();
 
+            self.historyInit();
             self.enhancementInit();
             self.initListListeners();
-            self.initClickListener();
+            self.dropdownInit();
             self.initEvents();
             self.clipboardInit();
             self.trackInit();
             self.spellcheckInit();
+            self.modeInit();
+
+            var $wrapper = $(self.codeMirror.getWrapperElement());
+            var wrapperWidth = $wrapper.width();
+
+            $(window).resize(bsp_utils.throttle(500, function () {
+                var newWrapperWidth = $wrapper.width();
+
+                if (wrapperWidth !== newWrapperWidth) {
+                    wrapperWidth = newWrapperWidth;
+
+                    self.refresh();
+                }
+            }));
         },
 
         
@@ -297,24 +386,35 @@ define([
          */
         initListListeners: function() {
 
-            var editor, isFirstListItem, isLastListItem, isEmptyLine, listType, rangeFirstLine, self;
+            var editor;
+            var indent;
+            var isEmptyLine;
+            var isFirstListItem;
+            var isLastListItem;
+            var isStartOfLine;
+            var listType;
+            var rangeFirstLine;
+            var self;
 
             self = this;
-            
+
             editor = self.codeMirror;
 
             // Monitor the "beforeChange" event so we can save certain information
             // about lists, to later use in the "change" event
             editor.on('beforeChange', function(instance, changeObj) {
 
-                var listTypePrevious, listTypeNext, rangeBeforeChange;
+                var listTypePrevious;
+                var listTypeNext;
+                var rangeBeforeChange;
 
                 // Get the listType and set the closure variable for later use
                 listType = self.blockGetListType(changeObj.from.line);
-
+                indent = self.blockGetIndent(changeObj.from.line)
+                
                 rangeFirstLine = {from:changeObj.from, to:changeObj.from};
                 rangeBeforeChange = {from:changeObj.from, to:changeObj.to};
-
+          
                 // Get the list type of the previous line
                 listTypePrevious = '';
                 if (rangeBeforeChange.from.line > 0) {
@@ -326,17 +426,23 @@ define([
                 if (rangeBeforeChange.to.line < editor.lineCount() - 1) {
                     listTypeNext = self.blockGetListType(rangeBeforeChange.to.line + 1);
                 }
-                
+
                 isFirstListItem = Boolean(listTypePrevious === '');
                 isLastListItem = Boolean(listTypeNext === '');
 
+                // Remember if this change is taking palce at the start of the line,
+                // so we can tell if the user presses Enter at the first list item
+                // and we should move the whole list down instead of adding a new list item.
                 isStartOfLine = Boolean(rangeBeforeChange.from.ch === 0);
-                
+
+                // Check if the list item started out as an empty line,
+                // so if user presses Enter on the last list item
+                // the list style should be removed.
                 isEmptyLine = Boolean(editor.getLine(rangeBeforeChange.from.line) === '');
-                
+
                 // Loop through all the changes that have not yet been applied, and determine if more text will be added to the line
                 $.each(changeObj.text, function(i, textChange) {
-                    
+
                     // Check if this change has more text to add to the page
                     if (textChange.length > 0) {
                         isEmptyLine = false;
@@ -345,91 +451,53 @@ define([
                 });
 
             });
-            
+
             // Monitor the "change" event so we can adjust styles for list items
             // This will use the closure variables set in the "beforeChange" event.
             editor.on('change', function(instance, changeObj) {
 
                 var range;
-                
+
                 // Check for a listType that was saved by the beforeChange event
                 if (listType) {
 
                     // Get the current range (after the change has been applied)
                     range = self.getRange();
-                    
+
                     // For the new line, if user pressed enter on a blank list item and it was the last item in the list,
                     // Then do not add a new line - instead change the list item to a non-list item
                     if (isLastListItem && isEmptyLine) {
 
+                        // Remove the indent on new line
+                        self.blockRemoveIndent(range.to.line);
+
                         // Remove the list class on the new line
                         self.blockRemoveStyle(listType, range);
-                        
+
                     } else if (isFirstListItem && isStartOfLine) {
 
                         // If at the first character of the first list item and user presses enter,
                         // do not create a new list item above it, just move the entire list down
-                        
+
                     } else {
-                        
+
                         // Always keep the original starting line the list style.
                         // This is used in the case when you press enter and move the current
                         // line lower - so we need to add list style to the original starting point.
                         // TODO: not sure what happens when you insert multiple line
                         self.blockSetStyle(listType, rangeFirstLine);
-
+                        self.blockSetIndent(rangeFirstLine.from.line, indent);
+                       
                         // Set list style for the new range
                         self.blockSetStyle(listType, range);
+                        
+                        // Indent the new list item the proper amount
+                        self.blockSetIndent(range.from.line, indent);
                     }
                 }
 
             });
         }, // initListListeners
-
-
-        /**
-         * Set up listener for clicks.
-         * If a style has an onClick parameter, then when user clicks that
-         * style we will call the onClick function and pass it the mark.
-         */
-        initClickListener: function() {
-
-            var editor, now, self;
-
-            self = this;
-            
-            editor = self.codeMirror;
-
-            // CodeMirror doesn't handle double clicks reliably,
-            // so we will simulate a double click event using mousedown.
-            $(editor.getWrapperElement()).on('mousedown', function(event) {
-
-                var $el, marks, now, pos;
-
-                // Generate timestamp
-                now = Date.now();
-
-                if (self.doubleClickTimestamp && (now - self.doubleClickTimestamp < 500) ) {
-
-                    // Figure out the line and character based on the mouse coord that was clicked
-                    pos = editor.coordsChar({left:event.pageX, top:event.pageY}, 'page');
-
-                    // Loop through all the marks for the clicked position
-                    marks = editor.findMarksAt(pos);
-                    $.each(marks, function(i, mark) {
-                        var styleObj;
-                        styleObj = self.classes[mark.className];
-                        if (styleObj && styleObj.onClick) {
-                            styleObj.onClick(event, mark);
-                        }
-                    });
-
-                } else {
-                    self.doubleClickTimestamp = now;
-                }
-            });
-
-        }, // initClickListener
 
 
         /**
@@ -443,7 +511,8 @@ define([
          */
         initEvents: function() {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             
@@ -452,10 +521,20 @@ define([
             editor.on('cursorActivity', function(instance, event) {
                 self.$el.trigger('rteCursorActivity', [self]);
             });
+
+            editor.on('beforeSelectionChange', function(instance, event) {
+                
+                // If user clicked "Clear" to add text after a mark,
+                // or toggled off part of a style mark, then after the cursor moves,
+                // make the styles inclusive again so a user returning to the mark
+                // can enter more text inside the style.
+                self.inlineMakeInclusive();
+                
+            });
             
-            editor.on('changes', $.debounce(200, function(instance, event) {
-                self.triggerChange();
-            }));
+            editor.on('changes', function(instance, event) {
+                self.triggerChange(event);
+            });
 
             editor.on('focus', function(instance, event) {
                 self.$el.trigger('rteFocus', [self]);
@@ -469,12 +548,19 @@ define([
         
         /**
          * Trigger an rteChange event.
+         *
          * This can happen when user types changes into the editor, or if some kind of mark is modified.
+         * When the event is triggered, it is sent additional data: the object for this rte, plus an optional
+         * extra data parameter.
+         *
+         * @param {Object} [extra]
+         * Extra data parameter to pass with the rteChange event.
+         * For example, this could be the CodeMirror change event.
          */
-        triggerChange: function() {
+        triggerChange: function(extra) {
             var self;
             self = this;
-            self.$el.trigger('rteChange', [self]);
+            self.$el.trigger('rteChange', [self, extra]);
         },
 
         
@@ -495,7 +581,9 @@ define([
          */
         toggleStyle: function(style, range) {
             
-            var mark, self, styleObj;
+            var mark;
+            var self;
+            var styleObj;
 
             self = this;
             
@@ -519,24 +607,27 @@ define([
          *
          * @param {Object} [range=current range]
          *
+         * @returns {Object}
+         * The mark for an inline style, or the line data for a block style.
+         *
          * @see inlineSetStyle(), blockSetStyle()
          */
         setStyle: function(style, range) {
             
-            var mark, self, styleObj;
+            var mark;
+            var self;
+            var styleObj;
 
             self = this;
             
             styleObj = self.styles[style];
             if (styleObj) {
                 if (styleObj.line) {
-                    self.blockSetStyle(style, range);
+                    mark = self.blockSetStyle(style, range);
                 } else {
                     mark = self.inlineSetStyle(style, range);
                 }
             }
-
-            self.rawCleanup();
 
             return mark;
         },
@@ -568,6 +659,191 @@ define([
         },
 
         
+        /**
+         * Returns the "context" elements for the current cursor position or range.
+         *
+         * @param {Object} [range]
+         * The range of the selection {from:{line,ch},to:{line:ch}}.
+         * If not specified, uses the current selection.
+         *
+         * @returns {Array}
+         * An array of the context elemsnets that are active within the range.
+         * The value null represents the root context.
+         * For example: [null, 'b']
+         */
+        getContext: function(range) {
+
+            // Step through each character in the range
+            // Get a list of all marks on the character
+            // Pick the mark that has the right-most starting character, add that element to the context list
+            // Return the context list
+
+            // Example: what if you have xxx<B>RRR</B>RRRxxx
+            // Then the context should be considered to be [B,null]
+            //
+            // Example: what if you have xxxRRR<B>RRR</B>RRRxxx
+            // Then the context should be considered to be [null,B]
+            //
+            // Example: what if you have: xxxRRR<B>RRR</B>RR<I>RRR</I>RRRxxx
+            // Then the context should be considered to be [null,B,I]
+            //
+            // Example: what if you have xxxRRR<B>RRR<I>RRR</I>RRR</B>xxx
+            // Then the context should be considered [null,B,I]
+            //
+            // Example: what if you have xxx<B>xxx<I>RRR</I>xxx</B>xxx
+            // Then the context should be considered to be [I]
+            
+            var blockStyles;
+            var context;
+            var contextNull;
+            var editor;
+            var foundBlockStyle;
+            var lineNumber;
+            var self;
+
+            self = this;
+            editor = self.codeMirror;
+            range = range || self.getRange();
+            lineNumber = range.from.line;
+
+            // Placeholder for the context elements
+            context = {};
+
+            // Loop through all lines in the range
+            editor.eachLine(range.from.line, range.to.line + 1, function(line) {
+
+                var charFrom;
+                var charNumber;
+                var charTo;
+                var marks;
+                var rightmostMark;
+                var rightmostPos;
+                var styleObj;
+                
+                charFrom = (lineNumber === range.from.line) ? range.from.ch : 0;
+                charTo = (lineNumber === range.to.line) ? range.to.ch : line.text.length;
+                
+                // Loop through each character in the line
+                for (charNumber = charFrom; charNumber <= charTo; charNumber++) {
+
+                    rightmostMark = undefined;
+                    rightmostPos = undefined;
+                    
+                    // Get all of the marks for this character and get a list of the class names
+                    marks = editor.findMarksAt({ line: lineNumber, ch: charNumber });
+
+                    // Find the mark with the rightmost starting character
+                    marks.forEach(function(mark){
+                        
+                        var isRightmost;
+                        var pos;
+                        var styleObj;
+                        
+                        if (!mark.className) {
+                            return;
+                        }
+                        
+                        // Make sure this class maps to an element
+                        styleObj = self.classes[mark.className];
+                        if (!styleObj) {
+                            return;
+                        }
+                        
+                        // Make sure this style is not for internal use (like track changes)
+                        if (styleObj.internal) {
+                            return;
+                        }
+
+                        if (!mark.find) {
+                            return;
+                        }
+                        pos = mark.find();
+                        if (!pos) {
+                            return;
+                        }
+                        
+                        // We need to check a couple special cases because CodeMirror still sends us the marks
+                        // that are next to the position of the cursor.
+                        //
+                        // Marks can have an "inclusiveLeft" and "inclusiveRight" property, which means to extend the mark
+                        // to the left or the right when text is added on that side.
+                        //
+                        // If the mark is defined to the right of the cursor, then we only include the classname if inclusiveLeft is set.
+                        // If the mark is defined to the left of the cursor, then we only include the classname if inclusiveRight is set.
+
+                        if (pos.from.line === lineNumber && pos.from.ch === charNumber && !mark.inclusiveLeft) {
+
+                            // Don't consider this mark if we are on the left side of the range when inclusiveLeft is not set
+                            return;
+                                
+                        } else if (pos.to.line === lineNumber && pos.to.ch === charNumber && !mark.inclusiveRight) {
+                                
+                            // Don't consider this mark if we are on the right side of the range when inclusiveRight is not set
+                            return;
+
+                        }
+
+                        if (rightmostMark) {
+                            
+                            if (pos.from.line > rightmostPos.from.line ||
+                                (pos.from.line === rightmostPos.from.line && pos.from.ch >= rightmostPos.from.ch)) {
+
+                                isRightmost = true;
+                            }
+                            
+                        } else {
+                            isRightmost = true;
+                        }
+
+                        if (isRightmost) {
+                            rightmostMark = mark;
+                            rightmostPos = pos;
+                        }
+
+                    });
+
+                    if (rightmostMark) {
+
+                        styleObj = self.classes[rightmostMark.className];
+                        if (styleObj && styleObj.element) {
+                            context[styleObj.element] = styleObj;
+                        }
+                        
+                    } else {
+
+                        // Use line styles if there are no inline marks
+                        
+                        blockStyles = self.blockGetStyles({from:{line:lineNumber, ch:0}, to:{line:lineNumber, ch:0}});
+                        foundBlockStyle = false;
+                        $.each(blockStyles, function(styleKey) {
+                            var styleObj = self.styles[styleKey];
+                            var element = styleObj.element;
+
+                            if (element) {
+                                context[element] = styleObj;
+                                foundBlockStyle = true;
+                            }
+                        });
+
+                        // If there is no line style then use a null context
+                        if (!foundBlockStyle) {
+                            contextNull = true;
+                        }
+                    }
+                }
+                
+                lineNumber++;
+            });
+            
+            // Convert context object into an array
+            if (contextNull) {
+                context[''] = { };
+            }
+
+            return context;
+        },
+        
+        
         //==================================================
         // INLINE STYLES
         // The following format functions deal with inline styles.
@@ -586,7 +862,8 @@ define([
          */
         inlineToggleStyle: function(styleKey, range) {
 
-            var mark, self;
+            var mark;
+            var self;
 
             self = this;
 
@@ -610,10 +887,25 @@ define([
          *
          * @param Object [range=current selection]
          * The range of positions {from,to} 
+         *
+         * @param Object [options]
+         * Set of key/value pairs to specify options.
+         * These options will be passed as mark options when the mark is created.
+         *
+         * @param Object [options.triggerChange=true]
+         * Set this to false if you do not want to trigger the rteChange event after setting the style.
+         * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
          */
         inlineSetStyle: function(style, range, options) {
             
-            var className, editor, isEmpty, line, mark, markOptions, self, styleObj, $widget, widgetOptions;
+            var className;
+            var editor;
+            var isEmpty;
+            var line;
+            var mark;
+            var markOptions;
+            var self;
+            var styleObj;
 
             self = this;
 
@@ -638,27 +930,52 @@ define([
             
             markOptions = $.extend({
                 className: className,
+                startStyle: className + '-start',
+                endStyle: className + '-end',
                 inclusiveRight: true,
                 addToHistory: true
             }, options);
 
-            
             // Check for special case if no range is defined, we should still let the user
             // select a style to make the style active. Then typing more characters should
             // appear in that style.
             isEmpty = (range.from.line === range.to.line) && (range.from.ch === range.to.ch);
             if (isEmpty) {
-
                 markOptions.addToHistory = false;
                 markOptions.clearWhenEmpty = false;
                 markOptions.inclusiveLeft = true;
-                mark = editor.markText(range.from, range.to, markOptions);
-                
-            } else {
-                
-                mark = editor.markText(range.from, range.to, markOptions);
-                self.inlineSplitMarkAcrossLines(mark);
             }
+            
+            if (styleObj.void) {
+                
+                markOptions.addToHistory = true;
+                markOptions.readOnly = true;
+                markOptions.inclusiveLeft = false;
+                markOptions.inclusiveRight = false;
+                
+                // Add a space to represent the empty element because CodeMirror needs
+                // a character to display for the user to display the mark.
+                editor.replaceRange(' ', {line:range.from.line, ch:range.from.ch}, null);
+                
+                range.to.line = range.from.line;
+                range.to.ch = range.from.ch + 1;
+            }
+
+            if (styleObj.readOnly) {
+                // Set mark to atomic which means cursor cannot be moved into the mark
+                // and also implies readonly
+                markOptions.atomic = true;
+                markOptions.addToHistory = true;
+                markOptions.inclusiveLeft = false;
+                markOptions.inclusiveRight = false;
+
+                if (editor.getValue() === '') {
+                    self.insert(' ');
+                }
+            }
+
+            mark = self.historyCreateMark(range.from, range.to, markOptions);
+            self.inlineSplitMarkAcrossLines(mark);
 
             // If this is a set of mutually exclusive styles, clear the other styles
             if (styleObj.clear) {
@@ -675,7 +992,9 @@ define([
             // Trigger a cursorActivity event so for example toolbar can pick up changes
             CodeMirror.signal(editor, "cursorActivity");
 
-            self.triggerChange();
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
             
             return mark;
             
@@ -704,19 +1023,31 @@ define([
          * keep one specific class. For example, for the "html" class if you want to keep the html class,
          * but remove any other style classes within.
          *
-         * @param Object [options.includeTrack=false]
+         * @param Boolean [options.includeTrack=false]
          * Set to true if you want to include the "track changes" classes.
          * Otherwise will ignore those classes.
+         *
+         * @param Boolean [options.triggerChange=true]
+         * Set to false if you want to prevent a change event from being triggered.
          */
         inlineRemoveStyle: function(styleKey, range, options) {
 
-            var className, deleteText, editor, lineNumber, self, from, to;
+            var className;
+            var deleteText;
+            var editor;
+            var from;
+            var lineNumber;
+            var self;
+            var to;
+            var triggerChange;
 
             self = this;
 
             editor = self.codeMirror;
             
-            if (styleKey) {
+            if ($.type(styleKey) === 'object') {
+                className = styleKey.className;
+            } else if (styleKey && $.type(styleKey) === 'string') {
                 className = self.styles[styleKey].className;
             }
             
@@ -736,7 +1067,10 @@ define([
 
             editor.eachLine(from.line, to.line + 1, function(line) {
 
-                var fromCh, toCh, marks;
+                var fromCh;
+                var marks;
+                var markNew;
+                var toCh;
 
                 // Get the character ranges to search within this line.
                 // If we're not on the first line, start at the beginning of the line.
@@ -746,16 +1080,24 @@ define([
 
                 // Loop through all the marks defined on this line
                 marks = line.markedSpans || [];
-                marks.forEach(function(mark) {
+                marks.slice(0).reverse().forEach(function(mark) {
 
-                    var from, markerOpts, markerOptsNotInclusive, matchesClass, outsideOfSelection, selectionStartsBefore, selectionEndsAfter, styleObj, to;
+                    var from;
+                    var markerOpts;
+                    var markerOptsNotInclusive;
+                    var matchesClass;
+                    var outsideOfSelection;
+                    var selectionEndsAfter;
+                    var selectionStartsBefore;
+                    var styleObj;
+                    var to;
                     
                     // Check if we should remove the class
                     matchesClass = false;
+                    styleObj = self.classes[mark.marker.className] || {};
                     if (className) {
                         matchesClass = Boolean(mark.marker.className === className);
                     } else {
-                        styleObj = self.classes[mark.marker.className] || {};
                         
                         // Do not remove the track changes classes unless specifically named
                         matchesClass = Boolean(options.includeTrack || styleObj.internal !== true);
@@ -769,8 +1111,8 @@ define([
                     if (!matchesClass) {
                         return;
                     }
-
-                    markerOpts = mark.marker;
+                                        
+                    markerOpts = self.historyGetOptions(mark.marker);
                     markerOpts.addToHistory = false;
 
                     markerOptsNotInclusive = $.extend(true, {}, markerOpts);
@@ -791,7 +1133,10 @@ define([
                     }
 
                     // Determine if this mark is outside the selected range
-                    outsideOfSelection = fromCh > to || toCh < from;
+                    outsideOfSelection = fromCh >= to || toCh <= from;
+                    if (fromCh === toCh) {
+                        outsideOfSelection = fromCh > to || toCh < from;
+                    }
                     if (outsideOfSelection) {
                         return;
                     }
@@ -829,14 +1174,14 @@ define([
                         //      xxx          <-- text to delete (if deleteText is true)
                         
                         // Create a new marker for the text that should remain styled
-                        editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: toCh },
                             { line: lineNumber, ch: to },
                             markerOpts
                         );
-
+                        
                         if (deleteText) {
-                            // Create a marker for the text that will be deleted
+                            // Create a temporary marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
                             editor.markText(
                                 { line: lineNumber, ch: from },
@@ -859,16 +1204,18 @@ define([
                         //      nn           <-- new mark
                         //        xxxxx      <-- text to delete (if deleteText is true)
 
-                        editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
-
+                        
+                        self.inlineMakeInclusivePush(markNew);
+                        
                         if (deleteText) {
-                            // Create a marker for the text that will be deleted
+                            // Create a tempoary marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
-                            editor.markText(
+                            markNew = editor.markText(
                                 { line: lineNumber, ch: fromCh },
                                 { line: lineNumber, ch: to },
                                 markerOpts
@@ -887,23 +1234,30 @@ define([
                         //        rrr        <-- range
                         //      nn   nn      <-- new marks
                         //        xxx        <-- text to delete (if deleteText is true)
+
+                        // Do not allow inline enhancement styles to be split in the middle
+                        if (styleObj.enhancementType && !styleObj.toggle) {
+                            return;
+                        }
                         
-                        editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: toCh },
                             { line: lineNumber, ch: to },
                             markerOpts
                         );
 
-                        editor.markText(
+                        markNew = self.historyCreateMark(
                             { line: lineNumber, ch: from },
                             { line: lineNumber, ch: fromCh },
                             markerOptsNotInclusive
                         );
                         
+                        self.inlineMakeInclusivePush(markNew);
+                        
                         if (deleteText) {
-                            // Create a marker for the text that will be deleted
+                            // Create a temporary marker for the text that will be deleted
                             // It should be the part of the marked text that is outside the range
-                            editor.markText(
+                            markNew = editor.markText(
                                 { line: lineNumber, ch: fromCh },
                                 { line: lineNumber, ch: toCh },
                                 markerOpts
@@ -928,30 +1282,97 @@ define([
                 var position;
 
                 if (deleteText && mark.shouldDeleteText) {
+                    
                     position = mark.find();
-                    if (position) {
-                        editor.replaceRange('', position.from, position.to, '+brightspotFormatRemoveClass');
+                    
+                    if (position && !(position.from.line === position.to.line && position.from.ch === position.to.ch)) {
 
-                        // Trigger a change event for the editor
-                        if (options.triggerChange !== false) {
-                            self.triggerChange();
-                        }
+                        editor.replaceRange('', position.from, position.to);
+                        
+                        // Trigger a change event for the editor later
+                        triggerChange = true;
                     }
                 }
                 if (mark.shouldRemove) {
                     
-                    mark.clear();
+                    self.historyRemoveMark(mark);
                     
-                    // Trigger a change event for the editor
-                    if (options.triggerChange !== false) {
-                        self.triggerChange();
-                    }
+                    // Trigger a change event for the editor later
+                    triggerChange = true;
                 }
             });
+
+            // We hold off on triggering a change event until the end because
+            // it seems to cause problems if we trigger a change in the middle
+            // of examining all the marks
+            if (triggerChange && options.triggerChange !== false) {
+                self.triggerChange();
+            }
 
             // Trigger a cursor activity event so the toolbar can update
             CodeMirror.signal(editor, "cursorActivity");
 
+        },
+
+        
+        /**
+         * For elements that were previously made non-inclusive,
+         * make them inclusive now (after the user changed the selection);
+         *
+         * For example, if the user is on the right of a bold style, then
+         * clicking "clear" will make the bold style non-inclusive, so the user
+         * can type type outside the bold style. However, if the user moves the
+         * cursor, then returns to the right of the bold style, the style should
+         * be inclusive again, so the user can add to the bold text.
+         *
+         * This function shoudl be called every time the selection changes.
+         */
+        inlineMakeInclusive: function() {
+
+            var marks;
+            var self;
+
+            self = this;
+
+            // Get an array of the marks that were previously saved
+            // when they were made non-inclusive.
+            marks = self.marksToMakeInclusive || [];
+
+            if (marks.length) {
+                
+                $.each(self.marksToMakeInclusive || [], function() {
+                    var mark = this;
+                    mark.inclusiveRight = true;
+                });
+                
+                self.marksToMakeInclusive = [];
+            }
+        },
+
+        
+        /**
+         * Add a mark to the list of marks that must be made inclusive
+         * after the user moves the selection.
+         * @param {Object] mark
+         */
+        inlineMakeInclusivePush: function(mark) {
+            
+            var self;
+
+            self = this;
+            
+            // Ignore certain styles that are internal only like spelling errors
+            if (!self.classes[mark.className]) {
+                return;
+            }
+
+            if (mark.atomic) {
+                return;
+            }
+            
+            self.marksToMakeInclusive = self.marksToMakeInclusive || [];
+
+            self.marksToMakeInclusive.push(mark);
         },
 
 
@@ -966,7 +1387,9 @@ define([
          */
         inlineRemoveStyledText: function(styleKey, range) {
             
-            var mark, pos, self, styles;
+            var mark;
+            var pos;
+            var self;
 
             self = this;
             
@@ -1000,13 +1423,11 @@ define([
          */
         inlineIsStyle: function(styleKey, range) {
             
-            var classes, className, self, styles;
+            var self;
+            var styles;
 
             self = this;
-
-            // Check if className is a key into our styles object
-            className = self.styles[styleKey].className;
-            
+        
             range = range || self.getRange();
 
             styles = self.inlineGetStyles(range);
@@ -1024,7 +1445,10 @@ define([
          */
         inlineGetMark: function(styleKey, range) {
 
-            var className, editor, matchingMark, self;
+            var className;
+            var editor;
+            var matchingMark;
+            var self;
 
             self = this;
 
@@ -1060,7 +1484,9 @@ define([
          */
         inlineHasStyle: function(styleKey, range) {
             
-            var self, styles, value;
+            var self;
+            var styles;
+            var value;
 
             self = this;
 
@@ -1093,7 +1519,11 @@ define([
          */
         inlineGetStyles: function(range) {
             
-            var classes, classMap, isClass, editor, lineNumber, self, styles, lineStarting;
+            var classes;
+            var editor;
+            var lineNumber;
+            var self;
+            var styles;
 
             self = this;
             editor = self.codeMirror;
@@ -1103,11 +1533,12 @@ define([
             styles = {};
             classes = {};
             
-            isClass = true;
-
             editor.eachLine(range.from.line, range.to.line + 1, function(line) {
 
-                var charTo, charNumber, charFrom, once, isRange;
+                var charTo;
+                var charNumber;
+                var charFrom;
+                var isRange;
                 
                 charFrom = (lineNumber === range.from.line) ? range.from.ch : 0;
                 charTo = (lineNumber === range.to.line) ? range.to.ch : line.text.length;
@@ -1117,7 +1548,8 @@ define([
                 // Loop through each character in the range
                 for (charNumber = charFrom; charNumber <= charTo; charNumber++) {
 
-                    var classesForChar, marks;
+                    var classesForChar;
+                    var marks;
                     
                     classesForChar = {};
 
@@ -1126,7 +1558,8 @@ define([
 
                     marks.forEach(function(mark) {
                         
-                        var isSingleChar, markPosition;
+                        var isSingleChar;
+                        var markPosition;
                         
                         if (mark.className) {
 
@@ -1143,7 +1576,7 @@ define([
                             // If the mark is defined to the right of the cursor, then we only include the classname if inclusiveLeft is set.
                             // If the mark is defined to the left of the cursor, then we only include the classname if inclusiveRight is set.
 
-                            isSingleChar = Boolean(charTo - charFrom < 2);
+                            isSingleChar = Boolean(charTo - charFrom < 1);
                             
                             if (isSingleChar && markPosition.from.line === lineNumber && markPosition.from.ch === charNumber && !mark.inclusiveLeft) {
 
@@ -1211,7 +1644,7 @@ define([
             // but we really want the abstracted style names (like 'bold').
             // Convert the class name into the style name.
             $.each(classes, function(className, value) {
-                var styleKey, styleObj;
+                var styleObj;
                 styleObj = self.classes[className];
                 if (styleObj) {
                     styles[styleObj.key] = value;
@@ -1228,7 +1661,11 @@ define([
          */
         inlineCollapse: function(styleKey, range) {
 
-            var className, editor, marks, marksCollapsed, self;
+            var className;
+            var editor;
+            var marks;
+            var marksCollapsed;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -1260,7 +1697,10 @@ define([
 
             $.each(marks, function(i, mark) {
 
-                var markCollapsed, markPosition, $widget, widgetOptions;
+                var markCollapsed;
+                var markPosition;
+                var $widget;
+                var widgetOptions;
                 
                 // Check if this mark was previously collapsed
                 // (because we saved the collapse mark as a parameter on the original mark)
@@ -1312,13 +1752,11 @@ define([
          */
         inlineUncollapse: function(styleKey, range) {
 
-            var className, editor, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
-
-            // Check if className is a key into our styles object
-            className = self.styles[styleKey].className;
             
             range = range || self.getRange();
 
@@ -1337,7 +1775,12 @@ define([
          */
         inlineToggleCollapse: function(styleKey, range) {
 
-            var className, editor, foundUncollapsed, marks, marksCollapsed, self;
+            var className;
+            var editor;
+            var foundUncollapsed;
+            var marks;
+            var marksCollapsed;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -1369,7 +1812,7 @@ define([
 
             $.each(marks, function(i, mark) {
 
-                var markCollapsed, markPosition, $widget, widgetOptions;
+                var markCollapsed;
                 
                 // Check if this mark was previously collapsed
                 // (because we saved the collapse mark as a parameter on the original mark)
@@ -1401,12 +1844,23 @@ define([
          * This allows other functions to operate correctly.
          */
         inlineCleanup: function() {
+            var self;
+            
+            self = this;
 
-            var doc, editor, marks, marksByClassName, self;
+            // For performance, tell CodeMirror not to update the DOM
+            // until our inlineCleanup() has completed.
+            self.codeMirror.operation(function(){
+                self._inlineCleanup();
+            });
+        },
+        _inlineCleanup: function() {
+
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
-            doc = editor.getDoc();
 
             // Loop through all the marks in the document,
             // find the ones that span across lines and split them
@@ -1423,14 +1877,19 @@ define([
          */
         rawCleanup: function() {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
             
             $.each(editor.getAllMarks(), function(i, mark) {
 
-                var pos, styleObj, from, to;
+                var from;
+                var marks;
+                var pos;
+                var styleObj;
+                var to;
                 
                 // Is this a "raw" mark?
                 styleObj = self.classes[mark.className] || {};
@@ -1445,8 +1904,38 @@ define([
                     from = pos.from;
                     to = pos.to;
 
-                    // Clear other styles
-                    self.inlineRemoveStyle('', {from:from, to:to}, {includeTrack:true, except:mark.className, triggerChange:false});
+                    // Determine if there are other marks in this range
+                    marks = editor.findMarks(from, to);
+                    if (marks.length > 1) {
+
+                        $.each(marks, function(i, markInside) {
+
+                            var posInside;
+
+                            // Skip this mark if it is the raw mark
+                            if (markInside.className === mark.className) {
+                                return;
+                            }
+
+                            posInside = markInside.find() || {};
+                            
+                            // Make sure the mark is actually inside the raw area
+                            if (posInside.from.ch === pos.to.ch || posInside.to.ch === pos.from.ch) {
+                                
+                                // Don't do anything because the mark is next to the raw mark, not inside it
+                                
+                            } else {
+                                
+                                // Clear other styles within the raw mark
+                                self.inlineRemoveStyle('', {from:from, to:to}, {includeTrack:true, except:mark.className, triggerChange:false});
+
+                                // Return false to exit the each loop
+                                return false;
+                            }
+                            
+                        });
+
+                    }
                 }
                 
             });
@@ -1461,12 +1950,27 @@ define([
          */
         inlineSplitMarkAcrossLines: function(mark) {
 
-            var editor, to, lineNumber, pos, self, from;
+            var editor;
+            var from;
+            var fromCh;
+            var lineNumber;
+            var options;
+            var pos;
+            var self;
+            var singleLine;
+            var styleObj;
+            var to;
+            var toCh;
+            
 
             self = this;
             editor = self.codeMirror;
 
             mark = mark.marker ? mark.marker : mark;
+
+            // Get the style object for this mark so we can determine if this should be treated as a "singleLine" mark
+            styleObj = self.classes[mark.className] || {};
+            singleLine = Boolean(styleObj.singleLine);
             
             // Get the start and end positions for this mark
             pos = mark.find();
@@ -1477,31 +1981,31 @@ define([
             from = pos.from;
             to = pos.to;
 
+            options = self.historyGetOptions(mark);
+            
             // Does this mark span multiple lines?
             if (to.line !== from.line) {
 
                 // Loop through the lines that this marker spans and create a marker for each line
                 for (lineNumber = from.line; lineNumber <= to.line; lineNumber++) {
 
-                    var fromCh, newMark, toCh;
-                    
                     fromCh = (lineNumber === from.line) ? from.ch : 0;
                     toCh = (lineNumber === to.line) ? to.ch : editor.getLine(lineNumber).length;
-
                     
                     // Create a new mark on this line only
-                    newMark = editor.markText(
+                    self.historyCreateMark(
                         { line: lineNumber, ch: fromCh },
                         { line: lineNumber, ch: toCh },
-                        mark
-                    );
+                        options);
 
-                    // Copy any additional attributes that were attached to the old mark
-                    newMark.attributes = mark.attributes;
+                    // Don't create other marks if this is a singleLine mark
+                    if (singleLine) {
+                        break;
+                    }
                 }
 
                 // Remove the old mark that went across multiple lines
-                mark.clear();
+                self.historyRemoveMark(mark);
             }
         },
 
@@ -1512,7 +2016,10 @@ define([
          */
         inlineCombineAdjacentMarks: function() {
 
-            var editor, marks, self;
+            var editor;
+            var marks;
+            var marksByClassName;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -1536,7 +2043,8 @@ define([
             // Sort the marks in order of position
             marks = marks.sort(function(a, b){
                 
-                var posA, posB;
+                var posA;
+                var posB;
 
                 posA = a.find();
                 posB = b.find();
@@ -1558,6 +2066,17 @@ define([
 
                 className = mark.className;
 
+                // Skip any classname that is not in our styles list
+                if (!self.classes[className]) {
+                    return;
+                }
+     
+                // Skip any classname that has an onClick since we dont' want to mess with those.
+                // For example, links.
+                if (self.classes[className].onClick) {
+                    return;
+                }
+                
                 if (!marksByClassName[className]) {
                     marksByClassName[className] = [];
                 }
@@ -1567,7 +2086,12 @@ define([
             // Next go through all the classes, and combine the marks
             $.each(marksByClassName, function(className, marks) {
 
-                var i, mark, markNext, markNew, pos, posNext;
+                var i;
+                var mark;
+                var markNext;
+                var markNew;
+                var pos;
+                var posNext;
 
                 i = 0;
                 while (marks[i]) {
@@ -1627,7 +2151,8 @@ define([
          */
         blockToggleStyle: function(styleKey, range) {
             
-            var mark, self;
+            var mark;
+            var self;
 
             self = this;
 
@@ -1642,6 +2167,21 @@ define([
             return mark;
         },
 
+
+        blockMarkReadOnly: function (mark, range) {
+            if (mark.rteReadOnly) {
+                this.codeMirror.markText(
+                        { line: range.from.line, ch: 0 },
+                        { line: range.to.line + 1, ch: 0 },
+                        {
+                            atomic: true,
+                            clearWhenEmpty: true,
+                            inclusiveLeft: false,
+                            inclusiveRight: false
+                        });
+            }
+        },
+
         
         /**
          * @param String classname
@@ -1651,40 +2191,388 @@ define([
          *
          * @param Object [range=current selection]
          * The range of positions {from,to}.
+         *
+         * @param Object [options]
+         * Set of key/value pairs to specify options.
+         * These options will be passed as mark options when the mark is created.
+         *
+         * @param Object [options.attributes]
+         * An object with key/value pairs for the attributes that should be saved for this block style.
+         *
+         * @param Object [options.triggerChange=true]
+         * Set this to false if you do not want to trigger the rteChange event after setting the style.
+         * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
          */
-        blockSetStyle: function(style, range) {
+        blockSetStyle: function(style, range, options) {
 
-            var className, editor, lineNumber, self, styleObj;
+            var className;
+            var editor;
+            var lineNumber;
+            var mark;
+            var self;
+            var styleObj;
 
             self = this;
             editor = self.codeMirror;
             range = range || self.getRange();
-
+            options = options || {};
+            
             if (typeof style === 'string') {
                 styleObj = self.styles[style];
             } else {
                 styleObj = style;
             }
+            if (!styleObj) { return; }
             className = styleObj.className;
+
+            // Create a fake "mark" object for the line
+            mark = {
+                
+                // just in case we need to distinguish this is our fake mark...
+                rteLineStyle: true,
+                rteReadOnly: styleObj.readOnly,
+                
+                // other code checks for className on the mark so we'll save it here too
+                className: className 
+            };
+
+            // Save attributes on the mark
+            if (options.attributes) {
+                mark.attributes = options.attributes;
+            }
             
             for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
-                editor.addLineClass(lineNumber, 'text', className);
+
+                self.historyCreateLineClass(lineNumber, className);
+
+                // Store the mark data (and attributes) for the block style
+                self.blockSetLineData(styleObj.key, lineNumber, mark);
             }
 
             // If this is a set of mutually exclusive styles, clear the other styles
             if (styleObj.clear) {
                 $.each(styleObj.clear, function(i, styleKey) {
-                    self.blockRemoveStyle(styleKey, range);
+                    var lineNumber;
+                    var lineRange;
+
+                    for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
+                        lineRange = {
+                            from: {line: lineNumber, ch:0},
+                            to: {line: lineNumber, ch:0}
+                        };
+                        if (self.blockIsStyle(styleKey, lineRange)) {
+                            self.blockRemoveStyle(styleKey, lineRange);
+                        }
+                    }
                 });
             }
 
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
-            editor.refresh();
-            
-            self.triggerChange();
+            self.blockMarkReadOnly(mark, range);
+            self.refresh();
+
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
+
+            //return mark;
+            return self.blockGetLineData(styleObj.key, range.from.line) || {};
         },
 
+        /**
+         * Set the indent level for a line.
+         *
+         * @param {Number|Object} lineNumber
+         * The line number on which to set indent.
+         * Or an object that contains a range, like {from:{line:0,ch:0}, to:{line:1,ch:5}}
+         *
+         * @param {Number} indentLevel
+         * The indent level (number from 1..n)
+         *
+         * @param Object [options]
+         * Set of key/value pairs to specify options.
+         * These options will be passed as mark options when the mark is created.
+         *
+         * @param Object [options.triggerChange=true]
+         * Set this to false if you do not want to trigger the rteChange event after setting the style.
+         * For example, if you will be making multiple style changes and you will trigger the rteChange event yourself.
+         */
+        blockSetIndent: function(lineNumber, level, options) {
+
+            var editor;
+            var i;
+            var indentClass;
+            var range;
+            var self;
+
+            self = this;
+            editor = self.codeMirror;
+            options = options || {};
+            
+            // Change into an object for consistency
+            range = lineNumber;
+            if (typeof lineNumber === 'number') {
+                range = {from:{line:lineNumber, ch:0}, to:{line:lineNumber, ch:0}};
+            }
+                
+            if (level < 0) {
+                return;
+            }
+            
+            indentClass = self.indentClassPrefix + level;
+
+            for (i = range.from.line; i <= range.to.line; i++) {
+                // Remove any existing indent level
+                self.blockRemoveIndent(i);
+                if (level > 0) {
+                    editor.addLineClass(i, 'text', indentClass);
+                }
+            }
+
+            // Refresh the editor display since our line classes
+            // might have padding that messes with the cursor position
+            editor.refresh();
+
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
+        },
+
+
+        /**
+         * Change the indent level up or down.
+         *
+         * @param {Number} lineNumber
+         * @param {Number} delta
+         * Amount by which to change the indent level. +1 or -1.
+         *
+         * @returns {Number}
+         * The new indent level.
+         */
+        blockDeltaIndent: function(lineNumber, delta, options) {
+            var indentLevel, self;
+            self = this;
+            indentLevel = self.blockGetIndent(lineNumber);
+            indentLevel = indentLevel + delta;
+            if (indentLevel < 0) {
+                indentLevel = 0;
+            }
+            self.blockSetIndent(lineNumber, indentLevel, options)
+            return indentLevel;
+        },
+
+        
+       /**
+         * Remove all indent from a line.
+         *
+         * @param Number lineNumber
+         * The line number where indent should be removed.
+         *
+         */
+        blockRemoveIndent: function(lineNumber, options) {
+
+            var editor;
+            var lineInfo;
+            var self;
+
+            self = this;
+            editor = self.codeMirror;
+            options = options || {};
+
+            lineInfo = editor.lineInfo(lineNumber);
+            if (lineInfo && lineInfo.textClass) {
+                $.each(lineInfo.textClass.split(' '), function(i, className) {
+                    if (className.indexOf(self.indentClassPrefix) === 0) {
+                        editor.removeLineClass(lineNumber, 'text', className);
+                    }
+                });
+            }
+            
+            // Refresh the editor display since our line classes
+            // might have padding that messes with the cursor position
+            editor.refresh();
+
+            if (options.triggerChange !== false) {
+                self.triggerChange();
+            }
+        },
+        
+       /**
+         * Returns the indent level for a line.
+         * If a line does not have a specified indent but it is a list style,
+         * then the indent defaults to 1.
+         * Otherwise the indent defaults to 0.
+         *
+         * @param Number lineNumber
+         * The line number where indent should be retrieved.
+         *
+         * @returns Number
+         * Indent level, a number from 0..n
+         *
+         */
+        blockGetIndent: function(lineNumber) {
+
+            var editor, indentLevel, lineInfo, self;
+
+            self = this;
+            editor = self.codeMirror;
+
+            indentLevel = 0;
+            
+            lineInfo = editor.lineInfo(lineNumber);
+            if (lineInfo && lineInfo.textClass) {
+                $.each(lineInfo.textClass.split(' '), function(i, className) {
+                    
+                    var styleObj;
+                    
+                    // Check if the line has a specified indent level
+                    if (className.indexOf(self.indentClassPrefix) === 0) {
+                        // Classname looks like "prefix-#"
+                        // So lets get the number part of the classname.
+                        indentLevel = className.slice( self.indentClassPrefix.length );
+                        indentLevel = parseInt( indentLevel, 10 ) || 0;
+                        // Since we found a specified indent level, stop looping
+                        return;
+                    }
+                    
+                    // Check if this is a style that has a container.
+                    // If so it is a list and should default to indent level one (instead of zero)
+                    styleObj = self.classes[className];
+                    if (styleObj && styleObj.elementContainer) {
+                        indentLevel = 1;
+                        // Continue looping to check for a specified indent level
+                    }
+                });
+            }
+
+            return indentLevel;
+        },
+
+        
+        /**
+         * Return the data stored on the line, for a particular style.
+         *
+         * @param {String} className
+         * The className that is used for the style.
+         * For example, the alignLeft style uses classname 'rte2-style-alignLeft'
+         *
+         * @param {Number} lineNumber
+         * Number of the line where data should be retrieved.
+         *
+         * @returns {Object|undefined}
+         * The data stored on the line for a particular style,
+         * or null if data is not stored for that line number.
+         */
+        blockGetLineData: function(styleKey, lineNumber) {
+
+            var className;
+            var data;
+            var editor;
+            var lineHandle;
+            var self;
+            var styleObj;
+            
+            self = this;
+            editor = self.codeMirror;
+
+            styleObj = self.styles[styleKey] || {};
+            className = styleObj.className;
+            
+            // Get the lineMarker object so we can store additional data for the block style
+            lineHandle = editor.getLineHandle(lineNumber);
+
+            if (lineHandle && lineHandle.rteMarks) {
+                data = lineHandle.rteMarks[className];
+            }
+
+            return data;
+        },
+
+        
+        /**
+         * Set data on a line, for a particular class name.
+         *
+         * @param {String} className
+         * The className that is used for the style.
+         * For example, the alignLeft style uses classname 'rte2-style-alignLeft'
+         *
+         * @param {Number} lineNumber
+         * Number of the line where data should be stored.
+         *
+         * @param {Object} data
+         * The data to store on the line for a particular class name.
+         */
+        blockSetLineData: function(styleKey, lineNumber, data) {
+            
+            var editor;
+            var lineHandle;
+            var self;
+            var styleObj;
+            var className;
+            
+            self = this;
+            editor = self.codeMirror;
+            
+            styleObj = self.styles[styleKey] || {};
+            className = styleObj.className;
+
+            // Get the lineMarker object so we can store additional data for the block style
+            lineHandle = editor.getLineHandle(lineNumber);
+
+            if (lineHandle) {
+                
+                lineHandle.rteMarks = lineHandle.rteMarks || {};
+
+                data = $.extend(true, {}, data, {
+                    
+                    // Create a "find" function that will return position for the line.
+                    // This will make the fake block mark more like a normal inline
+                    // mark.
+                    find: function() {
+                        
+                        var lineNumber;
+                        
+                        // Get the current line number for this line handle
+                        
+                        lineNumber = editor.getLineNumber(lineHandle) || 0;
+                        
+                        // Return a position for the line number
+                        return {
+                            from: {line:lineNumber, ch:0},
+                            to:  {line:lineNumber, ch:lineHandle.text.length}
+                        };
+                    },
+
+                    // Create a "clear" function that clears the style from the line
+                    clear: function() {
+                        
+                        var lineNumber;
+                        
+                        // Get the current line number for this line handle
+                        
+                        lineNumber = editor.getLineNumber(lineHandle) || 0;
+
+                        self.blockRemoveStyle(styleKey, {
+                            from: {line:lineNumber, ch:0},
+                            to:  {line:lineNumber, ch:lineHandle.text.length}
+                        });
+                        
+                        // Return a position for the line number
+                        return ;
+                    }
+                });
+
+                // Save the data on the lineHandle so it will follow
+                // the line around, and can be found again by looking
+                // up via the class name of the style.
+                lineHandle.rteMarks[className] = data;
+
+                // Return the mark
+                return data;
+            }
+        },
+        
         
         /**
          * Remove the line class for a range.
@@ -1697,14 +2585,29 @@ define([
          */
         blockRemoveStyle: function(styleKey, range) {
 
-            var className, classNames, classes, editor, line, lineNumber, self;
+            var className;
+            var editor;
+            var line;
+            var lineNumber;
+            var self;
 
             self = this;
             editor = self.codeMirror;
             range = range || self.getRange();
 
+            // styleKey can be an actual key (string) or it can be a style object,
+            // in which case we'll get the key from the object
+            if (typeof styleKey !== 'string') {
+                styleKey = styleKey.key;
+            }
+
             if (styleKey) {
-                className = self.styles[styleKey].className;
+                if (self.styles[styleKey]) {
+                    className = self.styles[styleKey].className;
+                } else {
+                    // A style key was provided but there is no such style
+                    return;
+                }
             }
 
             for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
@@ -1712,21 +2615,21 @@ define([
                 if (className) {
                     
                     // Remove a single class from the line
-                    editor.removeLineClass(lineNumber, 'text', className);
+                    self.historyRemoveLineClass(lineNumber, className);
                     
                 } else {
                     
                     // Remove all classes from the line
                     line = editor.getLineHandle(lineNumber);
                     $.each((line.textClass || '').split(' '), function(i, className) {
-                        editor.removeLineClass(lineNumber, 'text', className);
+                        self.historyRemoveLineClass(lineNumber, className);
                     });
                 }
             }
             
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
-            editor.refresh();
+            self.refresh();
             
             self.triggerChange();
         },
@@ -1738,10 +2641,10 @@ define([
          */
         blockIsStyle: function(styleKey, range) {
 
-            var classes, editor, self, styles;
+            var self;
+            var styles;
 
             self = this;
-            editor = self.codeMirror;
 
             styles = self.blockGetStyles(range);
             return Boolean(styles[styleKey]);
@@ -1756,7 +2659,10 @@ define([
          */
         blockGetStyles: function(range) {
             
-            var classes, editor, self, styles;
+            var classes;
+            var editor;
+            var self;
+            var styles;
 
             self = this;
             editor = self.codeMirror;
@@ -1766,7 +2672,8 @@ define([
             // Loop through all lines in the range
             editor.eachLine(range.from.line, range.to.line + 1, function(line) {
 
-                var classNames, classesLine;
+                var classNames;
+                var classesLine;
 
                 // There is at least one classname on this line
                 // Split the class string into an array of individual class names and store in an object for easy lookup
@@ -1810,7 +2717,7 @@ define([
             styles = {};
             if (classes) {
                 $.each(classes, function(className, value) {
-                    var styleKey, styleObj;
+                    var styleObj;
                     styleObj = self.classes[className];
                     if (styleObj) {
                         styles[styleObj.key] = value;
@@ -1820,8 +2727,7 @@ define([
 
             return styles;
         },
-
-        
+ 
         /**
          * Returns the list type for a line.
          *
@@ -1840,7 +2746,12 @@ define([
          */
         blockGetListType: function(lineNumber) {
 
-            var classNames, editor, line, lineInfo, listType, self;
+            var classNames;
+            var editor;
+            var line;
+            var lineInfo;
+            var listType;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -1866,6 +2777,161 @@ define([
         },
 
 
+        /**
+         * Create a lineWidget to display a preview (presumably an image) for a block style.
+         * This lineWidget will be displayed above the line, and will move with the line.
+         * If the style is removed (or the line is removed) the lineWidget will also be removed.
+         * 
+         * @param {String} styleKey
+         * @param {Number} lineNumber
+         * @param {String} previewHTML
+         * @param {Object} attributes
+         */
+        blockSetPreview: function(styleKey, lineNumber, previewHTML, attributes) {
+            
+            var data;
+            var editor;
+            var $preview;
+            var self;
+            
+            self = this;
+
+            editor = self.codeMirror;
+            
+            // Make sure this style is defined on the line,
+            // and get the data object attached to the lineHandle
+            data = self.blockGetLineData(styleKey, lineNumber);
+            if (!data) { return; }
+
+            // If there is already a preview remove it
+            self.blockRemovePreview(styleKey, lineNumber);
+
+            // Create DOM for the preview HTML
+            $preview = $('<div>', {
+                'class': 'rte2-block-preview',
+                'data-style-key': styleKey
+            }).html(previewHTML);
+
+            if (attributes) {
+                $.each(attributes, function (key, value) {
+                    $preview.attr('data-attr-' + key, value);
+                });
+            }
+
+            // Save the DOM node in the line data
+            data.$preview = $preview;
+            
+            // Create a line widget to show the preview
+            data.previewMark = editor.addLineWidget(lineNumber, $preview[0], {rteBlockPreview:true});
+
+            $preview.on('resize', function () {
+                data.previewMark.changed();
+            });
+        },
+
+        
+        /**
+         * Same as blockSetPreview() but instead of a style and line number,
+         * you start with a mark.
+         *
+         * Note for line styles, the mark is not actually a CodeMirror mark,
+         * but an object we created to mimic a CodeMirror mark.
+         * But it should have a find() function that returns the location of the
+         * mark even if the line has shifted.
+         * Refer to blockSetLineData() for more info.
+         *
+         * @param {Object} mark
+         * The mark created for a line style.
+         *
+         * @param {String} previewHTML
+         */
+        blockSetPreviewForMark: function(mark, previewHTML) {
+            
+            var lineNumber;
+            var range;
+            var self;
+            var styleKey;
+            var styleObj;
+            
+            self = this;
+
+            // Get the style from the mark
+            styleObj = self.classes[mark.className];
+            styleKey = styleObj.key;
+            
+            // Get the line number from the mark
+            range = mark.find();
+            lineNumber = range.from.line;
+            
+            return self.blockSetPreview(styleKey, lineNumber, previewHTML, mark.attributes);
+        },
+
+
+        /**
+         * Remove the preview lineWidget for a block style
+         * (if it exists).
+         *
+         * @param {String} styleKey
+         * @param {Number} lineNumber
+         */
+        blockRemovePreview: function(styleKey, lineNumber) {
+            
+            var data;
+            var editor;
+            var self;
+            
+            self = this;
+
+            editor = self.codeMirror;
+            
+            // Make sure this style is defined on the line,
+            // and get the data object attached to the lineHandle
+            data = self.blockGetLineData(styleKey, lineNumber);
+            if (!data) { return; }
+            if (!data.$preview) { return; }
+            if (!data.previewMark) { return; }
+
+            // Delete the preview dom
+            data.$preview.remove();
+            delete data.$preview;
+
+            // Delete the line widget
+            data.previewMark.clear();
+            editor.removeLineWidget(data.previewMark);
+            delete data.previewMark;
+        },
+
+        
+        /**
+         * Remove the preview lineWidget for a block style (if it exists).
+         * Same as blockRemovePreview(), but starting from a className instead of the style key.
+         *
+         * @param {String} className
+         * @param {Number} lineNumber
+         */
+        blockRemovePreviewForClass: function(className, lineNumber) {
+            var self;
+            var styleObj;
+            
+            self = this;
+            styleObj = self.classes[className];
+            if (styleObj) {
+                self.blockRemovePreview(styleObj.key, lineNumber);
+            }
+        },
+
+
+        blockEachLineMark: function (callback) {
+            this.codeMirror.eachLine(function (line) {
+                var marks = line.rteMarks;
+
+                if (marks) {
+                    $.each(marks, callback);
+                }
+            });
+        },
+
+        
         //--------------------------------------------------
         // Enhancements
         // An enhancement is a block of external content that can be added to the editor.
@@ -1885,6 +2951,12 @@ define([
             // CodeMirror doesn't seem to have a way to get a list of enhancements,
             // so we'll have to remember them as we create them.
             self.enhancementCache = {};
+
+            // Check when user presses Return at beginning of a line that contains an enhancement
+            self.codeMirror.on('change', function(cm, changeObj) {
+                self.enhancementNewlineAdjust(changeObj);
+            });
+
         },
         
         
@@ -1900,6 +2972,9 @@ define([
          *
          * @param Object [options]
          * @param Object [options.block=false]
+         * @param Object [options.index]
+         * The position to insert the enhancement, if there are other enhancements on the line.
+         * Can be 0 to insert the enhancement before any others, or undefined to insert after others.
          * @param Function [options.toHTML]
          * Function to return HTML content to be placed at the point of the enhancement.
          * If not provided then the enhancement will not appear in the output.
@@ -1913,7 +2988,11 @@ define([
          */
         enhancementAdd: function(content, lineNumber, options) {
 
-            var editor, mark, range, self, widgetOptions;
+            var editor;
+            var mark;
+            var range;
+            var self;
+            var widgetOptions;
 
             self = this;
             editor = self.codeMirror;
@@ -1934,12 +3013,16 @@ define([
             };
 
             if (options.block) {
-                
-                mark = editor.addLineWidget(lineNumber, content, {above: true});
+
+                // Create the line widget.
+                // We set a flag rteEnhancement on the line widget, so we can distinguish
+                // it from other line widgets later
+                mark = editor.addLineWidget(lineNumber, content, {above: true, rteEnhancement:true, insertAt: options.index});
 
                 mark.deleteLineFunction = function(){
 
-                    var content, $content;
+                    var content;
+                    var $content;
 
                     content = self.enhancementGetContent(mark);
                     $content = $(content).detach();
@@ -1971,12 +3054,13 @@ define([
             // Save the mark in an internal cache so we can use it later to output content.
             mark.options.id = self.enhancementId++;
             self.enhancementCache[ mark.options.id ] = mark;
+
+            self.triggerChange();
             
             // Small delay before refreshing the editor to prevent cursor problems
             setTimeout(function(){
                 self.refresh();
                 mark.changed();
-                self.triggerChange();
             }, 100);
             
             return mark;
@@ -1999,27 +3083,74 @@ define([
          */
         enhancementMove: function(mark, lineDelta) {
 
-            var content, $content, editor, lineLength, lineNumber, lineMax, position, self;
+            var editor;
+            var enhancementsOnLine;
+            var index;
+            var indexNew;
+            var length;
+            var lineLength;
+            var lineNumber;
+            var lineMax;
+            var self;
 
             self = this;
             editor = self.codeMirror;
-
-            // Get the options we saved previously so we can create a mark with the same options
-            options = mark.options;
             
             lineMax = editor.lineCount() - 1;
-            lineNumber = self.enhancementGetLineNumber(mark) + lineDelta;
+            lineNumber = self.enhancementGetLineNumber(mark);
 
+            // Get array of enhancements on the current line
+            enhancementsOnLine = self.enhancementGetFromLine( self.enhancementGetLineNumber(mark) );
+            
+            // If there are multiple enhancements on this line, determine if we need to keep the enhancement
+            // on this line (and rearrange the order of enhancements) or move to another line
+            length = enhancementsOnLine.length;
+            if (length > 1) {
+                // Determine the index for this enhancement
+                $.each(enhancementsOnLine, function(i,enhancement) {
+                    if (mark === enhancement) {
+                        index = i;
+                        return false;
+                    }
+                });
+
+                // Check to make sure we found the enhancement index
+                if ($.isNumeric(index)) {
+                    
+                    // Determine if the index should be increased or decreased
+                    index += lineDelta;
+                    
+                    // Make sure the enhancement should stay on this line
+                    if (index >= 0 && index < length) {
+                        
+                        // Special case, if enhancement is moving to the end of the list,
+                        // we must set index=undefined
+                        if (index === length - 1) {
+                            index = undefined;
+                        }
+                        
+                        return self.enhancementMoveToLine(mark, lineNumber, index);
+                    }
+                }
+            }
+            
+            // There is only a single enhancement on this line, so move it to another line
+            lineNumber += lineDelta;
             if (lineNumber < 0) {
                 return mark;
             }
             
             if (lineNumber > lineMax) {
                 
-                // Add another line to the end of the editor
+                // Add another line to the end of the editor.
+                // Set the change event origin to "brightspotEnhancementMove" so we know this newline is being
+                // added automatically rather than the user typing (so we don't try to adjust the
+                // position of the enhancement - see enhancementNewlineAdjust()
                 lineLength = editor.getLine(lineMax).length;
-                editor.replaceRange('\n', {line:lineMax, ch:lineLength});
+                editor.replaceRange('\n', {line:lineMax, ch:lineLength - 1}, undefined, 'brightspotEnhancementMove');
                 
+                // Adding the newline seems to move all the enhancements down a line so no need  to move it
+                return;
             }
 
             // If the next (or previous) line is blank, then try to move to the line after that (if it is not blank)
@@ -2028,6 +3159,44 @@ define([
                 lineNumber += lineDelta;
             }
 
+            // If moving to the previous line, add the enhancement to the end of any other enhancements.
+            // If moving to the next line, add the enhancement before any other enhancements.
+            index = (lineDelta === -1) ? undefined : 0;
+            
+            return self.enhancementMoveToLine(mark, lineNumber, index);
+        },
+
+
+        /**
+         * Move an enhancement block to a specific line.
+         *
+         * @param Object mark
+         * The mark that was returned by the enhancementAdd() function.
+         *
+         * @param Number lineNumber
+         *
+         * @param Number [index]
+         * If the lineNumber already contains enhancements, you can specify
+         * an index to position the new enhancement in relation to the others.
+         * Specify 0 to position at the beginning of the line, or undefined to
+         * position after the other enhancements.
+         * 
+         * @return Object
+         * Returns a new mark that contains the enhancement content.
+         */
+        enhancementMoveToLine: function(mark, lineNumber, index) {
+            
+            var content;
+            var $content;
+            var options;
+            var self;
+
+            self = this;
+
+            // Get the options we saved previously so we can create a mark with the same options
+            options = mark.options;
+            options.index = index;
+            
             // Depending on the type of mark that was created, the content is stored differently
             content = self.enhancementGetContent(mark);
             $content = $(content).detach();
@@ -2035,11 +3204,60 @@ define([
             self.enhancementRemove(mark);
             
             mark = self.enhancementAdd($content[0], lineNumber, options);
+
+            self.triggerChange();
             
             return mark;
         },
 
-        
+
+        /**
+         * When a CodeMirror change event occurs, determine if a new line has been added
+         * and if any enhancements on the line need to be adjusted.
+         * Use case: Cursor is at the beginning of a line where an enhancement is attached
+         * (above the line). User presses Return and inserts a new line. The current line
+         * is moved below the new line and moves the enhancement with it. This is not
+         * intuitive since the user expects the new line to be placed below the enhancement.
+         * So in this case we move the enhancement above the new line that was entered.
+         *
+         * @param {Object} changeObj
+         * A change event from CodeMirror.
+         */
+        enhancementNewlineAdjust: function(changeObj) {
+            
+            var lineInfo;
+            var lineNumber;
+            var self;
+
+            self = this;
+
+            if (changeObj.origin === 'brightspotEnhancementMove') {
+                return;
+            }
+            
+            if (changeObj.from &&
+                changeObj.from.ch === 0 && // change occurred at the first character of the line
+                changeObj.text &&
+                changeObj.text.length > 1 && // change is split into multiple lines
+                changeObj.text[0] === '') { // first character of the change is a new line
+
+                // The original line number
+                lineNumber = changeObj.from.line;
+
+                // The line info for the original line (that was pushed down) so we can get the enhancements
+                lineInfo = self.codeMirror.lineInfo(lineNumber + changeObj.text.length - 1);
+
+                if (lineInfo && lineInfo.widgets) {
+                    $.each(lineInfo.widgets, function(i,mark) {
+                        if (mark.rteEnhancement) {
+                            self.enhancementMoveToLine(mark, lineNumber);
+                        }
+                    });
+                }
+            }
+        },
+
+
         /**
          * Removes an enhancement.
          *
@@ -2083,7 +3301,8 @@ define([
          */
         enhancementGetLineNumber: function(mark) {
             
-            var lineNumber, position;
+            var lineNumber;
+            var position;
 
             lineNumber = undefined;
             if (mark.line) {
@@ -2108,7 +3327,10 @@ define([
          */
         enhancementSetInline: function(mark, options) {
             
-            var content, $content, lineNumber, self;
+            var content;
+            var $content;
+            var lineNumber;
+            var self;
 
             self = this;
 
@@ -2136,7 +3358,10 @@ define([
          */
         enhancementSetBlock: function(mark, options) {
 
-            var content, $content, lineNumber, self;
+            var content;
+            var $content;
+            var lineNumber;
+            var self;
 
             self = this;
 
@@ -2190,6 +3415,527 @@ define([
             return $(el).data('enhancementMark');
         },
 
+
+        /**
+         * Returns an array of the enhancements on a line.
+         * @param  {[type]} lineNumber [description]
+         * @return {Array}
+         */
+        enhancementGetFromLine: function(lineNumber) {
+            var editor;
+            var lineHandle;
+            var self;
+            var list;
+            
+            self = this;
+            editor = self.codeMirror;
+            list = [];
+            
+            // Get all the block enhancements
+            lineHandle = editor.getLineHandle(lineNumber);
+            if (lineHandle && lineHandle.widgets) {
+                $.each(lineHandle.widgets, function(i,widget) {
+                    var mark;
+                    if (widget.node) {
+                        mark = self.enhancementGetMark(widget.node);
+                        if (mark) {
+                            list.push(mark);
+                        }
+                    }
+                });
+            }
+            
+            // Get all the enhancements that are align left and right
+            $.each(self.enhancementCache, function(i, mark) {
+                
+                // Make sure this is not a block enhancement
+                if (mark && mark.options && mark.options.block === false) {
+                    if (self.enhancementGetLineNumber(mark) === lineNumber) {
+                        list.push(mark);
+                    }
+                }
+            });
+            
+            return list;
+        },
+        
+        
+        //==================================================
+        // Dropdown Handlers
+        //==================================================
+
+        dropdownInit: function() {
+            
+            var clicks;
+            var editor;
+            var self;
+
+            self = this;
+            
+            editor = self.codeMirror;
+
+            self.$dropdown = $('<div/>', {
+                'class': 'rte2-dropdown'
+            }).hide().appendTo( editor.getWrapperElement().parentNode );
+
+            editor.on('cursorActivity', $.debounce(250, function(instance, event) {
+                self.dropdownCheckCursor();
+            }));
+
+            editor.on('focus', function() {
+                self.dropdownCheckCursor();
+            });
+            
+            editor.on('blur', function() {
+                // Hide after a timeout in case user clicked link in the dropdown
+                // which caused a blur event that hid the dropdown
+                setTimeout(function(){
+                    self.dropdownHide();
+                }, 200);
+            });
+
+            // CodeMirror's dblclick event doesn't work reliably,
+            // so have to provide our own double click detection
+            clicks = 0;
+            editor.on('mousedown', function(instance, event) {
+                clicks++;
+                if (clicks == 1) {
+                    setTimeout(function(){
+                        if (clicks > 1) {
+                            self.dropdownDoubleClick(event);
+                        }
+                        clicks = 0;
+                    }, 300);
+                }
+            });
+        },
+
+
+        /**
+         * When user double clicks, check if there are any dropdown marks, and if so
+         * imediately popu up the edit form for the first mark located.
+         */
+        dropdownDoubleClick: function(event) {
+            var marks;
+            var self;
+            
+            self = this;
+            
+            // Get all the marks within a range
+            marks = self.dropdownGetMarks(true);
+            
+            if (marks.length) {
+                event.preventDefault();
+                event.codemirrorIgnore = true;
+                self.onClickDoMark(event, marks[0]);
+                return false;
+            }
+        },
+
+        
+        dropdownCheckCursor: function() {
+
+            var marks;
+            var self;
+            
+            self = this;
+
+            if (self.readOnlyGet() || !self.codeMirror.hasFocus()) {
+                self.dropdownHide();
+                return;
+            }
+            
+            // Get all the marks from the selected range that have onclick handlers
+            marks = self.dropdownGetMarks();
+
+            if (marks.length === 0) {
+                self.dropdownHide();
+            } else {
+                self.dropdownShow(marks);
+            }
+        },
+
+        
+        /**
+         * Get all the marks in the current range that have click events.
+         *
+         * @param {Boolean} [allowRange=false]
+         * Set to true if you want the marks across a range of characters.
+         * Defaults to false, which means it will only return marks if the selection range is a cursor position.
+         */
+        dropdownGetMarks: function(allowRange) {
+            var editor;
+            var lineStyles;
+            var marks;
+            var range;
+            var self;
+
+            self = this;
+            editor = self.codeMirror;
+            range = self.getRange();
+
+            // Do not return marks if a range of characters is selected
+            if (allowRange !== true && !(range.from.line === range.to.line && range.from.ch === range.to.ch)) {
+                return [];
+            }
+
+            // Get the line styles and the "fake" marks we created
+            marks = [];
+            lineStyles = self.blockGetStyles();
+            $.each(lineStyles, function(styleKey) {
+                var mark;
+                mark = self.blockGetLineData(styleKey, range.from.line);
+                if (mark) {
+                    marks.push(mark);
+                }
+            });
+        
+            // Find all the inline marks for the clicked position
+            // (funky javascript to append one array onto the end of another)
+            [].push.apply(marks, editor.findMarks(range.from, range.to));
+
+            // Only keep the marks that have onClick configs
+            marks = $.map(marks, function(mark, i) {
+                var styleObj;
+                styleObj = self.classes[mark.className];
+                if (styleObj && (styleObj.onClick || styleObj.void || styleObj.readOnly || styleObj.dropdown)) {
+                    // Keep in the array
+                    return mark;
+                } else {
+                    // Remove from the array
+                    return null;
+                }
+            });
+
+            // Update marks to account for undo history marks getting re-created
+            $.each(marks, function(i, mark) {
+                while (mark.markNew) {
+                    mark = mark.markNew;
+                }
+                marks[i] = mark;
+            });
+            
+            return marks;
+        },
+
+
+        moveMark: function (mark, direction) {
+            if (!mark || direction === 0) {
+                return;
+            }
+
+            var markRange = mark.find();
+
+            if (!markRange) {
+                return;
+            }
+
+            var self = this;
+            var cm = self.codeMirror;
+            var from = markRange.from.line;
+
+            // Find the number of blank lines after the mark to include in the
+            // move.
+            var to = markRange.to.line + 1;
+            var blanksAfter = -1;
+
+            while (to < cm.lineCount() && cm.getLine(to) === '') {
+                ++ to;
+                ++ blanksAfter;
+            }
+
+            // Make sure that the move is possible.
+            var move = -1;
+
+            if (direction < 0) {
+                move = from - 1;
+
+                // Skip over the blank lines right above the mark.
+                while (move >= 0 && cm.getLine(move) === '') {
+                    -- move;
+                }
+
+                if (move !== 0) {
+                    -- move;
+                }
+
+            } else if (to < cm.lineCount()) {
+                move = from + 1;
+            }
+
+            // Move isn't possible so restore cursor and do nothing.
+            if (move < 0) {
+                cm.setCursor(cm.getCursor());
+                cm.focus();
+                return;
+            }
+
+            // Move the mark.
+            cm.operation(function () {
+                var initialTop = cm.charCoords({ line: from, ch: 0 }).top;
+                var html = self.toHTML(markRange);
+                var cursor = cm.getCursor();
+                var movePosition = { line: move, ch: 0 };
+
+                // Delete the existing mark.
+                cm.replaceRange('', { line: from, ch: 0 }, { line: to, ch: 0 });
+
+                // Insert an extra blank line if moving to the beginning or
+                // the end of the text and there isn't already a blank line
+                // there. This is done to improve the spacing display.
+                if ((move === 0 && cm.getLine(move) !== '') || move === cm.lineCount()) {
+                    cm.replaceRange('\n', { line: move, ch: 0 }, { line: move, ch: 0 });
+                }
+
+                // Insert the blank lines found previously.
+                for (var i = 0; i < blanksAfter; ++ i) {
+                    cm.replaceRange('\n', movePosition, movePosition);
+                }
+
+                // Insert the mark at the new position.
+                self.fromHTML(html, { from: movePosition, to: movePosition });
+
+                // Move the cursor to the newly created mark.
+                var cursorLine = move + blanksAfter + cursor.line - from + 1;
+
+                cm.setCursor({ line: cursorLine, ch: cursor.ch });
+                cm.focus();
+
+                // Scroll the window so that the mouse is over the same
+                // area as before.
+                $(window).scrollTop($(window).scrollTop() + (cm.charCoords({ line: cursorLine, ch: 0 }).top - initialTop));
+
+                // Remove all blanks lines above the mark if there aren't any
+                // other texts.
+                var first = move;
+
+                for (; first >= 0; -- first) {
+                    if (cm.getLine(first) !== '') {
+                        break;
+                    }
+                }
+
+                if (first === -1) {
+                    cm.replaceRange('', { line: 0, ch: 0 }, { line: move + 1, ch: 0 });
+
+                } else {
+
+                    // Remove all blanks lines below the mark if there aren't
+                    // any other texts.
+                    var lastInitial = move + (to - from) + blanksAfter;
+                    var last = lastInitial;
+                    var lineCount = cm.lineCount();
+
+                    for (; last < lineCount; ++ last) {
+                        if (cm.getLine(last) !== '') {
+                            break;
+                        }
+                    }
+
+                    if (last === lineCount) {
+                        cm.replaceRange('', { line: lastInitial, ch: 0 }, { line: lineCount, ch: 0 });
+                    }
+                }
+            });
+        },
+
+        
+        /**
+         * @param {Array} marks 
+         */
+        dropdownShow: function(marks) {
+            var self;
+            self = this;
+
+            self.$dropdown.empty();
+            
+            $.each(marks, function(i, mark) {
+                
+                var $div;
+                var label;
+                var styleObj;
+
+                // Get the label to display for this mark.
+                // It defaults to the className of the style.
+                // Of if the style definition has a getLabel() function
+                // call that and use the return value
+                styleObj = self.classes[mark.className] || {};
+                label = styleObj.enhancementName || mark.className;
+                if (styleObj.getLabel) {
+                    label = styleObj.getLabel(mark);
+                }
+
+                $div = $('<div/>', {
+                    'class': 'rte2-dropdown-item'
+                }).appendTo(self.$dropdown);
+
+                if (styleObj.dropdown) {
+                    $div.append( styleObj.dropdown(mark) );
+                    return;
+                }
+                
+                $('<span/>', {
+                    'class':'rte2-dropdown-label',
+                    text: label
+                }).appendTo($div);
+
+                // Popup edit defaults to true, but if set to false do not include edit link
+                if (styleObj.popup !== false && styleObj.onClick) {
+                    $('<a/>', {
+                        'class': 'rte2-dropdown-edit',
+                        text: 'Edit'
+                    }).on('click', function(event){
+                        event.preventDefault();
+                        self.onClickDoMark(event, mark);
+                        return false;
+                    }).appendTo($div);
+                }
+
+                if (styleObj.line) {
+                    $div.append($('<a/>', {
+                        'class': 'rte2-dropdown-move-up',
+                        text: 'Move Up',
+                        click: function () {
+                            self.moveMark(mark, -1);
+                            return false;
+                        }
+                    }));
+
+                    $div.append($('<a/>', {
+                        'class': 'rte2-dropdown-move-down',
+                        text: 'Move Down',
+                        click: function () {
+                            self.moveMark(mark, 1);
+                            return false;
+                        }
+                    }));
+                }
+
+                $('<a/>', {
+                    'class': 'rte2-dropdown-clear',
+                    text: styleObj.readOnly ? 'Remove' : 'Clear'
+                }).on('click', function(event){
+
+                    var pos;
+
+                    event.preventDefault();
+
+                    // For void element, delete the text in the mark
+                    if (styleObj.readOnly || styleObj.void) {
+                        if (mark.find) {
+                            pos = mark.find();
+                            // Delete below after the mark is cleared
+                        }
+                    }
+
+                    // Remove the text before the mark is removed, to ensure undo works
+                    if (pos) {
+                        self.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch});
+                    }
+                    
+                    mark.clear();
+                    
+                    self.focus();
+                    self.dropdownCheckCursor();
+                    self.triggerChange();
+                    return false;
+                }).appendTo($div);
+
+            });
+
+            // Set position of the dropdown
+            self.dropdownSetPosition(marks);
+            
+            self.$dropdown.show();
+        },
+
+        dropdownSetPosition: function(marks) {
+
+            var ch;
+            var editor;
+            var line;
+            var pos;
+            var self;
+            
+            self = this;
+
+            editor = self.codeMirror;
+
+            line = 0;
+            ch = undefined;
+            
+            // Find the largest line number and the left-most character in all the marks.
+            // If any of the marks extends across multiple lines, use character 0
+            $.each(marks, function(i, mark) {
+                var pos;
+
+                pos = mark.find();
+                
+                if (pos) {
+
+                    if (pos.to.line > line) {
+                        line = pos.to.line;
+                    }
+
+                    if (ch === undefined || pos.from.ch < ch) {
+                        ch = pos.from.ch;
+                    }
+                    
+                    if (pos.from.line !== pos.to.line) {
+                        ch = 0;
+                    }
+                }
+            });
+
+            // Get the position for the line and ch
+            pos = editor.cursorCoords({line:line, ch:(ch||0)}, 'local');
+
+            self.$dropdown.css({
+                left: pos.left,
+                top: pos.bottom
+            });
+        },
+        
+        dropdownHide: function() {
+            var self;
+            self = this;
+            self.$dropdown.hide();
+        },
+
+        
+        //==================================================
+        // OnClick Handlers
+        //==================================================
+        
+        /**
+         * Do the onclick event for a mark.
+         * For example, a link or inline enhancement mark might have an onclick handler
+         *
+         * @param Object event
+         * The click event.
+         *
+         * @param Object mark
+         * The CodeMirror mark. Note this mark must have a className, which will be used
+         * to find the style object that contains the onclick handler.
+         */
+        onClickDoMark: function(event, mark) {
+            
+            var range;
+            var self;
+            var styleObj;
+
+            self = this;
+
+            styleObj = self.classes[mark.className];
+            if (styleObj && styleObj.onClick) {
+                            
+                // Make this mark the current selection
+                range = self.markGetRange(mark);
+                self.codeMirror.setSelection(range.from, range.to);
+
+                styleObj.onClick(event, mark);
+            }
+        },
         
         //--------------------------------------------------
         // Track Changes
@@ -2200,7 +3946,8 @@ define([
          */
         trackInit: function() {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             
@@ -2261,7 +4008,12 @@ define([
          */
         trackBeforeChange: function(changeObj) {
             
-            var classes, editor, charPosition, cursorPosition, isEmpty, self, textOriginal, textNew;
+            var classes;
+            var editor;
+            var cursorPosition;
+            var isEmpty;
+            var self;
+            var textOriginal;
             
             self = this;
             editor = self.codeMirror;
@@ -2278,6 +4030,7 @@ define([
 
                 case '+delete':
                 case 'cut':
+                case 'brightspotCut':
 
                     // If we're deleting just a line just let it be deleted
                     // Because we don't have a good way to accept or reject a blank line
@@ -2308,6 +4061,7 @@ define([
 
                 case '+input':
                 case 'paste':
+                case 'brightspotPaste':
 
                     // Are we inserting at a cursor, or replacing a range?
                     if (changeObj.from.line === changeObj.to.line && changeObj.from.ch === changeObj.to.ch) {
@@ -2329,6 +4083,10 @@ define([
                         // In case we are inserting inside a deleted block,
                         // make sure the new text we are adding is not also marked as deleted
                         self.inlineRemoveStyle('trackDelete', {from: changeObj.from, to:changeObj.to});
+
+                        // Some text was pasted in and already marked as new,
+                        // but we must remove any regions within that were previously marked deleted
+                        self.trackAfterPaste(changeObj.from, changeObj.to, changeObj.text);
 
                     } else {
 
@@ -2356,11 +4114,27 @@ define([
 
                         // Finally insert the text at the starting point (before the other text in the range that was marked deleted)
                         // Note we add at the front because we're not sure if the end is valid because we might have removed some text
-                        editor.replaceRange(changeObj.text, changeObj.from, undefined, '+brightspotTrackInsert');
-                        
+                        if (changeObj.origin !== 'paste') {
+                            
+                            // TODO: what if the copied region has deleted text?
+                            // Currently the entire content that is pasted will be marked as inserted text,
+                            // but it could have deleted text within it.
+                            // We need to remove that deleted text *after* the new content is pasted in.
+                            editor.replaceRange(changeObj.text, changeObj.from, undefined, '+brightspotTrackInsert');
+                            
+                        }
                     }
                     
                     break;
+
+                case '+brightspotTrackInsert':
+
+                    // Some text was pasted in and already marked as new,
+                    // but we must remove any regions within that were previously marked deleted
+                    self.trackAfterPaste(changeObj.from, changeObj.to, changeObj.text);
+                    
+                    break;
+
                 }
 
             } else {
@@ -2390,7 +4164,7 @@ define([
                             
                             // TODO: this seems to interfere with the undo history
                             
-                            editor.replaceRange(' ', changeObj.from, changeObj.to, 'brighspotTrackSpace');
+                            editor.replaceRange(' ', changeObj.from, changeObj.to);
                             changeObj.update(changeObj.from, {line:changeObj.to.line, ch:changeObj.to.ch + 1});
                         }
 
@@ -2403,12 +4177,53 @@ define([
 
 
         /**
+         * Fix content after it has been pasted. When content is pasted the entire block is marked as a new change;
+         * but if the content already contains text marked as deleted, then that deleted text should be removed.
+         * Also, the "from" and "to" positions we get from the change object are positions *before* the change has been
+         * made, so we must adjust the range based on the text that is added.
+         *
+         * @param [Object] from
+         * @param [Object] to
+         * @param [Array] textArray
+         */
+        trackAfterPaste: function(from, to, textArray) {
+
+            var self;
+            var toNew;
+
+            self = this;
+            
+            // Figure out the new range based on the original range and the replacement text
+            toNew = {
+                line: from.line + textArray.length - 1,
+                ch: textArray[ textArray.length - 1 ].length
+            };
+            if (toNew.line == from.line) {
+                toNew.ch += from.ch;
+            }
+
+            // If not actually adding new content, do nothing (to prevent infinite loop in some cases)
+            if (toNew.line === from.line && toNew.ch === from.ch) {
+                return;
+            }
+            
+            // Use a timeout so the change can be completed before we attempt to remove the deleted text
+            setTimeout(function(){
+                self.inlineRemoveStyle('trackDelete', {from:from, to:toNew}, {deleteText:true, triggerChange:false});
+            }, 1);
+            
+        },
+
+        
+        /**
          * For a given range, mark everything as deleted.
          * Also remove any previously inserted content within the range.
          */
         trackMarkDeleted: function(range) {
             
-            var editor, self;
+            var editor;
+            var self;
+            var textOriginal;
 
             self = this;
             editor = self.codeMirror;
@@ -2420,6 +4235,10 @@ define([
                 return;
             }
 
+            if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                return;
+            }
+            
             // Determine if every character in the range is already marked as an insertion.
             // In this case we can just delete the content and don't need to mark it as deleted.
             if (self.inlineGetStyles(range).trackInsert !== true) {
@@ -2436,7 +4255,8 @@ define([
          */ 
         trackAcceptRange: function(range) {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -2458,7 +4278,8 @@ define([
          */ 
         trackRejectRange: function(range) {
             
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -2479,19 +4300,27 @@ define([
          */
         trackAcceptMark: function(mark) {
 
-            var editor, position, self;
+            var editor;
+            var position;
+            var self;
 
             self = this;
             editor = self.codeMirror;
             
             position = mark.find();
 
-            if (position && mark.className === self.styles.trackDelete.className) {
-                editor.replaceRange('', position.from, position.to, '+brightspotTrackRejectMark');
+            if (position) {
+                if (mark.className === self.styles.trackDelete.className) {
+                    // For a delete mark, remove the content
+                    mark.clear();
+                    editor.replaceRange('', position.from, position.to);
+                    self.triggerChange();
+                } else if (mark.className === self.styles.trackInsert.className) {
+                    // For an insert mark, leave the content and remove the mark
+                    mark.clear();
+                    self.triggerChange();
+                }
             }
-            
-            mark.clear();
-            self.triggerChange();
         },
 
 
@@ -2500,19 +4329,28 @@ define([
          */
         trackRejectMark: function(mark) {
 
-            var editor, position, self;
+            var editor;
+            var position;
+            var self;
 
             self = this;
             editor = self.codeMirror;
             
             position = mark.find();
 
-            if (position && mark.className === self.styles.trackInsert.className) {
-                editor.replaceRange('', position.from, position.to, '+brightspotTrackRejectMark');
+            if (position) {
+                if (mark.className === self.styles.trackInsert.className) {
+                    // For an insert mark, remove the content
+                    mark.clear();
+                    editor.replaceRange('', position.from, position.to);
+                    self.triggerChange();
+                } else if (mark.className === self.styles.trackDelete.className) {
+                    // For a delete mark, leave the content and remove the mark
+                    mark.clear();
+                    self.triggerChange();
+                }
             }
             
-            mark.clear();
-            self.triggerChange();
         },
 
 
@@ -2572,7 +4410,10 @@ define([
          */
         trackDisplayUpdate: function() {
             
-            var editor, pos, self, $wrapper;
+            var editor;
+            var pos;
+            var self;
+            var $wrapper;
 
             self = this;
             editor = self.codeMirror;
@@ -2620,7 +4461,12 @@ define([
         
         clipboardInit: function() {
             
-            var editor, isFirefox, isWindows, self, $wrapper;
+            var editor;
+            var isFirefox;
+            var isWindows;
+            var self;
+            var $wrapper;
+            
             self = this;
 
             editor = self.codeMirror;
@@ -2635,6 +4481,13 @@ define([
             // Note if using hte workaround below this will not fire on Ctrl-V paste
             $wrapper.on('paste', function(e){
                 self.clipboardPaste(e.originalEvent);
+            });
+
+            // Cancel any pastes handled by CodeMirror
+            editor.on('beforeChange', function(cm, change) {
+                if (change.origin == 'paste') {
+                    change.cancel();
+                }
             });
 
             // Workaround for problem in Firefox clipboard not supporting styled content from Microsoft Word
@@ -2660,8 +4513,6 @@ define([
                 // the content that is pasted in from Microsoft Word
                 // while the clipboard API does not have access to the text/html.
                 $wrapper.on('keydown', function(e) {
-
-                    var x, y;
                     
                     if ((e.ctrlKey || e.metaKey) && e.keyCode == 86) {
 
@@ -2687,7 +4538,14 @@ define([
          */
         clipboardPaste: function(e) {
             
-            var allowRaw, isWorkaround, self, value, valueHTML, valueRTE, valueText;
+            var allowRaw;
+            var isWorkaround;
+            var self;
+            var value;
+            var valueHTML;
+            var valueRTE;
+            var valueText;
+            
             self = this;
 
             // If we are using the workaround:
@@ -2799,28 +4657,77 @@ define([
          */
         clipboardSanitize: function(html) {
             
-            var dom, $el, self;
+            var dom;
+            var $el;
+            var self;
             
             self = this;
             dom = self.htmlParse(html);
             $el = $(dom);
 
-            // Apply the clipboard sanitize rules (if any)
-            if (self.clipboardSanitizeRules) {
-                $el.find('p').after('<br/>');
-                $.each(self.clipboardSanitizeRules, function(selector, style) {
-                    $el.find(selector).wrapInner( $('<span>', {'data-rte2-sanitize': style}) );
-                });
-            }
+            // Check if the pasted content matches a particular content type from clipboardSanitizeTypes
+            $.each(self.clipboardSanitizeTypes, function(typeName, typeConf) {
+                var isType;
+                if (typeConf.isType && typeConf.rules) {
+                    isType = typeConf.isType($el, html);
+                    if (isType) {
+                        // The pasted content matches this type, so apply these rules
+                        self.clipboardSanitizeApplyRules($el, typeConf.rules);
+                    }
+                }
+            });
+            
+            self.clipboardSanitizeApplyRules($el, self.clipboardSanitizeRules);
+
+            // Anything we replaced with "linebreak" should get an extra blank line after
+            // unless it's the last child element within the parent (to prevent
+            // extra line breaks within table cells for example).
+            $el.find('[data-rte2-sanitize=linebreak]').not(':last-child').after('<br/>');
 
             // Run it through the clipboard sanitize function (if it exists)
             if (self.clipboardSanitizeFunction) {
                 $el = self.clipboardSanitizeFunction($el);
             }
 
-            return $el[0];
+            // Now parse the DOM and convert it to it only contains the HTML we allow.
+            // This will also go inside table cells to leave us with what we consider
+            // valid HTML.
+            html = self.limitHTML($el[0]);
+            
+            return html;
         },
 
+        
+        /**
+         * Internal function to apply a set of sanitize rules to the content.
+         * @param {jQuery} $content
+         * @param {Object} rules
+         */
+        clipboardSanitizeApplyRules: function($content, rules) {
+            
+            $.each(rules, function(selector, style) {
+                
+                $content.find(selector).each(function(){
+                    var $match;
+                    var $replacement;
+
+                    $match = $(this);
+                    
+                    if ($.isFunction(style)) {
+                        style($match);
+                    } else {
+                        $replacement = $('<span>', {'data-rte2-sanitize': style});
+                        $replacement.append( $match.contents() );
+                        if ($match[0].tagName.toLowerCase() === 'td'){
+                            $match.append( $replacement );
+                        }else {
+                            $match.replaceWith( $replacement );
+                        } 
+                    }
+                });
+            });
+        },
+        
         
         /**
          * @param {Event} e
@@ -2831,7 +4738,12 @@ define([
          */
         clipboardCopy: function(e) {
             
-            var editor, html, range, self, text;
+            var editor;
+            var html;
+            var range;
+            var self;
+            var text;
+            
             self = this;
             editor = self.codeMirror;
             
@@ -2908,7 +4820,12 @@ define([
          */
         spellcheckUpdate: function() {
 
-            var self, text, wordsArray, wordsArrayUnique, wordsRegexp, wordsUnique;
+            var self;
+            var text;
+            var wordsArray;
+            var wordsArrayUnique;
+            var wordsRegexp;
+            var wordsUnique;
 
             self = this;
             
@@ -2916,7 +4833,7 @@ define([
             text = self.toText() || '';
 
             // Split into words
-            wordsRegexp = self.spellcheckWordCharacters; // new RegExp('[' + self.spellcheckWordCharacters + ']+', 'g');
+            wordsRegexp = self.spellcheckWordCharacters;
             wordsArray = text.match( wordsRegexp );
         
             if (!wordsArray) {
@@ -2939,57 +4856,70 @@ define([
 
                 self.spellcheckClear();
 
-                $.each(wordsArrayUnique, function(i,word) {
+                // Prevent CodeMirror from updating the DOM until we finish
+                self.codeMirror.operation(function() {
                     
-                    var adjacent, range, result, index, indexStart, indexWord, range, split, wordLength;
-
-                    wordLength = word.length;
-                    
-                    // Check if we have replacements for this word
-                    result = results[word];
-                    if ($.isArray(result)) {
+                    $.each(wordsArrayUnique, function(i,word) {
                         
-                        // Find the location of all occurances
-                        indexStart = 0;
-                        while ((index = text.indexOf(word, indexStart)) > -1) {
+                        var adjacent;
+                        var ch;
+                        var index;
+                        var indexStart;
+                        var line;
+                        var range;
+                        var result;
+                        var split;
+                        var wordLength;
 
-                            // Move the starting point so we can find another occurrance of this word
-                            indexStart = index + wordLength;
+                        wordLength = word.length;
+                        
+                        // Check if we have replacements for this word
+                        result = results[word];
+                        if ($.isArray(result)) {
                             
-                            // Make sure we're at a word boundary on both sides of the word
-                            // so we don't mark a string in the middle of another word
-                            
-                            if (index > 0) {
-                                adjacent = text.substr(index - 1, 1);
-                                if (adjacent.match(wordsRegexp)) {
-                                    continue;
+                            // Find the location of all occurances
+                            indexStart = 0;
+                            while ((index = text.indexOf(word, indexStart)) > -1) {
+
+                                // Move the starting point so we can find another occurrance of this word
+                                indexStart = index + wordLength;
+                                
+                                // Make sure we're at a word boundary on both sides of the word
+                                // so we don't mark a string in the middle of another word
+
+                                if (index > 0) {
+                                    adjacent = text.substr(index - 1, 1);
+                                    if (adjacent.match(wordsRegexp)) {
+                                        continue;
+                                    }
                                 }
-                            }
 
-                            if (index + wordLength < text.length) {
-                                adjacent = text.substr(index + wordLength, 1);
-                                if (adjacent.match(wordsRegexp)) {
-                                    continue;
+                                if (index + wordLength < text.length) {
+                                    adjacent = text.substr(index + wordLength, 1);
+                                    if (adjacent.match(wordsRegexp)) {
+                                        continue;
+                                    }
                                 }
+
+                                // Figure out the line and character for this word
+                                split = text.substring(0, index).split("\n");
+                                line = split.length - 1;
+                                ch = split[line].length;
+
+                                range = {
+                                    from: {line:line, ch:ch},
+                                    to:{line:line, ch:ch + wordLength}
+                                };
+
+                                // Add a mark to indicate this is a misspelling
+                                self.spellcheckMarkText(range, result);
+
                             }
-                            
-                            // Figure out the line and character for this word
-                            split = text.substring(0, index).split("\n");
-                            line = split.length - 1;
-                            ch = split[line].length;
-
-                            range = {
-                                from: {line:line, ch:ch},
-                                to:{line:line, ch:ch + wordLength}
-                            };
-                            
-                            // Add a mark to indicate this is a misspelling
-                            self.spellcheckMarkText(range, result);
-
                         }
-                    }
+                        
+                    }); // $.each()
                     
-                });
+                }); // codeMirror.operation()
                 
             }).fail(function(status){
                 
@@ -3012,7 +4942,10 @@ define([
          */
         spellcheckMarkText: function(range, result) {
 
-            var editor, markOptions, self;
+            var editor;
+            var mark;
+            var markOptions;
+            var self;
 
             self = this;
             
@@ -3038,17 +4971,22 @@ define([
          */
         spellcheckClear: function() {
 
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
 
             editor = self.codeMirror;
-            
-            // Loop through all the marks and remove the ones that were marked
-            editor.getAllMarks().forEach(function(mark) {
-                if (mark.className === 'rte2-style-spelling') {
-                    mark.clear();
-                }
+
+            // Do not update the DOM until done with all operations
+            editor.operation(function(){
+                
+                // Loop through all the marks and remove the ones that were marked
+                editor.getAllMarks().forEach(function(mark) {
+                    if (mark.className === 'rte2-style-spelling') {
+                        mark.clear();
+                    }
+                });
             });
         },
 
@@ -3067,7 +5005,11 @@ define([
          */
         spellcheckShow: function(range) {
 
-            var editor, marks, pos, range, self, suggestions;
+            var editor;
+            var marks;
+            var pos;
+            var self;
+            var suggestions;
 
             self = this;
 
@@ -3130,7 +5072,88 @@ define([
 
         },
 
+        //==================================================
+        // Mode Functions
+        // Switch between plain text and rich text modes
+        //==================================================
+        
+        modeInit: function() {
+            var self = this;
+            self.mode = 'rich';
+        },
 
+
+        /**
+         * Returns the current mode.
+         * @returns {String} 'plain' or 'rich'
+         */
+        modeGet: function() {
+            var self = this;
+            return self.mode === 'plain' ? 'plain' : 'rich';
+        },
+
+        
+        modeToggle: function() {
+            
+            var self = this;
+            var mode;
+
+            mode = self.modeGet();
+
+            if (mode === 'rich') {
+                self.modeSetPlain();
+            } else {
+                self.modeSetRich();
+            }
+        },
+
+        
+        modeSetPlain: function() {
+            var self = this;
+            var editor = self.codeMirror;
+            var $wrapper = $(editor.getWrapperElement());
+
+            self.mode = 'plain';
+            
+            $wrapper.hide();
+
+            if (self.$el.is('textarea')) {
+                self.$el.show();
+            }
+
+            self.historyClear();
+            
+            // Trigger an event on the textarea to notify other code that the mode has been changed
+            self.modeTriggerEvent();
+        },
+
+        
+        modeSetRich: function() {
+            var self = this;
+            var editor = self.codeMirror;
+            var $wrapper = $(editor.getWrapperElement());
+            
+            self.mode = 'rich';
+            
+            if (self.$el.is('textarea')) {
+                self.$el.hide();
+            }
+            $wrapper.show();
+            self.historyClear();
+            
+            // Trigger an event on the textarea to notify other code that the mode has been changed
+            self.modeTriggerEvent();
+        },
+
+        
+        /**
+         * Trigger an event on the textarea to notify other code that the mode has been changed.
+         */
+        modeTriggerEvent: function() {
+            var self = this;
+            self.$el.trigger('rteModeChange', [self.modeGet()]);
+        },
+        
         //==================================================
         // Case Functions (lower case and uppper case)
         //
@@ -3149,7 +5172,10 @@ define([
          */
         caseToggleSmart: function(range) {
             
-            var editor, self, text, textUpper;
+            var editor;
+            var self;
+            var text;
+            var textUpper;
 
             self = this;
             
@@ -3175,23 +5201,11 @@ define([
          */
         caseToLower: function(range) {
             
-            var html, node, self;
+            var self;
 
             self = this;
-
-            range = range || self.getRange();
-
-            // Get the HTML for the range
-            html = self.toHTML(range);
-
-            // Convert the text nodes to lower case
-            node = self.htmlToLowerCase(html);
             
-            // Save it back to the range as lower case text
-            self.fromHTML(node, range, true);
-
-            // Reset the selection range since it will be wiped out
-            self.setSelection(range);
+            self.caseChange(range, 'toLowerCase');
         },
 
         
@@ -3201,23 +5215,76 @@ define([
          */
         caseToUpper: function(range) {
             
-            var html, node, self;
+            var self;
 
             self = this;
 
+            self.caseChange(range, 'toUpperCase');
+        },
+
+        /**
+         * Change to upper or lower case.
+         *
+         * @param {Object} [range=current range]
+         *
+         * @param {String} [direction=toUpperCase]
+         * Can be 'toLowerCase', or 'toUpperCase'. Default is 'toUpperCase'
+         * 
+         */
+        caseChange: function(range, direction) {
+            
+            var chEnd;
+            var chMax;
+            var chStart;
+            var editor;
+            var html;
+            var line;
+            var lineRange;
+            var lineText;
+            var node;
+            var self;
+            
+            self = this;
+            editor = self.codeMirror;
+            
             range = range || self.getRange();
+            direction = (direction === 'toLowerCase') ? 'toLowerCase' : 'toUpperCase';
 
-            // Get the HTML for the range
-            html = self.toHTML(range);
+            // Loop through each line.
+            // We need to change case one line at a time because of limitations in CodeMirror
+            // (it wipes out line classes if we replace the text all at once)
+            // So this will ensure things like enhancements and tables don't get wiped
+            // out or duplicated, but other styles remain intact.
+            for (line = range.from.line; line <= range.to.line; line++) {
 
-            // Convert the text nodes to upper case
-            node = self.htmlToUpperCase(html);
+                lineText = editor.getLine(line) || '';
+                
+                // How many characters in the current line?
+                chMax = lineText.length;
+                
+                chStart = (line === range.from.line) ? range.from.ch : 0;
+                chEnd = (line === range.to.line) ? range.to.ch: chMax;
+
+                lineRange = {from:{line:line, ch:chStart}, to:{line:line, ch:chEnd}};
+                
+                // Get the HTML for the range
+                html = self.toHTML(lineRange, {enhancements:false});
+
+                // Convert the text nodes to lower case
+                if (direction === 'toLowerCase') {
+                    node = self.htmlToLowerCase(html);
+                } else {
+                    node = self.htmlToUpperCase(html);
+                }
             
-            // Save it back to the range as lower case text
-            self.fromHTML(node, range, true);
-            
+                // Save it back to the range as lower case text
+                self.fromHTML(node, lineRange, true);
+            }
+
             // Reset the selection range since it will be wiped out
             self.setSelection(range);
+            
+            return;
         },
 
         
@@ -3248,7 +5315,8 @@ define([
          * @param {String|DOM} html
          */
         htmlChangeCase: function(html, upper) {
-            var node, self;
+            var node;
+            var self;
             
             self = this;
             
@@ -3267,7 +5335,11 @@ define([
          * Set to true for upper case, or false for lower case.
          */
         htmlChangeCaseProcessNode: function(node, upper) {
-            var childNodes, i, length, self;
+            var childNodes;
+            var i;
+            var length;
+            var self;
+            
             self = this;
             
             if (node.nodeType === 3) {
@@ -3287,6 +5359,587 @@ define([
         // caseToggle (toggle case of each character)
         // caseSentence (first word cap, others lower)
         // caseTitle (first letter of each word)
+
+        
+        //==================================================
+        // Undo/Redo/History Functions
+        // See also: https://github.com/ArthurClemens/Javascript-Undo-Manager
+        //==================================================
+
+        /**
+         * Initialize the history system for undo/redo.
+         * This replaces the CodeMirror undo/redo with our own,
+         * since CodeMirror doesn't save marks when deleting text.
+         */
+        historyInit: function() {
+            
+            var self, undo;
+            self = this;
+
+            // Create the undo manager object
+            undo = self.undoManager = new UndoManager();
+
+            // Save a limited amount of undo data
+            undo.setLimit(1000);
+
+            // Replace the CodeMirror undo and redo functions with our own
+            self.codeMirror.undo = function(){
+                self.historyUndo();
+            };
+        
+            self.codeMirror.redo = function(){
+                self.historyRedo();
+            };
+
+            // Set up a history queue so multiple changes can be batched together into
+            // a single undo action
+            self.historyQueue = [];
+            
+            // Trigger an event to fire whenever an undo or redo event occurs,
+            // just in case someone wants to listen for it.
+            // Pass "this" as an argument to the event listeners.
+            undo.setCallback(function(){
+                self.$el.trigger('rteHistory', [self]);
+            });
+
+            // Listen for CodeMirror change events and add to our history.
+            self.codeMirror.on('beforeChange', function(instance, beforeChange) {
+                self.historyHandleCodeMirrorEvent(beforeChange);
+            });
+        },
+
+        
+        /**
+         * Add to the history.
+         *
+         * Note if the user has performed undo actions, adding to the history
+         * resets the "redo" counter, so you can no longer redo the actions that
+         * were undone.
+         *
+         * @param {Object} data
+         * @param {Function} data.undo
+         * @param {Function} data.redo
+         *
+         * @example
+         * rte.historyAdd({
+         *   undo: function(){
+         *     // do something to remove the edit
+         *   },
+         *   redo: function() {
+         *     // do something to add the edit back in
+         *   }
+         * });
+         */
+        historyAdd: function(data) {
+            var self;
+            self = this;
+
+            // Don't add to history if we're in the middle of an undo or redo 
+            if (self.historyIsExecuting()) {
+                return;
+            }
+
+            // Set a timeout to add this entry to the history,
+            // so it can be combined with other entries
+            clearTimeout(self.historyQueueTimeout);
+            self.historyQueue.push(data);
+            self.historyQueueTimeout = setTimeout(function(){
+                self.historyProcessQueue();
+            }, 1250);
+
+        },
+
+        
+        /**
+         * Add all the queued events to the history immediately,
+         * then clear the queued events list.
+         */
+        historyProcessQueue: function() {
+            
+            var queue, self;
+            self = this;
+            
+            clearTimeout(self.historyQueueTimeout);
+
+            if (self.historyQueue.length === 0) {
+                return;
+            }
+            
+            // Clone the historyQueue
+            queue = self.historyQueue.slice(0);
+
+            // Clear the historyQueue
+            self.historyQueue = [];
+
+            // Add to the history so all the queued changes will get undo/redo
+            self.undoManager.add({
+                undo: function(){
+                    // Note: in javascript array reverse is in-place.
+                    // So when we redo we'll have to reverse it again
+                    // to get back the original order.
+                    $.each(queue.reverse(), function(i,data) {
+                        data.undo();
+                    });
+                },
+                redo: function(){
+                    // Note: in javascript array reverse is in-place
+                    $.each(queue.reverse(), function(i,data) {
+                        data.redo();
+                    });
+                }
+            });
+        },
+
+        
+        /**
+         * Perform an undo.
+         */
+        historyUndo: function() {
+            var self;
+            self = this;
+
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            // Tell CodeMirror to avoid updating the DOM until we are done
+            self.codeMirror.operation(function(){
+                self.historyExecuting = true;
+                self.undoManager.undo();
+                self.historyExecuting = false;
+            });
+        },
+
+        
+        /**
+         * Perform a redo.
+         */
+        historyRedo: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+
+            // Make sure changes that are queued up are added to the history
+            self.codeMirror.operation(function(){
+                self.historyExecuting = true;
+                self.undoManager.redo();
+                self.historyExecuting = false;
+            });
+        },
+
+        
+        /**
+         * Clear the undo history.
+         */
+        historyClear: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            self.undoManager.clear();
+        },
+
+        
+        /**
+         * Determine if there are any entries in the undo history.
+         */
+        historyHasUndo: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            return self.undoManager.hasUndo();
+        },
+
+        
+        /**
+         * Determine if there are any entries in the undo history.
+         */
+        historyHasRedo: function() {
+            var self;
+            self = this;
+            
+            // Make sure changes that are queued up are added to the history
+            self.historyProcessQueue();
+            
+            return self.undoManager.hasRedo();
+        },
+
+
+        /**
+         * @returns Boolean
+         * Value to tell if a history undo or redo action is currently executing.
+         * Note this only works for synchronous code, if the undo/redo action causes
+         * async code, this will not be accurate.
+         */
+        historyIsExecuting: function() {
+            var self;
+            self = this;
+            return Boolean(self.historyExecuting);
+        },
+
+
+        /**
+         * Handle the beforeChange event from CodeMirror to add to the undo history.
+         * @param {Object} beforeChange
+         * The beforeChange event from CodeMirror.
+         */
+        historyHandleCodeMirrorEvent: function(beforeChange) {
+            
+            var change, marks, marksAndMore, self;
+
+            self = this;
+            
+            // Ignore changes if we're currently performing an undo or redo operation
+            if (self.historyIsExecuting()) {
+                return;
+            }
+                
+            // Ignore changes where we set the origin containing "brightspot",
+            // because in those instances we will add directly to the history
+            if (beforeChange.origin && beforeChange.origin.indexOf('brightspot') !== -1 || beforeChange.origin === 'paste') {
+                return;
+            }
+                
+            // Save a list of the marks that are defined in this range.
+            // We also need to get the position of each mark, because if CodeMirror
+            // removes the mark along with the removed text, then we won't
+            // be able to find the original position of the mark anymore.
+            marks = self.codeMirror.findMarks(beforeChange.from, beforeChange.to);
+            marksAndMore = [];
+            $.each(marks, function(i, mark) {
+                    
+                var markAndMore, pos;
+                
+                // Skip spelling marks
+                if (mark.className === 'rte2-style-spelling') {
+                    return;
+                }
+                
+                markAndMore = {
+                    mark:mark
+                };
+                    
+                if (mark.find) {
+                    pos = mark.find();
+                    markAndMore.position = {
+                        from: { line: pos.from.line, ch: pos.from.ch },
+                        to: { line: pos.to.line, ch: pos.to.ch }
+                    };
+                } else {
+                    // Skip if mark has been removed from the document
+                    return;
+                }
+
+                // Skip empty marks
+                if (pos.from.line == pos.to.line && pos.from.ch === pos.to.ch) {
+                    return;
+                }
+                
+                // Retain the options from the old mark
+                markAndMore.options = self.historyGetOptions(mark);
+                
+                marksAndMore.push(markAndMore);
+            });
+
+            change = {
+                origin: beforeChange.origin,
+                from: beforeChange.from,
+                to: beforeChange.to,
+                text: beforeChange.text,
+                removed: self.codeMirror.getRange(beforeChange.from, beforeChange.to).split('\n'),
+
+                // Save the marks as part of the change object so we can recreate them on undo
+                marks: marksAndMore
+            };
+                
+            self.historyAdd({
+                undo: function() {
+                    self.historyUndoCodeMirrorChange(change);
+                },
+                redo: function() {
+                    self.historyRedoCodeMirrorChange(change);
+                }
+            });
+        },
+
+        /**
+         * Return a list of options that we want to keep from a mark.
+         * To be used when re-creating the mark.
+         * @param  {Object} mark CodeMirror mark
+         * @return {Object} A set of key/value pairs.
+         */
+        historyGetOptions: function(mark) {
+            var options;
+            options = {};
+            $.each(mark, function(prop, value) {
+                switch (prop) {
+                    // List of properties that should be copied/retained from the old mark
+                    // and passed as options on the new mark
+                case 'atomic':
+                case 'attributes':
+                case 'className':
+                case 'clearWhenEmpty':
+                case 'endStyle':
+                case 'startStyle':
+                case 'historyFind':
+                case 'inclusiveRight':
+                case 'inclusiveLeft':
+                case 'triggerChange':
+                    options[prop] = value;
+                }
+            });
+            return options;
+        },
+        
+        /**
+         * Perform an undo action based on a CodeMirror change event that was stored in the history.
+         *
+         * Change event looks like something like this:
+         * {
+         *   "from":{"line":1,"ch":2}, // Coordinates before the change
+         *   "to":{"line":1,"ch":5}, // Coordinates before the change
+         *   "text":["f"], // Text to be added
+         *   "removed":["sti"], // Text that will be removed
+         *   "origin":"+input"
+         * }
+         */
+        historyUndoCodeMirrorChange: function(change) {
+
+            var from, self, to;
+
+            self = this;
+        
+            // Reverse the change event so we put back what was previously there
+            from = change.from;
+            to = {
+                line: from.line + change.text.length - 1,
+                ch: from.ch + change.text[0].length
+            };
+            
+            if (change.text.length > 1) {
+                to.ch = change.text[ change.text.length - 1 ].length;
+            }
+
+            self.codeMirror.replaceRange(change.removed.join('\n'), from, to, 'brightspotUndo');
+            
+            // Now re-add the marks that were possibly removed
+            self.historyCodeMirrorChangeMarks(change);
+        },
+
+        
+        /**
+         * Perform a "redo" action based on a CodeMirror change event that was stored in the history.
+         *
+         * Change event looks like something like this:
+         * {
+         *   "from":{"line":1,"ch":2}, // Coordinates before the change
+         *   "to":{"line":1,"ch":5}, // Coordinates before the change
+         *   "text":["f"], // Text to be added
+         *   "removed":["sti"], // Text that will be removed
+         *   "origin":"+input"
+         * }
+         */
+        historyRedoCodeMirrorChange: function(change) {
+            var editor, self;
+            self = this;
+            editor = self.codeMirror;
+
+            // Replace the text
+            editor.replaceRange(change.text.join('\n'), change.from, change.to, 'brightspotRedo');
+        },
+
+        
+        /**
+         * When doing an undo or redo, recreate marks in the changed area
+         * in case they were modified.
+         */
+        historyCodeMirrorChangeMarks: function(change) {
+            
+            var editor, self;
+            self = this;
+            editor = self.codeMirror;
+            
+            // Re-add the marks that might have been removed due to an undo action
+            if (change.marks && change.marks.length) {
+                $.each(change.marks, function(i, markAndMore) {
+
+                    var mark, markNew, options, position;
+
+                    mark = markAndMore.mark;
+                    position = markAndMore.position;
+                    options = markAndMore.options;
+
+                    // There is a chance that the mark that was saved in this
+                    // change event was cleared and re-created in another change event.
+                    // In that case, a pointer to the new mark was saved on the old mark.
+                    // If we find that pointer, update this to the new one.
+                    while (mark.markNew) {
+                        mark = markAndMore.mark = mark.markNew;
+                    }
+
+                    // Clear the mark because we're going to recreate it.
+                    mark.clear();
+                    
+                    // Recreate a new mark at the previous position.
+                    markNew = editor.markText(position.from, position.to, options);
+                    
+                    // Save a pointer to the new mark on the old mark,
+                    // in case other history events are still pointing to the old mark
+                    mark.markNew = markNew;
+                    
+                    // Update the mark that is saved with the history
+                    markAndMore.mark = markNew;
+                });
+            }
+        },
+
+
+        /**
+         * Remove a mark and add a history event that recreates the mark if the user performs an undo.
+         * @param  {Object} mark A CodeMirror mark.
+         */
+        historyRemoveMark: function(mark) {
+            var options;
+            var pos;
+            var self;
+            self = this;
+            
+            // Save the position of this mark
+            if (mark.find) {
+                pos = mark.find();
+            }
+            if (!pos) {
+                return;
+            }
+            
+            // Save the attributes and options of this mark
+            options = self.historyGetOptions(mark);
+            
+            // Set up a history entry to recreate the mark
+            self.historyAdd({
+                // Undo should recreate the mark
+                undo: function(){
+                    var markNew;
+                    // Find the latest copy of this mark in case other history events have changed it
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark.clear();
+                    markNew = self.codeMirror.markText(pos.from, pos.to, options);
+                    mark.markNew = markNew;
+                    mark = markNew;
+                },
+                // Redo should remove the mark again
+                redo: function(){
+                    // Find the latest copy of this mark in case other history events have changed it
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark.clear();
+                }
+            });
+            
+            // Remove the mark
+            mark.clear();
+        },
+
+
+        /**
+         * Create a mark and add a history event that removes the mark if the user performans an undo.
+         * @param  {[type]} range   Range of characters for the mark.
+         * @param  {[type]} options Options and attributes for the mark.
+         * @return {Object} The mark that was created.
+         */
+        historyCreateMark: function(from, to, options) {
+            var mark;
+            var self;
+            self = this;
+            
+            // Only add a history event if the mark surrounds some characters.
+            if (!(from.line === to.line && from.ch === to.ch)) {
+                
+                self.historyAdd({
+                    undo: function(){
+                        // Find the latest copy of this mark in case other history events have changed it
+                        while (mark.markNew) {
+                            mark = mark.markNew;
+                        }
+                        mark.clear();
+                    },
+                    redo: function(){
+                        var markNew;
+                        // Find the latest copy of this mark in case other history events have changed it
+                        while (mark.markNew) {
+                            mark = mark.markNew;
+                        }
+                        mark.clear();
+                        markNew = self.codeMirror.markText(from, to, options);
+                        mark.markNew = markNew;
+                        mark = markNew;
+                    }
+                });
+            }
+            
+            mark = self.codeMirror.markText(from, to, options);
+            return mark;
+        },
+
+
+        /**
+         * Remove a line class and add a history event that recreates it if the user performans an undo.
+         * @param  {Number} lineNumber
+         * @param  {String} className
+         */
+        historyRemoveLineClass: function(lineNumber, className) {
+            var editor;
+            var self;
+            self = this;
+            editor = self.codeMirror;
+            
+            self.historyAdd({
+                undo: function(){
+                    editor.addLineClass(lineNumber, 'text', className);
+                },
+                redo: function(){
+                    self.blockRemovePreviewForClass(className, lineNumber);
+                    editor.removeLineClass(lineNumber, 'text', className);
+                }
+            });
+            
+            self.blockRemovePreviewForClass(className, lineNumber);
+            editor.removeLineClass(lineNumber, 'text', className);
+        },
+
+        
+        /**
+         * Create a line class and add a history event that removes it if the user performans an undo.
+         * @param  {Number} lineNumber
+         * @param  {String} className
+         */
+        historyCreateLineClass: function(lineNumber, className) {
+            var editor;
+            var self;
+            self = this;
+            editor = self.codeMirror;
+            
+            self.historyAdd({
+                undo: function(){
+                    editor.removeLineClass(lineNumber, 'text', className);
+                },
+                redo: function(){
+                    editor.addLineClass(lineNumber, 'text', className);
+                }
+            });
+            
+            editor.addLineClass(lineNumber, 'text', className);            
+        },
+        
         
         //==================================================
         // Miscelaneous Functions
@@ -3300,11 +5953,17 @@ define([
             var self;
             self = this;
             self.codeMirror.focus();
+            setTimeout(function(){
+                self.dropdownCheckCursor();
+            }, 200);
         },
 
 
         isLineBlank: function(lineNumber) {
-            var editor, self, text;
+            var editor;
+            var self;
+            var text;
+
             self = this;
             editor = self.codeMirror;
 
@@ -3320,7 +5979,10 @@ define([
          */
         moveToNonBlank: function() {
             
-            var editor, line, max, self;
+            var editor;
+            var line;
+            var max;
+            var self;
 
             self = this;
             editor = self.codeMirror;
@@ -3344,7 +6006,7 @@ define([
          * @returns Number
          */
         getCount: function() {
-            var count, self;
+            var self;
             self = this;
             return self.toText().length;
         },
@@ -3359,13 +6021,18 @@ define([
          */
         getRange: function(){
 
+            var from;
             var self;
+            var to;
 
             self = this;
 
+            from = self.codeMirror.getCursor('from');
+            to = self.codeMirror.getCursor('to');
+            
             return {
-                from: self.codeMirror.getCursor('from'),
-                to: self.codeMirror.getCursor('to')
+                from: {line:from.line, ch:from.ch},
+                to: {line:to.line, ch:to.ch}
             };
         },
         
@@ -3374,7 +6041,8 @@ define([
          */
         setSelection: function(range){
 
-            var editor, self;
+            var editor;
+            var self;
 
             self = this;
 
@@ -3392,7 +6060,8 @@ define([
          */
         getRangeAll: function(){
 
-            var self, totalLines;
+            var self;
+            var totalLines;
 
             self = this;
 
@@ -3422,7 +6091,8 @@ define([
          */
         getClassNameMap: function() {
             
-            var self, map;
+            var map;
+            var self;
 
             self = this;
 
@@ -3460,7 +6130,8 @@ define([
          */
         getElementMap: function() {
             
-            var self, map;
+            var map;
+            var self;
 
             self = this;
 
@@ -3485,10 +6156,18 @@ define([
          * You should call this if you modify the size of any enhancement content
          * that is in the editor.
          */
-        refresh: function(mark) {
+        refresh: function() {
             var self;
             self = this;
-            self.codeMirror.refresh();
+            
+            // Set up a debounced refresh so it is not called too often
+            if (!self._refresh) {
+                self._refresh = $.debounce(200, function(){
+                    self.codeMirror.refresh();
+                });
+            }
+            
+            self._refresh();
         },
 
 
@@ -3496,14 +6175,16 @@ define([
          * Empty the editor and clear all marks and enhancements.
          */
         empty: function() {
-            var editor, self;
+            var self;
             self = this;
-            self.codeMirror.setValue('');
-
+            
             // Destroy all enhancements
             $.each(self.enhancementCache, function(i, mark) {
                 self.enhancementRemove(mark);
             });
+
+            // Kill any remaining marks
+            self.codeMirror.swapDoc(CodeMirror.Doc(''));
         },
 
 
@@ -3511,6 +6192,253 @@ define([
             var self;
             self = this;
             self.codeMirror.setCursor(line, ch);
+        },
+
+        readOnlyGet: function() {
+            var self;
+            self = this;
+            return self.codeMirror.isReadOnly();
+        },
+
+        readOnlySet: function(readOnly) {
+            var self;
+            self = this;
+            self.codeMirror.setOption('readOnly', readOnly);
+        },
+        
+        /**
+         * Returns the range for a mark.
+         * @returns {Object}
+         * The range of the mark (with from and to parameters)
+         * or an empty object if the mark has been cleared.
+         */
+        markGetRange: function(mark) {
+            var pos;
+
+            pos = {};
+            if (mark.find) {
+                pos = mark.find() || {};
+            }
+            return pos;
+        },
+
+        
+        /**
+         * For a given range, returns the starting offset in pixels.
+         *
+         * @param {Object} range
+         * @returns {Object}
+         * Offset object {left, right, top, bottom }
+         * Use left,top to represent the point below the first character.
+         */
+        getOffset: function(range) {
+            var self;
+            self = this;
+            range = range || self.getRange();
+            return self.codeMirror.charCoords({line:range.from.line, ch:range.from.ch});
+        },
+
+        
+        /**
+         * Given a CodeMirror mark, replace the text within it
+         * without destroying the mark.
+         * Normally if you were to use the CodeMirror functions to replace a range,
+         * the mark would be destroyed.
+         */
+        replaceMarkText: function(mark, text) {
+            var pos;
+            var self;
+
+            self = this;
+
+            pos = self.markGetRange(mark);
+            if (!pos.from) {
+                return;
+            }
+
+            // Replacing the entire mark range will remove the mark so we need
+            // to add text at the end of the mark, then remove the original text
+            self.codeMirror.replaceRange(text, pos.to, pos.to);
+            if (!(pos.from.line === pos.to.line && pos.from.ch === pos.to.ch)) {
+                self.codeMirror.replaceRange('', pos.from, pos.to);
+            }
+        },
+
+        /**
+         * Given a CodeMirror mark, replace the text within it with HTML,
+         * without destroying the mark. This is intended to be used for
+         * inline enhancments where an external popup sets content in the editor.
+         * It also sets up history so undo/redo actions will correctly
+         * maintain the mark.
+         * 
+         * @param  {[type]} mark [description]
+         * @param  {[type]} html [description]
+         * @return {[type]}      [description]
+         */
+        replaceMarkHTML: function(mark, html) {
+            var clearWhenEmpty;
+            var execute;
+            var inclusiveLeft;
+            var inclusiveRight;
+            var markNew;
+            var range;
+            var reset;
+            var self;
+            self = this;
+                        
+            // Remember the settings for inclusive left and inclusive right
+            // so we can restore them later
+            clearWhenEmpty = mark.clearWhenEmpty;
+            inclusiveLeft = mark.inclusiveLeft;
+            inclusiveRight = mark.inclusiveRight;
+            
+            // Remember the position of the mark because if the mark
+            // gets removed we need to recreate it
+            range = self.markGetRange(mark);
+            
+            reset = function() {
+                while (mark.markNew) {
+                    mark = mark.markNew;
+                }
+                mark.inclusiveLeft = inclusiveLeft;
+                mark.inclusiveRight = inclusiveRight;
+                mark.clearWhenEmpty = clearWhenEmpty;
+            };
+            
+            execute = function() {
+                
+                // There is a chance that the mark that was saved in this
+                // change event was cleared and re-created in another change event.
+                // In that case, a pointer to the new mark was saved on the old mark.
+                // If we find that pointer, update this to the new one.
+                while (mark.markNew) {
+                    mark = mark.markNew;
+                }
+                
+                // If the mark was removed we must recreate it
+                if (!mark.find || !mark.find()) {
+                    
+                    // Recreate a new mark at the previous position.
+                    markNew = self.codeMirror.markText(range.from, range.to, self.historyGetOptions(mark));
+                    
+                    // Save a pointer to the new mark on the old mark,
+                    // in case other history events are still pointing to the old mark
+                    mark.markNew = markNew;
+                    
+                    mark = markNew;
+                }
+                
+                // Change the mark so it will expand when we insert content
+                mark.inclusiveLeft = true;
+                mark.inclusiveRight = true;
+                mark.clearWhenEmpty = false;
+                
+                // Replace the content of the mark
+                if (!self.historyIsExecuting()) {
+                    self.fromHTML(html, range, true, true);
+                    self.blockMarkReadOnly(mark, range);
+                    reset();
+                }
+            };
+            
+            self.historyAdd({
+                undo: function() {
+                    reset();
+                },
+                redo: function() {
+                    // Re-execute the insertion
+                    execute();
+                }
+            });
+            
+            // Execute the insertion now
+            execute();
+
+            // After the change is made, we need to reset the mark
+            self.historyAdd({
+                undo: function() {
+                    // reset();
+                },
+                redo: function() {
+                    reset();
+                }
+            });
+        },
+        
+        
+        /**
+         * Set a property on a mark in a way that supports undo history.
+         * @param  {Object} mark     A CodeMirror mark.
+         * @param  {String} property Name of the property, such as "attributes"
+         * @param  {String} value    Value for the property.
+         */
+        setMarkProperty: function(mark, property, value) {
+        
+            var self;
+            var valueOriginal;
+            self = this;
+            
+            valueOriginal = mark[property];
+            mark[property] = value;
+            
+            self.historyAdd({
+                undo: function() {
+                    // If mark was updated by other history events get latest mark
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark[property] = valueOriginal;
+                },
+                redo: function() {
+                    // If mark was updated by other history events get latest mark
+                    while (mark.markNew) {
+                        mark = mark.markNew;
+                    }
+                    mark[property] = value;
+                }
+            });
+        },
+        
+        /**
+         * Replace a range of text without affecting the style marks
+         * next to or surrounding the range.
+         *
+         * When using the CodeMirror.replaceRange() function, if the
+         * range is next to another mark, adding text to the editor
+         * can have the unwanted side effect of expanding the mark.
+         *
+         * This function takes some steps to ensure that the marks
+         * are not extended.
+         */
+        replaceRangeWithoutStyles: function(from, to, text) {
+
+            var editor, origin, self, toSpace;
+
+            self = this;
+            editor = self.codeMirror;
+            origin = 'brightspotReplaceRangeWithoutStyles';
+            
+            // Replace the range with a single space so we can use it to split
+            // any styles around or next to that range
+            editor.replaceRange(' ', from, to, origin);
+            
+            toSpace = {
+                line: from.line,
+                ch: from.ch + 1
+            };
+            
+            // Remove styles from the single character.
+            // This will split any marks that surround the range.
+            self.removeStyles({
+                from: from,
+                to: toSpace
+            });
+
+            // Insert the text for the undo action after the space so it does not extend any other marks
+            editor.replaceRange(text, toSpace, null, origin);
+            
+            // Now remove the space that we added
+            editor.replaceRange('', from, toSpace, origin);
         },
 
         
@@ -3524,7 +6452,9 @@ define([
          * @return {Boolean}
          */
         elementIsContainer: function(elementName) {
-            var isContainer, self;
+            var isContainer;
+            var self;
+
             self = this;
             isContainer = false;
             $.each(self.styles, function(styleKey, styleObj){
@@ -3545,11 +6475,50 @@ define([
          */
         getKeys: function() {
             
-            var keymap, self;
+            var keymap;
+            var self;
 
             self = this;
 
             keymap = {};
+
+            // Ignore Tab key so it can be used to move focus to the next field
+            keymap['Tab'] = false;
+            keymap['Shift-Tab'] = false;
+
+            // If at the start of an indented line, backspace should remove the indent or the list style
+            keymap['Backspace'] = function(cm){
+                var indent;
+                var listType;
+                var range;
+                range = self.getRange();
+                indent = self.blockGetIndent(range.from.line);
+                listType = self.blockGetListType(range.from.line);
+                if (indent > 0 && range.from.ch === 0 && range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                    if (listType && indent === 1) {
+                        self.blockRemoveStyle(listType, range);
+                    }
+                    self.blockDeltaIndent(range.from.line, -1);
+                } else {
+                    // Do a normal backspace operation
+                    cm.execCommand('delCharBefore');
+                }
+            };
+            
+            
+            // Alt-Right key should increase the indent of the line.
+            keymap['Alt-Right'] = function(cm){
+                var range;
+                range = self.getRange();
+                self.blockDeltaIndent(range.from.line, 1);
+            };
+            
+            // Alt-Left key should decrease the indent of the line.
+            keymap['Alt-Left'] = function(cm){
+                var range;
+                range = self.getRange();
+                self.blockDeltaIndent(range.from.line, -1);
+            };
 
             keymap['Shift-Enter'] = function (cm) {
                 // Add a carriage-return symbol and style it as 'newline'
@@ -3575,7 +6544,15 @@ define([
                     
                     $.each(keys, function(i, keyName) {
                         keymap[keyName] = function (cm) {
-                            return self.toggleStyle(styleKey);
+                            var $button = self.$el.closest('.rte2-wrapper').find('> .rte2-toolbar [data-rte-style="' + styleKey + '"]').eq(0);
+
+                            if ($button.length > 0) {
+                                $button.click();
+                                return false;
+
+                            } else {
+                                return self.toggleStyle(styleKey);
+                            }
                         };
                     });
                 }
@@ -3584,13 +6561,12 @@ define([
             return keymap;
         },
 
-
         /**
          * Get plain text from codemirror.
          * @returns String
          */
         toText: function() {
-            var count, self;
+            var self;
             self = this;
             return self.codeMirror.getValue();
         },
@@ -3603,8 +6579,16 @@ define([
          * @param {Object} [range=entire document]
          * If this parameter is provided, it is a selection range within the documents.
          * Only the selected characters will be converted to HTML.
+         *
+         * @param {Object} [options]
+         * Set of key/value pairs to specify how the HTML is created.
+         *
+         * @param {Boolean} [options.enhancements=true]
+         * Include enhancements in the HTML. Set this to false if enhancements should be
+         * excluded.
+         *
          */
-        toHTML: function(range) {
+        toHTML: function(range, options) {
 
             /**
              * Create the opening HTML element for a given style object.
@@ -3617,21 +6601,22 @@ define([
              * An object containing additional attributes to add to the element.
              * For example: {'style': 'font-weight:bold'}
              */
-            function openElement(styleObj) {
+            function openElement(styleObj, attributes) {
                 
                 var html = '';
 
+                attributes = attributes || {};
+                
                 if (styleObj.markToHTML) {
                     html = styleObj.markToHTML();
                 } else if (styleObj.element) {
+                    
                     html = '<' + styleObj.element;
 
-                    if (styleObj.elementAttr) {
-                        $.each(styleObj.elementAttr, function(attr, value) {
-                            html += ' ' + attr + '="' + value + '"';
-                        });
-                    }
-
+                    $.each($.extend({}, styleObj.elementAttr, styleObj.attributes, attributes), function(attr, value) {
+                        html += ' ' + attr + '="' + self.htmlEncode(value) + '"';
+                    });
+                
                     // For void elements add a closing slash when closing, like <br/>
                     if (self.voidElements[ styleObj.element ]) {
                         html += '/';
@@ -3643,10 +6628,20 @@ define([
                 return html;
             }
 
-            var blockElementsToClose, blockActive, doc, enhancementsByLine, html, self;
+            var blockElementsToClose;
+            var containerActive;
+            var doc;
+            var enhancementsByLine;
+            var html;
+            var lineNo;
+            var rangeWasSpecified;
+            var self;
 
             self = this;
 
+            options = options || {};
+            
+            rangeWasSpecified = Boolean(range);
             range = range || self.getRangeAll();
             
             // Before beginning make sure all the marks are cleaned up and simplified.
@@ -3654,42 +6649,62 @@ define([
             self.inlineCleanup();
 
             // Clean up any "raw html" areas so they do not allow styles inside
-            self.rawCleanup();
+            // Removing this for now as it causes performance problems when there are many raw marks.
+            // However, that means user might be able to mark up raw areas and produce invalid HTML.
+            // self.rawCleanup();
             
             doc = self.codeMirror.getDoc();
 
             // List of block styles that are currently open.
             // We need this so we can continue a list on the next line.
-            blockActive = {};
+            containerActive = [];
             
-            // List of block elements that are currently open
+             // List of block elements that are currently open
             // We need this so we can close them all at the end of the line.
             blockElementsToClose = [];
 
             // Go through all enhancements and figure out which line number they are on
+            //
+            // But do not include enhancements if a range was specified and it's a single line
+            // (this is a hack to handle changing case of the text, we need to convert each
+            // individual line to HTML and copy it back in to the line, to avoid duplicating
+            // enhancements).
+            
             enhancementsByLine = {};
-            $.each(self.enhancementCache, function(i, mark) {
-
-                var lineNo;
-
-                lineNo = self.enhancementGetLineNumber(mark);
+            if (!(rangeWasSpecified && range.from.line === range.to.line)) {
                 
-                if (lineNo !== undefined) {
-                    
-                    // Create an array to hold the enhancements for this line, then add the current enhancement
-                    enhancementsByLine[lineNo] = enhancementsByLine[lineNo] || [];
-                
-                    enhancementsByLine[lineNo].push(mark);
+                for (lineNo = range.from.line; lineNo <= range.to.line; lineNo++) {
+                    enhancementsByLine[lineNo] = self.enhancementGetFromLine(lineNo);
                 }
-            });
-
+            }
+            
             // Start the HTML!
             html = '';
             
             // Loop through the content one line at a time
             doc.eachLine(function(line) {
 
-                var annotationStart, annotationEnd, blockOnThisLine, charNum, charInRange, htmlStartOfLine, htmlEndOfLine, inlineActive, inlineElementsToClose, lineNo, lineInRange, outputChar, raw, rawLastChar;
+                var annotationEnd;
+                var annotationStart;
+                var charInRange;
+                var charNum;
+                var containerClosed;
+                var containerData;
+                var containerOnLine;
+                var htmlEndOfLine;
+                var htmlStartOfLine;
+                var i;
+                var indentLevel;
+                var inlineActive;
+                var inlineActiveIndex;
+                var inlineActiveIndexLast;
+                var inlineElementsToClose;
+                var isVoid;
+                var lineClasses;
+                var lineNo;
+                var outputChar;
+                var raw;
+                var rawLastChar;
 
                 lineNo = line.lineNo();
                 
@@ -3698,93 +6713,170 @@ define([
                 
                 // List of inline styles that are currently open.
                 // We need this because if we close one element we will need to re-open all the elements.
-                inlineActive = {};
-
+                inlineActive = [];
+                
                 // List of inline elements that are currently open
                 // (in the order they were opened so they can be closed in reverse order)
                 inlineElementsToClose = [];
-
-                // Keep track of the block styles we find only on this line,
-                // so we know when to end a list.
-                // For example, if the previous line was in a list,
-                // and the current line contains a list item, then we keep the list open.
-                // But if the current line does not contain a list item then we close the list.
-                blockOnThisLine = {};
+                
+                indentLevel = self.blockGetIndent(lineNo);
+                containerOnLine = false;
 
                 // If lineNo is in range
                 if (range.from.line <= lineNo && range.to.line >= lineNo) {
 
                     // Get any line classes and determine which kind of line we are on (bullet, etc)
-                    // Note this does not support nesting line elements (like a list within a list)
                     // From CodeMirror, the textClass property will contain multiple line styles separated by space
                     // like 'rte2-style-ol rte2-style-align-left'
-                    if (line.textClass) {
+                    lineClasses = (line.textClass || '').split(' ').filter(function(value){
+                        return value !== '';
+                    });
+                    $.each(lineClasses, function() {
                         
-                        $.each(line.textClass.split(' '), function() {
+                        var container;
+                        var containerData;
+                        var containerPrevious;
+                        var i;
+                        var lineStyleData;
+                        var styleObj;
+                        
+                        // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
+                        styleObj = self.classes[this] || {};
+                        
+                        // Get the "container" element for this style (for example: ul or ol)
+                        container = styleObj.elementContainer;
+                        if (container) {
                             
-                            var container, styleObj;
-
-                            // From a line style (like "rte2-style-ul"), determine the style name it maps to (like "ul")
-                            styleObj = self.classes[this];
-                            if (!styleObj) {
-                                return;
-                            }
-
-                            // Get the "container" element for this style (for example: ul or ol)
-                            container = styleObj.elementContainer;
-                            if (container) {
-
-                                // Mark that we found this container, so later we can close off any containers that are not active any more.
-                                // For example this will set blockOnThisLine.ul to true.
-                                blockOnThisLine[container] = true;
+                            containerOnLine = true;
+                            
+                            // There are several possibilities at this point:
+                            // * We are not inside another list and we need to create a new list.
+                            // * We are inside a list already and at the same indent level.
+                            // * We are inside a list already, but the indent level is greater,
+                            //   so we need to create a new nested list.
+                            // * We are inside a list already, but the indent level is less,
+                            //   so we need to close previous lists until we get to the correct indent.
+                            
+                            // Check if we are inside a list already, but the indent level is less,
+                            // so we need to close previous lists until we get to the correct indent.
+                            for (i = containerActive.length; i--; ) {
                                 
-                                // Check to see if we are already inside this container element
-                                if (blockActive[container]) {
-
-                                    // We are currently inside this style so we don't need to open the container element
+                                containerData = containerActive[i];
+                                
+                                if (indentLevel < containerData.indentLevel) {
                                     
+                                    // Now close the previous list that was at a higher indent
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    containerActive.splice(i,1); // remove this container from the array
+                                    
+                                } else if (indentLevel === containerData.indentLevel &&
+                                    container !== containerData.styleObj.elementContainer) {
+                                        
+                                    // Special case:
+                                    // We're at the same indent level, but a different container
+                                    // element (like a UL followed by an OL list).
+                                    // In that case we must close the previous list, and open
+                                    // a new list.
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    
+                                    // Remove this container from the array
+                                    containerActive.splice(i,1);
+                                    
+                                     // Do not continue up the list of active containers
+                                    break;
+                                        
                                 } else {
-
-                                    // We are not already inside this style, so create the container element
-                                    // and remember that we created it
-                                    blockActive[container] = true;
-                                    htmlStartOfLine += '<' + container + '>';
+                                    
+                                    // We're either at the same indent level with the same container,
+                                    // or at a greater indent level.
+                                    // Do not continue up the list of active containers.
+                                    break;
                                 }
                             }
-
+                                
+                            // Check to see if we are already inside this container element and at the same indent level
+                            containerPrevious = containerActive[ containerActive.length - 1 ];
+                            if (containerPrevious &&
+                                container === containerPrevious.styleObj.elementContainer  &&
+                                indentLevel === containerPrevious.indentLevel) {
+                                        
+                                // We are continuting the container from the previous line
+                                // so we don't need to open the container element.
+                                // But we must close any existing block elements from the previous line,
+                                // such as the <LI> element from the last list item,
+                                // because we will be opening up a new <LI> element for this line.
+                                html += '</' + containerPrevious.styleObj.element + '>';
+                                        
+                            } else {
+                                    
+                                // We are not inside the same container element,
+                                // or we are at a different indent level
+                                    
+                                // We are not already inside this style, so create the container element
+                                // and remember that we created it
+                                containerActive.push({
+                                    styleObj: styleObj,
+                                    indentLevel:indentLevel
+                                });
+                                htmlStartOfLine += '<' + container + '>';
+                            }
+                                
+                        } else { // this style does not have a container
+                                                            
+                            // Push this style onto a stack so when we reach the end of the line we can close the element.
+                            // Note the element will be opened later.
+                            if (styleObj.element) {
+                                blockElementsToClose.push(styleObj);
+                            }
+                        }
                             
+                        if (styleObj.element) {
+                                
+                            // Get any attributes that might be defined for this line style
+                            lineStyleData = self.blockGetLineData(styleObj.key, lineNo) || {};
+                                
                             // Now determine which element to create for the line.
                             // For example, if it is a list then we would create an 'LI' element.
-                            htmlStartOfLine += openElement(styleObj);
+                            htmlStartOfLine += openElement(styleObj, lineStyleData.attributes);
+                        }
+                    }); // .each(lineClasses)
 
-                            // Also push this style onto a stack so when we reach the end of the line we can close the element
-                            blockElementsToClose.push(styleObj);
-                            
-                        }); // .each
-                    }// if line.textClass
-                    
-                } // if lineNo is in range
-                
-                // Now that we know which line styles are on this line, we can tell if we need to continue a list
-                // from a previous line, or actually close the list.
-                // Loop through all the blocks that are currently active (from this line and previous lines)
-                // and find the ones that are not active on this line.
-                $.each(blockActive, function(container) {
-
-                    if (!blockOnThisLine[container]) {
-                        delete blockActive[container];
-                        if (container) {
-                            html += '</' + container + '>';
+                    // Now that we have gone through all the line classes,
+                    // we should know if we are in a container on this line
+                    if (!containerOnLine) {
+                        
+                        // We are not inside a container, so we should close all open containers
+                        // that are greater than the current indent level
+                        if (containerActive.length) {
+                            for (i = containerActive.length; i--; ) {
+                                containerData = containerActive[i];
+                                if (indentLevel < containerData.indentLevel) {
+                                    containerClosed = true;
+                                    html += '</' + containerData.styleObj.element + '>';
+                                    html += '</' + containerData.styleObj.elementContainer + '>';
+                                    containerActive.splice(i,1); // remove this container from the array
+                                } else {
+                                    break;
+                                }
+                            }
+                            // If we didn't close one of the containing block elements,
+                            // then we need to put a line break before this text, to separate it from the
+                            // list text: <li>previous_text<br/>this_text
+                            if (!containerClosed) {
+                                html += '<br/>';
+                            }
                         }
                     }
-                });
-
+                } // if lineNo is in range
+ 
                 // Determine if there are any enhancements on this line
-                if (enhancementsByLine[lineNo]) {
+                if (enhancementsByLine[lineNo] && options.enhancements !== false) {
                     
                     $.each(enhancementsByLine[lineNo], function(i,mark) {
 
-                        var enhancmentHTML;
+                        var enhancementHTML;
 
                         // Only include the enhancement if the first character of this line is within the selected range
                         charInRange = (lineNo >= range.from.line) && (lineNo <= range.to.line);
@@ -3807,7 +6899,11 @@ define([
                 }
 
                 // Now add the html for the beginning of the line.
-                html += htmlStartOfLine;
+                if (htmlStartOfLine) {
+                    // Kill the last <br> since it's not needed before a block element
+                    html = html.replace(/<br\/?>$/, '');
+                    html += htmlStartOfLine;
+                }
                 
                 // Get the start/end points of all the marks on this line
                 // For these objects the key is the character number,
@@ -3818,10 +6914,14 @@ define([
                 annotationEnd = {};
                 
                 if (line.markedSpans) {
-                    
-                    $.each(line.markedSpans, function(key, markedSpan) {
-                        
-                        var className, endArray, endCh, mark, startArray, startCh, styleObj;
+
+                    $.each(self.toHTMLSortSpans(line), function(key, markedSpan) {
+
+                        var className;
+                        var endCh;
+                        var mark;
+                        var startCh;
+                        var styleObj;
 
                         startCh = markedSpan.from;
                         endCh = markedSpan.to;
@@ -3877,8 +6977,10 @@ define([
                         } else {
 
                             // There is no custom toHTML function for this
-                            // style, so we'll just use the style object
-                            annotationStart[startCh].push(styleObj);
+                            // style, so we'll just use the style object,
+                            // but we'll also include any attributes that
+                            // were stored on the mark
+                            annotationStart[startCh].push( $.extend(true, {}, styleObj, {attributes:mark.attributes}) );
                         }
                         
                         // Add the element to the start and end annotations for this character
@@ -3906,10 +7008,9 @@ define([
                     // of italicized text, then we must start by displaying <I> element.
                     if (lineNo === range.from.line && charNum === range.from.ch) {
 
-                            $.each(inlineActive, function(className, styleObj) {
-                                var element;
+                            $.each(inlineActive, function(i, styleObj) {
                                 if (!self.voidElements[ styleObj.element ]) {
-                                    inlineElementsToClose.push(styleObj.element);
+                                    inlineElementsToClose.push(styleObj);
                                     html += openElement(styleObj);
                                 }
                             });
@@ -3921,33 +7022,77 @@ define([
                     if (annotationEnd[charNum] || 
                         ((lineNo === range.to.line) && (range.to.ch <= charNum))) {
 
-                        // Close all the active elements in the reverse order they were created
-                        $.each(inlineElementsToClose.reverse(), function(i, element) {
-                            if (element && !self.voidElements[element]) {
-                                html += '</' + element + '>';
-                            }
-                        });
-                        inlineElementsToClose = [];
-
                         // Find out which elements are no longer active
-                        $.each(annotationEnd[charNum] || {}, function(i, styleObj) {
+                        $.each(annotationEnd[charNum] || [], function(i, styleObj) {
+
+                            var element;
+                            var styleToClose;
                             
                             // If any of the styles is "raw" mode, clear the raw flag
                             if (styleObj.raw) {
                                 raw = false;
                             }
                             
-                            delete inlineActive[styleObj.className];
+                            // If any of the styles end a void element, clear the void flag
+                            if (styleObj.void) {
+                                isVoid = false;
+                            }
+
+                            // Find and delete the last occurrance in inlineActive
+                            inlineActiveIndex = -1;
+                            for (i = 0; i < inlineActive.length; i++) {
+                                if (inlineActive[i].key === styleObj.key) {
+                                    inlineActiveIndex = i;
+                                }
+                            }
+                            if (inlineActiveIndex > -1) {
+
+                                // Remove the element from the array of active elements
+                                inlineActive.splice(inlineActiveIndex, 1);
+                                
+                                // Save this index so we can reopen any overlapping styles
+                                // For example if the overlapping marks look like this:
+                                // 1<b>23<i>45</b>67</i>890
+                                // Then when we reach char 6, we need to close the <i> and <b>,
+                                // but then we must reopen the <i>. So our final result will be:
+                                // 1<b>23<i>45</i></b><i>67</i>890
+                                inlineActiveIndexLast = inlineActiveIndex - 1;
+                                
+                                // Close all the active elements in the reverse order they were created
+                                // Only close the style that needs to be closed plus anything after it in the active list
+                                while ((styleToClose = inlineElementsToClose.pop())) {
+                                    
+                                    element = styleToClose.element;
+                                    if (element && !self.voidElements[element]) {
+                                        html += '</' + element + '>';
+                                    }
+                                    
+                                    // Stop when we get to the style we're looking for
+                                    if (styleToClose.key === styleObj.key) {
+                                        break;
+                                    }
+                                }
+                            }
                         });
 
-                        // Re-open elements that are still active
-                        // if we are still in the range
+                        // Re-open elements that are still active if we are still in the range.
                         if (charInRange) {
-                            
-                            $.each(inlineActive, function(className, styleObj) {
-                                var element;
+
+                            $.each(inlineActive, function(i, styleObj) {
+                                
+                                // Only re-open elements after the last element closed
+                                if (i <= inlineActiveIndexLast) {
+                                    return;
+                                }
+
+                                // If it's a void element (that doesn't require a closing element)
+                                // there is no need to reopen it
                                 if (!self.voidElements[ styleObj.element ]) {
-                                    inlineElementsToClose.push(styleObj.element);
+
+                                    // Add the element to the list of elements that need to be closed later
+                                    inlineElementsToClose.push(styleObj);
+
+                                    // Re-open the element
                                     html += openElement(styleObj);
                                 }
                             });
@@ -3968,22 +7113,23 @@ define([
                                 raw = true;
                             }
 
-                            // Make sure this element is not already opened
-                            if (!inlineActive[styleObj.className]) {
+                            // If any of the styles is "void", set a void flag for later
+                            if (styleObj.void) {
+                                isVoid = true;
+                            }
+                            
+                            // Save this element on the list of active elements
+                            inlineActive.push(styleObj);
 
-                                // Save this element on the list of active elements
-                                inlineActive[styleObj.className] = styleObj;
+                            // Open the new element
+                            if (charInRange) {
 
-                                // Open the new element
-                                if (charInRange) {
-
-                                    // Also push it on a stack so we can close elements in reverse order.
-                                    if (!self.voidElements[ styleObj.element ]) {
-                                        inlineElementsToClose.push(styleObj.element);
-                                    }
-
-                                    html += openElement(styleObj);
+                                // Also push it on a stack so we can close elements in reverse order.
+                                if (!self.voidElements[ styleObj.element ]) {
+                                    inlineElementsToClose.push(styleObj);
                                 }
+
+                                html += openElement(styleObj);
                             }
                         });
                     } // if annotationStart
@@ -4010,7 +7156,11 @@ define([
                             // We need to remember if the last character is raw html because
                             // if it is we will not insert a <br> element at the end of the line
                             rawLastChar = true;
-                        
+                        } else if (isVoid) {
+
+                            // For void styles, characters within should be ignored
+                            outputChar = '';
+                            
                         } else {
                         
                             outputChar = self.htmlEncode(outputChar);
@@ -4027,10 +7177,10 @@ define([
 
                 
                 if (range.from.line <= lineNo && range.to.line >= lineNo) {
-                    
+
                     // If we reached end of line, close all the open block elements
                     if (blockElementsToClose.length) {
-                    
+                        
                         $.each(blockElementsToClose.reverse(), function() {
                             var element;
                             element = this.element;
@@ -4039,10 +7189,10 @@ define([
                             }
                         });
                         blockElementsToClose = [];
-
+                        
                     } else if (charInRange && rawLastChar && !self.rawBr) {
                         html += '\n';
-                    } else if (charInRange) {
+                    } else if (charInRange && containerActive.length === 0) {
                         // No block elements so add a line break
                         html += '<br/>';
                     }
@@ -4057,12 +7207,23 @@ define([
             });
 
             // When we finish with the final line close any block elements that are still open
-            $.each(blockActive, function(container) {
-                delete blockActive[container];
-                if (container) {
-                    html += '</' + container + '>';
+            if (blockElementsToClose.length) {
+                $.each(blockElementsToClose.reverse(), function() {
+                    var element;
+                    element = this.element;
+                    if (element) {
+                        html += '</' + element + '>';
+                    }
+                });
+                blockElementsToClose = [];
+            }
+            $.each(containerActive, function(i, containerData) {
+                if (containerData) {
+                    html += '</' + containerData.styleObj.element + '>';
+                    html += '</' + containerData.styleObj.elementContainer + '>';
                 }
             });
+            containerActive = [];
 
             // Find the raw "<" characters (which we previosly replaced with &raw_lt;)
             // and add a data-rte2-raw attribute to each HTML element.
@@ -4075,6 +7236,153 @@ define([
             return html;
             
         }, // toHTML
+
+
+        /**
+         * Sort CodeMirror spans in the order that elements should appear in the HTML output.
+         *
+         * The general logic goes like this:
+         * Output elements in the order they are found.
+         * If two elements start on the same character:
+         * Check for context rules to see if a certain order is required
+         * (like element A is allowed to be inside element B).
+         * If no context rules apply, then apply the style in the reverse order
+         * in which it was added to the content (like if bold was applied, then italic,
+         * the output would be <i><b></b></i>.
+         *
+         * @param {Object] line
+         * A CodeMirror line object.
+         */
+        toHTMLSortSpans: function(line) {
+            
+            var self;
+            var spans;
+            var spansByChar;
+            
+            self = this;
+
+            // First reverse the order of the marks so the last applied will "wrap" any previous marks
+            spans = line.markedSpans.slice(0).reverse();
+
+            // Group the marks by starting character so we can tell if multiple marks start on the same character
+            spansByChar = [];
+            $.each(spans, function() {
+                var char;
+                var span;
+                span = this;
+                char = span.from;
+                spansByChar[char] = spansByChar[char] || [];
+                spansByChar[char].push(span);
+            });
+
+            // Bubble sort the marks for each character based on the context
+            $.each(spansByChar, function() {
+                
+                var compare;
+                var spans;
+                var swapped;
+                var temp;
+                
+                spans = this;
+                if (spans.length > 1) {
+                    do {
+                        swapped = false;
+                        for (var i=0; i < spans.length-1; i++) {
+                            compare = self.toHTMLSpanCompare(spans[i], spans[i+1]);
+                            if (compare === 1) {
+                                temp = spans[i];
+                                spans[i] = spans[i+1];
+                                spans[i+1] = temp;
+                                swapped = true;
+                            }
+                        }
+                    } while (swapped);
+                }
+            });
+
+            // Merge spansByChar back into a single ordered array
+            spans = [];
+            $.each(spansByChar, function(char, charSpans){
+                if (charSpans) {
+                    $.each(charSpans, function(i, span){
+                        spans.push(span);
+                    });
+                }
+            });
+
+            return spans;
+        },
+
+        /**
+         * Function that compares the context of two spans.
+         * @returns {Boolean}
+         * 0 if the order should not be changed
+         * -1 if a should come first
+         * 1 if b should come first
+         */
+        toHTMLSpanCompare: function(a, b) {
+                
+            var classA;
+            var classB;
+            var markerA;
+            var markerB;
+            var outsideA;
+            var outsideB;
+            var self;
+            var styleA;
+            var styleB;
+
+            self = this;
+
+            markerA = a.marker;
+            markerB = b.marker;
+
+            if (!(markerA && markerB)) {
+                return 0;
+            }
+            
+            classA = markerA.className;
+            classB = markerB.className;
+            
+            styleA = self.classes[classA];
+            styleB = self.classes[classB];
+
+            if (!(styleA && styleB)) {
+                return 0;
+            }
+
+            // Check if styleA is allowed to be inside styleB
+            if (styleA.context) {
+                if ($.inArray(styleB.element, styleA.context) !== -1) {
+                    // a is allowed inside b
+                    outsideB = true;
+                }
+            }
+
+            // Check if styleB is allowed to be inside styleA
+            if (styleB.context) {
+                if ($.inArray(styleA.element, styleB.context) !== -1) {
+                    // b is allowed inside a
+                    outsideA = true;
+                }
+            }
+
+            // Determine which style should be first
+            if (outsideA && outsideB) {
+                // Both are allowed inside the other, so do not change order
+                return 0;
+            } else if (outsideA) {
+                // B is allowed inside A
+                return -1;
+            } else if (outsideB) {
+                // A is allowed inside B
+                return 1;
+            } else {
+                // No context or neither allowed inside the other, so do not change order
+                return 0;
+            }
+                
+        },
 
         
         /**
@@ -4092,9 +7400,28 @@ define([
          * By default (or if this is set to true), elements that
          * are not recognized are output and marked as raw HTML.
          */
-        fromHTML: function(html, range, allowRaw) {
+        fromHTML: function() {
+            var args;
+            var self;
+            
+            self = this;
+            args = arguments;
 
-            var annotations, editor, enhancements, el, history, map, self, val;
+            // For performance, tell CodeMirror not to update the DOM
+            // until our fromHTML() has completed.
+            self.codeMirror.operation(function(){
+                self._fromHTML.apply(self, args);
+            });
+        },
+        _fromHTML: function(html, range, allowRaw, retainStyles) {
+
+            var annotations;
+            var editor;
+            var enhancements;
+            var el;
+            var history;
+            var self;
+            var val;
 
             self = this;
             
@@ -4102,12 +7429,6 @@ define([
 
             allowRaw = (allowRaw === false ? false : true);
             
-            // Convert the styles object to an object that is indexed by element,
-            // so we can quickly map an element to a style.
-            // Note there might be more than one style for an element, in which
-            // case we will use attributes to determine if we have a match.
-            map = self.getElementMap();
-
             // Convert HTML into a DOM element so we can parse it using the browser node functions
             el = self.htmlParse(html);
 
@@ -4118,13 +7439,31 @@ define([
             annotations = [];
             enhancements = [];
             
-            function processNode(n, rawParent) {
+            function processNode(n, rawParent, indentLevel) {
                 
-                var elementAttributes, elementName, elementClose, from, isContainer, matchStyleObj, next, raw, rawChildren, split, to, text;
+                var elementAttributes;
+                var elementClose;
+                var elementName;
+                var from;
+                var indentChildren;
+                var isContainer;
+                var matchStyleObj;
+                var next;
+                var raw;
+                var rawChildren;
+                var split;
+                var text;
+                var to;
 
+                indentLevel = indentLevel || 0;
+                
                 next = n.childNodes[0];
 
                 while (next) {
+
+                    indentChildren = indentLevel;
+                    
+                    elementAttributes = {};
 
                     // Check if we got a text node or an element
                     if (next.nodeType === 3) {
@@ -4140,7 +7479,9 @@ define([
                             // Convert newlines to a carriage return character and annotate it
                             text = text.replace(/[\n\r]/g, function(match, offset, string){
 
-                                var from, split, to;
+                                var from;
+                                var split;
+                                var to;
                                 
                                 // Create an annotation to mark the newline so we can distinguish it
                                 // from any other user of the carriage return character
@@ -4178,6 +7519,16 @@ define([
                         
                         val += text;
 
+                        // Set indent level for this line.
+                        if (indentLevel) {
+                            split = val.split("\n");
+                            from =  {
+                                line: split.length - 1,
+                                ch: split[split.length - 1].length
+                            };
+                            annotations.push({from:from, indent:indentLevel});
+                        }
+                        
                     } else if (next.nodeType === 1) {
 
                         // We got an element
@@ -4208,88 +7559,12 @@ define([
                         if (!raw) {
 
                             // Determine if the element maps to one of our defined styles
-                            matchStyleObj = false;
-
-                            // If a data-rte2-sanitize attribute is found on the element, then we are getting this
-                            // html as pasted data from another source. Our sanitzie rules have marked this element
-                            // as being a particular style, so we should force that style to be used.
-                            matchStyleObj = self.styles[ $(next).attr('data-rte2-sanitize') ];
+                            matchStyleObj = self.getStyleForElement(next);
                             
-                            // Multiple styles might map to a particular element name (like <b> vs <b class=foo>)
-                            // so first we get a list of styles that map just to this element name
-                            matchArray = map[elementName];
-                            if (matchArray && !matchStyleObj) {
-
-                                $.each(matchArray, function(i, styleObj) {
-
-                                    var attributesFound;
-
-                                    // Detect blocks that have containers (like "li" must be contained by "ul")
-                                    if (styleObj.elementContainer && styleObj.elementContainer.toLowerCase() !== next.parentElement.tagName.toLowerCase()) {
-                                        return;
-                                    }
-
-                                    attributesFound = {};
-
-                                    // If the style has attributes listed we must check to see if they match this element
-                                    if (styleObj.elementAttr) {
-
-                                        // Loop through all the attributes in the style definition,
-                                        // and see if we get a match
-                                        $.each(styleObj.elementAttr, function(attr, expectedValue) {
-
-                                            var attributeValue;
-
-                                            attributeValue = $(next).attr(attr);
-
-                                            // Check if the element's attribute value matches what we are looking for,
-                                            // or if we're just expecting the attribute to exist (no matter the value)
-                                            if ((attributeValue === expectedValue) ||
-                                                (expectedValue === true && attributeValue !== undefined)) {
-                                                
-                                                // We got a match!
-                                                // But if there is more than one attribute listed,
-                                                // we keep looping and all of them must match!
-                                                attributesFound[attr] = true;
-                                                matchStyleObj = styleObj;
-                                                
-                                            } else {
-                                                
-                                                // The attribute did not match so we do not have a match.
-                                                matchStyleObj = false;
-                                                
-                                                // Stop looping through the rest of the attributes.
-                                                return false;
-                                            }
-                                        });
-
-
-                                    } else {
-                                        
-                                        // There were no attributes specified for this style so we might have a match just on the element
-                                        matchStyleObj = styleObj;
-                                    }
-
-                                    // Check if the element has other attributes that are unexpected
-                                    if (matchStyleObj && !styleObj.elementAttrAny) {
-                                        $.each(elementAttributes, function(attr, value) {
-                                            if (!attributesFound[attr]) {
-                                                // Oops, this element has an extra attribute that is not in our style object,
-                                                // so it should not be considered a match
-                                                matchStyleObj = false;
-                                                return false;
-                                            }
-                                        });
-                                    }
-
-
-                                    // Stop after the first style that matches
-                                    if (matchStyleObj) {
-                                        return false;
-                                    }
-                                });
+                            // Create new line if this is a block element
+                            if (matchStyleObj && matchStyleObj.line) {
+                                val += '\n';
                             }
-
                         }
 
                         // Figure out which line and character for the start of our element
@@ -4300,8 +7575,16 @@ define([
                         };
 
                         // Special case - is this an enhancement?
-                        if ((elementName === 'span' || elementName === 'button') && $(next).hasClass('enhancement')) {
+                        // Note we are treating tables as an enhancement as well.
+                        if ((elementName === 'table') || ((elementName === 'span' || elementName === 'button') && $(next).hasClass('enhancement'))) {
 
+                            // End the last line if necessary
+                            if (val[ val.length - 1] !== '\n') {
+                                val += '\n';
+                                from.line++;
+                                from.ch = 0;
+                            }
+                            
                             enhancements.push({
                                 line: from.line,
                                 $content: $(next)
@@ -4311,18 +7594,32 @@ define([
                             next = next.nextSibling;
                             continue;
                         }
-
-                        // For container elements such as "ul" or "ol", do not allow nested lists within.
-                        // If we find a nested list treat the whole thing as raw html
+                        
+                        // For container elements such as "ul" or "ol", we allow nesting,
+                        // so increment the indent level, and start a new line.
                         isContainer = self.elementIsContainer(elementName);
                         if (isContainer) {
                             
-                            // If there are any nested list items, then we treat this element as raw html
-                            if ($(next).find('li li').length) {
-                                raw = true;
-                                rawChildren = true;
+                            // If inside a nested list, make sure we start nested list on a new line.
+                            // This will account for something like this:
+                            // <ul>
+                            //   <li>
+                            //     some content
+                            //     <ul><li>nested list needs a line break before</li></ul>
+                            //   </li>
+                            // </ul>
+                            if (indentLevel && !val.match(/\n$/)) {
+                                val += '\n';
                             }
                             
+                            // Increase the indent for anything within this container
+                            indentChildren = indentLevel + 1;
+                        }
+                        
+                        // If we are inside a container element, start a new line if we encounter
+                        // a line style (that is not the actual list element)
+                        if (indentLevel && matchStyleObj && matchStyleObj.line && !matchStyleObj.elementContainer) {
+                            val += '\n';
                         }
                         
                         // Do we need to keep this element as raw HTML?
@@ -4373,7 +7670,8 @@ define([
                             annotations.push({
                                 styleObj:matchStyleObj,
                                 from:from,
-                                to:to
+                                to:to,
+                                indent: indentLevel
                             });
                             
                             // Remember we need to close the element later
@@ -4383,7 +7681,7 @@ define([
                         }
 
                         // Recursively go into our element and add more text to the value
-                        processNode(next, rawChildren);
+                        processNode(next, rawChildren, indentChildren);
 
                         if (elementClose) {
 
@@ -4407,13 +7705,12 @@ define([
                         };
 
                         if (matchStyleObj) {
-
                             // Check to see if there is a fromHTML function for this style
                             if (matchStyleObj.fromHTML) {
-
+                                
                                 // Yes, there is a fromHTML function, so as part of this annotation we will create
                                 // a function that reads information from the element and saves it on the mark.
-
+                                
                                 // Since we're in a loop we can't rely on closure variables to maintain the
                                 // current values, so we're using a special javascript trick to get around that.
                                 // The with statement will create a new closure for each loop.
@@ -4426,23 +7723,32 @@ define([
                                             }
                                         }),
                                         from:from,
-                                        to:to
+                                        to:to,
+                                        indent: indentLevel
                                     });
                                 }
                                 
                             } else {
+                                
                                 annotations.push({
                                     styleObj:matchStyleObj,
                                     from:from,
-                                    to:to
+                                    to:to,
+                                    attributes: elementAttributes,
+                                    indent: indentLevel
                                 });
                             }
                         }
-
                         // Add a new line for certain elements
                         // Add a new line for custom elements
                         if (self.newLineRegExp.test(elementName) || (matchStyleObj && matchStyleObj.line)) {
-                            val += '\n';
+                            
+                            // Special case:
+                            // If this is a list item, and there is already a newline at the end,
+                            // then do not add another newline
+                            if (!(matchStyleObj && matchStyleObj.elementContainer && val.match(/\n$/))) {
+                                val += '\n';
+                            }
                         }
 
                     } // else if this is an element...
@@ -4468,26 +7774,30 @@ define([
                 // So instead we'll insert a space, then remove the styles from that space character,
                 // then call an undo() to remove the space from the document (and the undo history).
 
-                if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
+                if (!retainStyles) {
+                    if (range.from.line === range.to.line && range.from.ch === range.to.ch) {
 
-                    editor.replaceRange(' ', range.from, range.to);
-                
-                    // Remove styles from the single character
-                    self.removeStyles({
-                        from: { line:range.from.line, ch:range.from.ch },
-                        to: { line:range.from.line, ch:range.from.ch + 1}
-                    });
+                        // When adding the space so we can remove styles, prevent it from going in the undo history
+                        // by using an origin containing "brightspot"
+                        editor.replaceRange(' ', range.from, range.to, 'brightspotFromHTMLRemoveStyles');
 
-                    // Undo the insertion of the single character so it doesn't appear in the undo history
-                    editor.undo();
+                        // Remove styles from the single character
+                        self.removeStyles({
+                            from: { line:range.from.line, ch:range.from.ch },
+                            to: { line:range.from.line, ch:range.from.ch + 1}
+                        });
 
-                } else {
+                        // Remove the space that we added
+                        editor.replaceRange('', range.from, {line:range.to.line, ch:range.to.ch + 1}, 'brightspotFromHTMLRemoveStyles');
 
-                    // Remove styles from the range
-                    self.removeStyles(range);
+                    } else {
 
+                        // Remove styles from the range
+                        self.removeStyles(range);
+
+                    }
                 }
-                
+
             } else {
                 
                 // Replace the entire document
@@ -4500,8 +7810,10 @@ define([
                 };
             }
 
-            // Add the plain text into the selected range
-            editor.replaceRange(val, range.from, range.to);
+            // Add the plain text to the end of the selected range
+            // Then remove the original text that was already there
+            editor.replaceRange(val, range.to, range.to);
+            editor.replaceRange('', range.from, range.to);
 
             // Before we start adding styles, save the current history.
             // After we add the styles we will restore the history.
@@ -4510,8 +7822,12 @@ define([
             history = editor.getHistory();
             
             // Set up all the annotations
+            // We reverse the order of the annotations because the parsing was done
+            // depth first, and we want to create the marks for parent elements before
+            // the marks for child elements (so elements can later be created in the same order)
             $.each(annotations, function(i, annotation) {
 
+                var annotationRange;
                 var styleObj;
 
                 styleObj = annotation.styleObj;
@@ -4542,18 +7858,37 @@ define([
                     annotation.to.line += range.from.line;
 
                 }
-                
-                if (styleObj.line) {
-                    self.blockSetStyle(styleObj, annotation);
-                } else {
-                    self.inlineSetStyle(styleObj, annotation, {addToHistory:false});
+                if (styleObj) {
+                    if (styleObj.line) {
+                        
+                        // If this is a list item, then only set the style on the first line
+                        annotationRange = {
+                            from: annotation.from,
+                            to: annotation.to
+                        };
+                        if (styleObj.elementContainer) {
+                            annotationRange.to = annotation.from;
+                        }
+                        self.blockSetStyle(styleObj, annotationRange, {triggerChange:false, attributes:annotation.attributes});
+                        
+                        if (annotation.indent) {
+                            self.blockSetIndent(annotationRange, annotation.indent);
+                        }
+                        
+                    } else {
+                        self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false, attributes:annotation.attributes});
+                    }
+                } else if (annotation.indent) {
+                    // Special case for extra lines within a list item,
+                    // we save an annotation that contains only the line and indent.
+                    self.blockSetIndent(annotation.from.line, annotation.indent);
                 }
             });
 
             $.each(enhancements, function(i, enhancementObj) {
-                
+
                 // Pass off control to a user-defined function for adding enhancements
-                self.enhancementFromHTML(enhancementObj.$content, enhancementObj.line);
+                self.enhancementFromHTML(enhancementObj.$content, enhancementObj.line + range.from.line);
                 
             });
 
@@ -4564,11 +7899,277 @@ define([
 
 
         /**
+         * Given a DOM element, determine which style it matches.
+         *
+         * @param {DOM} el
+         * @returns {Object|undefined}
+         * The style object that matches the element, or undefined.
+         */
+        getStyleForElement: function(el) {
+
+            var elementName;
+            var map;
+            var matchArray;
+            var matchStyleObj;
+            var self;
+
+            self = this;
+
+            // Convert the styles object to an object that is indexed by element,
+            // so we can quickly map an element to a style.
+            // Note there might be more than one style for an element, in which
+            // case we will use attributes to determine if we have a match.
+            // Cache it so we only create the map once.
+            self.stylesMap = self.stylesMap || self.getElementMap();
+            map = self.stylesMap;
+            
+            // We got an element
+            elementName = el.tagName.toLowerCase();
+
+            // Determine if the element maps to one of our defined styles
+            matchStyleObj = undefined;
+
+            // If a data-rte2-sanitize attribute is found on the element, then we are getting this
+            // html as pasted data from another source. Our sanitize rules have marked this element
+            // as being a particular style, so we should force that style to be used.
+            matchStyleObj = self.styles[ $(el).attr('data-rte2-sanitize') ];
+            $(el).removeAttr('data-rte2-sanitize');
+            if (matchStyleObj) {
+                return matchStyleObj;
+            }
+
+            // Multiple styles might map to a particular element name (like <b> vs <b class=foo>)
+            // so first we get a list of styles that map just to this element name
+            matchArray = map[elementName];
+            if (matchArray) {
+
+                $.each(matchArray, function(i, styleObj) {
+
+                    var attributesFound;
+
+                    // Detect blocks that have containers (like "li" must be contained by "ul")
+                    if (styleObj.elementContainer && styleObj.elementContainer.toLowerCase() !== el.parentElement.tagName.toLowerCase()) {
+                        return;
+                    }
+
+                    attributesFound = {};
+
+                    // If the style has attributes listed we must check to see if they match this element
+                    if (styleObj.elementAttr) {
+
+                        // Loop through all the attributes in the style definition,
+                        // and see if we get a match
+                        $.each(styleObj.elementAttr, function(attr, expectedValue) {
+
+                            var attributeValue;
+
+                            attributeValue = $(el).attr(attr);
+
+                            // Check if the element's attribute value matches what we are looking for,
+                            // or if we're just expecting the attribute to exist (no matter the value)
+                            if ((attributeValue === expectedValue) ||
+                                (expectedValue === true && attributeValue !== undefined)) {
+                                
+                                // We got a match!
+                                // But if there is more than one attribute listed,
+                                // we keep looping and all of them must match!
+                                attributesFound[attr] = true;
+                                matchStyleObj = styleObj;
+                                
+                            } else {
+                                
+                                // The attribute did not match so we do not have a match.
+                                matchStyleObj = false;
+                                
+                                // Stop looping through the rest of the attributes.
+                                return false; // break out of $.each()
+                            }
+                        });
+
+
+                    } else {
+                        
+                        // There were no attributes specified for this style so we might have a match just on the element
+                        matchStyleObj = styleObj;
+                    }
+
+                    // Stop after the first style that matches
+                    if (matchStyleObj) {
+                        return false; // break out of $.each()
+                    }
+
+                }); // each matchArray...
+                
+            } // if (matchArray)
+
+            return matchStyleObj;
+        },
+
+        
+        /**
+         * Fix the HTML from a paste operation so it only contains elements from our style definitions.
+         *
+         * @param {String|DOM} html
+         * An HTML string or a DOM structure.
+         *
+         * @returns {String)
+         */
+        limitHTML: function(html) {
+
+            var el;
+            var self;
+            var val;
+
+            self = this;
+            
+            // Convert HTML into a DOM element so we can parse it using the browser node functions
+            el = self.htmlParse(html);
+                
+            // Output HTML after fixing
+            val = '';
+            
+            function processNode(n) {
+                
+                var elementClose;
+                var elementName;
+                var matchStyleObj;
+                var next;
+                var text;
+
+                next = n.childNodes[0];
+
+                while (next) {
+
+                    elementClose = '';
+
+                    // Check if we got a text node or an element
+                    if (next.nodeType === 3) {
+
+                        // We got a text node, just add it to the value
+                        text = next.textContent;
+
+                        // Convert multiple white space to single space
+                        text = text.replace(/[\n\r]/g, ' ').replace(/\s+/g, ' ');
+                            
+                        // If text node is not within an element remove leading and trailing spaces.
+                        // For example, pasting content from Word has text nodes with whitespace
+                        // between elements.
+                        if ($(next.parentElement).is('body')) {
+                            text = text.replace(/^\s*|\s*$/g, '');
+                        }
+                        if ($(next.parentElement).is('td,th')) {
+                            if (!next.previousSibling) {
+                                text = text.replace(/^\s+/, '');
+                            }
+                            if (!next.nextSibling) {
+                                text = text.replace(/\s+$/, '');
+                            }
+                        }
+
+                        val += text;
+                        
+                    } else if (next.nodeType === 1) {
+
+                        // We got an element
+                        elementName = next.tagName.toLowerCase();
+
+                        // Determine if the element maps to one of our defined styles
+                        matchStyleObj = self.getStyleForElement(next);
+
+                        // For table elements and enhancements we should keep the elements as they are
+                        switch (elementName) {
+                        case 'table':
+                        case 'tbody':
+                        case 'tr':
+                        case 'td':
+                        case 'th':
+                            matchStyleObj = true;
+                            break;
+
+                        case 'span':
+                        case 'button':
+                            if ($(next).hasClass('enhancement')) {
+                                matchStyleObj = true;
+                            }
+                            break;
+                        case 'ol':
+                        case 'ul':
+                        case 'br':
+                            matchStyleObj = true;
+                            break;
+                        }
+
+                        // If we got a matching element output the start of the element as HTML
+                        if (matchStyleObj) {
+
+                            elementName = matchStyleObj === true ? elementName : matchStyleObj.element;
+
+                            if (elementName) {
+
+                                val += '<' + elementName;
+
+                                $.each(next.attributes, function(i, attrib){
+                                
+                                    var attributeName = attrib.name;
+                                    var attributeValue = attrib.value;
+
+                                    val += ' ' + attributeName + '="' + self.htmlEncode(attributeValue) + '"';
+                                });
+                                
+                                if (matchStyleObj !== true && matchStyleObj.elementAttr) {
+                                    $.each(matchStyleObj.elementAttr, function(attr, value){
+                                        val += ' ' + attr + '="' + self.htmlEncode(value) + '"';
+                                    });
+                                }
+
+                                // Close void elements like <input/>
+                                if (self.voidElements[ elementName ]) {
+                                    val += '/';
+                                }
+                            
+                                val += '>';
+
+                                if (!self.voidElements[ elementName ]) {
+                                    elementClose = '</' + elementName + '>';
+                                }
+                                
+                            } else if (matchStyleObj.line) {
+
+                                // The style doesn't have an element to output, but it indicates there should be a line break
+                                elementClose = '<br/>';
+
+                            }
+                        }
+
+                        // Recursively go into the node to get text or other children 
+                        processNode(next);
+
+                        if (elementClose) {
+                            val += elementClose;
+                        }
+
+                    } // else if this is an element...
+                    
+                    next = next.nextSibling;
+                    
+                } // while there is a next sibling...
+                
+            } // function processNode
+
+            processNode(el);
+
+            return '<div>' + val + '</div>';
+        },
+
+
+        /**
          * Add text to the editor at the current selection or cursor position.
          */
         insert: function(value, styleKey) {
             
-            var range, self;
+            var range;
+            var self;
+            var mark;
 
             self = this;
 
@@ -4577,11 +8178,13 @@ define([
             
             range = self.getRange();
             if (styleKey) {
-                self.setStyle(styleKey, range);
+                mark = self.setStyle(styleKey, range);
             }
 
             // Now set cursor after the inserted text
             self.codeMirror.setCursor( range.to );
+
+            return mark;
         },
 
         
@@ -4609,8 +8212,7 @@ define([
          * @returns {DOM}
          */
         htmlParse: function(html) {
-            var dom, self;
-            self = this;
+            var dom;
 
             if ($.type(html) === 'string') {
                 dom = new DOMParser().parseFromString(html, "text/html").body;     
@@ -4618,17 +8220,6 @@ define([
                 dom = html;
             }
             return dom;
-        },
-
-
-        /**
-         * Clear the undo history for the editor.
-         * For example, you can call this after setting the initial content in the editor.
-         */
-        historyClear: function(){
-            var self;
-            self = this;
-            self.codeMirror.clearHistory();
         },
 
 
@@ -4657,9 +8248,9 @@ define([
          */
         getAttributes: function(el) {
             
-            var attr, $el, self;
-            
-            self = this;
+            var attr;
+            var $el;
+
 
             attr = {};
 
@@ -4681,6 +8272,27 @@ define([
             }
 
             return attr;
+        },
+        
+        
+        /**
+         * Generate a message to display all the marks to the console.
+         * @return {String}
+         */
+        logMarks: function() {
+            var marks;
+            var msg;
+            var self;
+            self = this;
+            marks = self.codeMirror.getAllMarks();
+            msg = '';
+            $.each(marks, function(i,mark) {
+                if (mark.className === 'rte2-style-spelling') {
+                    return;
+                }
+                msg += ' ' + mark.id + ':' + mark.className;
+            })
+            return msg;
         }
         
     };

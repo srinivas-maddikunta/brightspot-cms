@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.base.Strings;
 import com.psddev.dari.db.Record;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
@@ -31,7 +32,9 @@ public class History extends Record {
     @Indexed
     private UUID objectId;
 
+    @Raw
     private Map<String, Object> objectOriginals;
+
     private boolean lockIgnored;
 
     /** Creates a blank instance. */
@@ -102,6 +105,24 @@ public class History extends Record {
         this.lockIgnored = lockIgnored;
     }
 
+    @Indexed
+    public String getObjectIdUpdateDate() {
+        UUID objectId = getObjectId();
+
+        if (objectId != null) {
+            Date updateDate = getUpdateDate();
+
+            if (updateDate != null) {
+                return objectId.toString() + Strings.padStart(
+                        Long.toString(getUpdateDate().getTime(), 36),
+                        Long.toString(Long.MAX_VALUE, 36).length(),
+                        ' ');
+            }
+        }
+
+        return null;
+    }
+
     /** Returns the object. */
     public Object getObject() {
         if (objectType == null) {
@@ -135,6 +156,10 @@ public class History extends Record {
         if (updateUser != null) {
             label.append(" by ");
             label.append(updateUser.getLabel());
+        }
+
+        if (isLockIgnored()) {
+            label.append(" (Lock Ignored)");
         }
 
         return label.toString();

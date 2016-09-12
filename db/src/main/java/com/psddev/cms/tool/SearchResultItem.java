@@ -27,7 +27,7 @@ public class SearchResultItem {
                 "name", "id",
                 "checked", (selected ? "checked" : null),
                 "value", State.getInstance(item).getId(),
-                "data-frame-target", "searchResultActions",
+                "data-frame-target", search.createFrameName("SearchResultActions"),
                 "data-frame-check", StringUtils.addQueryParameters(url, SearchResultActions.ACTION_PARAMETER, SearchResultActions.ACTION_ADD),
                 "data-frame-uncheck", StringUtils.addQueryParameters(url, SearchResultActions.ACTION_PARAMETER, SearchResultActions.ACTION_REMOVE));
     }

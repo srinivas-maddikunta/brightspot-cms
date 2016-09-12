@@ -9,6 +9,7 @@ import java.util.TreeMap;
 
 import javax.servlet.ServletException;
 
+import com.psddev.dari.util.JspUtils;
 import org.joda.time.DateTime;
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.Draft;
@@ -381,7 +382,7 @@ public class ScheduledEventsWidget extends DefaultDashboardWidget {
                         Draft draft = (Draft) d;
                         Object draftObject = draft.recreate();
 
-                        page.writeStart("tr", "data-preview-url", "/_preview?_cms.db.previewId=" + draft.getId());
+                        page.writeStart("tr", "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", draft.getId()));
                         page.writeStart("td", "class", "time");
                         if (first) {
                             page.writeHtml(triggerDate.toString("hh:mm a"));
@@ -397,7 +398,7 @@ public class ScheduledEventsWidget extends DefaultDashboardWidget {
                         page.writeStart("a",
                                 "href", page.objectUrl("/content/edit.jsp", draft),
                                 "target", "_top");
-                        page.writeObjectLabel(draftObject);
+                        page.writeObjectLabel(draft);
                         page.writeEnd();
                         page.writeEnd();
                         page.writeEnd();

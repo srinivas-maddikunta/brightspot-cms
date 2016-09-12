@@ -182,6 +182,7 @@ public class ImageFileType implements FileContentType {
                         page.writeStart("li");
                             page.writeStart("a",
                                     "class", "icon icon-crop",
+                                    "data-frame-post", "",
                                     "href", page.h(page.url("/contentImages", "data", ObjectUtils.toJson(fieldValue))),
                                     "target", "contentImages");
                                 page.writeHtml(page.localize(ImageFileType.class, "action.viewResized"));
@@ -411,6 +412,7 @@ public class ImageFileType implements FileContentType {
                 String resizeScale = "";
                 if (ImageEditor.Static.getDefault() != null) {
                     ImageTag.Builder imageTagBuilder = new ImageTag.Builder(fieldValue)
+                            .setPrivateUrl(true)
                             .setWidth(1000)
                             .setResizeOption(ResizeOption.ONLY_SHRINK_LARGER)
                             .setEdits(false);

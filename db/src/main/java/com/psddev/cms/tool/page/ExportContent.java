@@ -20,6 +20,7 @@ import com.psddev.dari.util.HtmlWriter;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 import com.psddev.dari.util.StorageItem;
+import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 import com.psddev.dari.util.TypeReference;
 import com.psddev.dari.util.UrlBuilder;
@@ -336,11 +337,12 @@ public class ExportContent extends PageServlet {
             }
 
             State itemState = State.getInstance(item);
+            ObjectType itemType = itemState.getType();
 
             writeRaw(CSV_BOUNDARY);
-            writeCsvItem(getTypeLabel(item));
+            writeCsvItem(itemType != null ? itemType.getLabel() : null);
             writeRaw(CSV_BOUNDARY).writeRaw(CSV_DELIMITER).writeRaw(CSV_BOUNDARY);
-            writeCsvItem(getObjectLabel(item));
+            writeCsvItem(itemState.getLabel());
             writeRaw(CSV_BOUNDARY);
 
             List<String> fieldNames = getUser().getSearchResultFieldsByTypeId().get(selectedType.getId().toString());
@@ -418,7 +420,7 @@ public class ExportContent extends PageServlet {
             HtmlWriter htmlWriter = new HtmlWriter(stringWriter);
 
             htmlWriter.putOverride(Recordable.class, (HtmlWriter writer, Recordable object) ->
-                            writer.writeHtml(getObjectLabel(object))
+                            writer.writeHtml(object.getState().getLabel())
             );
 
             // Override Metric fields to output the total sum
@@ -432,7 +434,7 @@ public class ExportContent extends PageServlet {
 
             htmlWriter.writeObject(item);
 
-            write(stringWriter.toString().replaceAll(CSV_BOUNDARY.toString(), CSV_BOUNDARY.toString() + CSV_BOUNDARY));
+            write(StringUtils.unescapeHtml(stringWriter.toString().replaceAll(CSV_BOUNDARY.toString(), CSV_BOUNDARY.toString() + CSV_BOUNDARY)));
         }
     }
 }
