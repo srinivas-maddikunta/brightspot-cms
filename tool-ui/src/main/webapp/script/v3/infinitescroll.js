@@ -11,15 +11,12 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           itemsContainerSelector   : '.searchResult-images',
           itemSelector             : 'figure',
           scrollBuffer             : 100,
-          prefill                  : true,
-          state                    : { activePromise : new $.Deferred().resolve()}
+          prefill                  : true
         };
 
         var $scrollable = $(scrollable);
-
-        var options = $scrollable.data().options;
-
-        var settings = $.extend({}, defaults, options);
+        var settings = $.extend({}, defaults, $scrollable.data().options);
+        settings.state = { activePromise : new $.Deferred().resolve()};
 
         var $itemContainer = $scrollable.find(settings.itemsContainerSelector);
         var $nav = $scrollable.find(settings.navSelector);
