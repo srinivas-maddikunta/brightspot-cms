@@ -7,6 +7,7 @@ import javax.servlet.ServletException;
 
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DashboardColumn;
+import com.psddev.cms.tool.DashboardTab;
 import com.psddev.cms.tool.DashboardWidget;
 import com.psddev.cms.tool.DashboardContainer;
 import com.psddev.cms.tool.PageServlet;
@@ -78,6 +79,21 @@ public class DashboardWidgetPage extends PageServlet {
                         if (w != null && widgetId.equals(w.getId())) {
                             widget = w;
                             break COLUMNS;
+                        }
+                    }
+                }
+            }
+
+            if (widget == null) {
+                TABS: for (DashboardTab tab : dashboard.getTabs()) {
+                    for (DashboardColumn column : tab.getColumns()) {
+                        if (column != null) {
+                            for (DashboardWidget w : column.getWidgets()) {
+                                if (w != null && widgetId.equals(w.getId())) {
+                                    widget = w;
+                                    break TABS;
+                                }
+                            }
                         }
                     }
                 }
