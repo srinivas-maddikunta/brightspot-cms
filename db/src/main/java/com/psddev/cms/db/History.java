@@ -158,6 +158,10 @@ public class History extends Record {
             label.append(updateUser.getLabel());
         }
 
+        if (isLockIgnored()) {
+            label.append(" (Lock Ignored)");
+        }
+
         return label.toString();
     }
 }

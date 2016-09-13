@@ -5,11 +5,13 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PageContextFilter;
+import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -141,9 +143,13 @@ public interface ViewRenderer {
 
                     private ViewOutput createViewOutput(Object view, Supplier<ViewOutput> viewOutputSupplier) {
                         HttpServletRequest request = PageContextFilter.Static.getRequestOrNull();
+                        HttpServletResponse response = PageContextFilter.Static.getResponseOrNull();
+                        String contentType = response != null ? response.getContentType() : null;
 
                         if (request == null
-                                || !PageFilter.Static.isInlineEditingAllContents(request)) {
+                                || !PageFilter.Static.isInlineEditingAllContents(request)
+                                || (contentType != null
+                                    && !StringUtils.ensureEnd(contentType, ";").startsWith("text/html;"))) {
 
                             return viewOutputSupplier.get();
                         }

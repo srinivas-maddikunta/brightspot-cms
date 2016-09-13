@@ -41,6 +41,8 @@ public class ToolUi extends Modification<Object> {
     private Boolean collectionItemProgress;
     private Boolean collectionItemToggle;
     private Boolean collectionItemWeight;
+    private Boolean collectionItemWeightCalculated;
+    private Boolean collectionItemWeightMarker;
     private Boolean colorPicker;
     private String cssClass;
     private Boolean defaultSearchResult;
@@ -133,6 +135,22 @@ public class ToolUi extends Modification<Object> {
 
     public void setCollectionItemWeight(boolean collectionItemWeight) {
         this.collectionItemWeight = collectionItemWeight ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemWeightCalculated() {
+        return Boolean.TRUE.equals(collectionItemWeightCalculated);
+    }
+
+    public void setCollectionItemWeightCalculated(boolean collectionItemWeightCalculated) {
+        this.collectionItemWeightCalculated = collectionItemWeightCalculated ? Boolean.TRUE : null;
+    }
+
+    public boolean isCollectionItemWeightMarker() {
+        return Boolean.TRUE.equals(collectionItemWeightMarker);
+    }
+
+    public void setCollectionItemWeightMarker(boolean collectionItemWeightMarker) {
+        this.collectionItemWeightMarker = collectionItemWeightMarker ? Boolean.TRUE : null;
     }
 
     public boolean isColorPicker() {
@@ -882,7 +900,9 @@ public class ToolUi extends Modification<Object> {
 
     /**
      * Specifies whether the target field should be displayed using the weighted collection UI.
-     * Expected field values are between 0.0 and 1.0.
+     * Expected field values are between 0.0 and 1.0. Fields that are {@code calculated} will
+     * not allow weights to be edited through the default UI.
+     *
      */
     @Documented
     @ObjectField.AnnotationProcessorClass(CollectionItemWeightProcessor.class)
@@ -890,6 +910,7 @@ public class ToolUi extends Modification<Object> {
     @Target(ElementType.FIELD)
     public @interface CollectionItemWeight {
         boolean value() default true;
+        boolean calculated() default false;
     }
 
     private static class CollectionItemWeightProcessor implements ObjectField.AnnotationProcessor<CollectionItemWeight> {
@@ -897,6 +918,28 @@ public class ToolUi extends Modification<Object> {
         @Override
         public void process(ObjectType type, ObjectField field, CollectionItemWeight annotation) {
             field.as(ToolUi.class).setCollectionItemWeight(annotation.value());
+            field.as(ToolUi.class).setCollectionItemWeightCalculated(annotation.calculated());
+        }
+    }
+
+    /**
+     * Specifies a field to be used as markers in the UI produced by repeatable objects with
+     * a {@link CollectionItemWeight} annotation. The field may be a {@link Collection} or single
+     * field value of a {@code double} with expected value(s) between 0.0 and 1.0.
+     */
+    @Documented
+    @ObjectField.AnnotationProcessorClass(CollectionItemWeightMarkerProcessor.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public @interface CollectionItemWeightMarker {
+        boolean value() default true;
+    }
+
+    private static class CollectionItemWeightMarkerProcessor implements ObjectField.AnnotationProcessor<CollectionItemWeightMarker> {
+
+        @Override
+        public void process(ObjectType type, ObjectField field, CollectionItemWeightMarker annotation) {
+            field.as(ToolUi.class).setCollectionItemWeightMarker(annotation.value());
         }
     }
 
