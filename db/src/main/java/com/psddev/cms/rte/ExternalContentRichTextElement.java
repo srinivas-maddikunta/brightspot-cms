@@ -13,6 +13,8 @@ import java.util.Map;
 public class ExternalContentRichTextElement extends RichTextElement {
 
     private String url;
+    private String maximumWidth;
+    private String maximumHeight;
 
     public String getUrl() {
         return url;
@@ -20,6 +22,22 @@ public class ExternalContentRichTextElement extends RichTextElement {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public String getMaximumWidth() {
+        return maximumWidth;
+    }
+
+    public void setMaximumWidth(String maximumWidth) {
+        this.maximumWidth = maximumWidth;
+    }
+
+    public String getMaximumHeight() {
+        return maximumHeight;
+    }
+
+    public void setMaximumHeight(String maximumHeight) {
+        this.maximumHeight = maximumHeight;
     }
 
     @Override
