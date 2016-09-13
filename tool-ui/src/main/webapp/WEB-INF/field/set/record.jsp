@@ -165,7 +165,15 @@ if ((Boolean) request.getAttribute("isFormPost")) {
 
         writer.start("div", "class", "inputSmall");
             List<?> items = wp.findDropDownItems(field, new Search(field));
-            Collections.sort(items, new ObjectFieldComparator("_label", false));
+
+            String sortField = field.as(ToolUi.class).getDropDownSortField();
+            if (StringUtils.isBlank(sortField)) {
+                sortField = "_label";
+            }
+            Collections.sort(items, new ObjectFieldComparator(sortField, false));
+            if (field.as(ToolUi.class).isDropDownSortDescending()) {
+                Collections.reverse(items);
+            }
 
             writer.start("select",
                     "multiple", "multiple",

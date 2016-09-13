@@ -1639,8 +1639,11 @@ public class PageFilter extends AbstractFilter {
         }
 
         LazyWriter lazyWriter;
+        String contentType = response.getContentType();
 
-        if (Static.isInlineEditingAllContents(request)) {
+        if (Static.isInlineEditingAllContents(request)
+                && contentType != null
+                && StringUtils.ensureEnd(contentType, ";").startsWith("text/html;")) {
             lazyWriter = new LazyWriter(request, writer);
             writer = lazyWriter;
 

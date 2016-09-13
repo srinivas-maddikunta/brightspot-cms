@@ -2867,9 +2867,14 @@ public class ToolPageContext extends WebPageContext {
                     fields.removeIf(f -> f.getInternalName().equals("dari.singleton.key"));
 
                     // Do not display fields with @ToolUi.CollectionItemWeight, @ToolUi.CollectionItemToggle, or @ToolUiCollectionItemProgress
-                    fields.removeIf(f -> f.as(ToolUi.class).isCollectionItemToggle()
-                            || f.as(ToolUi.class).isCollectionItemWeight()
-                            || f.as(ToolUi.class).isCollectionItemProgress());
+                    fields.removeIf(f -> {
+                        ToolUi ui = f.as(ToolUi.class);
+
+                        return ui.isCollectionItemToggle()
+                                || ui.isCollectionItemWeight()
+                                || ui.isCollectionItemWeightMarker()
+                                || ui.isCollectionItemProgress();
+                    });
 
                     DependencyResolver<ObjectField> resolver = new DependencyResolver<>();
                     Map<String, ObjectField> fieldByName = fields.stream()
@@ -2931,6 +2936,15 @@ public class ToolPageContext extends WebPageContext {
                         if (draftCheck) {
                             request.setAttribute("firstDraft", null);
                             request.setAttribute("finalDraft", null);
+                        }
+                    }
+
+                    for (Class<? extends Tab> t : ClassFinder.findConcreteClasses(Tab.class)) {
+                        Tab tab = TypeDefinition.getInstance(t).newInstance();
+                        if (tab.shouldDisplay(object)) {
+                            writeStart("div", "class", "Tab", "data-tab", tab.getDisplayName(), "data-tab-class", t.getName());
+                            tab.writeHtml(this, object);
+                            writeEnd();
                         }
                     }
                 }
@@ -3337,7 +3351,13 @@ public class ToolPageContext extends WebPageContext {
         }
 
         try {
-            if (param(UUID.class, "draftId") != null) {
+            Overlay overlay = Edit.getOverlay(object);
+
+            if (overlay != null) {
+                overlay.getState().delete();
+                redirectOnSave("");
+
+            } else if (param(UUID.class, "draftId") != null) {
                 Draft draft = getOverlaidDraft(object);
 
                 if (draft != null) {

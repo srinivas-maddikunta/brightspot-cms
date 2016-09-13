@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -188,36 +187,49 @@ public class ContentState extends PageServlet {
         Map<String, Object> jsonResponse = new CompactMap<String, Object>();
 
         // Differences between existing and pending content.
-        Map<String, Map<String, Object>> differences = Draft.findDifferences(
+        Map<String, Map<String, Object>> allDifferences = Draft.findDifferences(
                 state.getDatabase().getEnvironment(),
                 oldValues,
                 state.getSimpleValues());
 
-        // Remove differences that weren't initiated by the user.
+        // Split differences that are visible and hidden in the UI.
+        Map<String, Map<String, Object>> differences = new CompactMap<>();
+        Map<String, Map<String, Object>> hiddenDifferences = new CompactMap<>();
         Map<String, List<String>> fieldNamesById = (Map<String, List<String>>) ObjectUtils.fromJson(page.param(String.class, "_fns"));
 
-        if (fieldNamesById != null) {
-            for (Iterator<Map.Entry<String, Map<String, Object>>> i = differences.entrySet().iterator(); i.hasNext();) {
-                Map.Entry<String, Map<String, Object>> entry = i.next();
-                String id = entry.getKey();
-                List<String> fieldNames = fieldNamesById.get(id);
+        if (fieldNamesById == null) {
+            fieldNamesById = new CompactMap<>();
+        }
 
-                if (fieldNames == null) {
-                    i.remove();
+        for (Map.Entry<String, Map<String, Object>> entry : allDifferences.entrySet()) {
+            String id = entry.getKey();
+            Map<String, Object> allValues = entry.getValue();
+            List<String> fieldNames = fieldNamesById.get(id);
 
-                } else {
-                    Map<String, Object> values = entry.getValue();
+            if (fieldNames == null) {
+                hiddenDifferences.put(id, allValues);
 
-                    values.keySet().removeIf(n -> !fieldNames.contains(n));
+            } else {
+                Map<String, Object> values = new CompactMap<>();
+                Map<String, Object> hiddenValues = new CompactMap<>();
 
-                    if (values.isEmpty()) {
-                        i.remove();
-                    }
+                for (Map.Entry<String, Object> allValue : allValues.entrySet()) {
+                    String key = allValue.getKey();
+                    (fieldNames.contains(key) ? values : hiddenValues).put(key, allValue.getValue());
+                }
+
+                if (!values.isEmpty()) {
+                    differences.put(id, values);
+                }
+
+                if (!hiddenValues.isEmpty()) {
+                    hiddenDifferences.put(id, hiddenValues);
                 }
             }
         }
 
         jsonResponse.put("_differences", differences);
+        jsonResponse.put("_hiddenDifferences", hiddenDifferences);
 
         if (page.getOverlaidHistory(object) == null
                 && page.param(boolean.class, "wip")

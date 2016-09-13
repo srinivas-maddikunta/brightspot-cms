@@ -1,6 +1,7 @@
 package com.psddev.cms.db;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,8 +19,10 @@ import com.psddev.dari.db.State;
 import com.psddev.dari.util.AbstractFilter;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.JspBufferFilter;
+import com.psddev.dari.util.LazyWriter;
 import com.psddev.dari.util.LazyWriterResponse;
 import com.psddev.dari.util.ObjectUtils;
+import com.psddev.dari.util.ThreadLocalStack;
 
 /**
  * Internal filter that adds {@code <span data-field>} to the response
@@ -29,6 +32,33 @@ public class FieldAccessFilter extends AbstractFilter {
 
     private static final String ATTRIBUTE_PREFIX = FieldAccessFilter.class.getName() + ".";
     private static final String CURRENT_RESPONSE_ATTRIBUTE = ATTRIBUTE_PREFIX + "currentResponse";
+
+    private static final ThreadLocalStack<LazyWriter> THREAD_DEFAULT_LAZY_WRITER = new ThreadLocalStack<>();
+
+    /**
+     * Writes using the given {@code consumer}, inserting field access markers
+     * as necessary, and returns the output.
+     *
+     * @param inBody {@code true} if the writes are within {@code <body>}.
+     * @param consumer Nonnull.
+     * @return Nonnull.
+     */
+    public static String write(boolean inBody, FieldAccessWriteConsumer consumer) {
+        StringWriter stringWriter = new StringWriter();
+        LazyWriter lazyWriter = new LazyWriter(stringWriter, inBody);
+
+        THREAD_DEFAULT_LAZY_WRITER.with(lazyWriter, () -> {
+            try {
+                consumer.accept(lazyWriter);
+                lazyWriter.writePending();
+
+            } catch (IOException error) {
+                throw new IllegalStateException(error);
+            }
+        });
+
+        return stringWriter.toString();
+    }
 
     @Override
     protected void doDispatch(
@@ -212,15 +242,24 @@ public class FieldAccessFilter extends AbstractFilter {
                 return;
             }
 
-            LazyWriterResponse response = (LazyWriterResponse) request.getAttribute(CURRENT_RESPONSE_ATTRIBUTE);
+            try {
+                LazyWriter writer = THREAD_DEFAULT_LAZY_WRITER.get();
 
-            if (response != null) {
-                try {
-                    response.getLazyWriter().writeLazily(createMarkerHtml(state, name));
-                } catch (IOException error) {
-                    // Can't write the field access marker HTML to the response,
-                    // but that's OK, so move on.
+                if (writer == null) {
+                    LazyWriterResponse response = (LazyWriterResponse) request.getAttribute(CURRENT_RESPONSE_ATTRIBUTE);
+
+                    if (response != null) {
+                        writer = response.getLazyWriter();
+                    }
                 }
+
+                if (writer != null) {
+                    writer.writeLazily(createMarkerHtml(state, name));
+                }
+
+            } catch (IOException error) {
+                // Can't write the field access marker HTML to the response,
+                // but that's OK, so move on.
             }
         }
     }

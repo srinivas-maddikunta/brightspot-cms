@@ -1,6 +1,9 @@
 define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, tabex, atmosphere) {
   if (DISABLE_RTC) {
     return {
+      initialize: function () {
+      },
+
       restore: function () {
       },
 
@@ -24,11 +27,19 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
   var closes = [ ];
 
   share.on('!sys.master', function (data) {
-    if (data.node_id !== data.master_id) {
+    if (data.node_id === data.master_id) {
+      if (master) {
+        return;
+
+      } else {
+        master = true;
+      }
+
+    } else {
+      master = false;
+      atmosphere.unsubscribe();
       return;
     }
-
-    master = true;
 
     var request = {
       url: ROOT_PATH + '/_rtc',
@@ -46,6 +57,7 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     });
 
     var isOnline = false;
+    var pingInterval;
 
     var offlineExecutes = [];
     var onlineExecutes = {
@@ -74,6 +86,14 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     request.onOpen = function () {
       isOnline = true;
 
+      pingInterval = setInterval(function () {
+        if (isOnline) {
+          onlineExecutes.push({
+            type: 'ping'
+          });
+        }
+      }, 10000);
+
       for (var i = 0, length = localStorage.length; i < length; ++ i) {
         var key = localStorage.key(i);
 
@@ -88,14 +108,17 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
       }
 
       var oldSessionId = localStorage.getItem(SESSION_ID_KEY);
+      var newSessionId = socket.getUUID();
 
       if (oldSessionId) {
-        socket.push({
+        socket.push(JSON.stringify({
           type: 'migrate',
           oldSessionId: oldSessionId,
-          newSessionId: socket.getUUID()
-        })
+          newSessionId: newSessionId
+        }));
       }
+
+      localStorage.setItem(SESSION_ID_KEY, newSessionId);
 
       $.each(redoRestores, function (i, message) {
         onlineExecutes.push(message);
@@ -117,6 +140,12 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
 
     request.onClose = function () {
       isOnline = false;
+
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
+
       subscribe();
     };
 
@@ -137,14 +166,6 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
         (isOnline ? onlineCloses : offlineCloses).push(close);
       });
     });
-
-    setInterval(function () {
-      if (isOnline) {
-        onlineExecutes.push({
-          type: 'ping'
-        });
-      }
-    }, 10000);
 
     var checkRequests = bsp_utils.throttle(50, function () {
       var minKey;
@@ -180,10 +201,7 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     $(window).on('storage', checkRequests);
 
     $(window).on('beforeunload', function () {
-      var sessionId = socket.getUUID();
-
-      localStorage.setItem(SESSION_ID_KEY, sessionId);
-      localStorage.setItem(CLOSES_KEY_PREFIX + sessionId, JSON.stringify(closes));
+      localStorage.setItem(CLOSES_KEY_PREFIX + socket.getUUID(), JSON.stringify(closes));
     });
   });
 
@@ -210,8 +228,12 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     }
   });
 
+  var pushId = 0;
+
   function push(restore, data) {
-    localStorage.setItem(PUSH_KEY_PREFIX + $.now(), JSON.stringify({
+    ++ pushId;
+
+    localStorage.setItem(PUSH_KEY_PREFIX + $.now() + pushId, JSON.stringify({
       restore: restore,
       data: data
     }));
@@ -223,21 +245,29 @@ define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, 
     }
   });
 
-  return {
-    restore: function(state, data, callback) {
-      restoreCallbacks[state] = callback;
+  function initialize(state, data, callback) {
+    restoreCallbacks[state] = callback;
 
-      push(true, {
-        type: 'restore',
-        className: state,
-        data: data
-      });
+    push(true, {
+      type: 'restore',
+      className: state,
+      data: data
+    });
+  }
+
+  return {
+    initialize: function (state, data, callback) {
+      initialize(state, data, callback);
 
       closes.push({
         type: 'close',
         className: state,
         data: data
       });
+    },
+
+    restore: function(state, data, callback) {
+      initialize(state, data, callback);
     },
 
     receive: function(broadcast, callback) {

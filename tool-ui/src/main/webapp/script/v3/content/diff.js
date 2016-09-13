@@ -113,7 +113,7 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
           right = preprocess(right, rightEnhancements);
         }
 
-        var diffs = JsDiff.diffWords(left, right);
+        var diffs = JsDiff.diffWordsWithSpace(left, right);
         var $leftCopy = $('<div/>', { 'class': 'contentDiffCopy' });
         var $rightCopy = $('<div/>', { 'class': 'contentDiffCopy' });
 
