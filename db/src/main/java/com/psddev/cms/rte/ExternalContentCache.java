@@ -47,7 +47,6 @@ public class ExternalContentCache extends Record {
      * @return Nullable.
      */
     public static Map<String, Object> get(String url, Integer maximumWidth, Integer maximumHeight) {
-        LOGGER.info("get url: {}", url);
         if (url == null) {
             return null;
         }
@@ -76,7 +75,6 @@ public class ExternalContentCache extends Record {
 
             // Not expired yet.
             if (cache.created + TimeUnit.SECONDS.toMillis(cacheAge) > now) {
-                LOGGER.info("cache get");
                 return response;
             }
         }
