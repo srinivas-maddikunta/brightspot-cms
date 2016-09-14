@@ -2019,13 +2019,7 @@ define([
                 if (!self.classes[className]) {
                     return;
                 }
-     
-                // Skip any classname that has an onClick since we dont' want to mess with those.
-                // For example, links.
-                if (self.classes[className].onClick) {
-                    return;
-                }
-                
+                     
                 if (!spansByClassName[className]) {
                     spansByClassName[className] = [];
                 }
@@ -2041,35 +2035,45 @@ define([
                 var markNext;
 
                 i = 0;
-                while (spans[i]) {
 
-                    mark = spans[i];
-                    markNext = spans[i + 1];
-                    
-                    if (!markNext) {
-                        break;
-                    }
-
-                    // Check if the marks overlap
-                    if (markNext.from <= mark.to) {
+                if (self.classes[className].onClick) {
+                    // Do not combine any classname that has an onClick since we dont' want to mess with those.
+                    // For example, links.
+                } else if (self.classes[className].initialBody) {
+                    // Do not combine any classname that has initialBody (for example, a "discretionary hyphen")
+                    // because we don't want to combine them
+                } else {
+                    // Combine spans if necessary
+                    while (spans[i]) {
                         
-                        // Extend the first mark
-                        mark.to = markNext.to;
+                        mark = spans[i];
+                        markNext = spans[i + 1];
                         
-                        // Remove the next mark
-                        spans.splice(i + 1, 1);
+                        if (!markNext) {
+                            break;
+                        }
                         
-                        // Do not increment the counter in this case because
-                        // we need to recheck the first mark against the following
-                        // mark because it might overlap that one too
+                        // Check if the marks overlap
+                        if (markNext.from <= mark.to) {
+                            
+                            // Extend the first mark
+                            mark.to = markNext.to;
+                            
+                            // Remove the next mark
+                            spans.splice(i + 1, 1);
+                            
+                            // Do not increment the counter in this case because
+                            // we need to recheck the first mark against the following
+                            // mark because it might overlap that one too
+                            continue;
+                        }
                         
-                    } else {
-                        // No overlap so continue to the next mark
+                        // Continue to the next mark
                         i++;
                     }
                 }
                 
-                // Add these marks to the list of marks we will return
+                // Add these spans to the list of marks we will return
                 Array.prototype.push.apply(spansAdjusted, spans);
             });
             
