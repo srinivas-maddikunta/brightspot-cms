@@ -2033,6 +2033,7 @@ define([
                 var i;
                 var mark;
                 var markNext;
+                var hasAttributes;
 
                 i = 0;
 
@@ -2042,6 +2043,7 @@ define([
                 } else if (self.classes[className].initialBody) {
                     // Do not combine any classname that has initialBody (for example, a "discretionary hyphen")
                     // because we don't want to combine them
+
                 } else {
                     // Combine spans if necessary
                     while (spans[i]) {
@@ -2053,8 +2055,12 @@ define([
                             break;
                         }
                         
+                        // Check if either mark has attributes, in which case we should not combine
+                        hasAttributes = Boolean((mark.marker && !$.isEmptyObject(mark.marker.attributes)) ||
+                            (markNext.marker && !$.isEmptyObject(markNext.marker.attributes)));
+
                         // Check if the marks overlap
-                        if (markNext.from <= mark.to) {
+                        if ((markNext.from <= mark.to) && !hasAttributes) {
                             
                             // Extend the first mark
                             mark.to = markNext.to;
