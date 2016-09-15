@@ -54,7 +54,7 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         }
 
         var processRequestsInterval;
-        var processRequests = bsp_utils.throttle(50, function () {
+        var processRequests = bsp_utils.throttle(10, function () {
             for (var j = 0; j < 100; ++ j) {
 
                 // Process the oldest request first.
@@ -88,7 +88,7 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
 
                     client.on(DISCONNECT_CHANNEL, sendDisconnects);
                     $(window).on('storage', processRequests);
-                    processRequestsInterval = setInterval(processRequests, 100);
+                    processRequestsInterval = setInterval(processRequests, 50);
                 }
 
             } else if (isMaster) {
