@@ -25,11 +25,11 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         var REQUEST_KEY_PREFIX = 'brightspot.rtc.request.';
         var DISCONNECTS_KEY_PREFIX = 'brightspot.rtc.disconnects.';
         var RESTORE_CHANNEL = 'restore';
+        var RESET_CHANNEL = 'reset';
         var BROADCAST_CHANNEL = 'broadcast';
         var DISCONNECT_CHANNEL = 'disconnect';
 
         var client = tabex.client();
-        var isMaster;
 
         function sendDisconnects(disconnects) {
             $.each(disconnects, function (i, disconnect) {
@@ -75,10 +75,19 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             }
         });
 
+        var firstRole;
+        var isPrimary;
+
         client.on('!sys.master', function (data) {
+            var isNodePrimary = data.node_id === data.master_id;
+
+            if (!firstRole) {
+                firstRole = isNodePrimary ? 'primary' : 'replica';
+            }
+
             if (data.node_id === data.master_id) {
-                if (!isMaster) {
-                    isMaster = true;
+                if (!isPrimary) {
+                    isPrimary = true;
                     socket.connect();
 
                     // Disconnect previous sessions.
@@ -86,13 +95,17 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                         sendDisconnects(removeFromStorage(key));
                     });
 
+                    if (firstRole === 'replica') {
+                        client.emit(RESET_CHANNEL, "unused", true);
+                    }
+
                     client.on(DISCONNECT_CHANNEL, sendDisconnects);
                     $(window).on('storage', processRequests);
                     processRequestsInterval = setInterval(processRequests, 50);
                 }
 
-            } else if (isMaster) {
-                isMaster = false;
+            } else if (isPrimary) {
+                isPrimary = false;
                 socket.disconnect();
 
                 client.off(DISCONNECT_CHANNEL, sendDisconnects);
@@ -107,11 +120,11 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
 
         // Try to disconnect the session when the window is closed by either
         // remembering it until next page view or sending the message to the
-        // master.
+        // primary.
         var disconnects = [ ];
 
         $(window).on('beforeunload', function () {
-            if (isMaster) {
+            if (isPrimary) {
                 localStorage.setItem(
                         DISCONNECTS_KEY_PREFIX + $.now() + Math.random(),
                         JSON.stringify(disconnects));
@@ -132,6 +145,19 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             }
         });
 
+        var requestId = 0;
+
+        function queueRequest(data) {
+            ++ requestId;
+            localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
+        }
+
+        client.on(RESET_CHANNEL, function () {
+            $.each(restores, function (i, restore) {
+                queueRequest(restore);
+            });
+        });
+
         var broadcastCallbacks = { };
 
         client.on(BROADCAST_CHANNEL, function (messageString) {
@@ -146,13 +172,6 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         });
 
         // Public API methods:
-        var requestId = 0;
-
-        function queueRequest(data) {
-            ++ requestId;
-            localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
-        }
-
         return {
             queueRequest: queueRequest,
 
@@ -270,13 +289,12 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         function reset() {
             sends = [ ];
             sending = false;
+            sessionId = null;
 
             if (receiver) {
                 receiver.close();
                 receiver = null;
             }
-
-            sessionId = null;
 
             if (pingInterval) {
                 clearInterval(pingInterval);
@@ -285,41 +303,41 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         }
 
         var ensure = bsp_utils.throttle(5000, function () {
+            if (receiver) {
+                var state = receiver.readyState;
 
-            // Already connecting/connected.
-            if (receiver && receiver.readyState !== EventSource.CLOSED) {
-                return;
+                if (state === EventSource.CONNECTING) {
+                    return;
+
+                } else if (state === EventSource.OPEN && sessionId) {
+                    return;
+                }
             }
 
             reset();
 
             // Connect...
             receiver = new EventSource(URL);
-            receiver.onerror = reconnect;
             receiver.onmessage = function (event) {
                 var data = JSON.parse(event.data);
 
-                // Ping from the server to detect client disconnect.
-                if (data._ping) {
-                    return;
-                }
+                // First message along with the session ID.
+                if (data._first) {
+                    sessionId = data.sessionId;
+                    receiver.onerror = reconnect;
+
+                    // Ping roughly every minute to prevent the server from
+                    // forcibly disconnecting the session.
+                    pingInterval = setInterval(function () {
+                        send({
+                            type: 'ping'
+                        });
+                    }, 55000);
 
                 // Broadcast regular message.
-                if (!data._first) {
+                } else if (!data._ping) {
                     share.triggerBroadcast(data);
-                    return;
                 }
-
-                // First message so set up the session.
-                sessionId = data.sessionId;
-
-                // Ping roughly every minute to prevent the server from
-                // forcibly disconnecting the session.
-                pingInterval = setInterval(function () {
-                    send({
-                        type: 'ping'
-                    });
-                }, 55000);
             };
         });
 
