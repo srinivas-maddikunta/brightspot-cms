@@ -148,11 +148,13 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         // Public API methods:
         var requestId = 0;
 
+        function queueRequest(data) {
+            ++ requestId;
+            localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
+        }
+
         return {
-            queueRequest: function (data) {
-                ++ requestId;
-                localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
-            },
+            queueRequest: queueRequest,
 
             registerDisconnect: function (state, data) {
                 disconnects.push({
@@ -163,17 +165,15 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             },
 
             registerRestore: function (state, data, callback) {
-                restores.push({
+                var restore = {
                     type: 'restore',
                     className: state,
                     data: data
-                });
+                };
 
+                restores.push(restore);
                 restoreCallbacks[state] = callback;
-            },
-
-            getRestores: function () {
-                return restores;
+                queueRequest(restore)
             },
 
             triggerRestore: function (state) {
@@ -312,11 +312,6 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
 
                 // First message so set up the session.
                 sessionId = data.sessionId;
-
-                // Re-run all restores for a clean slate.
-                $.each(share.getRestores(), function (i, message) {
-                    send(message);
-                });
 
                 // Ping roughly every minute to prevent the server from
                 // forcibly disconnecting the session.
