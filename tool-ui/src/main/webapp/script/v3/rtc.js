@@ -1,291 +1,383 @@
-define([ 'jquery', 'bsp-utils', 'tabex', 'atmosphere' ], function($, bsp_utils, tabex, atmosphere) {
-  if (DISABLE_RTC) {
-    return {
-      initialize: function () {
-      },
+define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
 
-      restore: function () {
-      },
+    // Fake methods that do nothing when RTC is disabled.
+    if (DISABLE_RTC) {
+        return {
+            initialize: function () {
+            },
 
-      receive: function () {
-      },
+            restore: function () {
+            },
 
-      execute: function () {
-      }
-    };
-  }
+            receive: function () {
+            },
 
-  var RESTORE_CHANNEL = 'restore';
-  var BROADCAST_CHANNEL = 'broadcast';
-  var CLOSE_CHANNEL = 'close';
-  var PUSH_KEY_PREFIX = 'brightspot.rtc.push.';
-  var SESSION_ID_KEY = 'brightspot.rtc.sessionId';
-  var CLOSES_KEY_PREFIX = 'brightspot.rtc.closes.';
-
-  var share = tabex.client();
-  var master;
-  var closes = [ ];
-
-  share.on('!sys.master', function (data) {
-    if (data.node_id === data.master_id) {
-      if (master) {
-        return;
-
-      } else {
-        master = true;
-      }
-
-    } else {
-      master = false;
-      atmosphere.unsubscribe();
-      return;
+            execute: function () {
+            }
+        };
     }
 
-    var request = {
-      url: ROOT_PATH + '/_rtc',
-      contentType: 'application/json',
-      disableDisconnect: true,
-      fallbackTransport: 'sse',
-      reconnect: false,
-      trackMessageLength: true,
-      transport: 'sse'
-    };
-
+    var share;
     var socket;
-    var subscribe = bsp_utils.throttle(5000, function () {
-      socket = atmosphere.subscribe(request);
-    });
 
-    var isOnline = false;
-    var pingInterval;
+    // For cross window communication.
+    share = (function () {
+        var REQUEST_KEY_PREFIX = 'brightspot.rtc.request.';
+        var DISCONNECTS_KEY_PREFIX = 'brightspot.rtc.disconnects.';
+        var RESTORE_CHANNEL = 'restore';
+        var BROADCAST_CHANNEL = 'broadcast';
+        var DISCONNECT_CHANNEL = 'disconnect';
 
-    var offlineExecutes = [];
-    var onlineExecutes = {
-      push: function (message) {
-        socket.push(JSON.stringify(message));
-      }
-    };
+        var client = tabex.client();
+        var isMaster;
 
-    var redoRestores = [];
-    var offlineRestores = [];
-    var onlineRestores = {
-      push: function (message) {
-        redoRestores.push(message);
-        onlineExecutes.push(message);
-        share.emit(RESTORE_CHANNEL, message.className, true);
-      }
-    };
-
-    var offlineCloses = [];
-    var onlineCloses = {
-      push: function (message) {
-        socket.push(JSON.stringify(message));
-      }
-    };
-
-    request.onOpen = function () {
-      isOnline = true;
-
-      pingInterval = setInterval(function () {
-        if (isOnline) {
-          onlineExecutes.push({
-            type: 'ping'
-          });
-        }
-      }, 10000);
-
-      for (var i = 0, length = localStorage.length; i < length; ++ i) {
-        var key = localStorage.key(i);
-
-        if (key && key.indexOf(CLOSES_KEY_PREFIX) === 0) {
-          var previousCloses = JSON.parse(localStorage.getItem(key));
-          localStorage.removeItem(key);
-
-          $.each(previousCloses, function (i, close) {
-            onlineCloses.push(close);
-          });
-        }
-      }
-
-      var oldSessionId = localStorage.getItem(SESSION_ID_KEY);
-      var newSessionId = socket.getUUID();
-
-      if (oldSessionId) {
-        socket.push(JSON.stringify({
-          type: 'migrate',
-          oldSessionId: oldSessionId,
-          newSessionId: newSessionId
-        }));
-      }
-
-      localStorage.setItem(SESSION_ID_KEY, newSessionId);
-
-      $.each(redoRestores, function (i, message) {
-        onlineExecutes.push(message);
-        share.emit(RESTORE_CHANNEL, message.className, true);
-      });
-
-      $.each(offlineRestores, function (i, message) {
-        onlineRestores.push(message);
-      });
-
-      offlineRestores = [];
-
-      $.each(offlineExecutes, function (i, message) {
-        onlineExecutes.push(message);
-      });
-
-      offlineExecutes = [];
-    };
-
-    request.onClose = function () {
-      isOnline = false;
-
-      if (pingInterval) {
-        clearInterval(pingInterval);
-        pingInterval = null;
-      }
-
-      subscribe();
-    };
-
-    request.onMessage = function (response) {
-      share.emit(BROADCAST_CHANNEL, response.responseBody, true);
-    };
-
-    request.onMessagePublished = function (response) {
-      $.each(response.messages, function (i, message) {
-        share.emit(BROADCAST_CHANNEL, message, true);
-      });
-    };
-
-    subscribe();
-
-    share.on(CLOSE_CHANNEL, function (closes) {
-      $.each(closes, function (i, close) {
-        (isOnline ? onlineCloses : offlineCloses).push(close);
-      });
-    });
-
-    var checkRequests = bsp_utils.throttle(50, function () {
-      var minKey;
-
-      for (var j = 0; j < 100; ++j) {
-        minKey = null;
-
-        for (var i = 0, length = localStorage.length; i < length; ++i) {
-          var key = localStorage.key(i);
-
-          if (key && key.indexOf(PUSH_KEY_PREFIX) === 0 && (!minKey || minKey > key)) {
-            minKey = key;
-          }
+        function sendDisconnects(disconnects) {
+            $.each(disconnects, function (i, disconnect) {
+                socket.send(disconnect);
+            });
         }
 
-        if (!minKey) {
-          return;
+        function forEachStorageItem(prefix, callback) {
+            for (var i = 0, length = localStorage.length; i < length; ++ i) {
+                var key = localStorage.key(i);
+
+                if (key && key.indexOf(prefix) === 0) {
+                    callback(key);
+                }
+            }
         }
 
-        var push = JSON.parse(localStorage.getItem(minKey));
-        localStorage.removeItem(minKey);
-
-        if (push.restore) {
-          (isOnline ? onlineRestores : offlineRestores).push(push.data);
-
-        } else {
-          (isOnline ? onlineExecutes : offlineExecutes).push(push.data);
+        function removeFromStorage(key) {
+            var value = JSON.parse(localStorage.getItem(key));
+            localStorage.removeItem(key);
+            return value;
         }
-      }
-    });
 
-    setInterval(checkRequests, 50);
-    $(window).on('storage', checkRequests);
+        var processRequestsInterval;
+        var processRequests = bsp_utils.throttle(50, function () {
+            for (var j = 0; j < 100; ++ j) {
 
-    $(window).on('beforeunload', function () {
-      localStorage.setItem(CLOSES_KEY_PREFIX + socket.getUUID(), JSON.stringify(closes));
-    });
-  });
+                // Process the oldest request first.
+                var oldestKey = null;
 
-  var restoreCallbacks = { };
+                forEachStorageItem(REQUEST_KEY_PREFIX, function (key) {
+                    if (!oldestKey || oldestKey > key) {
+                        oldestKey = key;
+                    }
+                });
 
-  share.on(RESTORE_CHANNEL, function (state) {
-    var callback = restoreCallbacks[state];
+                if (oldestKey) {
+                    socket.send(removeFromStorage(oldestKey));
 
-    if (callback) {
-      callback();
-    }
-  });
+                } else {
+                    return;
+                }
+            }
+        });
 
-  var broadcastCallbacks = { };
+        client.on('!sys.master', function (data) {
+            if (data.node_id === data.master_id) {
+                if (!isMaster) {
+                    isMaster = true;
+                    socket.connect();
 
-  share.on(BROADCAST_CHANNEL, function (messageString) {
-    var message = JSON.parse(messageString);
-    var callbacks = broadcastCallbacks[message.broadcast];
+                    // Disconnect previous sessions.
+                    forEachStorageItem(DISCONNECTS_KEY_PREFIX, function (key) {
+                        sendDisconnects(removeFromStorage(key));
+                    });
 
-    if (callbacks) {
-      $.each(callbacks, function(i, callback) {
-        callback(message.data);
-      });
-    }
-  });
+                    client.on(DISCONNECT_CHANNEL, sendDisconnects);
+                    $(window).on('storage', processRequests);
+                    processRequestsInterval = setInterval(processRequests, 100);
+                }
 
-  var pushId = 0;
+            } else if (isMaster) {
+                isMaster = false;
+                socket.disconnect();
 
-  function push(restore, data) {
-    ++ pushId;
+                client.off(DISCONNECT_CHANNEL, sendDisconnects);
+                $(window).off('storage', processRequests);
 
-    localStorage.setItem(PUSH_KEY_PREFIX + $.now() + pushId, JSON.stringify({
-      restore: restore,
-      data: data
-    }));
-  }
+                if (processRequestsInterval) {
+                    clearInterval(processRequestsInterval);
+                    processRequestsInterval = null;
+                }
+            }
+        });
 
-  $(window).on('beforeunload', function () {
-    if (!master) {
-      share.emit(CLOSE_CHANNEL, closes);
-    }
-  });
+        // Try to disconnect the session when the window is closed by either
+        // remembering it until next page view or sending the message to the
+        // master.
+        var disconnects = [ ];
 
-  function initialize(state, data, callback) {
-    restoreCallbacks[state] = callback;
+        $(window).on('beforeunload', function () {
+            if (isMaster) {
+                localStorage.setItem(
+                        DISCONNECTS_KEY_PREFIX + $.now() + Math.random(),
+                        JSON.stringify(disconnects));
 
-    push(true, {
-      type: 'restore',
-      className: state,
-      data: data
-    });
-  }
+            } else {
+                client.emit(DISCONNECT_CHANNEL, disconnects);
+            }
+        });
 
-  return {
-    initialize: function (state, data, callback) {
-      initialize(state, data, callback);
+        var restores = [ ];
+        var restoreCallbacks = { };
 
-      closes.push({
-        type: 'close',
-        className: state,
-        data: data
-      });
-    },
+        client.on(RESTORE_CHANNEL, function (state) {
+            var callback = restoreCallbacks[state];
 
-    restore: function(state, data, callback) {
-      initialize(state, data, callback);
-    },
+            if (callback) {
+                callback();
+            }
+        });
 
-    receive: function(broadcast, callback) {
-      var callbacks = broadcastCallbacks[broadcast];
+        var broadcastCallbacks = { };
 
-      if (!callbacks) {
-        callbacks = broadcastCallbacks[broadcast] = [ ];
-      }
+        client.on(BROADCAST_CHANNEL, function (messageString) {
+            var message = JSON.parse(messageString);
+            var callbacks = broadcastCallbacks[message.broadcast];
 
-      callbacks.push(callback);
-    },
+            if (callbacks) {
+                $.each(callbacks, function(i, callback) {
+                    callback(message.data);
+                });
+            }
+        });
 
-    execute: function(action, data) {
-      push(false, {
-        type: 'action',
-        className: action,
-        data: data
-      });
-    }
-  };
+        // Public API methods:
+        var requestId = 0;
+
+        return {
+            queueRequest: function (data) {
+                ++ requestId;
+                localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
+            },
+
+            registerDisconnect: function (state, data) {
+                disconnects.push({
+                    type: 'disconnect',
+                    className: state,
+                    data: data
+                });
+            },
+
+            registerRestore: function (state, data, callback) {
+                restores.push({
+                    type: 'restore',
+                    className: state,
+                    data: data
+                });
+
+                restoreCallbacks[state] = callback;
+            },
+
+            getRestores: function () {
+                return restores;
+            },
+
+            triggerRestore: function (state) {
+                client.emit(RESTORE_CHANNEL, state, true);
+            },
+
+            registerBroadcast: function (broadcast, callback) {
+                var callbacks = broadcastCallbacks[broadcast];
+
+                if (!callbacks) {
+                    callbacks = broadcastCallbacks[broadcast] = [ ];
+                }
+
+                callbacks.push(callback);
+            },
+
+            triggerBroadcast: function (message) {
+                client.emit(BROADCAST_CHANNEL, JSON.stringify(message), true);
+            }
+        };
+    })();
+
+    // For server/client communication.
+    socket = (function () {
+        var URL = ROOT_PATH + '/_rtc';
+
+        // For sending messages to the server.
+        var sends = [ ];
+        var sending;
+        var processSends;
+        var sessionId;
+        var reconnect;
+
+        // Make sure that the messages are sent in order.
+        function send(message) {
+            sends.push(message);
+
+            if (!sending) {
+                sending = true;
+                processSends();
+            }
+        }
+
+        processSends = function () {
+
+            // Session not available yet so try again in a bit.
+            if (!sessionId) {
+                setTimeout(processSends, 100);
+                return;
+            }
+
+            var message = sends.shift();
+            var type = message.type;
+
+            $.ajax({
+                type: 'post',
+
+                // Query string not used for anything except debugging.
+                url: URL + (type ? '?' + encodeURIComponent(type) : ''),
+                cache: false,
+                dataType: 'json',
+
+                data: {
+                    sessionId: sessionId,
+                    message: JSON.stringify(message)
+                },
+
+                error: reconnect,
+                success: function (messages) {
+                    if (messages) {
+                        $.each(messages, function (i, message) {
+                            share.triggerBroadcast(message);
+                        });
+                    }
+
+                    if (type === 'restore') {
+                        share.triggerRestore(message.className);
+                    }
+
+                    if (sends.length > 0) {
+                        processSends();
+
+                    } else {
+                        sending = false;
+                    }
+                }
+            });
+        };
+
+        // For receiving messages from the server.
+        var receiver;
+        var pingInterval;
+
+        function reset() {
+            sends = [ ];
+            sending = false;
+
+            if (receiver) {
+                receiver.close();
+                receiver = null;
+            }
+
+            sessionId = null;
+
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+        }
+
+        var ensure = bsp_utils.throttle(5000, function () {
+
+            // Already connecting/connected.
+            if (receiver && receiver.readyState !== EventSource.CLOSED) {
+                return;
+            }
+
+            reset();
+
+            // Connect...
+            receiver = new EventSource(URL);
+            receiver.onerror = reconnect;
+            receiver.onmessage = function (event) {
+                var data = JSON.parse(event.data);
+
+                // Ping from the server to detect client disconnect.
+                if (data._ping) {
+                    return;
+                }
+
+                // Broadcast regular message.
+                if (!data._first) {
+                    share.triggerBroadcast(data);
+                    return;
+                }
+
+                // First message so set up the session.
+                sessionId = data.sessionId;
+
+                // Re-run all restores for a clean slate.
+                $.each(share.getRestores(), function (i, message) {
+                    send(message);
+                });
+
+                // Ping roughly every minute to prevent the server from
+                // forcibly disconnecting the session.
+                pingInterval = setInterval(function () {
+                    send({
+                        type: 'ping'
+                    });
+                }, 55000);
+            };
+        });
+
+        reconnect = function () {
+            reset();
+            ensure();
+        };
+
+        // Public API methods:
+        var ensureInterval;
+
+        return {
+            send: send,
+
+            connect: function () {
+                if (!ensureInterval) {
+                    ensureInterval = setInterval(ensure, 100);
+                    ensure();
+                }
+            },
+
+            disconnect: function () {
+                if (ensureInterval) {
+                    clearInterval(ensureInterval);
+                    ensureInterval = null;
+                }
+
+                reset();
+            }
+        };
+    })();
+
+    // Public API methods:
+    return {
+        initialize: function (state, data, callback) {
+            share.registerRestore(state, data, callback);
+            share.registerDisconnect(state, data);
+        },
+
+        restore: function(state, data, callback) {
+            share.registerRestore(state, data, callback);
+        },
+
+        receive: function(broadcast, callback) {
+            share.registerBroadcast(broadcast, callback);
+        },
+
+        execute: function(action, data) {
+            share.queueRequest({
+                type: 'execute',
+                className: action,
+                data: data
+            });
+        }
+    };
 });
