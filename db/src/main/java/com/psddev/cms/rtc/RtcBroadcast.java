@@ -1,5 +1,6 @@
 package com.psddev.cms.rtc;
 
+import com.psddev.dari.db.Query;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.TypeDefinition;
 
@@ -34,6 +35,18 @@ import java.util.function.BiConsumer;
 public interface RtcBroadcast<T> {
 
     static <T> void forEachBroadcast(T object, BiConsumer<RtcBroadcast<T>, Map<String, Object>> consumer) {
+        if (object instanceof RtcEvent) {
+            RtcEvent event = (RtcEvent) object;
+
+            if (!Query.from(RtcSession.class)
+                    .where("_id = ?", event.as(RtcEvent.Data.class).getSessionId())
+                    .hasMoreThan(0L)) {
+
+                event.getState().delete();
+                return;
+            }
+        }
+
         Set<RtcBroadcast<T>> broadcasts = new HashSet<>();
 
         BROADCAST:
