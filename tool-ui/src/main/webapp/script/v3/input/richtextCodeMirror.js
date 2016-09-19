@@ -7812,8 +7812,10 @@ define([
 
             // Add the plain text to the end of the selected range
             // Then remove the original text that was already there
-            editor.replaceRange(val, range.to, range.to);
-            editor.replaceRange('', range.from, range.to);
+            // We're using the origins 'brightspotPaste' and 'brightspotCut'
+            // here to ensure that if track changes is on, the changes are registered.
+            editor.replaceRange(val, range.to, range.to, 'brightspotPaste');
+            editor.replaceRange('', range.from, range.to, 'brightspotCut');
 
             // Before we start adding styles, save the current history.
             // After we add the styles we will restore the history.
