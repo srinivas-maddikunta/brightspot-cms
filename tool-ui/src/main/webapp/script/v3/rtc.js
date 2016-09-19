@@ -23,34 +23,28 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
     // For cross window communication.
     share = (function () {
         var REQUEST_KEY_PREFIX = 'brightspot.rtc.request.';
-        var DISCONNECTS_KEY_PREFIX = 'brightspot.rtc.disconnects.';
         var RESTORE_CHANNEL = 'restore';
         var RESET_CHANNEL = 'reset';
         var BROADCAST_CHANNEL = 'broadcast';
-        var DISCONNECT_CHANNEL = 'disconnect';
 
         var client = tabex.client();
+        var requestId = 0;
 
-        function sendDisconnects(disconnects) {
-            $.each(disconnects, function (i, disconnect) {
-                socket.send(disconnect);
+        function queueRequest(data) {
+            ++ requestId;
+            localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
+        }
+
+        var restores = [ ];
+
+        client.on(RESET_CHANNEL, function () {
+            $.each(restores, function (i, restore) {
+                queueRequest(restore);
             });
-        }
+        });
 
-        function forEachStorageItem(prefix, callback) {
-            for (var i = 0, length = localStorage.length; i < length; ++ i) {
-                var key = localStorage.key(i);
-
-                if (key && key.indexOf(prefix) === 0) {
-                    callback(key);
-                }
-            }
-        }
-
-        function removeFromStorage(key) {
-            var value = JSON.parse(localStorage.getItem(key));
-            localStorage.removeItem(key);
-            return value;
+        function reset() {
+            client.emit(RESET_CHANNEL, "unused", true);
         }
 
         var processRequestsInterval;
@@ -60,14 +54,23 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                 // Process the oldest request first.
                 var oldestKey = null;
 
-                forEachStorageItem(REQUEST_KEY_PREFIX, function (key) {
-                    if (!oldestKey || oldestKey > key) {
+                for (var i = 0, length = localStorage.length; i < length; ++ i) {
+                    var key = localStorage.key(i);
+
+                    if (key && key.indexOf(REQUEST_KEY_PREFIX) === 0 && (!oldestKey || oldestKey > key)) {
                         oldestKey = key;
+                        break;
                     }
-                });
+                }
 
                 if (oldestKey) {
-                    socket.send(removeFromStorage(oldestKey));
+                    var item = localStorage.getItem(oldestKey);
+
+                    if (item) {
+                        localStorage.removeItem(key);
+                        socket.send(JSON.parse(item));
+                        return;
+                    }
 
                 } else {
                     return;
@@ -90,16 +93,10 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                     isPrimary = true;
                     socket.connect();
 
-                    // Disconnect previous sessions.
-                    forEachStorageItem(DISCONNECTS_KEY_PREFIX, function (key) {
-                        sendDisconnects(removeFromStorage(key));
-                    });
-
                     if (firstRole === 'replica') {
-                        client.emit(RESET_CHANNEL, "unused", true);
+                        reset();
                     }
 
-                    client.on(DISCONNECT_CHANNEL, sendDisconnects);
                     $(window).on('storage', processRequests);
                     processRequestsInterval = setInterval(processRequests, 50);
                 }
@@ -108,7 +105,6 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                 isPrimary = false;
                 socket.disconnect();
 
-                client.off(DISCONNECT_CHANNEL, sendDisconnects);
                 $(window).off('storage', processRequests);
 
                 if (processRequestsInterval) {
@@ -118,23 +114,16 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             }
         });
 
-        // Try to disconnect the session when the window is closed by either
-        // remembering it until next page view or sending the message to the
-        // primary.
         var disconnects = [ ];
 
         $(window).on('beforeunload', function () {
-            if (isPrimary) {
-                localStorage.setItem(
-                        DISCONNECTS_KEY_PREFIX + $.now() + Math.random(),
-                        JSON.stringify(disconnects));
+            $.each(disconnects, function (i, disconnect) {
+                queueRequest(disconnect);
+            });
 
-            } else {
-                client.emit(DISCONNECT_CHANNEL, disconnects);
-            }
+            disconnects = [ ];
         });
 
-        var restores = [ ];
         var restoreCallbacks = { };
 
         client.on(RESTORE_CHANNEL, function (state) {
@@ -145,23 +134,9 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             }
         });
 
-        var requestId = 0;
-
-        function queueRequest(data) {
-            ++ requestId;
-            localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
-        }
-
-        client.on(RESET_CHANNEL, function () {
-            $.each(restores, function (i, restore) {
-                queueRequest(restore);
-            });
-        });
-
         var broadcastCallbacks = { };
 
-        client.on(BROADCAST_CHANNEL, function (messageString) {
-            var message = JSON.parse(messageString);
+        client.on(BROADCAST_CHANNEL, function (message) {
             var callbacks = broadcastCallbacks[message.broadcast];
 
             if (callbacks) {
@@ -174,6 +149,8 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         // Public API methods:
         return {
             queueRequest: queueRequest,
+
+            reset: reset,
 
             registerDisconnect: function (state, data) {
                 disconnects.push({
@@ -210,7 +187,7 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             },
 
             triggerBroadcast: function (message) {
-                client.emit(BROADCAST_CHANNEL, JSON.stringify(message), true);
+                client.emit(BROADCAST_CHANNEL, message, true);
             }
         };
     })();
@@ -244,13 +221,19 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                 return;
             }
 
+            // All done sending for now.
+            if (sends.length <= 0) {
+                sending = false;
+                return;
+            }
+
             var message = sends.shift();
             var type = message.type;
 
             $.ajax({
                 type: 'post',
 
-                // Query string not used for anything except debugging.
+                // Query string only used for logging.
                 url: URL + (type ? '?' + encodeURIComponent(type) : ''),
                 cache: false,
                 dataType: 'json',
@@ -260,7 +243,14 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                     message: JSON.stringify(message)
                 },
 
-                error: reconnect,
+                // Next?
+                complete: processSends,
+
+                error: function () {
+                    sends.unshift(message);
+                    reconnect();
+                },
+
                 success: function (messages) {
                     if (messages) {
                         $.each(messages, function (i, message) {
@@ -271,13 +261,6 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                     if (type === 'restore') {
                         share.triggerRestore(message.className);
                     }
-
-                    if (sends.length > 0) {
-                        processSends();
-
-                    } else {
-                        sending = false;
-                    }
                 }
             });
         };
@@ -287,8 +270,6 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         var pingInterval;
 
         function reset() {
-            sends = [ ];
-            sending = false;
             sessionId = null;
 
             if (receiver) {
@@ -312,9 +293,9 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                 } else if (state === EventSource.OPEN && sessionId) {
                     return;
                 }
-            }
 
-            reset();
+                reset();
+            }
 
             // Connect...
             receiver = new EventSource(URL);
@@ -343,6 +324,7 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
 
         reconnect = function () {
             reset();
+            share.reset();
             ensure();
         };
 
