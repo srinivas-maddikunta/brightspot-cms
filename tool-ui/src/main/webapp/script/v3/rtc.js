@@ -63,17 +63,15 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                     }
                 }
 
-                if (oldestKey) {
-                    var item = localStorage.getItem(oldestKey);
-
-                    if (item) {
-                        localStorage.removeItem(key);
-                        socket.send(JSON.parse(item));
-                        return;
-                    }
-
-                } else {
+                if (!oldestKey) {
                     return;
+                }
+
+                var item = localStorage.getItem(oldestKey);
+
+                if (item) {
+                    localStorage.removeItem(key);
+                    socket.send(JSON.parse(item));
                 }
             }
         });
