@@ -28,30 +28,21 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         var BROADCAST_CHANNEL = 'broadcast';
 
         var client = tabex.client();
+
+        // Process requests by using local storage as a queue.
         var requestId = 0;
+        var processRequestsInterval;
+        var processRequests;
 
         function queueRequest(data) {
             ++ requestId;
             localStorage.setItem(REQUEST_KEY_PREFIX + $.now() + requestId, JSON.stringify(data));
         }
 
-        var restores = [ ];
-
-        client.on(RESTORE_ALL_CHANNEL, function () {
-            $.each(restores, function (i, restore) {
-                queueRequest(restore);
-            });
-        });
-
-        function restoreAll() {
-            client.emit(RESTORE_ALL_CHANNEL, "unused", true);
-        }
-
-        var processRequestsInterval;
-        var processRequests = bsp_utils.throttle(10, function () {
+        processRequests = bsp_utils.throttle(10, function () {
             for (var j = 0; j < 100; ++ j) {
 
-                // Process the oldest request first.
+                // Find the oldest request to process first.
                 var oldestKey = null;
 
                 for (var i = 0, length = localStorage.length; i < length; ++ i) {
@@ -76,6 +67,21 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             }
         });
 
+        // Remember all restore requests so that they can be executed again
+        // on reconnect.
+        var restores = [ ];
+
+        client.on(RESTORE_ALL_CHANNEL, function () {
+            $.each(restores, function (i, restore) {
+                queueRequest(restore);
+            });
+        });
+
+        function restoreAll() {
+            client.emit(RESTORE_ALL_CHANNEL, "unused", true);
+        }
+
+        // Make sure that there's only one connection to the server.
         var firstRole;
         var isPrimary;
 
@@ -91,6 +97,9 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                     isPrimary = true;
                     socket.connect();
 
+                    // Only restore all when a replica becomes the primary,
+                    // because when a node is primary to begin with, the
+                    // the restore is executed upon initial registration.
                     if (firstRole === 'replica') {
                         restoreAll();
                     }
@@ -112,6 +121,8 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             }
         });
 
+        // Remember disconnect requests for execution when the user closes
+        // the window.
         var disconnects = [ ];
 
         $(window).on('beforeunload', function () {
@@ -122,6 +133,7 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             disconnects = [ ];
         });
 
+        // Callbacks that can be triggered by other windows.
         var restoreCallbacks = { };
 
         client.on(RESTORE_CHANNEL, function (state) {
@@ -291,9 +303,9 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
                 } else if (state === EventSource.OPEN && sessionId) {
                     return;
                 }
-
-                reset();
             }
+
+            reset();
 
             // Connect...
             receiver = new EventSource(URL);

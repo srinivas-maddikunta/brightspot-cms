@@ -53,10 +53,12 @@ class RtcAsyncContext {
         this.contexts = contexts;
         this.context = request.startAsync();
 
-        // Forcibly close the underly
+        // Forcibly close the underlying context after some time to prevent
+        // potential connection leaks.
         context.setTimeout(Settings.getOrDefault(long.class, RtcFilter.ASYNC_CONTEXT_TIMEOUT_SETTING, 15L * 60 * 1000));
 
-        //
+        // Make sure everything's cleaned up when the underlying context
+        // goes away for any reason.
         context.addListener(new RtcAsyncContextListener(this));
 
         this.userId = userId;
