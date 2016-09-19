@@ -277,6 +277,8 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
 
         // For receiving messages from the server.
         var receiver;
+        var lastMessageReceived;
+        var messageInterval;
         var pingInterval;
 
         function reset() {
@@ -285,6 +287,11 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             if (receiver) {
                 receiver.close();
                 receiver = null;
+            }
+
+            if (messageInterval) {
+                clearInterval(messageInterval);
+                messageInterval = null;
             }
 
             if (pingInterval) {
@@ -310,12 +317,21 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
             // Connect...
             receiver = new EventSource(URL);
             receiver.onmessage = function (event) {
+                lastMessageReceived = $.now();
                 var data = JSON.parse(event.data);
 
                 // First message along with the session ID.
                 if (data._first) {
                     sessionId = data.sessionId;
                     receiver.onerror = reconnect;
+
+                    // There should be a message from the server at least
+                    // every 5 seconds, so if not, reconnect.
+                    messageInterval = setInterval(function () {
+                        if ($.now() > lastMessageReceived + 6000) {
+                            reconnect();
+                        }
+                    }, 1000);
 
                     // Ping roughly every minute to prevent the server from
                     // forcibly disconnecting the session.
