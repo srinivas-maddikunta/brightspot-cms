@@ -43,6 +43,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
     private final ConcurrentMap<UUID, RtcAsyncContext> contexts = new ConcurrentHashMap<>();
     private volatile RtcAsyncContextPingRunnable pingRunnable;
     private volatile ScheduledExecutorService pingExecutor;
+    private volatile RtcSessionUpdateNotifier sessionUpdateNotifier;
     private volatile RtcEventUpdateNotifier eventUpdateNotifier;
 
     public static UUID getUserId(HttpServletRequest request) {
@@ -66,8 +67,13 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
         pingExecutor = Executors.newSingleThreadScheduledExecutor();
         pingExecutor.scheduleWithFixedDelay(pingRunnable, 0, 5, TimeUnit.SECONDS);
 
+        Database database = Database.Static.getDefault();
+
+        sessionUpdateNotifier = new RtcSessionUpdateNotifier(contexts);
+        database.addUpdateNotifier(sessionUpdateNotifier);
+
         eventUpdateNotifier = new RtcEventUpdateNotifier(contexts);
-        Database.Static.getDefault().addUpdateNotifier(eventUpdateNotifier);
+        database.addUpdateNotifier(eventUpdateNotifier);
     }
 
     @Override
@@ -81,8 +87,15 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
         pingExecutor.shutdownNow();
         pingExecutor = null;
 
+        Database database = Database.Static.getDefault();
+
+        if (sessionUpdateNotifier != null) {
+            database.removeUpdateNotifier(sessionUpdateNotifier);
+            sessionUpdateNotifier = null;
+        }
+
         if (eventUpdateNotifier != null) {
-            Database.Static.getDefault().removeUpdateNotifier(eventUpdateNotifier);
+            database.removeUpdateNotifier(eventUpdateNotifier);
             eventUpdateNotifier = null;
         }
     }
