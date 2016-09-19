@@ -765,6 +765,7 @@
       overflow: hidden;
 
       > li {
+        align-items: flex-start;
         background-color: darken(white, 3%);
         border: 1px solid darken(white, 20%);
         border-radius: 2px;
@@ -784,8 +785,8 @@
           margin: 0;
           margin-bottom:4px;
           padding:4px;
-          width: auto;
-          height:150px;
+          width: 100%;
+          height:100%;
           
           figure {
             
@@ -815,14 +816,16 @@
 
         .removeButton {
           .icon-only;
+          bottom: 8px;
           position:absolute;
-          right:1em;
+          right: 6px;
         }
         
         .objectId-edit {
           .icon-only;
+          bottom: 8px;
           position:absolute;
-          right:3em;
+          right: 28px;
         }
       }
     }
