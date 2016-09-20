@@ -32,18 +32,21 @@ import java.util.function.BiConsumer;
  *
  * @since 3.1
  */
-public interface RtcBroadcast<T extends RtcEvent> {
+public interface RtcBroadcast<T> {
 
-    static <T extends RtcEvent> void forEachBroadcast(T event, BiConsumer<RtcBroadcast<T>, Map<String, Object>> consumer) {
-        UUID sessionId = event.as(RtcEvent.Data.class).getSessionId();
+    static <T> void forEachBroadcast(T object, BiConsumer<RtcBroadcast<T>, Map<String, Object>> consumer) {
+        if (object instanceof RtcEvent) {
+            RtcEvent event = (RtcEvent) object;
+            UUID sessionId = event.as(RtcEvent.Data.class).getSessionId();
 
-        if (sessionId != null
-                && !Query.from(RtcSession.class)
-                        .where("_id = ?", sessionId)
-                        .hasMoreThan(0L)) {
+            if (sessionId != null
+                    && !Query.from(RtcSession.class)
+                            .where("_id = ?", sessionId)
+                            .hasMoreThan(0L)) {
 
-            event.getState().delete();
-            return;
+                event.getState().delete();
+                return;
+            }
         }
 
         Set<RtcBroadcast<T>> broadcasts = new HashSet<>();
@@ -68,7 +71,7 @@ public interface RtcBroadcast<T extends RtcEvent> {
                             Type arg = args[0];
 
                             if (arg instanceof Class
-                                    && !((Class<?>) arg).isInstance(event)) {
+                                    && !((Class<?>) arg).isInstance(object)) {
                                 continue BROADCAST;
 
                             } else {
@@ -82,7 +85,7 @@ public interface RtcBroadcast<T extends RtcEvent> {
             @SuppressWarnings("unchecked")
             Class<RtcBroadcast<T>> broadcastClass = (Class<RtcBroadcast<T>>) c;
             RtcBroadcast<T> broadcast = TypeDefinition.getInstance(broadcastClass).newInstance();
-            Map<String, Object> data = broadcast.create(event);
+            Map<String, Object> data = broadcast.create(object);
 
             if (data != null) {
                 consumer.accept(broadcast, data);

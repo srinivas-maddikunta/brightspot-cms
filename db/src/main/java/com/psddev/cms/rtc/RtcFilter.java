@@ -172,7 +172,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
         Map<String, Object> messageData = (Map<String, Object>) messageJson.get("data");
 
         if ("restore".equals(messageType)) {
-            Iterable<? extends RtcEvent> restores = createInstance(RtcState.class, messageJson).create(messageData);
+            Iterable<?> restores = createInstance(RtcState.class, messageJson).create(messageData);
 
             if (restores != null) {
                 UUID currentUserId = userId;
@@ -204,7 +204,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
         }
 
         if ("disconnect".equals(messageType)) {
-            Iterable<? extends RtcEvent> disconnects = createInstance(RtcState.class, messageJson).close(messageData, userId);
+            Iterable<?> disconnects = createInstance(RtcState.class, messageJson).close(messageData, userId);
 
             if (disconnects != null) {
                 Database database = Database.Static.getDefault();
@@ -212,7 +212,12 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
                 database.beginWrites();
 
                 try {
-                    disconnects.forEach(RtcEvent::onDisconnect);
+                    disconnects.forEach(event -> {
+                        if (event instanceof RtcEvent) {
+                            ((RtcEvent) event).onDisconnect();
+                        }
+                    });
+
                     database.commitWrites();
 
                 } finally {

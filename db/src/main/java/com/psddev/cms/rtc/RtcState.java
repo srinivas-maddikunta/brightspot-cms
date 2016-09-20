@@ -30,7 +30,7 @@ public interface RtcState {
      *
      * @return May be {@code null}.
      */
-    Iterable<? extends RtcEvent> create(Map<String, Object> data);
+    Iterable<?> create(Map<String, Object> data);
 
     /**
      * Returns objects that should be closed based on the given {@code data}
@@ -44,7 +44,7 @@ public interface RtcState {
      *
      * @return May be {@code null}.
      */
-    default Iterable<? extends RtcEvent> close(Map<String, Object> data, UUID userId) {
+    default Iterable<?> close(Map<String, Object> data, UUID userId) {
         return null;
     }
 }
