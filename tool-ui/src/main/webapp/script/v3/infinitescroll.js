@@ -11,7 +11,8 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           itemsContainerSelector   : '.searchResult-images',
           itemSelector             : 'figure',
           scrollBuffer             : 100,
-          prefill                  : true
+          prefill                  : true,
+          window                   : false
         };
 
         var $scrollable = $(scrollable);
@@ -23,6 +24,10 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
         if (settings.prefill) {
           fill();
+        }
+
+        if (settings.window) {
+          $scrollable = $(window);
         }
 
         $scrollable.scroll(bsp_utils.throttle(100, fill));
