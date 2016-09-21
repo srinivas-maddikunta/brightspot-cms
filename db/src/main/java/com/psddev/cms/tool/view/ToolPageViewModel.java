@@ -1,5 +1,6 @@
 package com.psddev.cms.tool.view;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 
@@ -15,22 +16,25 @@ public abstract class ToolPageViewModel<M> extends ViewModel<M> {
     protected ToolPageContext page;
 
     /**
-     * Invokes {@link ToolPageContext#writeFormFields(Object)}, and returns the
-     * HTML normally written to the {@link javax.servlet.http.HttpServletResponse}.
+     * Helper method for getting HTML produced by @{link ToolPageContext}#write methods.
      */
-    public String getFormFieldsHtml(Object object) {
+    protected String getHtml(ToolPageWriter writer) {
         Writer oldDelegate = page.getDelegate();
         StringWriter newDelegate = new StringWriter();
-
         try {
             page.setDelegate(newDelegate);
-            page.writeFormFields(object);
+            writer.write();
         } catch (Exception e) {
-            // Ignore.
+            // This should never happen.
+            throw new IllegalStateException(e);
         } finally {
             page.setDelegate(oldDelegate);
         }
 
         return newDelegate.toString();
+    }
+
+    protected interface ToolPageWriter {
+        void write() throws IOException;
     }
 }
