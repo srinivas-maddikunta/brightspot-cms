@@ -1052,13 +1052,17 @@ public class ToolUser extends Record implements ToolEntity {
                 String[] nameParts = name.split("\\s+");
 
                 for (int i = 0, length = nameParts.length; i < length; ++ i) {
-                    char initial = nameParts[i].charAt(0);
+                    String namePart = nameParts[i];
 
-                    if (Character.isLetter(initial)) {
-                        initials.append(initial);
+                    if (!StringUtils.isBlank(namePart)) {
+                        char initial = namePart.charAt(0);
 
-                        if (initials.length() >= 2) {
-                            break;
+                        if (Character.isLetter(initial)) {
+                            initials.append(initial);
+
+                            if (initials.length() >= 2) {
+                                break;
+                            }
                         }
                     }
                 }
