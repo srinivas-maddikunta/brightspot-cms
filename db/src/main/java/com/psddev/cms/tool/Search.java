@@ -493,31 +493,7 @@ public class Search extends Record {
         sorts.clear();
 
         for (Map.Entry<String, String> entry : sortsList) {
-            String value = entry.getKey();
-            String label = entry.getValue();
-            ObjectField sortField = selectedType != null
-                    ? selectedType.getFieldGlobally(value)
-                    : Database.Static.getDefault().getEnvironment().getField(value);
-
-            if (sortField != null) {
-                ToolUi ui = sortField.as(ToolUi.class);
-
-                // Append ascending/descending sort value suffix(es).
-                if (ui.isSortDescending()) {
-
-                    // Add specific ascending sort option ONLY if descending sort option also exists.
-                    if (ui.isSortAscending()) {
-                        sorts.put(value + ASCENDING_SORT_VALUE_SUFFIX, label);
-                    }
-                    sorts.put(value + DESCENDING_SORT_VALUE_SUFFIX, label);
-
-                } else {
-                    sorts.put(value, label);
-                }
-
-            } else {
-                sorts.put(value, label);
-            }
+            sorts.put(entry.getKey(), entry.getValue());
         }
 
         return sorts;
@@ -526,8 +502,27 @@ public class Search extends Record {
     private void addSorts(Map<String, String> sorts, ObjectStruct struct) {
         if (struct != null) {
             for (ObjectField field : ObjectStruct.Static.findIndexedFields(struct)) {
-                if (field.as(ToolUi.class).isEffectivelySortable()) {
-                    sorts.put(field.getInternalName(), Localization.currentUserText(field, "field." + field.getInternalName()));
+                ToolUi ui = field.as(ToolUi.class);
+
+                if (ui.isEffectivelySortable()) {
+                    String internalName = field.getInternalName();
+                    String label = Localization.currentUserText(field, "field." + internalName);
+
+                    boolean sortAscending = ui.isSortAscending();
+                    boolean sortDescending = ui.isSortDescending();
+
+                    if (sortAscending) {
+                        sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX, label);
+                    }
+
+                    if (sortDescending) {
+                        sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX, label);
+                    }
+
+                    // Natural sort order.
+                    if (!sortAscending && !sortDescending) {
+                        sorts.put(internalName, label);
+                    }
                 }
             }
         }
