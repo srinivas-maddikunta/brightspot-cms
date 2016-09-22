@@ -12,6 +12,7 @@ import org.atmosphere.cpr.AtmosphereFrameworkInitializer;
 import org.atmosphere.cpr.AtmosphereRequest;
 import org.atmosphere.cpr.AtmosphereResponse;
 import org.atmosphere.interceptor.AtmosphereResourceLifecycleInterceptor;
+import org.atmosphere.interceptor.IdleResourceInterceptor;
 import org.atmosphere.util.VoidAnnotationProcessor;
 
 import javax.servlet.Filter;
@@ -46,6 +47,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
             .put(ApplicationConfig.ANALYTICS, Boolean.FALSE.toString())
             .put(ApplicationConfig.ANNOTATION_PROCESSOR, VoidAnnotationProcessor.class.getName())
             .put(ApplicationConfig.HEARTBEAT_INTERVAL_IN_SECONDS, String.valueOf(30))
+            .put(ApplicationConfig.MAX_INACTIVE, String.valueOf(90000))
             .build();
 
     private static final String ATTRIBUTE_PREFIX = RtcFilter.class.getName() + ".";
@@ -108,6 +110,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
                 new RtcHandler(),
                 Arrays.asList(
                         new AtmosphereResourceLifecycleInterceptor(),
+                        new IdleResourceInterceptor(),
                         new TrackMessageSizeInterceptor()
                 )
         );

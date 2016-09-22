@@ -164,20 +164,17 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
     bsp_utils.onDomInsert(document, '[data-rtc-content-id]', {
         insert: function (container) {
             var $container = $(container);
+
+            if (!$container.is('form')) {
+                return;
+            }
+
             var contentId = $container.attr('data-rtc-content-id');
             
             if (!contentId) {
                 return;
             }
-            
-            if (!$container.is('form')) {
-                rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
-                    contentId: contentId
-                });
-                
-                return;
-            }
-            
+
             function update() {
                 var fieldNamesByObjectId = {};
 
@@ -196,7 +193,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
                 }
             }
 
-            rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
+            rtc.initialize('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
                 contentId: contentId
             }, update);
 
@@ -215,6 +212,28 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
 
             $container.on('blur focus change', ':input', throttledUpdate);
             $container.on('content-state-differences', throttledUpdate);
+        },
+
+        afterInsert: function (containers) {
+            var contentIds = [ ];
+
+            $(containers).each(function () {
+                var $container = $(this);
+
+                if (!$container.is('form')) {
+                    var contentId = $container.attr('data-rtc-content-id');
+
+                    if (contentId) {
+                        contentIds.push(contentId);
+                    }
+                }
+            });
+
+            if (contentIds.length > 0) {
+                rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
+                    contentId: contentIds
+                });
+            }
         }
     });
 });

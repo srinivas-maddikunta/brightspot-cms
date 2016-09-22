@@ -361,17 +361,14 @@ define([
             self.spellcheckInit();
             self.modeInit();
 
-            var $window = $(window);
-            var windowWidth = $window.width();
-            var windowHeight = $window.height();
+            var $wrapper = $(self.codeMirror.getWrapperElement());
+            var wrapperWidth = $wrapper.width();
 
-            $window.resize(bsp_utils.throttle(500, function () {
-                var newWindowWidth = $window.width();
-                var newWindowHeight = $window.height();
+            $(window).resize(bsp_utils.throttle(500, function () {
+                var newWrapperWidth = $wrapper.width();
 
-                if (windowWidth !== newWindowWidth || windowHeight !== newWindowHeight) {
-                    windowWidth = newWindowWidth;
-                    windowHeight = newWindowHeight;
+                if (wrapperWidth !== newWrapperWidth) {
+                    wrapperWidth = newWrapperWidth;
 
                     self.refresh();
                 }
@@ -2170,6 +2167,21 @@ define([
             return mark;
         },
 
+
+        blockMarkReadOnly: function (mark, range) {
+            if (mark.rteReadOnly) {
+                this.codeMirror.markText(
+                        { line: range.from.line, ch: 0 },
+                        { line: range.to.line + 1, ch: 0 },
+                        {
+                            atomic: true,
+                            clearWhenEmpty: true,
+                            inclusiveLeft: false,
+                            inclusiveRight: false
+                        });
+            }
+        },
+
         
         /**
          * @param String classname
@@ -2218,6 +2230,7 @@ define([
                 
                 // just in case we need to distinguish this is our fake mark...
                 rteLineStyle: true,
+                rteReadOnly: styleObj.readOnly,
                 
                 // other code checks for className on the mark so we'll save it here too
                 className: className 
@@ -2239,14 +2252,24 @@ define([
             // If this is a set of mutually exclusive styles, clear the other styles
             if (styleObj.clear) {
                 $.each(styleObj.clear, function(i, styleKey) {
-                    if (self.blockIsStyle(styleKey, range)) {
-                        self.blockRemoveStyle(styleKey, range);
+                    var lineNumber;
+                    var lineRange;
+
+                    for (lineNumber = range.from.line; lineNumber <= range.to.line; lineNumber++) {
+                        lineRange = {
+                            from: {line: lineNumber, ch:0},
+                            to: {line: lineNumber, ch:0}
+                        };
+                        if (self.blockIsStyle(styleKey, lineRange)) {
+                            self.blockRemoveStyle(styleKey, lineRange);
+                        }
                     }
                 });
             }
 
             // Refresh the editor display since our line classes
             // might have padding that messes with the cursor position
+            self.blockMarkReadOnly(mark, range);
             self.refresh();
 
             if (options.triggerChange !== false) {
@@ -2762,8 +2785,9 @@ define([
          * @param {String} styleKey
          * @param {Number} lineNumber
          * @param {String} previewHTML
+         * @param {Object} attributes
          */
-        blockSetPreview: function(styleKey, lineNumber, previewHTML) {
+        blockSetPreview: function(styleKey, lineNumber, previewHTML, attributes) {
             
             var data;
             var editor;
@@ -2784,8 +2808,15 @@ define([
 
             // Create DOM for the preview HTML
             $preview = $('<div>', {
-                'class': 'rte2-block-preview'
+                'class': 'rte2-block-preview',
+                'data-style-key': styleKey
             }).html(previewHTML);
+
+            if (attributes) {
+                $.each(attributes, function (key, value) {
+                    $preview.attr('data-attr-' + key, value);
+                });
+            }
 
             // Save the DOM node in the line data
             data.$preview = $preview;
@@ -2832,7 +2863,7 @@ define([
             range = mark.find();
             lineNumber = range.from.line;
             
-            return self.blockSetPreview(styleKey, lineNumber, previewHTML);
+            return self.blockSetPreview(styleKey, lineNumber, previewHTML, mark.attributes);
         },
 
 
@@ -3399,6 +3430,8 @@ define([
             self = this;
             editor = self.codeMirror;
             list = [];
+            
+            // Get all the block enhancements
             lineHandle = editor.getLineHandle(lineNumber);
             if (lineHandle && lineHandle.widgets) {
                 $.each(lineHandle.widgets, function(i,widget) {
@@ -3411,6 +3444,18 @@ define([
                     }
                 });
             }
+            
+            // Get all the enhancements that are align left and right
+            $.each(self.enhancementCache, function(i, mark) {
+                
+                // Make sure this is not a block enhancement
+                if (mark && mark.options && mark.options.block === false) {
+                    if (self.enhancementGetLineNumber(mark) === lineNumber) {
+                        list.push(mark);
+                    }
+                }
+            });
+            
             return list;
         },
         
@@ -3573,6 +3618,127 @@ define([
             return marks;
         },
 
+
+        moveMark: function (mark, direction) {
+            if (!mark || direction === 0) {
+                return;
+            }
+
+            var markRange = mark.find();
+
+            if (!markRange) {
+                return;
+            }
+
+            var self = this;
+            var cm = self.codeMirror;
+            var from = markRange.from.line;
+
+            // Find the number of blank lines after the mark to include in the
+            // move.
+            var to = markRange.to.line + 1;
+            var blanksAfter = -1;
+
+            while (to < cm.lineCount() && cm.getLine(to) === '') {
+                ++ to;
+                ++ blanksAfter;
+            }
+
+            // Make sure that the move is possible.
+            var move = -1;
+
+            if (direction < 0) {
+                move = from - 1;
+
+                // Skip over the blank lines right above the mark.
+                while (move >= 0 && cm.getLine(move) === '') {
+                    -- move;
+                }
+
+                if (move !== 0) {
+                    -- move;
+                }
+
+            } else if (to < cm.lineCount()) {
+                move = from + 1;
+            }
+
+            // Move isn't possible so restore cursor and do nothing.
+            if (move < 0) {
+                cm.setCursor(cm.getCursor());
+                cm.focus();
+                return;
+            }
+
+            // Move the mark.
+            cm.operation(function () {
+                var initialTop = cm.charCoords({ line: from, ch: 0 }).top;
+                var html = self.toHTML(markRange);
+                var cursor = cm.getCursor();
+                var movePosition = { line: move, ch: 0 };
+
+                // Delete the existing mark.
+                cm.replaceRange('', { line: from, ch: 0 }, { line: to, ch: 0 });
+
+                // Insert an extra blank line if moving to the beginning or
+                // the end of the text and there isn't already a blank line
+                // there. This is done to improve the spacing display.
+                if ((move === 0 && cm.getLine(move) !== '') || move === cm.lineCount()) {
+                    cm.replaceRange('\n', { line: move, ch: 0 }, { line: move, ch: 0 });
+                }
+
+                // Insert the blank lines found previously.
+                for (var i = 0; i < blanksAfter; ++ i) {
+                    cm.replaceRange('\n', movePosition, movePosition);
+                }
+
+                // Insert the mark at the new position.
+                self.fromHTML(html, { from: movePosition, to: movePosition });
+
+                // Move the cursor to the newly created mark.
+                var cursorLine = move + blanksAfter + cursor.line - from + 1;
+
+                cm.setCursor({ line: cursorLine, ch: cursor.ch });
+                cm.focus();
+
+                // Scroll the window so that the mouse is over the same
+                // area as before.
+                $(window).scrollTop($(window).scrollTop() + (cm.charCoords({ line: cursorLine, ch: 0 }).top - initialTop));
+
+                // Remove all blanks lines above the mark if there aren't any
+                // other texts.
+                var first = move;
+
+                for (; first >= 0; -- first) {
+                    if (cm.getLine(first) !== '') {
+                        break;
+                    }
+                }
+
+                if (first === -1) {
+                    cm.replaceRange('', { line: 0, ch: 0 }, { line: move + 1, ch: 0 });
+
+                } else {
+
+                    // Remove all blanks lines below the mark if there aren't
+                    // any other texts.
+                    var lastInitial = move + (to - from) + blanksAfter;
+                    var last = lastInitial;
+                    var lineCount = cm.lineCount();
+
+                    for (; last < lineCount; ++ last) {
+                        if (cm.getLine(last) !== '') {
+                            break;
+                        }
+                    }
+
+                    if (last === lineCount) {
+                        cm.replaceRange('', { line: lastInitial, ch: 0 }, { line: lineCount, ch: 0 });
+                    }
+                }
+            });
+        },
+
         
         /**
          * @param {Array} marks 
@@ -3623,6 +3789,26 @@ define([
                         self.onClickDoMark(event, mark);
                         return false;
                     }).appendTo($div);
+                }
+
+                if (styleObj.line) {
+                    $div.append($('<a/>', {
+                        'class': 'rte2-dropdown-move-up',
+                        text: 'Move Up',
+                        click: function () {
+                            self.moveMark(mark, -1);
+                            return false;
+                        }
+                    }));
+
+                    $div.append($('<a/>', {
+                        'class': 'rte2-dropdown-move-down',
+                        text: 'Move Down',
+                        click: function () {
+                            self.moveMark(mark, 1);
+                            return false;
+                        }
+                    }));
                 }
 
                 $('<a/>', {
@@ -4483,7 +4669,7 @@ define([
             $.each(self.clipboardSanitizeTypes, function(typeName, typeConf) {
                 var isType;
                 if (typeConf.isType && typeConf.rules) {
-                    isType = typeConf.isType($el);
+                    isType = typeConf.isType($el, html);
                     if (isType) {
                         // The pasted content matches this type, so apply these rules
                         self.clipboardSanitizeApplyRules($el, typeConf.rules);
@@ -6149,7 +6335,8 @@ define([
                 
                 // Replace the content of the mark
                 if (!self.historyIsExecuting()) {
-                    self.fromHTML(html, range, true, true);                    
+                    self.fromHTML(html, range, true, true);
+                    self.blockMarkReadOnly(mark, range);
                     reset();
                 }
             };
@@ -6712,7 +6899,11 @@ define([
                 }
 
                 // Now add the html for the beginning of the line.
-                html += htmlStartOfLine;
+                if (htmlStartOfLine) {
+                    // Kill the last <br> since it's not needed before a block element
+                    html = html.replace(/<br\/?>$/, '');
+                    html += htmlStartOfLine;
+                }
                 
                 // Get the start/end points of all the marks on this line
                 // For these objects the key is the character number,
@@ -7370,9 +7561,8 @@ define([
                             // Determine if the element maps to one of our defined styles
                             matchStyleObj = self.getStyleForElement(next);
                             
-                            // Create new line if this is a block element and the previous text did not end the line.
-                            if (matchStyleObj && matchStyleObj.line && val[ val.length - 1 ] !== '\n') {
-                                // Note in this case, when exporting HTML a <br/> element will be added.
+                            // Create new line if this is a block element
+                            if (matchStyleObj && matchStyleObj.line) {
                                 val += '\n';
                             }
                         }
@@ -7622,8 +7812,10 @@ define([
 
             // Add the plain text to the end of the selected range
             // Then remove the original text that was already there
-            editor.replaceRange(val, range.to, range.to);
-            editor.replaceRange('', range.from, range.to);
+            // We're using the origins 'brightspotPaste' and 'brightspotCut'
+            // here to ensure that if track changes is on, the changes are registered.
+            editor.replaceRange(val, range.to, range.to, 'brightspotPaste');
+            editor.replaceRange('', range.from, range.to, 'brightspotCut');
 
             // Before we start adding styles, save the current history.
             // After we add the styles we will restore the history.

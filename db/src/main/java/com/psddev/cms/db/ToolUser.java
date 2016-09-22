@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.google.common.io.BaseEncoding;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Dashboard;
+import com.psddev.cms.tool.DashboardContainer;
 import com.psddev.cms.tool.SearchResultSelection;
 import com.psddev.cms.tool.ToolEntityTfaRequired;
 import com.psddev.dari.db.Application;
@@ -73,7 +74,15 @@ public class ToolUser extends Record implements ToolEntity {
 
     private StorageItem avatar;
 
+    @DisplayName("Dashboard")
     @ToolUi.Tab("Dashboard")
+    private DashboardContainer dashboardContainer;
+
+    @Deprecated
+    @DisplayName("Legacy Dashboard")
+    @ToolUi.Tab("Dashboard")
+    @ToolUi.Note("Deprecated. Please use the Dashboard field above instead.")
+    @Embedded
     private Dashboard dashboard;
 
     @ToolUi.Hidden
@@ -246,10 +255,27 @@ public class ToolUser extends Record implements ToolEntity {
         this.avatar = avatar;
     }
 
+    public DashboardContainer getDashboardContainer() {
+        if (dashboardContainer == null && dashboard != null) {
+            DashboardContainer.OneOff oneOff = new DashboardContainer.OneOff();
+            oneOff.setDashboard(dashboard);
+            return oneOff;
+
+        } else {
+            return dashboardContainer;
+        }
+    }
+
+    public void setDashboardContainer(DashboardContainer dashboardContainer) {
+        this.dashboardContainer = dashboardContainer;
+    }
+
+    @Deprecated
     public Dashboard getDashboard() {
         return dashboard;
     }
 
+    @Deprecated
     public void setDashboard(Dashboard dashboard) {
         this.dashboard = dashboard;
     }

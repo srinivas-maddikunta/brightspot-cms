@@ -41,11 +41,14 @@ import javax.servlet.jsp.PageContext;
 
 import com.google.common.base.Preconditions;
 import com.ibm.icu.text.DateFormat;
+import com.psddev.cms.db.ElFunctionUtils;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.WorkInProgress;
+import com.psddev.cms.rte.RichTextToolbar;
+import com.psddev.cms.rte.RichTextToolbarItem;
 import com.psddev.cms.tool.page.content.Edit;
 import com.psddev.cms.view.ClassResourceViewTemplateLoader;
 import com.psddev.cms.view.ViewModelCreator;
@@ -1745,7 +1748,7 @@ public class ToolPageContext extends WebPageContext {
             writeElement("link", "rel", "stylesheet/less", "type", "text/less", "href", cmsResource("/style/" + theme + ".less"));
 
         } else {
-            writeElement("link", "rel", "stylesheet", "type", "text/css", "href", cmsResource("/style/" + theme + ".min.css"));
+            writeElement("link", "rel", "stylesheet", "type", "text/css", "href", ElFunctionUtils.resource(toolPath(CmsTool.class, "/style/" + theme + ".min.css")));
         }
 
         for (Tool tool : tools) {
@@ -1821,6 +1824,23 @@ public class ToolPageContext extends WebPageContext {
             commonTimeMap.put("minute", commonTime.getMinute());
             commonTimes.add(commonTimeMap);
         }
+
+        Map<String, List<Map<String, Object>>> richTextToolbars = ClassFinder.findConcreteClasses(RichTextToolbar.class).stream()
+                .collect(Collectors.toMap(
+                        Class::getName,
+                        c -> {
+                            RichTextToolbar toolbar = TypeDefinition.getInstance(c).newInstance();
+                            List<RichTextToolbarItem> items = toolbar.getItems();
+
+                            if (items != null) {
+                                return items.stream()
+                                        .map(RichTextToolbarItem::toMap)
+                                        .collect(Collectors.toList());
+
+                            } else {
+                                return Collections.emptyList();
+                            }
+                        }));
 
         List<Map<String, Object>> richTextElements = new ArrayList<>();
 
@@ -1993,6 +2013,7 @@ public class ToolPageContext extends WebPageContext {
             write("var RTE_ENABLE_ANNOTATIONS = ", getCmsTool().isEnableAnnotations(), ';');
             write("var DISABLE_TOOL_CHECKS = ", getCmsTool().isDisableToolChecks(), ';');
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
+            write("var RICH_TEXT_TOOLBARS = ", ObjectUtils.toJson(richTextToolbars), ';');
             write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
             write("var ENABLE_PADDED_CROPS = ", getCmsTool().isEnablePaddedCrop(), ';');
             write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ",
@@ -2005,16 +2026,16 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript", "src", "//www.google.com/jsapi");
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "jquery.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.extra.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "jquery.extra.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "handsontable.full.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "handsontable.full.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "d3.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "d3.js")));
         writeEnd();
 
         writeStart("script", "type", "text/javascript");
@@ -2025,10 +2046,12 @@ public class ToolPageContext extends WebPageContext {
             writeRaw(";");
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "require.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "require.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + theme + ".js"));
+        writeStart("script", "type", "text/javascript", "src", cms.isUseNonMinifiedJavaScript()
+                ? cmsResource(scriptPrefix + theme + ".js")
+                : ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + theme + ".js")));
         writeEnd();
 
         String dropboxAppKey = getCmsTool().getDropboxApplicationKey();
@@ -2847,9 +2870,14 @@ public class ToolPageContext extends WebPageContext {
                     fields.removeIf(f -> f.getInternalName().equals("dari.singleton.key"));
 
                     // Do not display fields with @ToolUi.CollectionItemWeight, @ToolUi.CollectionItemToggle, or @ToolUiCollectionItemProgress
-                    fields.removeIf(f -> f.as(ToolUi.class).isCollectionItemToggle()
-                            || f.as(ToolUi.class).isCollectionItemWeight()
-                            || f.as(ToolUi.class).isCollectionItemProgress());
+                    fields.removeIf(f -> {
+                        ToolUi ui = f.as(ToolUi.class);
+
+                        return ui.isCollectionItemToggle()
+                                || ui.isCollectionItemWeight()
+                                || ui.isCollectionItemWeightMarker()
+                                || ui.isCollectionItemProgress();
+                    });
 
                     DependencyResolver<ObjectField> resolver = new DependencyResolver<>();
                     Map<String, ObjectField> fieldByName = fields.stream()
@@ -2911,6 +2939,15 @@ public class ToolPageContext extends WebPageContext {
                         if (draftCheck) {
                             request.setAttribute("firstDraft", null);
                             request.setAttribute("finalDraft", null);
+                        }
+                    }
+
+                    for (Class<? extends Tab> t : ClassFinder.findConcreteClasses(Tab.class)) {
+                        Tab tab = TypeDefinition.getInstance(t).newInstance();
+                        if (tab.shouldDisplay(object)) {
+                            writeStart("div", "class", "Tab", "data-tab", tab.getDisplayName(), "data-tab-class", t.getName());
+                            tab.writeHtml(this, object);
+                            writeEnd();
                         }
                     }
                 }
@@ -3317,7 +3354,13 @@ public class ToolPageContext extends WebPageContext {
         }
 
         try {
-            if (param(UUID.class, "draftId") != null) {
+            Overlay overlay = Edit.getOverlay(object);
+
+            if (overlay != null) {
+                overlay.getState().delete();
+                redirectOnSave("");
+
+            } else if (param(UUID.class, "draftId") != null) {
                 Draft draft = getOverlaidDraft(object);
 
                 if (draft != null) {

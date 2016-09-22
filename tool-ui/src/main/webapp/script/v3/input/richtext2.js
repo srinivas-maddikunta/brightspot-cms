@@ -346,6 +346,26 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     }
 
                 }
+            },
+            
+            'adobeReader': {
+                // Adobe Reader pastes html that is mostly junk: each word is surrounded by a P element.
+                // The best we can do is put a space between each word and output all words without line breaks.
+                isType: function(content, html) {
+                    return Boolean(html && html.indexOf('Cocoa HTML Writer') !== -1);
+                },
+                
+                rules: {
+                    'p': function($el) {
+                        var $replacement;
+                        $replacement = $('<span>');
+                        $replacement.append( $el.contents() );
+                        if ($el.is(':not(:last-child)')) {
+                            $replacement.append(' ');
+                        }
+                        $el.replaceWith( $replacement );
+                    }
+                }
             }
         },
 
@@ -599,6 +619,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
 
             if (options) {
                 $.extend(true, self, options);
+
+                if (options.toolbarConfig) {
+                    self.toolbarConfig = options.toolbarConfig;
+                }
             }
 
             // If the RTE_INIT global variable is set to a function run it.
@@ -1534,8 +1558,43 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 var initialBody = styleObj.initialBody;
 
                 if (initialBody) {
+
+                    // Move the cursor between lines when adding line marks.
+                    if (styleObj.line) {
+                        var cm = rte.codeMirror;
+                        var curr = cm.getCursor('from').line;
+                        var prev = curr - 1;
+
+                        if (prev < 0 || cm.getLine(prev) !== '') {
+                            cm.replaceRange('\n', { line: curr, ch: 0 }, { line: curr, ch: 0 });
+                            cm.setCursor(curr, 0);
+
+                        } else {
+                            cm.setCursor(prev, 0);
+                        }
+                    }
+
                     mark = rte.insert(initialBody, item.style);
+
                     if (mark) {
+
+                        // Make sure that there are blank lines around line
+                        // marks.
+                        if (styleObj.line) {
+                            var from = mark.find().from.line;
+                            var prev = from - 1;
+
+                            if (prev < 0 || cm.getLine(prev) !== '') {
+                                cm.replaceRange('\n', { line: from, ch: 0 }, { line: from, ch: 0 });
+                            }
+
+                            var next = mark.find().to.line + 1;
+
+                            if (next >= cm.lineCount() || cm.getLine(next) !== '') {
+                                cm.replaceRange('\n', { line: next, ch: 0 }, { line: next, ch: 0 });
+                            }
+                        }
+
                         self.inlineEnhancementHandleClick(event, mark);
                     }
 
@@ -4732,6 +4791,12 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Make a copy of the object with extend so we don't
             // accidentally change any global default options
             options = $.extend(true, {}, this.option());
+
+            var toolbar = RICH_TEXT_TOOLBARS[$input.attr('data-rte-toolbar')];
+
+            if (toolbar && toolbar.length > 0) {
+                options.toolbarConfig = toolbar;
+            }
 
             var tags = $input.attr('data-rte-tags');
 
