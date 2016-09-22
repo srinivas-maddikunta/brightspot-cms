@@ -671,8 +671,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Add any custom styles from teh global CSS_CLASS_GROUPS variable
             self.initStylesCustom();
 
-            $.each(self.styles, function(i,styleObj) {
+            $.each(self.styles, function(styleKey, styleObj) {
 
+                // Save the style key as part of the object so we can use it later
+                styleObj.styleKey = styleKey;
+                
                 // Modify the onClick function so it is called in the context of our object,
                 // to allow the onclick function access to other RTE functions
                 if (styleObj.onClick) {
@@ -1696,15 +1699,15 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             // Get all the context elements for the currently selected range of characters
             context = rte.getContext();
             var currentRange = rte.getRange();
-            var currentRangeCollapsed = currentRange.from.line === currentRange.to.line && currentRange.from.ch === currentRange.to.ch;
 
             // Go through each link in the toolbar and see if the style is defined
             $links.each(function(){
 
                 var config;
+                var inContext;
                 var $link;
                 var makeActive;
-                var styleObj;
+                var styleKey;
 
                 $link = $(this);
 
@@ -1783,80 +1786,22 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     }
 
                     // Special case if the toolbar style should only be displayed in certain contexts
-                    styleObj = self.styles[config.style] || {};
-                    $link.removeClass('outOfContext');
-
+                    styleKey = config.style;
+                    
                     // Special case for the "Table" button, we will look for a style
                     // definition for the "table" element, to see if it has any
                     // context specified
                     if (config.action === 'table' && self.tableStyleTable) {
-                        styleObj = self.tableStyleTable;
+                        styleKey = self.tableStyleTable.styleKey;
                     }
 
-                    if (styleObj.context) {
-                        
-                        // Loop through all the current contexts.
-                        // Note there can be multiple contexts because multiple characters can be
-                        // selected in the range, and each character might be in a different context.
-                        // For example, if the character R represents the selected range:
-                        // aaa<B>RRR</B>RRR<I>RRR</I>aaa
-                        // Then the context would be B, I, and null.
-                        //
-                        // We must check each context that is selected, to determine if
-                        // the style is allowed in that context.
-                        //
-                        // If the style fails for any one of the contexts, then it
-                        // should be invalid, and we should prevent the user from applying the style
-                        // across the range.
-
-                        // Loop through all the contexts for the selected range
-                        var validContextInner = true;
-                        $.each(context, function(contextElement) {
-                            if (contextElement === '') {
-                                contextElement = null;
-                            }
-
-                            // If a different root context was specified, then use that as the root element
-                            // For example, if the rte is meant to edit the content inside a '<mycontent>' element,
-                            // then contextRoot would be 'mycontent', and only those elements allowed in that element
-                            // would be allowed.
-                            if (self.contextRoot && contextElement === null) {
-                                contextElement = self.contextRoot;
-                            }
-
-                            // Is this contextElement listed among the context allowed by the current style?
-                            if ($.inArray(contextElement, styleObj.context) === -1) {
-
-                                // Special case - if this style can be toggled, then it should be considered valid
-                                // if the entire range contains this style
-                                if (contextElement === styleObj.element && styleObj.toggle && styles[config.style]) {
-                                    return;
-                                }
-                                
-                                validContextInner = false;
-                                return false; // stop looping
-                            }
-                        });
-
-                        var validContextOuter = false;
-
-                        if (!currentRangeCollapsed) {
-                            validContextOuter = true;
-
-                            $.each(context, function (contextElement, contextOptions) {
-                                if (contextOptions.context && $.inArray(styleObj.element, contextOptions.context) === -1) {
-                                    validContextOuter = false;
-                                    return false;
-                                }
-                            });
-                        }
-
-                        // Set a class on the toolbar button to indicate we are out of context.
-                        // That class will be used to style the button, but also
-                        // to prevent clicking on the button.
-                        $link.toggleClass('outOfContext', !(validContextInner || validContextOuter));
-                    }
+                    // $link.removeClass('outOfContext');
+                    inContext = self.rte.checkContext(styleKey, currentRange, context);
                     
+                    // Set a class on the toolbar button to indicate we are out of context.
+                    // That class will be used to style the button, but also
+                    // to prevent clicking on the button.
+                    $link.toggleClass('outOfContext', !inContext);
                 }
             });
 
