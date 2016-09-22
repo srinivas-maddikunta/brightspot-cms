@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Draft;
@@ -38,6 +39,7 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.db.ToolUserSearch;
 import com.psddev.cms.db.Workflow;
 import com.psddev.cms.db.WorkflowState;
+import com.psddev.cms.tool.search.AbstractSearchResultView;
 import com.psddev.cms.tool.search.ListSearchResultView;
 import com.psddev.dari.db.CompoundPredicate;
 import com.psddev.dari.db.Database;
@@ -477,8 +479,12 @@ public class Search extends Record {
             sorts.put(RELEVANT_SORT_VALUE, RELEVANT_SORT_LABEL);
         }
 
-        addSorts(sorts, selectedType);
-        addSorts(sorts, Database.Static.getDefault().getEnvironment());
+        try {
+            addSorts(sorts, selectedType);
+            addSorts(sorts, Database.Static.getDefault().getEnvironment());
+        } catch (IOException e) {
+            // Ignore.
+        }
 
         List<Map.Entry<String, String>> sortsList = new ArrayList<Map.Entry<String, String>>(sorts.entrySet());
 
@@ -499,29 +505,33 @@ public class Search extends Record {
         return sorts;
     }
 
-    private void addSorts(Map<String, String> sorts, ObjectStruct struct) {
+    private void addSorts(Map<String, String> sorts, ObjectStruct struct) throws IOException {
         if (struct != null) {
             for (ObjectField field : ObjectStruct.Static.findIndexedFields(struct)) {
                 ToolUi ui = field.as(ToolUi.class);
 
                 if (ui.isEffectivelySortable()) {
                     String internalName = field.getInternalName();
-                    String label = Localization.currentUserText(field, "field." + internalName);
+                    Map<String, Object> label = ImmutableMap.of("label",
+                            Localization.currentUserText(field, "field." + internalName));
 
                     boolean sortAscending = ui.isSortAscending();
                     boolean sortDescending = ui.isSortDescending();
 
                     if (sortAscending) {
-                        sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX, label);
+                        sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX, page.localize(
+                                AbstractSearchResultView.class, label, "option.sortAscending"));
                     }
 
                     if (sortDescending) {
-                        sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX, label);
+                        sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX, page.localize(
+                                AbstractSearchResultView.class, label, "option.sortDescending"));
                     }
 
                     // Natural sort order.
                     if (!sortAscending && !sortDescending) {
-                        sorts.put(internalName, label);
+                        sorts.put(internalName, page.localize(
+                                AbstractSearchResultView.class, label, "option.sort"));
                     }
                 }
             }

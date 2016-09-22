@@ -165,20 +165,7 @@ public abstract class AbstractSearchResultView implements SearchResultView {
                         page.writeStart("option",
                                 "value", value,
                                 "selected", value.equals(search.getSort()) ? "selected" : null);
-                            page.writeHtml(page.localize(
-                                    AbstractSearchResultView.class,
-                                    ImmutableMap.of("label", label),
-                                    "option.sort"));
-
-                            if (value.endsWith(Search.ASCENDING_SORT_VALUE_SUFFIX)) {
-                                page.writeHtml(" " + page.localize(
-                                        AbstractSearchResultView.class, "sort.ascending"));
-
-                            } else if (value.endsWith(Search.DESCENDING_SORT_VALUE_SUFFIX)) {
-                                page.writeHtml(" " + page.localize(
-                                        AbstractSearchResultView.class, "sort.descending"));
-                            }
-
+                            page.writeHtml(label);
                         page.writeEnd();
                     }
                 page.writeEnd();
