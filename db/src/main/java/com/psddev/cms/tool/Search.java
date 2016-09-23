@@ -118,7 +118,9 @@ public class Search extends Record {
     private UUID parentTypeId;
     private Map<String, String> globalFilters;
     private Map<String, Map<String, String>> fieldFilters;
+    private String fullSort;
     private String sort;
+    private String sortOperator;
     private boolean showDrafts;
     private List<String> visibilities;
     private boolean showMissing;
@@ -204,7 +206,6 @@ public class Search extends Record {
         setAdvancedQuery(page.param(String.class, ADVANCED_QUERY_PARAMETER));
         setParentId(page.param(UUID.class, PARENT_PARAMETER));
         setParentTypeId(page.param(UUID.class, PARENT_TYPE_PARAMETER));
-        setSort(page.param(String.class, SORT_PARAMETER));
         setShowDrafts(page.param(boolean.class, SHOW_DRAFTS_PARAMETER));
         setVisibilities(page.params(String.class, VISIBILITIES_PARAMETER));
         setSuggestions(page.param(boolean.class, SUGGESTIONS_PARAMETER));
@@ -212,6 +213,25 @@ public class Search extends Record {
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
         setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
         setIgnoreSite(page.param(boolean.class, IGNORE_SITE_PARAMETER));
+
+        String fullSort = page.param(String.class, SORT_PARAMETER);
+        setFullSort(fullSort);
+
+        if (fullSort != null) {
+
+            // Check if sort has an operator specified.
+            if (fullSort.endsWith(ASCENDING_SORT_VALUE_SUFFIX)) {
+                setSort(StringUtils.replaceAll(fullSort, ASCENDING_SORT_VALUE_SUFFIX + "$", ""));
+                setSortOperator(Sorter.ASCENDING_OPERATOR);
+
+            } else if (fullSort.endsWith(DESCENDING_SORT_VALUE_SUFFIX)) {
+                setSort(StringUtils.replaceAll(fullSort, DESCENDING_SORT_VALUE_SUFFIX + "$", ""));
+                setSortOperator(Sorter.DESCENDING_OPERATOR);
+
+            } else {
+                setSort(fullSort);
+            }
+        }
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.initializeSearch(this, page);
@@ -347,12 +367,28 @@ public class Search extends Record {
         this.fieldFilters = fieldFilters;
     }
 
+    public String getFullSort() {
+        return fullSort;
+    }
+
+    public void setFullSort(String fullSort) {
+        this.fullSort = fullSort;
+    }
+
     public String getSort() {
         return sort;
     }
 
     public void setSort(String sort) {
         this.sort = sort;
+    }
+
+    public String getSortOperator() {
+        return sortOperator;
+    }
+
+    public void setSortOperator(String sortOperator) {
+        this.sortOperator = sortOperator;
     }
 
     public boolean isShowDrafts() {
@@ -778,18 +814,7 @@ public class Search extends Record {
         }
 
         String sort = getSort();
-        String sortOperator = null;
-
-        // Check if sort has an operator specified.
-        if (sort.endsWith(ASCENDING_SORT_VALUE_SUFFIX)) {
-            sort = StringUtils.replaceAll(sort, ASCENDING_SORT_VALUE_SUFFIX + "$", "");
-            sortOperator = Sorter.ASCENDING_OPERATOR;
-
-        } else if (sort.endsWith(DESCENDING_SORT_VALUE_SUFFIX)) {
-            sort = StringUtils.replaceAll(sort, DESCENDING_SORT_VALUE_SUFFIX + "$", "");
-            sortOperator = Sorter.DESCENDING_OPERATOR;
-        }
-
+        String sortOperator = getSortOperator();
         boolean metricSort = false;
 
         if (RELEVANT_SORT_VALUE.equals(sort)) {
