@@ -522,23 +522,24 @@ public class Search extends Record {
                     Map<String, Object> label = ImmutableMap.of("label",
                             Localization.currentUserText(field, "field." + internalName));
 
-                    boolean sortAscending = ui.isSortAscending();
-                    boolean sortDescending = ui.isSortDescending();
-
-                    if (sortAscending) {
-                        sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX, page.localize(
-                                AbstractSearchResultView.class, label, "option.sortAscending"));
-                    }
-
-                    if (sortDescending) {
-                        sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX, page.localize(
-                                AbstractSearchResultView.class, label, "option.sortDescending"));
-                    }
+                    Set<String> sortOperators = ui.getSortOperators();
 
                     // Natural sort order.
-                    if (!sortAscending && !sortDescending) {
+                    if (sortOperators.isEmpty()) {
                         sorts.put(internalName, page.localize(
                                 AbstractSearchResultView.class, label, "option.sort"));
+
+                    } else {
+
+                        if (sortOperators.contains(Sorter.ASCENDING_OPERATOR)) {
+                            sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX, page.localize(
+                                    AbstractSearchResultView.class, label, "option.sortAscending"));
+                        }
+
+                        if (sortOperators.contains(Sorter.DESCENDING_OPERATOR)) {
+                            sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX, page.localize(
+                                    AbstractSearchResultView.class, label, "option.sortDescending"));
+                        }
                     }
                 }
             }
@@ -773,16 +774,16 @@ public class Search extends Record {
         }
 
         String sort = getSort();
-        Boolean sortAscending = null;
+        String sortOperator = null;
 
-        // Check if sort has ascending/descending order specified.
+        // Check if sort has an operator specified.
         if (sort.endsWith(ASCENDING_SORT_VALUE_SUFFIX)) {
             sort = StringUtils.replaceAll(sort, ASCENDING_SORT_VALUE_SUFFIX + "$", "");
-            sortAscending = Boolean.TRUE;
+            sortOperator = Sorter.ASCENDING_OPERATOR;
 
         } else if (sort.endsWith(DESCENDING_SORT_VALUE_SUFFIX)) {
             sort = StringUtils.replaceAll(sort, DESCENDING_SORT_VALUE_SUFFIX + "$", "");
-            sortAscending = Boolean.FALSE;
+            sortOperator = Sorter.DESCENDING_OPERATOR;
         }
 
         boolean metricSort = false;
@@ -807,11 +808,8 @@ public class Search extends Record {
                         ? selectedType.getInternalName() + "/" + sort
                         : sort;
 
-                if (Boolean.TRUE.equals(sortAscending)) {
-                    query.sortAscending(sortName);
-
-                } else if (Boolean.FALSE.equals(sortAscending)) {
-                    query.sortDescending(sortName);
+                if (sortOperator != null) {
+                    query.sort(sortOperator, sortName);
 
                 } else if (ObjectField.TEXT_TYPE.equals(sortField.getInternalType())) {
                     query.sortAscending(sortName);
