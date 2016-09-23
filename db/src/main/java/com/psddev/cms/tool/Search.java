@@ -215,9 +215,9 @@ public class Search extends Record {
         setIgnoreSite(page.param(boolean.class, IGNORE_SITE_PARAMETER));
 
         String fullSort = page.param(String.class, SORT_PARAMETER);
-        setFullSort(fullSort);
 
         if (fullSort != null) {
+            setFullSort(fullSort);
 
             // Check if sort has an operator specified.
             if (fullSort.endsWith(ASCENDING_SORT_VALUE_SUFFIX)) {
