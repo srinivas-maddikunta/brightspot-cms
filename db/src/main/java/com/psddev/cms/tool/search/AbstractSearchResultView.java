@@ -107,10 +107,10 @@ public abstract class AbstractSearchResultView implements SearchResultView {
 
         if (search.getSort() == null) {
             if (ui != null && ui.getDefaultSortField() != null) {
-                search.setSort(ui.getDefaultSortField());
+                search.setSorts(ui.getDefaultSortField());
 
             } else if (!ObjectUtils.isBlank(search.getQueryString())) {
-                search.setSort(Search.RELEVANT_SORT_VALUE);
+                search.setSorts(Search.RELEVANT_SORT_VALUE);
 
             } else {
                 Map<String, String> f = search.getFieldFilters().get("cms.content.publishDate");
@@ -118,10 +118,10 @@ public abstract class AbstractSearchResultView implements SearchResultView {
                 if (f != null
                         && (f.get("") != null
                         || f.get("x") != null)) {
-                    search.setSort("cms.content.publishDate");
+                    search.setSorts("cms.content.publishDate");
 
                 } else {
-                    search.setSort("cms.content.updateDate");
+                    search.setSorts("cms.content.updateDate");
                 }
             }
         }

@@ -397,6 +397,12 @@ public class Search extends Record {
         this.sortOperator = sortOperator;
     }
 
+    /** Sets the full sort value as well as the effective sort value. */
+    public void setSorts(String sort) {
+        setFullSort(sort);
+        setSort(sort);
+    }
+
     public boolean isShowDrafts() {
         return showDrafts;
     }
