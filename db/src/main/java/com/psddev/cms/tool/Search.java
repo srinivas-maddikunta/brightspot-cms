@@ -524,8 +524,12 @@ public class Search extends Record {
 
                     Set<String> sortOperators = ui.getSortOperators();
 
-                    // Natural sort order.
-                    if (sortOperators.isEmpty()) {
+                    // Natural sort order if there are no sort operators OR if neither
+                    // ascending/descending sort operators are present.
+                    if (sortOperators.isEmpty()
+                            || (!sortOperators.contains(Sorter.ASCENDING_OPERATOR)
+                            && !sortOperators.contains(Sorter.DESCENDING_OPERATOR))) {
+
                         sorts.put(internalName, page.localize(
                                 AbstractSearchResultView.class, label, "option.sort"));
 
