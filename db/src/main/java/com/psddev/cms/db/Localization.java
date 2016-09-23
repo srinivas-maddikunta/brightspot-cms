@@ -26,6 +26,15 @@ public final class Localization {
     private static final String ICU_DATE_WITH_YEAR_SKELETON = "EEE MMM dd yyyy";
     private static final String ICU_TIME_SKELETON = "hh:mm aa";
 
+    /**
+     * Localizes the given {@code key} using the given {@code locale} and
+     * {@code context}.
+     *
+     * @param locale Nullable. Default is {@link Locale#getDefault()}.
+     * @param context Nullable.
+     * @param key Nonnull.
+     * @return Nonnull.
+     */
     public static String text(Locale locale, Object context, String key) {
         LocalizationContext localizationContext = context instanceof LocalizationContext
                 ? (LocalizationContext) context
@@ -77,6 +86,8 @@ public final class Localization {
      *
      * @param locale Nullable. Default is {@link Locale#getDefault()}.
      * @param timeZoneId Nullable. Default is {@link java.util.TimeZone#getDefault()}.
+     * @param timeMillis If negative, returns the localized text associated
+     *                   with {@link #NOT_AVAILABLE_KEY}.
      * @param skeleton Nonnull.
      * @return Nonnull.
      */
@@ -118,6 +129,14 @@ public final class Localization {
                 : ICU_DATE_WITH_YEAR_SKELETON;
     }
 
+    /**
+     * Localizes the given {@code key} using the current user's preferred
+     * locale and the given {@code context}.
+     *
+     * @param context Nullable.
+     * @param key Nonnull.
+     * @return Nonnull.
+     */
     public static String currentUserText(Object context, String key) {
         ToolUser user = currentUser();
         Locale locale = user != null ? user.getLocale() : null;
@@ -133,6 +152,8 @@ public final class Localization {
      * Localizes the given {@code timeMillis} in the current user's time zone
      * using the current user's preferred locale and the given {@code format}.
      *
+     * @param timeMillis If negative, returns the localized text associated
+     *                   with {@link #NOT_AVAILABLE_KEY}.
      * @param format Nonnull.
      * @return Nonnull.
      */
