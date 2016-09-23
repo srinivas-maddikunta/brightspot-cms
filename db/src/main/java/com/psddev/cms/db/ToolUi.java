@@ -1746,6 +1746,8 @@ public class ToolUi extends Modification<Object> {
     /**
      * Specifies whether the target field should be offered as a sortable
      * field in search, along with sort operators.
+     *
+     * Currently, only ascending and descending sort operators are supported.
      */
     @Documented
     @ObjectField.AnnotationProcessorClass(SortableProcessor.class)
