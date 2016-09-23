@@ -367,22 +367,22 @@ public class Search extends Record {
         this.fieldFilters = fieldFilters;
     }
 
-    /** Returns the full sort value including any operator suffix. */
+    /** Returns the full sort value including any sort operator suffix. */
     public String getFullSort() {
         return fullSort;
     }
 
-    /** Sets the full sort value including any operator suffix. */
+    /** Sets the full sort value including any sort operator suffix. */
     public void setFullSort(String fullSort) {
         this.fullSort = fullSort;
     }
 
-    /** Returns the effective sort value excluding any operator suffix. */
+    /** Returns the effective sort value excluding any sort operator suffix. */
     public String getSort() {
         return sort;
     }
 
-    /** Sets the effective sort value excluding any operator suffix. */
+    /** Sets the effective sort value excluding any sort operator suffix. */
     public void setSort(String sort) {
         this.sort = sort;
     }
