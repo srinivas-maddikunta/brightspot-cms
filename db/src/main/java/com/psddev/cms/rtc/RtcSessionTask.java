@@ -17,12 +17,11 @@ public class RtcSessionTask extends RepeatingTask {
 
     @Override
     protected void doRepeatingTask(DateTime currentTime) throws Exception {
-        long now = Database.Static.getDefault().now();
-        long past = now - 30000;
         RtcSessionTaskStatus status = Query.from(RtcSessionTaskStatus.class).first();
+        long currentTimeMillis = currentTime.getMillis();
 
-        if (status.getLastRun() < past) {
-            status.getState().replaceAtomically("lastRun", now);
+        if (status.getLastRun() < currentTimeMillis) {
+            status.getState().replaceAtomically("lastRun", currentTimeMillis);
 
             try {
                 status.save();
@@ -34,7 +33,7 @@ public class RtcSessionTask extends RepeatingTask {
 
         Query<RtcSession> query = Query
                 .from(RtcSession.class)
-                .where("lastPing < ?", past);
+                .where("lastPing < ?", Database.Static.getDefault().now() - 60L * 1000L);
 
         for (List<RtcSession> sessions; !(sessions = query.select(0, 100).getItems()).isEmpty();) {
             sessions.forEach(RtcSession::disconnect);

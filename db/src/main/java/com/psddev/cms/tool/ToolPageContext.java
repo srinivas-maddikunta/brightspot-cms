@@ -41,6 +41,7 @@ import javax.servlet.jsp.PageContext;
 
 import com.google.common.base.Preconditions;
 import com.ibm.icu.text.DateFormat;
+import com.psddev.cms.db.ElFunctionUtils;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
@@ -1747,7 +1748,7 @@ public class ToolPageContext extends WebPageContext {
             writeElement("link", "rel", "stylesheet/less", "type", "text/less", "href", cmsResource("/style/" + theme + ".less"));
 
         } else {
-            writeElement("link", "rel", "stylesheet", "type", "text/css", "href", cmsResource("/style/" + theme + ".min.css"));
+            writeElement("link", "rel", "stylesheet", "type", "text/css", "href", ElFunctionUtils.resource(toolPath(CmsTool.class, "/style/" + theme + ".min.css")));
         }
 
         for (Tool tool : tools) {
@@ -2025,16 +2026,16 @@ public class ToolPageContext extends WebPageContext {
         writeStart("script", "type", "text/javascript", "src", "//www.google.com/jsapi");
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "jquery.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.extra.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "jquery.extra.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "handsontable.full.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "handsontable.full.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "d3.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "d3.js")));
         writeEnd();
 
         writeStart("script", "type", "text/javascript");
@@ -2045,10 +2046,12 @@ public class ToolPageContext extends WebPageContext {
             writeRaw(";");
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "require.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "require.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + theme + ".js"));
+        writeStart("script", "type", "text/javascript", "src", cms.isUseNonMinifiedJavaScript()
+                ? cmsResource(scriptPrefix + theme + ".js")
+                : ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + theme + ".js")));
         writeEnd();
 
         String dropboxAppKey = getCmsTool().getDropboxApplicationKey();
