@@ -71,13 +71,7 @@
     <difference>
         <className>com/psddev/cms/db/ToolUi$Sortable</className>
         <differenceType>7012</differenceType>
-        <method>boolean ascending()</method>
-    </difference>
-
-    <difference>
-        <className>com/psddev/cms/db/ToolUi$Sortable</className>
-        <differenceType>7012</differenceType>
-        <method>boolean descending()</method>
+        <method>java.lang.String[] sortOperators()</method>
     </difference>
 
     <difference>
