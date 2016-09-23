@@ -8,7 +8,7 @@ import com.psddev.dari.util.PageContextFilter;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.Instant;
-import java.time.temporal.ChronoField;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.Locale;
 
@@ -113,7 +113,7 @@ public final class Localization {
     }
 
     private static String dateSkeleton(long timeMillis) {
-        return Instant.now().get(ChronoField.YEAR) == Instant.ofEpochMilli(timeMillis).get(ChronoField.YEAR)
+        return Instant.now().atOffset(ZoneOffset.UTC).getYear() == Instant.ofEpochMilli(timeMillis).atOffset(ZoneOffset.UTC).getYear()
                 ? ICU_DATE_SKELETON
                 : ICU_DATE_WITH_YEAR_SKELETON;
     }
