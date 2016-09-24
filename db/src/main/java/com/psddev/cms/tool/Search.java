@@ -118,8 +118,8 @@ public class Search extends Record {
     private UUID parentTypeId;
     private Map<String, String> globalFilters;
     private Map<String, Map<String, String>> fieldFilters;
-    private String fullSort;
     private String sort;
+    private String effectiveSort;
     private String sortOperator;
     private boolean showDrafts;
     private List<String> visibilities;
@@ -214,22 +214,22 @@ public class Search extends Record {
         setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
         setIgnoreSite(page.param(boolean.class, IGNORE_SITE_PARAMETER));
 
-        String fullSort = page.param(String.class, SORT_PARAMETER);
+        String sort = page.param(String.class, SORT_PARAMETER);
 
-        if (fullSort != null) {
-            setFullSort(fullSort);
+        if (sort != null) {
+            setSort(sort);
 
             // Check if sort has an operator specified.
-            if (fullSort.endsWith(ASCENDING_SORT_VALUE_SUFFIX)) {
-                setSort(StringUtils.replaceAll(fullSort, ASCENDING_SORT_VALUE_SUFFIX + "$", ""));
+            if (sort.endsWith(ASCENDING_SORT_VALUE_SUFFIX)) {
+                setEffectiveSort(StringUtils.replaceAll(sort, ASCENDING_SORT_VALUE_SUFFIX + "$", ""));
                 setSortOperator(Sorter.ASCENDING_OPERATOR);
 
-            } else if (fullSort.endsWith(DESCENDING_SORT_VALUE_SUFFIX)) {
-                setSort(StringUtils.replaceAll(fullSort, DESCENDING_SORT_VALUE_SUFFIX + "$", ""));
+            } else if (sort.endsWith(DESCENDING_SORT_VALUE_SUFFIX)) {
+                setEffectiveSort(StringUtils.replaceAll(sort, DESCENDING_SORT_VALUE_SUFFIX + "$", ""));
                 setSortOperator(Sorter.DESCENDING_OPERATOR);
 
             } else {
-                setSort(fullSort);
+                setEffectiveSort(sort);
             }
         }
 
@@ -367,24 +367,24 @@ public class Search extends Record {
         this.fieldFilters = fieldFilters;
     }
 
-    /** Returns the full sort value including any sort operator suffix. */
-    public String getFullSort() {
-        return fullSort;
-    }
-
-    /** Sets the full sort value including any sort operator suffix. */
-    public void setFullSort(String fullSort) {
-        this.fullSort = fullSort;
-    }
-
-    /** Returns the effective sort value excluding any sort operator suffix. */
+    /** Returns the sort including any sort operator suffix. */
     public String getSort() {
         return sort;
     }
 
-    /** Sets the effective sort value excluding any sort operator suffix. */
+    /** Sets the sort including any sort operator suffix. */
     public void setSort(String sort) {
         this.sort = sort;
+    }
+
+    /** Returns the effective sort excluding any sort operator suffix. */
+    public String getEffectiveSort() {
+        return effectiveSort;
+    }
+
+    /** Sets the effective sort excluding any sort operator suffix. */
+    public void setEffectiveSort(String effectiveSort) {
+        this.effectiveSort = effectiveSort;
     }
 
     /** Returns the sort operator. */
@@ -399,8 +399,8 @@ public class Search extends Record {
 
     /** Sets the full sort value as well as the effective sort value. */
     public void setSorts(String sort) {
-        setFullSort(sort);
         setSort(sort);
+        setEffectiveSort(sort);
     }
 
     public boolean isShowDrafts() {
@@ -825,7 +825,7 @@ public class Search extends Record {
             }
         }
 
-        String sort = getSort();
+        String sort = getEffectiveSort();
         String sortOperator = getSortOperator();
         boolean metricSort = false;
 

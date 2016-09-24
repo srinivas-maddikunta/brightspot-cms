@@ -105,7 +105,7 @@ public abstract class AbstractSearchResultView implements SearchResultView {
         ObjectType selectedType = search.getSelectedType();
         ToolUi ui = selectedType == null ? null : selectedType.as(ToolUi.class);
 
-        if (search.getSort() == null) {
+        if (search.getEffectiveSort() == null) {
             if (ui != null && ui.getDefaultSortField() != null) {
                 search.setSorts(ui.getDefaultSortField());
 
@@ -127,10 +127,10 @@ public abstract class AbstractSearchResultView implements SearchResultView {
         }
 
         if (selectedType != null) {
-            return selectedType.getFieldGlobally(search.getSort());
+            return selectedType.getFieldGlobally(search.getEffectiveSort());
 
         } else {
-            return Database.Static.getDefault().getEnvironment().getField(search.getSort());
+            return Database.Static.getDefault().getEnvironment().getField(search.getEffectiveSort());
         }
     }
 
@@ -164,7 +164,7 @@ public abstract class AbstractSearchResultView implements SearchResultView {
 
                         page.writeStart("option",
                                 "value", value,
-                                "selected", value.equals(search.getFullSort()) ? "selected" : null);
+                                "selected", value.equals(search.getSort()) ? "selected" : null);
                             page.writeHtml(label);
                         page.writeEnd();
                     }

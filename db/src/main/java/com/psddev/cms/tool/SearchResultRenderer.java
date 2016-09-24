@@ -68,7 +68,7 @@ public class SearchResultRenderer {
         ToolUi ui = selectedType == null ? null : selectedType.as(ToolUi.class);
         PaginatedResult<?> result = null;
 
-        if (search.getSort() == null) {
+        if (search.getEffectiveSort() == null) {
             if (ui != null && ui.getDefaultSortField() != null) {
                 search.setSorts(ui.getDefaultSortField());
 
@@ -96,7 +96,7 @@ public class SearchResultRenderer {
         Exception queryError = null;
 
         if (selectedType != null) {
-            this.sortField = selectedType.getFieldGlobally(search.getSort());
+            this.sortField = selectedType.getFieldGlobally(search.getEffectiveSort());
             this.showTypeLabel = selectedType.as(ToolUi.class).findDisplayTypes().size() != 1;
 
             if (ObjectType.getInstance(ObjectType.class).equals(selectedType)) {
@@ -119,7 +119,7 @@ public class SearchResultRenderer {
             }
 
         } else {
-            this.sortField = Database.Static.getDefault().getEnvironment().getField(search.getSort());
+            this.sortField = Database.Static.getDefault().getEnvironment().getField(search.getEffectiveSort());
             this.showTypeLabel = search.findValidTypes().size() != 1;
         }
 
@@ -341,7 +341,7 @@ public class SearchResultRenderer {
 
                     page.writeStart("option",
                             "value", value,
-                            "selected", value.equals(search.getFullSort()) ? "selected" : null);
+                            "selected", value.equals(search.getSort()) ? "selected" : null);
                         page.writeHtml("Sort: ").writeHtml(label);
                     page.writeEnd();
                 }
