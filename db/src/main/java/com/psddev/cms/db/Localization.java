@@ -1,13 +1,40 @@
 package com.psddev.cms.db;
 
+import com.google.common.base.Preconditions;
+import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.util.TimeZone;
 import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.dari.util.PageContextFilter;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Date;
 import java.util.Locale;
 
 public final class Localization {
 
+    public static final String NOT_AVAILABLE_KEY = "label.notAvailable";
+
+    public static final String DATE_AND_TIME_SKELETON = "_dateAndTime";
+
+    public static final String DATE_ONLY_SKELETON = "_dateOnly";
+
+    public static final String TIME_ONLY_SKELETON = "_timeOnly";
+
+    private static final String ICU_DATE_SKELETON = "EEE MMM dd";
+    private static final String ICU_DATE_WITH_YEAR_SKELETON = "EEE MMM dd yyyy";
+    private static final String ICU_TIME_SKELETON = "hh:mm aa";
+
+    /**
+     * Localizes the given {@code key} using the given {@code locale} and
+     * {@code context}.
+     *
+     * @param locale Nullable. Default is {@link Locale#getDefault()}.
+     * @param context Nullable.
+     * @param key Nonnull.
+     * @return Nonnull.
+     */
     public static String text(Locale locale, Object context, String key) {
         LocalizationContext localizationContext = context instanceof LocalizationContext
                 ? (LocalizationContext) context
@@ -53,19 +80,100 @@ public final class Localization {
         }
     }
 
-    public static String currentUserText(Object context, String key) {
-        Locale locale = null;
-        HttpServletRequest request = PageContextFilter.Static.getRequestOrNull();
+    /**
+     * Localizes the given {@code timeMillis} in the given {@code timeZoneId}
+     * using the given {@code locale} and {@code skeleton}.
+     *
+     * @param locale Nullable. Default is {@link Locale#getDefault()}.
+     * @param timeZoneId Nullable. Default is {@link java.util.TimeZone#getDefault()}.
+     * @param timeMillis If negative, returns the localized text associated
+     *                   with {@link #NOT_AVAILABLE_KEY}.
+     * @param skeleton Nonnull.
+     * @return Nonnull.
+     */
+    public static String date(Locale locale, String timeZoneId, long timeMillis, String skeleton) {
+        Preconditions.checkNotNull(skeleton);
 
-        if (request != null) {
-            ToolUser user = AuthenticationFilter.Static.getUser(request);
-
-            if (user != null) {
-                locale = user.getLocale();
-            }
+        if (locale == null) {
+            locale = Locale.getDefault();
         }
 
+        if (timeMillis < 0) {
+            return text(locale, null, NOT_AVAILABLE_KEY);
+        }
+
+        if (timeZoneId == null) {
+            timeZoneId = java.util.TimeZone.getDefault().getID();
+        }
+
+        Date time = new Date(timeMillis);
+
+        if (DATE_AND_TIME_SKELETON.equals(skeleton)) {
+            skeleton = dateSkeleton(timeMillis) + " " + ICU_TIME_SKELETON;
+
+        } else if (DATE_ONLY_SKELETON.equals(skeleton)) {
+            skeleton = dateSkeleton(timeMillis);
+
+        } else if (TIME_ONLY_SKELETON.equals(skeleton)) {
+            skeleton = ICU_TIME_SKELETON;
+        }
+
+        DateFormat format = DateFormat.getPatternInstance(skeleton, locale);
+        format.setTimeZone(TimeZone.getTimeZone(timeZoneId));
+        return format.format(new Date(timeMillis));
+    }
+
+    private static String dateSkeleton(long timeMillis) {
+        return Instant.now().atOffset(ZoneOffset.UTC).getYear() == Instant.ofEpochMilli(timeMillis).atOffset(ZoneOffset.UTC).getYear()
+                ? ICU_DATE_SKELETON
+                : ICU_DATE_WITH_YEAR_SKELETON;
+    }
+
+    /**
+     * Localizes the given {@code key} using the current user's preferred
+     * locale and the given {@code context}.
+     *
+     * @param context Nullable.
+     * @param key Nonnull.
+     * @return Nonnull.
+     */
+    public static String currentUserText(Object context, String key) {
+        ToolUser user = currentUser();
+        Locale locale = user != null ? user.getLocale() : null;
         return text(locale, context, key);
+    }
+
+    private static ToolUser currentUser() {
+        HttpServletRequest request = PageContextFilter.Static.getRequestOrNull();
+        return request != null ? AuthenticationFilter.Static.getUser(request) : null;
+    }
+
+    /**
+     * Localizes the given {@code timeMillis} in the current user's time zone
+     * using the current user's preferred locale and the given {@code format}.
+     *
+     * @param timeMillis If negative, returns the localized text associated
+     *                   with {@link #NOT_AVAILABLE_KEY}.
+     * @param format Nonnull.
+     * @return Nonnull.
+     */
+    public static String currentUserDate(long timeMillis, String format) {
+        Preconditions.checkNotNull(format);
+
+        ToolUser user = currentUser();
+        Locale locale;
+        String timeZoneId;
+
+        if (user != null) {
+            locale = user.getLocale();
+            timeZoneId = user.getTimeZone();
+
+        } else {
+            locale = null;
+            timeZoneId = null;
+        }
+
+        return date(locale, timeZoneId, timeMillis, format);
     }
 
     // Prevent instantiation.
