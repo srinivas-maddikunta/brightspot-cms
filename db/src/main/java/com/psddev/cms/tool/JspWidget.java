@@ -67,7 +67,6 @@ public class JspWidget extends Widget {
 
     // --- Widget support ---
 
-
     @Override
     public boolean shouldDisplayInNonPublishable() {
         return isDisplayInNonPublishable();

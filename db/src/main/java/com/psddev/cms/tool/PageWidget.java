@@ -32,7 +32,6 @@ public class PageWidget extends Widget {
 
     // --- Widget support ---
 
-
     @Override
     public boolean shouldDisplayInNonPublishable() {
         return isDisplayInNonPublishable();
