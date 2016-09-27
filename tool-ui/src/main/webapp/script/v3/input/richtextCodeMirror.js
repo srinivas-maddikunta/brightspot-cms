@@ -6728,7 +6728,9 @@ define([
                     // Get any line classes and determine which kind of line we are on (bullet, etc)
                     // From CodeMirror, the textClass property will contain multiple line styles separated by space
                     // like 'rte2-style-ol rte2-style-align-left'
-                    lineClasses = (line.textClass || '').split(' ').filter(function(value){
+                    // We reverse the array because that seems to keep the same order of elements that was
+                    // imported from HTML.
+                    lineClasses = (line.textClass || '').split(' ').reverse().filter(function(value){
                         return value !== '';
                     });
                     $.each(lineClasses, function() {
@@ -7439,7 +7441,7 @@ define([
             annotations = [];
             enhancements = [];
             
-            function processNode(n, rawParent, indentLevel) {
+            function processNode(n, rawParent, indentLevel, insideAnotherBlock) {
                 
                 var elementAttributes;
                 var elementClose;
@@ -7561,8 +7563,8 @@ define([
                             // Determine if the element maps to one of our defined styles
                             matchStyleObj = self.getStyleForElement(next);
                             
-                            // Create new line if this is a block element
-                            if (matchStyleObj && matchStyleObj.line) {
+                            // Create new line if this is a block element (and we are not already inside another block)
+                            if (val.length && matchStyleObj && matchStyleObj.line && !insideAnotherBlock) {
                                 val += '\n';
                             }
                         }
@@ -7680,8 +7682,9 @@ define([
                             }
                         }
 
-                        // Recursively go into our element and add more text to the value
-                        processNode(next, rawChildren, indentChildren);
+                        // Recursively go into our element and add more text to the value.
+                        // If we are already inside a block element, pass a flag so we don't add extra newlines.
+                        processNode(next, rawChildren, indentChildren, (matchStyleObj && matchStyleObj.line) || insideAnotherBlock);
 
                         if (elementClose) {
 
@@ -7743,10 +7746,11 @@ define([
                         // Add a new line for custom elements
                         if (self.newLineRegExp.test(elementName) || (matchStyleObj && matchStyleObj.line)) {
                             
-                            // Special case:
+                            // Special cases:
+                            // If we are already inside another block do not add a newline.
                             // If this is a list item, and there is already a newline at the end,
-                            // then do not add another newline
-                            if (!(matchStyleObj && matchStyleObj.elementContainer && val.match(/\n$/))) {
+                            // then do not add another newline.
+                            if (!insideAnotherBlock && !(matchStyleObj && matchStyleObj.elementContainer && val.match(/\n$/))) {
                                 val += '\n';
                             }
                         }
