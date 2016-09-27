@@ -870,7 +870,7 @@ public class Search extends Record {
             }
         }
 
-        if (isOnlyPathed()) {
+        if (isOnlyPathed() && !visibilities.contains("d")) {
             query.and(Directory.Static.hasPathPredicate());
         }
 
