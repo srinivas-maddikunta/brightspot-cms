@@ -1,7 +1,7 @@
 define({
   
   generateFromHue: function(hue) {
-    return 'hsl(' + (hue * 360) + ', 50%, 50%)';
+    return 'hsl(' + (hue * 360) + ', 70.1%, 54.1%)';
   },
   
   changeHue: function(hue) {
