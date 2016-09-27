@@ -351,13 +351,13 @@ define([
             // Create a mapping from self.styles so we can perform quick lookups on the classname
             self.classes = self.getClassNameMap();
 
+            self.trackInit();
             self.historyInit();
             self.enhancementInit();
             self.initListListeners();
             self.dropdownInit();
             self.initEvents();
             self.clipboardInit();
-            self.trackInit();
             self.spellcheckInit();
             self.modeInit();
 
@@ -1061,10 +1061,6 @@ define([
 
             lineNumber = from.line;
             
-            // Before beginning, clean up the CodeMirror marks
-            // to make sure they do not span across separate lines.
-            self.inlineCleanup();
-
             editor.eachLine(from.line, to.line + 1, function(line) {
 
                 var fromCh;
@@ -1836,41 +1832,6 @@ define([
             }
         },
 
-        
-        /**
-         * CodeMirror makes marks across line boundaries.
-         * This function steps through all marks and splits up the styles
-         * so they do not cross the end of the line.
-         * This allows other functions to operate correctly.
-         */
-        inlineCleanup: function() {
-            var self;
-            
-            self = this;
-
-            // For performance, tell CodeMirror not to update the DOM
-            // until our inlineCleanup() has completed.
-            self.codeMirror.operation(function(){
-                self._inlineCleanup();
-            });
-        },
-        _inlineCleanup: function() {
-
-            var editor;
-            var self;
-
-            self = this;
-            editor = self.codeMirror;
-
-            // Loop through all the marks in the document,
-            // find the ones that span across lines and split them
-            $.each(editor.getAllMarks(), function(i, mark) {
-                self.inlineSplitMarkAcrossLines(mark);
-            });
-
-            self.inlineCombineAdjacentMarks();
-        },
-
 
         /**
          * Inside any "raw" HTML mark, remove all other marks.
@@ -2011,126 +1972,118 @@ define([
 
 
         /**
-         * Combine all marks that are overlapping or adjacent.
-         * Note this assumes that the marks do not span across multiple lines.
+        * Combine all marks that are overlapping or adjacent.
+        * Note this assumes that the marks do not span across multiple lines.
+         * @param  {Array} spans
+         * An array of spans returned by CodeMirror's line.markedSpans parameter.
+         * This array consists of objects where each object has a from and to character position,
+         * plus a marker.
+         * @return {Array}
+         * Returns a modified array where the overlapping spans have been combined into a single span.
          */
-        inlineCombineAdjacentMarks: function() {
+        inlineCombineAdjacentMarks: function(spans) {
 
             var editor;
-            var marks;
-            var marksByClassName;
+            var spansByClassName;
             var self;
 
             self = this;
             editor = self.codeMirror;
             
-            // Combine adjacent marks
-            // Note this assumes that marks do not span across lines
-            
-            // First get a list of the marks
-            marks = editor.getAllMarks();
-
             // Remove any bookmarks (which are used for enhancements and markers)
-            marks = $.map(marks, function(mark, i) {
+            spans = $.map(spans, function(span, i) {
                 
-                if (mark.type === 'bookmark') {
+                if (!span.marker) {
                     return undefined;
-                } else {
-                    return mark;
                 }
+                if (span.marker.type === 'bookmark') {
+                    return undefined;
+                }
+                return span;
             });
             
             // Sort the marks in order of position
-            marks = marks.sort(function(a, b){
-                
-                var posA;
-                var posB;
-
-                posA = a.find();
-                posB = b.find();
-
-                if (posA.from.line === posB.from.line) {
-                    // If marks are on same line sort by the character number
-                    return posA.from.ch - posB.from.ch;
-                } else {
-                    // If marks are on differnt lines sort by the line number
-                    return posA.from.line - posB.from.line;
-                }
+            spans = spans.sort(function(a, b){
+                return a.from - b.from;
             });
 
             // Next group the marks by class name
             // This will give us a list of classnames, and each one will contain a list of marks in order
-            marksByClassName = {};
-            $.each(marks, function(i, mark) {
+            spansByClassName = {};
+            $.each(spans, function(i, span) {
                 var className;
 
-                className = mark.className;
+                className = span.marker.className;
 
                 // Skip any classname that is not in our styles list
                 if (!self.classes[className]) {
                     return;
                 }
-     
-                // Skip any classname that has an onClick since we dont' want to mess with those.
-                // For example, links.
-                if (self.classes[className].onClick) {
-                    return;
+                     
+                if (!spansByClassName[className]) {
+                    spansByClassName[className] = [];
                 }
-                
-                if (!marksByClassName[className]) {
-                    marksByClassName[className] = [];
-                }
-                marksByClassName[className].push(mark);
+                spansByClassName[className].push(span);
             });
 
-            // Next go through all the classes, and combine the marks
-            $.each(marksByClassName, function(className, marks) {
+            // Next go through all the classes, and combine the spans that are adjacent
+            var spansAdjusted = [];
+            $.each(spansByClassName, function(className, spans) {
 
                 var i;
                 var mark;
                 var markNext;
-                var markNew;
-                var pos;
-                var posNext;
+                var hasAttributes;
 
                 i = 0;
-                while (marks[i]) {
 
-                    mark = marks[i];
-                    markNext = marks[i + 1];
+                if (self.classes[className].onClick) {
+                    // Do not combine any classname that has an onClick since we dont' want to mess with those.
+                    // For example, links.
+                } else if (self.classes[className].initialBody) {
+                    // Do not combine any classname that has initialBody (for example, a "discretionary hyphen")
+                    // because we don't want to combine them
 
-                    if (!markNext) {
-                        break;
-                    }
-
-                    pos = mark.find();
-                    posNext = markNext.find();
-
-                    if (pos.from.line === posNext.from.line) {
-
-                        if (posNext.from.ch <= pos.to.ch) {
-
-                            // The marks are overlapping or adjacent, so combine them into a new mark
-                            markNew = editor.markText(
-                                { line: pos.from.line, ch: pos.from.ch },
-                                { line: pos.from.line, ch: Math.max(pos.to.ch, posNext.to.ch) },
-                                mark
-                            );
-
-                            // Clear the original two marks
-                            mark.clear();
-                            markNext.clear();
-
-                            // Replace markNext with markNew so the next loop will start with the new mark
-                            // and we can check to see if the following mark needs to be combined again
-                            marks[i + 1] = markNew;
-                            
+                } else {
+                    // Combine spans if necessary
+                    while (spans[i]) {
+                        
+                        mark = spans[i];
+                        markNext = spans[i + 1];
+                        
+                        if (!markNext) {
+                            break;
                         }
-                    }
+                        
+                        // Check if either mark has attributes, in which case we should not combine
+                        hasAttributes = Boolean((mark.marker && !$.isEmptyObject(mark.marker.attributes)) ||
+                            (markNext.marker && !$.isEmptyObject(markNext.marker.attributes)));
 
-                    i++;
+                        // Check if the marks overlap
+                        if ((markNext.from <= mark.to) && !hasAttributes) {
+                            
+                            // Extend the first mark
+                            mark.to = markNext.to;
+                            
+                            // Remove the next mark
+                            spans.splice(i + 1, 1);
+                            
+                            // Do not increment the counter in this case because
+                            // we need to recheck the first mark against the following
+                            // mark because it might overlap that one too
+                            continue;
+                        }
+                        
+                        // Continue to the next mark
+                        i++;
+                    }
                 }
+                
+                // Add these spans to the list of marks we will return
+                Array.prototype.push.apply(spansAdjusted, spans);
             });
+            
+            return spansAdjusted;
         },
 
         
@@ -4261,9 +4214,6 @@ define([
             self = this;
             editor = self.codeMirror;
 
-            // First combine any of the adjacent track changes
-            self.inlineCleanup();
-            
             range = range || self.getRange();
 
             $.each(editor.findMarks(range.from, range.to), function(i, mark) {
@@ -4283,9 +4233,6 @@ define([
 
             self = this;
             editor = self.codeMirror;
-            
-            // First combine any of the adjacent track changes
-            self.inlineCleanup();
             
             range = range || self.getRange();
 
@@ -5404,7 +5351,10 @@ define([
 
             // Listen for CodeMirror change events and add to our history.
             self.codeMirror.on('beforeChange', function(instance, beforeChange) {
-                self.historyHandleCodeMirrorEvent(beforeChange);
+                // Check to see if this event was canceled, which sometime happens when trackChanges is on
+                if (!beforeChange.canceled) {
+                    self.historyHandleCodeMirrorEvent(beforeChange);
+                }
             });
         },
 
@@ -6644,10 +6594,6 @@ define([
             rangeWasSpecified = Boolean(range);
             range = range || self.getRangeAll();
             
-            // Before beginning make sure all the marks are cleaned up and simplified.
-            // This will ensure that none of the marks span across lines.
-            self.inlineCleanup();
-
             // Clean up any "raw html" areas so they do not allow styles inside
             // Removing this for now as it causes performance problems when there are many raw marks.
             // However, that means user might be able to mark up raw areas and produce invalid HTML.
@@ -7266,6 +7212,9 @@ define([
             // First reverse the order of the marks so the last applied will "wrap" any previous marks
             spans = line.markedSpans.slice(0).reverse();
 
+            // Check to see if any of the spans is adjacent and needs to be combined
+            spans = self.inlineCombineAdjacentMarks(spans);
+            
             // Group the marks by starting character so we can tell if multiple marks start on the same character
             spansByChar = [];
             $.each(spans, function() {
