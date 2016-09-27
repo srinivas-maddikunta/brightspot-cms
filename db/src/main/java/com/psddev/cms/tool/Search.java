@@ -823,7 +823,11 @@ public class Search extends Record {
             } else {
                 Predicate predicate = null;
 
-                Set<ObjectType> predicateTypes = selectedType != null ? Collections.singleton(selectedType) : validTypes;
+                Set<ObjectType> predicateTypes = validTypes;
+                if (selectedType != null) {
+                    predicateTypes = selectedType.findConcreteTypes();
+                    predicateTypes.retainAll(validTypes);
+                }
 
                 for (ObjectType type : predicateTypes) {
                     String prefix = type.getInternalName() + "/";
