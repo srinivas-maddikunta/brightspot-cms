@@ -95,6 +95,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 
                 // Don't let this style be removed by the "Clear" toolbar button
                 internal: true,
+                
+                // Don't allow tracked changes within this style
+                trackChanges: false,
 
                 onCreate: function (mark) {
                     var $html = $('html');
