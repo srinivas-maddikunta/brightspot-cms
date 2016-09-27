@@ -80,7 +80,7 @@ String removeId = wp.createId();
 
             $input.attr('data-label', $label.clone().find('span.visibilityLabel').remove().end().text().trim());
             $input.attr('data-label-html', $label.html().trim());
-            $input.attr('data-preview', $link.find('img').attr('src'));
+            $input.attr('data-preview', $link.find('img').attr('src') || '');
             $input.attr('data-visibility', $link.find('span.visibilityLabel').text());
             $input.val($link.attr('data-objectId'));
             $input.change();
