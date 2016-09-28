@@ -1,4 +1,4 @@
-package com.psddev.cms.db;
+package com.psddev.cms.rte;
 
 import org.jsoup.nodes.Document;
 

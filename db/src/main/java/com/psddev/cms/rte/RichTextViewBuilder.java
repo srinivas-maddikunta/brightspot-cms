@@ -1,4 +1,4 @@
-package com.psddev.cms.db;
+package com.psddev.cms.rte;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,6 +18,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
+import com.psddev.cms.db.RichTextElement;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Reference;
 import com.psddev.dari.db.ReferentialText;

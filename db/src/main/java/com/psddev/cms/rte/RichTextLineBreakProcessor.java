@@ -1,4 +1,4 @@
-package com.psddev.cms.db;
+package com.psddev.cms.rte;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,6 +13,7 @@ import org.jsoup.nodes.TextNode;
 import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 
+import com.psddev.cms.db.RichTextElement;
 import com.psddev.dari.db.ObjectType;
 
 /**
