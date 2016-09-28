@@ -31,11 +31,15 @@ public class RichTextViewBuilder {
 
     public static final String RICH_TEXT_ELEMENT_VIEW_TYPE = "rte";
 
+    public static final String REFERENCE_VIEW_TYPE = "ref";
+
     private Collection<?> richText;
 
     private Function<String, Object> htmlViewFunction;
 
     private Function<RichTextElement, Object> richTextElementViewFunction;
+
+    private Function<Reference, Object> referenceViewFunction;
 
     private BiFunction<HtmlElement, List<Object>, Object> htmlElementWrapperViewFunction;
 
@@ -50,6 +54,15 @@ public class RichTextViewBuilder {
      */
     public RichTextViewBuilder(String richText) {
         this.richText = Collections.singletonList(richText);
+    }
+
+    /**
+     * Creates a new builder for the given {@code ReferentialText}.
+     *
+     * @param referentialText the ReferentialText to be converted to view(s).
+     */
+    public RichTextViewBuilder(ReferentialText referentialText) {
+        this.richText = referentialText;
     }
 
     /**
@@ -76,6 +89,18 @@ public class RichTextViewBuilder {
      */
     public RichTextViewBuilder richTextElementViewFunction(Function<RichTextElement, Object> richTextElementViewFunction) {
         this.richTextElementViewFunction = richTextElementViewFunction;
+        return this;
+    }
+
+    /**
+     * Sets a handler for converting Reference objects into views. The function
+     * is passed a Reference and is expected to return the resulting view.
+     *
+     * @param referenceViewFunction the Reference view function to be applied.
+     * @return this builder.
+     */
+    public RichTextViewBuilder referenceViewFunction(Function<Reference, Object> referenceViewFunction) {
+        this.referenceViewFunction = referenceViewFunction;
         return this;
     }
 
@@ -371,31 +396,5 @@ public class RichTextViewBuilder {
             }
             return view != null ? Collections.singletonList(view) : Collections.emptyList();
         }
-    }
-
-    /**
-     * @deprecated No replacement.
-     */
-    @Deprecated
-    public static final String REFERENCE_VIEW_TYPE = "ref";
-
-    /**
-     * @deprecated Use {@link RichTextProcessor(String)} instead.
-     */
-    @Deprecated
-    public RichTextViewBuilder(ReferentialText referentialText) {
-        this.richText = referentialText;
-    }
-
-    @Deprecated
-    private Function<Reference, Object> referenceViewFunction;
-
-    /**
-     * @deprecated No replacement.
-     */
-    @Deprecated
-    public RichTextViewBuilder referenceViewFunction(Function<Reference, Object> referenceViewFunction) {
-        this.referenceViewFunction = referenceViewFunction;
-        return this;
     }
 }
