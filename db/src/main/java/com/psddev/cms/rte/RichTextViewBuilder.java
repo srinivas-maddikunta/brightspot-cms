@@ -25,7 +25,43 @@ import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.util.HtmlElement;
 
 /**
- * A builder of views from rich text.
+ * <p>A builder of views from rich text Strings for the purpose of rendering
+ * content produced in the rich text editor. This class supports both
+ * fields of type {@code String} annotated with
+ * {@link com.psddev.cms.db.ToolUi.RichText @ToolUi.RichText} as well as fields
+ * of type {@link com.psddev.dari.db.ReferentialText ReferentialText}.</p>
+ *
+ * <p>Example Model:</p>
+ *
+ * <blockquote><pre>
+ * public class Article extends Content {
+ * &nbsp;   &#64;ToolUi.RichText
+ * &nbsp;   String body;
+ * }
+ * </pre></blockquote>
+ *
+ * <p>Typical use from within a {@link com.psddev.cms.view.ViewModel ViewModel} looks like:</p>
+ *
+ * <blockquote><pre>
+ * // Create a new builder from the rich text String.
+ * List&lt;Object&gt; views = new RichTextViewBuilder(model.body)
+ *
+ * &nbsp;   // Adds CMS default pre-processors (RichTextEditorialMarkupProcessor, RichTextLineBreakProcessor).
+ * &nbsp;   .addAllDefaultPreProcessors()
+ *
+ * &nbsp;   // A function to convert a raw HTML String into a view object.
+ * &nbsp;   .htmlViewFunction(html -> RawView.of(html))
+ *
+ * &nbsp;   // A function to convert a RichTextElement into a view object.
+ * &nbsp;   .richTextElementViewFunction(rte -> createView(rte, RichTextViewBuilder.RICH_TEXT_ELEMENT_VIEW_TYPE))
+ *
+ * &nbsp;   // Builds the list of views.
+ * &nbsp;   .build();
+ * </pre></blockquote>
+ *
+ * <p>For {@code ViewModel} methods expecting the return of a single object
+ * instead of a list, the implementer should wrap the list of views inside of
+ * another view that is setup to handle such a list.</p>
  */
 public class RichTextViewBuilder {
 
