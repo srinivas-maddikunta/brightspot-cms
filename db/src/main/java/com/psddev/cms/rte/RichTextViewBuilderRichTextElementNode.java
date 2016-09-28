@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.psddev.cms.db.RichTextElement;
 
-class RichTextViewBuilderRichTextElementNode implements RichTextViewBuilderNode{
+class RichTextViewBuilderRichTextElementNode implements RichTextViewBuilderNode {
 
     private RichTextElement richTextElement;
 
