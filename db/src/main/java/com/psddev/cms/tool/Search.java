@@ -515,8 +515,11 @@ public class Search extends Record {
             return getVisibilitiesPredicate(selectedType, Arrays.asList("p"), validTypeIds, showDrafts);
         }
 
-        Set<UUID> visibilityTypeIds = new HashSet<UUID>();
+        Set<UUID> selectedTypeIds = selectedType != null
+                ? selectedType.findConcreteTypes().stream().map(ObjectType::getId).collect(Collectors.toSet())
+                : null;
 
+        Set<UUID> visibilityTypeIds = new HashSet<UUID>();
         Predicate visibilitiesPredicate = null;
         boolean draft = false;
 
@@ -551,14 +554,23 @@ public class Search extends Record {
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        publishedPredicate);
+                        addSelectedTypeIds(publishedPredicate, selectedTypeIds));
 
             } else if ("d".equals(visibility)) {
                 draft = true;
+                Predicate draftPredicate = PredicateParser.Static.parse("_type = ? and com.psddev.cms.db.Draft/newContent != true", Draft.class);
+
+                if (selectedType != null) {
+                    draftPredicate = CompoundPredicate.combine(
+                            PredicateParser.AND_OPERATOR,
+                            draftPredicate,
+                            PredicateParser.Static.parse("com.psddev.cms.db.Draft/objectType = ?", selectedType));
+                }
+
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        PredicateParser.Static.parse("_type = ?", Draft.class));
+                        draftPredicate);
 
             } else if ("w".equals(visibility)) {
                 Set<String> ss = new HashSet<String>();
@@ -577,14 +589,14 @@ public class Search extends Record {
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        PredicateParser.Static.parse("cms.workflow.currentState = ?", ss));
+                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", ss), selectedTypeIds));
 
             } else if (visibility.startsWith("w.")) {
                 String value = visibility.substring(2);
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        PredicateParser.Static.parse("cms.workflow.currentState = ?", value));
+                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", value), selectedTypeIds));
 
                 addVisibilityTypeIds(visibilityTypeIds, validTypeIds, "cms.workflow.currentState", value);
 
@@ -593,7 +605,7 @@ public class Search extends Record {
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        PredicateParser.Static.parse(field + " = true"));
+                        addSelectedTypeIds(PredicateParser.Static.parse(field + " = true"), selectedTypeIds));
 
                 addVisibilityTypeIds(visibilityTypeIds, validTypeIds, field, "true");
 
@@ -607,7 +619,7 @@ public class Search extends Record {
                     visibilitiesPredicate = CompoundPredicate.combine(
                             PredicateParser.OR_OPERATOR,
                             visibilitiesPredicate,
-                            PredicateParser.Static.parse(field + " = ?", value));
+                            addSelectedTypeIds(PredicateParser.Static.parse(field + " = ?", value), selectedTypeIds));
 
                     addVisibilityTypeIds(visibilityTypeIds, validTypeIds, field, value);
                 }
@@ -629,6 +641,18 @@ public class Search extends Record {
 
     }
 
+    private static Predicate addSelectedTypeIds(Predicate predicate, Set<UUID> selectedTypeIds) {
+        if (selectedTypeIds != null) {
+            return CompoundPredicate.combine(
+                    PredicateParser.AND_OPERATOR,
+                    predicate,
+                    PredicateParser.Static.parse("_type = ?", selectedTypeIds));
+
+        } else {
+            return predicate;
+        }
+    }
+
     public Query<?> toQuery(Site site) {
         Query<?> query = null;
         Set<ObjectType> types = getTypes();
@@ -636,6 +660,7 @@ public class Search extends Record {
         Set<ObjectType> validTypes = findValidTypes();
         Set<UUID> validTypeIds = null;
         boolean isAllSearchable = true;
+        Collection<String> visibilities = getVisibilities();
 
         if (selectedType != null) {
             if (selectedType.isAbstract()) {
@@ -650,7 +675,9 @@ public class Search extends Record {
                 isAllSearchable = Content.Static.isSearchableType(selectedType);
             }
 
-            query = Query.fromType(selectedType);
+            query = visibilities.contains("d")
+                    ? Query.fromAll()
+                    : Query.fromType(selectedType);
 
         } else {
             for (ObjectType type : validTypes) {
@@ -669,7 +696,9 @@ public class Search extends Record {
 
             if (types.size() == 1) {
                 for (ObjectType type : types) {
-                    query = Query.fromType(type);
+                    query = visibilities.contains("d")
+                            ? Query.fromAll()
+                            : Query.fromType(type);
                     break;
                 }
 
@@ -850,7 +879,7 @@ public class Search extends Record {
             }
         }
 
-        if (isOnlyPathed()) {
+        if (isOnlyPathed() && !visibilities.contains("d")) {
             query.and(Directory.Static.hasPathPredicate());
         }
 
@@ -1030,8 +1059,6 @@ public class Search extends Record {
                         PredicateParser.Static.parse("_type = ?", globalTypes)));
             }
         }
-
-        Collection<String> visibilities = getVisibilities();
 
         query.and(getVisibilitiesPredicate(selectedType, visibilities, validTypeIds, isShowDrafts()));
 
