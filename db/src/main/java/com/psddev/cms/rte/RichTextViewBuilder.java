@@ -33,19 +33,19 @@ public class RichTextViewBuilder {
 
     public static final String REFERENCE_VIEW_TYPE = "ref";
 
-    private Collection<?> richText;
+    Collection<?> richText;
 
-    private Function<String, Object> htmlViewFunction;
+    Function<String, Object> htmlViewFunction;
 
-    private Function<RichTextElement, Object> richTextElementViewFunction;
+    Function<RichTextElement, Object> richTextElementViewFunction;
 
-    private Function<Reference, Object> referenceViewFunction;
+    Function<Reference, Object> referenceViewFunction;
 
-    private BiFunction<HtmlElement, List<Object>, Object> htmlElementWrapperViewFunction;
+    BiFunction<HtmlElement, List<Object>, Object> htmlElementWrapperViewFunction;
 
-    private boolean renderUnhandledRichTextElements;
+    boolean renderUnhandledRichTextElements;
 
-    private List<RichTextProcessor> preProcessors = new ArrayList<>();
+    List<RichTextProcessor> preProcessors = new ArrayList<>();
 
     /**
      * Creates a new builder for the given rich text.
@@ -185,9 +185,9 @@ public class RichTextViewBuilder {
                         preProcessor.process(document);
                     }
 
-                    toRteNodes(document.body().childNodes(), tagTypes)
+                    toBuilderNodes(document.body().childNodes(), tagTypes)
                             .stream()
-                            .map(RteNode::toViews)
+                            .map(node -> node.toViews(this))
                             .flatMap(Collection::stream)
                             .forEach(views::add);
 
@@ -215,9 +215,9 @@ public class RichTextViewBuilder {
      * defined in which case the element will be converted into a potentially
      * unbalanced HTML String.
      */
-    private List<RteNode> toRteNodes(List<Node> siblings, Map<String, ObjectType> tagTypes) {
+    private List<RichTextViewBuilderNode> toBuilderNodes(List<Node> siblings, Map<String, ObjectType> tagTypes) {
 
-        List<RteNode> rteNodes = new ArrayList<>();
+        List<RichTextViewBuilderNode> builderNodes = new ArrayList<>();
 
         for (Node sibling : siblings) {
 
@@ -237,23 +237,23 @@ public class RichTextViewBuilder {
 
                     rte.fromBody(element.html());
 
-                    rteNodes.add(new RteRichTextElement(rte));
+                    builderNodes.add(new RichTextViewBuilderRichTextElementNode(rte));
 
                 } else if (tagType == null || renderUnhandledRichTextElements) {
 
-                    List<RteNode> childRteNodes = toRteNodes(element.childNodes(), tagTypes);
+                    List<RichTextViewBuilderNode> childRteNodes = toBuilderNodes(element.childNodes(), tagTypes);
 
                     if (htmlElementWrapperViewFunction != null
-                            && childRteNodes.stream().filter(rteNode -> !(rteNode instanceof RteHtml)).count() > 0) {
+                            && childRteNodes.stream().filter(rteNode -> !(rteNode instanceof RichTextViewBuilderStringNode)).count() > 0) {
 
                         // preserve the RteElement, and collapse children as much as possible
-                        rteNodes.add(new RteElement(element, childRteNodes));
+                        builderNodes.add(new RichTextViewBuilderElementNode(element, childRteNodes));
 
                     } else {
                         String elementHtml = element.outerHtml();
 
                         if (element.tag().isSelfClosing()) {
-                            rteNodes.add(new RteHtml(elementHtml));
+                            builderNodes.add(new RichTextViewBuilderStringNode(elementHtml));
 
                         } else {
                             int firstGtAt = elementHtml.indexOf('>');
@@ -265,9 +265,9 @@ public class RichTextViewBuilder {
                             // a RuntimeException will be thrown and we can
                             // re-evaluate from there.
 
-                            rteNodes.add(new RteHtml(elementHtml.substring(0, firstGtAt + 1)));
-                            rteNodes.addAll(childRteNodes);
-                            rteNodes.add(new RteHtml(elementHtml.substring(lastLtAt)));
+                            builderNodes.add(new RichTextViewBuilderStringNode(elementHtml.substring(0, firstGtAt + 1)));
+                            builderNodes.addAll(childRteNodes);
+                            builderNodes.add(new RichTextViewBuilderStringNode(elementHtml.substring(lastLtAt)));
                         }
                     }
                 }
@@ -275,126 +275,48 @@ public class RichTextViewBuilder {
             } else if (sibling instanceof TextNode || sibling instanceof DataNode) {
 
                 if (sibling instanceof TextNode) {
-                    rteNodes.add(new RteHtml(((TextNode) sibling).text()));
+                    builderNodes.add(new RichTextViewBuilderStringNode(((TextNode) sibling).text()));
 
                 } else {
-                    rteNodes.add(new RteHtml(((DataNode) sibling).getWholeData()));
+                    builderNodes.add(new RichTextViewBuilderStringNode(((DataNode) sibling).getWholeData()));
                 }
             }
         }
 
         // collapse the nodes as much as possible
-        return collapseRteNodes(rteNodes);
+        return collapseBuilderNodes(builderNodes);
     }
 
-    private List<RteNode> collapseRteNodes(List<RteNode> rteNodes) {
+    private List<RichTextViewBuilderNode> collapseBuilderNodes(List<RichTextViewBuilderNode> builderNodes) {
 
-        List<RteNode> collapsedRteNodes = new ArrayList<>();
+        List<RichTextViewBuilderNode> collapsedRteNodes = new ArrayList<>();
 
-        List<RteHtml> adjacentHtmlNodes = new ArrayList<>();
+        List<RichTextViewBuilderStringNode> adjacentHtmlNodes = new ArrayList<>();
 
-        for (RteNode childRteNode : rteNodes) {
+        for (RichTextViewBuilderNode childBuilderNode : builderNodes) {
 
-            if (childRteNode instanceof RteHtml) {
-                adjacentHtmlNodes.add((RteHtml) childRteNode);
+            if (childBuilderNode instanceof RichTextViewBuilderStringNode) {
+                adjacentHtmlNodes.add((RichTextViewBuilderStringNode) childBuilderNode);
 
             } else {
-                collapsedRteNodes.add(new RteHtml(
+                collapsedRteNodes.add(new RichTextViewBuilderStringNode(
                         adjacentHtmlNodes.stream()
-                                .map(rteHtml -> rteHtml.html)
-                                .collect(Collectors.joining(""))));
+                                .map(RichTextViewBuilderStringNode::getHtml)
+                                .collect(Collectors.joining())));
 
                 adjacentHtmlNodes.clear();
 
-                collapsedRteNodes.add(childRteNode);
+                collapsedRteNodes.add(childBuilderNode);
             }
         }
 
         if (!adjacentHtmlNodes.isEmpty()) {
-            collapsedRteNodes.add(new RteHtml(
+            collapsedRteNodes.add(new RichTextViewBuilderStringNode(
                     adjacentHtmlNodes.stream()
-                            .map(rteHtml -> rteHtml.html)
-                            .collect(Collectors.joining(""))));
+                            .map(RichTextViewBuilderStringNode::getHtml)
+                            .collect(Collectors.joining())));
         }
 
         return collapsedRteNodes;
-    }
-
-    private interface RteNode {
-
-        List<Object> toViews();
-    }
-
-    private class RteHtml implements RteNode {
-
-        private String html;
-
-        RteHtml(String html) {
-            this.html = html;
-        }
-
-        @Override
-        public List<Object> toViews() {
-            Object view;
-            if (htmlViewFunction != null) {
-                view = htmlViewFunction.apply(html);
-            } else {
-                view = html;
-            }
-            return view != null ? Collections.singletonList(view) : Collections.emptyList();
-        }
-    }
-
-    private class RteElement implements RteNode {
-
-        private Element element;
-
-        private List<RteNode> children = new ArrayList<>();
-
-        RteElement(Element element, List<RteNode> children) {
-            this.element = element;
-            this.children = children;
-        }
-
-        @Override
-        public List<Object> toViews() {
-            if (htmlElementWrapperViewFunction != null) {
-
-                HtmlElement htmlElement = new HtmlElement();
-                htmlElement.setName(element.tagName());
-                htmlElement.setAttributes(element.attributes().asList()
-                        .stream()
-                        .collect(Collectors.toMap(Attribute::getKey, Attribute::getValue)));
-
-                Object view = htmlElementWrapperViewFunction.apply(htmlElement,
-                        children.stream()
-                                .map(RteNode::toViews)
-                                .flatMap(Collection::stream)
-                                .collect(Collectors.toList()));
-
-                return view != null ? Collections.singletonList(view) : Collections.emptyList();
-
-            } else {
-                return Collections.emptyList();
-            }
-        }
-    }
-
-    private class RteRichTextElement implements RteNode {
-
-        private RichTextElement richTextElement;
-
-        RteRichTextElement(RichTextElement richTextElement) {
-            this.richTextElement = richTextElement;
-        }
-
-        @Override
-        public List<Object> toViews() {
-            Object view = null;
-            if (richTextElementViewFunction != null) {
-                view = richTextElementViewFunction.apply(richTextElement);
-            }
-            return view != null ? Collections.singletonList(view) : Collections.emptyList();
-        }
     }
 }
