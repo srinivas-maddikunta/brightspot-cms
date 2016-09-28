@@ -660,6 +660,7 @@ public class Search extends Record {
         Set<ObjectType> validTypes = findValidTypes();
         Set<UUID> validTypeIds = null;
         boolean isAllSearchable = true;
+        Collection<String> visibilities = getVisibilities();
 
         if (selectedType != null) {
             if (selectedType.isAbstract()) {
@@ -674,7 +675,9 @@ public class Search extends Record {
                 isAllSearchable = Content.Static.isSearchableType(selectedType);
             }
 
-            query = Query.fromAll();
+            query = visibilities.contains("d")
+                    ? Query.fromAll()
+                    : Query.fromType(selectedType);
 
         } else {
             for (ObjectType type : validTypes) {
@@ -693,7 +696,9 @@ public class Search extends Record {
 
             if (types.size() == 1) {
                 for (ObjectType type : types) {
-                    query = Query.fromAll();
+                    query = visibilities.contains("d")
+                            ? Query.fromAll()
+                            : Query.fromType(type);
                     break;
                 }
 
@@ -1050,8 +1055,6 @@ public class Search extends Record {
                         PredicateParser.Static.parse("_type = ?", globalTypes)));
             }
         }
-
-        Collection<String> visibilities = getVisibilities();
 
         query.and(getVisibilitiesPredicate(selectedType, visibilities, validTypeIds, isShowDrafts()));
 
