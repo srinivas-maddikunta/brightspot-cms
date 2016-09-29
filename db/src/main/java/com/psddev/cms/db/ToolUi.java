@@ -1745,9 +1745,10 @@ public class ToolUi extends Modification<Object> {
 
     /**
      * Specifies whether the target field should be offered as a sortable
-     * field in search, along with sort operators.
+     * field in search, along with sort operators (see {@link com.psddev.dari.db.Sorter}).
      *
-     * Currently, only ascending and descending sort operators are supported.
+     * Currently, only {@link com.psddev.dari.db.Sorter#ASCENDING_OPERATOR} and
+     * {@link com.psddev.dari.db.Sorter#DESCENDING_OPERATOR} are supported.
      */
     @Documented
     @ObjectField.AnnotationProcessorClass(SortableProcessor.class)
