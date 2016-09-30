@@ -127,7 +127,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
         }
 
         if (userId == null) {
-            throw new IllegalStateException("Can't process RTC request without a user!");
+            return;
         }
 
         // On GET, start the RTC connection.
