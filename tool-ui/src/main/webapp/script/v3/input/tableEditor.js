@@ -1279,7 +1279,7 @@ define(['jquery'], function($) {
          * @param  {Element|jQuery} $cellToMerge
          * The cell to be merged (which will be removed after the merge).
          */
-        mergeContents($cell, $cellToMerge) {
+        mergeContents: function ($cell, $cellToMerge) {
             var html;
             var htmlToMerge;
             var re;
