@@ -1,7 +1,6 @@
 package com.psddev.cms.tool.page;
 
 import com.psddev.cms.db.Site;
-import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.ToolPageContext;
@@ -48,6 +47,7 @@ public class SearchCarousel extends PageServlet {
         }
 
         UUID currentContentId = page.param(UUID.class, "id");
+        UUID currentDraftId = page.param(UUID.class, "draftId");
         boolean included = true;
 
         if (searchOffset == null) { // only splice in the current object if this is the initial page and the current object isn't in the result list
@@ -71,6 +71,11 @@ public class SearchCarousel extends PageServlet {
             for (Object item : items) {
                 State itemState = State.getInstance(item);
                 UUID itemId = itemState.getId();
+
+                if (itemId.equals(currentDraftId)) {
+                    continue;
+                }
+
                 StorageItem itemPreview = item instanceof SearchCarouselPreviewable
                         ? ((SearchCarouselPreviewable) item).getSearchCarouselPreview()
                         : itemState.getPreview();
