@@ -79,9 +79,8 @@ public class SearchCarousel extends PageServlet {
                         "class", (itemId.equals(currentContentId) ? "widget-searchCarousel-item-selected" + (included ? "" : " notIncluded") : null),
                         "data-objectId", itemState.getId(),
                         "target", "_top",
-                        "href", page.toolUrl(CmsTool.class, "/content/edit.jsp",
-                                "id", itemState.getId(),
-                                "search", ObjectUtils.toJson(search.getState().getSimpleValues())));
+                        "href", page.objectUrl("/content/edit.jsp", item,
+                                                "search", ObjectUtils.toJson(search.getState().getSimpleValues())));
 
                     boolean itemPreviewImage = false;
 
