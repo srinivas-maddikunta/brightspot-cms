@@ -2480,7 +2480,7 @@ public class ToolPageContext extends WebPageContext {
         Map<String, String> statuses = new HashMap<String, String>();
 
         statuses.put("p", "Published");
-        statuses.put("d", "Draft");
+        statuses.put("d", localize(type, "visibility.draft"));
 
         boolean hasWorkflow = false;
 
