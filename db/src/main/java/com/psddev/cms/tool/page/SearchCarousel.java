@@ -57,7 +57,13 @@ public class SearchCarousel extends PageServlet {
         boolean included = true;
 
         if (searchOffset == null) { // only splice in the current object if this is the initial page and the current object isn't in the result list
-            Object currentContent = currentContentId == null ? null : Query.fromAll().where("id = ?", currentContentId).first();
+            Object currentContent = null;
+
+            if (currentDraftId != null) {
+                currentContent = Query.fromAll().where("id = ?", currentDraftId).first();
+            } else if (currentContentId != null) {
+                currentContent = Query.fromAll().where("id = ?", currentContentId).first();
+            }
 
             if (currentContent != null && !items.contains(currentContent)) {
                 included = false;
@@ -82,8 +88,10 @@ public class SearchCarousel extends PageServlet {
                         ? ((SearchCarouselPreviewable) item).getSearchCarouselPreview()
                         : itemState.getPreview();
 
+                boolean selected = itemId.equals(currentContentId) || itemId.equals(currentDraftId);
+
                 page.writeStart("a",
-                        "class", (itemId.equals(currentContentId) ? "widget-searchCarousel-item-selected" + (included ? "" : " notIncluded") : null),
+                        "class", (selected ? "widget-searchCarousel-item-selected" + (included ? "" : " notIncluded") : null),
                         "data-objectId", itemState.getId(),
                         "target", "_top",
                         "href", page.objectUrl("/content/edit.jsp", item,
