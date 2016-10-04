@@ -4078,14 +4078,14 @@ define([
                             // Currently the entire content that is pasted will be marked as inserted text,
                             // but it could have deleted text within it.
                             // We need to remove that deleted text *after* the new content is pasted in.
-                            editor.replaceRange(changeObj.text, changeObj.from, undefined, '+brightspotTrackInsert');
+                            editor.replaceRange(changeObj.text, changeObj.from, undefined, 'brightspotTrackInsert');
                             
                         }
                     }
                     
                     break;
 
-                case '+brightspotTrackInsert':
+                case 'brightspotTrackInsert':
 
                     // Some text was pasted in and already marked as new,
                     // but we must remove any regions within that were previously marked deleted
@@ -5616,9 +5616,10 @@ define([
             // Check for brightspot events
             if (origin.indexOf('brightspot') !== -1) {
                 switch (origin) {
-                    // Let brightspotPaste and brightspotCut operations be added to the history
+                    // Let certain operations be added to the history
                     case 'brightspotPaste':
                     case 'brightspotCut':
+                    case 'brightspotTrackInsert':
                     break;
                     
                     default:
