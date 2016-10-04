@@ -5594,7 +5594,7 @@ define([
          */
         historyHandleCodeMirrorEvent: function(beforeChange) {
             
-            var change, marks, marksAndMore, self;
+            var change, marks, marksAndMore, origin, self;
 
             self = this;
             
@@ -5602,11 +5602,29 @@ define([
             if (self.historyIsExecuting()) {
                 return;
             }
-                
-            // Ignore changes where we set the origin containing "brightspot",
-            // because in those instances we will add directly to the history
-            if (beforeChange.origin && beforeChange.origin.indexOf('brightspot') !== -1 || beforeChange.origin === 'paste') {
-                return;
+
+            // Check where this change came from
+            origin = beforeChange.origin || '';
+
+            // Since we handle the "paste" event within our own clipboard handler,
+            // ignore the codemirror paste event. Instead that will come through
+            // in a separate brightspotPaste event.
+            if (origin == 'paste') {
+                return false;
+            }
+
+            // Check for brightspot events
+            if (origin.indexOf('brightspot') !== -1) {
+                switch (origin) {
+                    // Let brightspotPaste and brightspotCut operations be added to the history
+                    case 'brightspotPaste':
+                    case 'brightspotCut':
+                    break;
+                    
+                    default:
+                    // Prevent other brightspot changes from being added to the history
+                    return;
+                }
             }
                 
             // Save a list of the marks that are defined in this range.
