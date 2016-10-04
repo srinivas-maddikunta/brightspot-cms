@@ -38,7 +38,14 @@ public class SearchCarousel extends PageServlet {
             search.setOffset(searchOffset);
         }
 
-        PaginatedResult<?> result = search.toQuery(page.getSite()).select(search.getOffset(), search.getLimit());
+        Query<?> searchQuery = search.toQuery(page.getSite());
+
+        UUID currentDraftId = page.param(UUID.class, "draftId");
+        if (currentDraftId != null) {
+            searchQuery.and("id != ?", currentDraftId);
+        }
+
+        PaginatedResult<?> result = searchQuery.select(search.getOffset(), search.getLimit());
 
         List<Object> items = new ArrayList<>();
 
@@ -47,7 +54,6 @@ public class SearchCarousel extends PageServlet {
         }
 
         UUID currentContentId = page.param(UUID.class, "id");
-        UUID currentDraftId = page.param(UUID.class, "draftId");
         boolean included = true;
 
         if (searchOffset == null) { // only splice in the current object if this is the initial page and the current object isn't in the result list
@@ -71,10 +77,6 @@ public class SearchCarousel extends PageServlet {
             for (Object item : items) {
                 State itemState = State.getInstance(item);
                 UUID itemId = itemState.getId();
-
-                if (itemId.equals(currentDraftId)) {
-                    continue;
-                }
 
                 StorageItem itemPreview = item instanceof SearchCarouselPreviewable
                         ? ((SearchCarouselPreviewable) item).getSearchCarouselPreview()
