@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.view.RawView;
 import com.psddev.cms.view.ViewModel;
 
 /**
@@ -18,7 +19,7 @@ public abstract class ToolPageViewModel<M> extends ViewModel<M> {
     /**
      * Helper method for getting HTML produced by @{link ToolPageContext}#write methods.
      */
-    protected String getHtml(ToolPageWriter writer) {
+    protected RawView getRawView(ToolPageWriter writer) {
         Writer oldDelegate = page.getDelegate();
         StringWriter newDelegate = new StringWriter();
         try {
@@ -31,7 +32,7 @@ public abstract class ToolPageViewModel<M> extends ViewModel<M> {
             page.setDelegate(oldDelegate);
         }
 
-        return newDelegate.toString();
+        return RawView.of(newDelegate.toString());
     }
 
     protected interface ToolPageWriter {
