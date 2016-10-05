@@ -50,10 +50,12 @@
 .bspTableEditSizer {
   table {
     border-collapse: separate;
-    border-spacing: 4px;
+    border-spacing: 5px;
+    margin: -5px -5px 0 -5px;
     width: auto;
   }
   td, th {
+    cursor: pointer;
     width:20px;
     height:20px;
     border:1px solid @color-border;
@@ -61,8 +63,14 @@
     background-color: #fff;
   }
   .active {
-    background-color: mix(@color-focus, white, 50%);;
+    background-color: @color-focus;
+    border-color: @color-focus;
   }
+}
+.bspTableEditSizerMessage {
+  .message;
+  .message-info;
+  margin-bottom: 10px;
 }
 
 // Context menu will be positioned using javascript
