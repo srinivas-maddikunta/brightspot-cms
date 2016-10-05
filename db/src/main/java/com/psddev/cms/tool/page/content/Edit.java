@@ -114,7 +114,9 @@ public class Edit {
      * @param content Can't be {@code null}.
      */
     public static void restoreWorkInProgress(ToolPageContext page, Object content) throws IOException {
-        if (page.getOverlaidHistory(content) != null) {
+        if (page.getOverlaidHistory(content) != null
+                || page.getOverlaidDraft(content) != null) {
+
             return;
         }
 
