@@ -284,7 +284,11 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
     if (search != null) {
         wp.writeStart("div", "class", "frame");
-            wp.writeStart("a", "href", wp.cmsUrl("/searchCarousel", "id", editingState.getId(), "search", search));
+            wp.writeStart("a",
+                    "href", wp.cmsUrl("/searchCarousel",
+                            "id", editingState.getId(),
+                            "search", search,
+                            "draftId", wp.param(UUID.class, "draftId")));
             wp.writeEnd();
         wp.writeEnd();
     }
