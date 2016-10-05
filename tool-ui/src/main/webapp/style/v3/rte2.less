@@ -457,12 +457,10 @@ li.CodeMirror-hint-active {
   font-size: 70%;
 }
 
-// For enhancements, let the enhancement toolbar overflow the codemirror widget,
-// and reset the z-index because it was causing problems with the submenu hover
+// For enhancements, let the enhancement toolbar overflow the codemirror widget.
 .rte2-codemirror {
   .CodeMirror-linewidget {
     overflow: visible;
-    z-index: inherit;
   }
 }
 
@@ -517,6 +515,7 @@ li.CodeMirror-hint-active {
       border-width: 0 0 1px 0;
       padding-top: 5px;
       margin: 0 -40px;
+      top: 0 !important;
 
       &:after {
         display: none;

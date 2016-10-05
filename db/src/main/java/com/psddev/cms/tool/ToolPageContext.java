@@ -41,6 +41,7 @@ import javax.servlet.jsp.PageContext;
 
 import com.google.common.base.Preconditions;
 import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.util.TimeZone;
 import com.psddev.cms.db.ElFunctionUtils;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
@@ -1338,7 +1339,7 @@ public class ToolPageContext extends WebPageContext {
         if (dateTime != null) {
             Locale locale = ObjectUtils.firstNonNull(getUser().getLocale(), Locale.getDefault());
             DateFormat dateFormat = DateFormat.getPatternInstance(format, locale);
-
+            dateFormat.setTimeZone(TimeZone.getTimeZone(getUserDateTimeZone().getID()));
             return dateFormat.format(toUserDateTime(dateTime).toDate());
 
         } else {
@@ -2479,10 +2480,7 @@ public class ToolPageContext extends WebPageContext {
         Map<String, String> statuses = new HashMap<String, String>();
 
         statuses.put("p", "Published");
-
-        if (type == null) {
-            statuses.put("d", "Draft");
-        }
+        statuses.put("d", localize(type, "visibility.draft"));
 
         boolean hasWorkflow = false;
 

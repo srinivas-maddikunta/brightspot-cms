@@ -95,6 +95,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 
                 // Don't let this style be removed by the "Clear" toolbar button
                 internal: true,
+                
+                // Don't allow tracked changes within this style
+                trackChanges: false,
 
                 onCreate: function (mark) {
                     var $html = $('html');
@@ -190,7 +193,11 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                                 mark.clear();
                                 self.rte.triggerChange();
                             }
-                        });
+                        }).always(function(){
+                            // After editing the link, put the cursor at the end of the link text
+                            // and make sure typing doesn't expand the link.
+                            self.linkAfterEdit();                            
+                        })
                         
                     }, 100);
 
@@ -1645,10 +1652,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 }
             }
 
-            // Certain styles like comments look strange when there are two
-            // adjacent marks, so combine adjacent marks if possible.
-            rte.inlineCombineAdjacentMarks();
-            
             // Update the toolbar so it makes the buttons active or inactive
             // based on the cursor position or selection
             self.toolbarUpdate();
@@ -2051,6 +2054,37 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             self.linkDeferred = deferred;
 
             return deferred.promise();
+        },
+
+
+        /**
+         * Code to run after the edit popup was completed or canceled.
+         */
+        linkAfterEdit: function(){
+            
+            var range;
+            var self;
+            self = this;
+            
+            self.rte.focus();
+            
+            // After editing the mark, the range of text will be selected.
+            // Instead we want to put the cursor at the end of the range.
+            range = self.rte.getRange();
+            if (range.from.ch !== range.to.ch) {
+                
+                range.from = range.to;
+                self.rte.setSelection(range);
+
+                // Now clear the styles at the cursor point so new characters typed will not expand the link.
+                // However, if user moves the cursor then returns to the end of the link, then characters typed
+                // will be added to the link.
+                self.rte.removeStyles();
+                
+                // Make sure the toolbar updates so the link button is not highlighted, so user knows typing
+                // will not expand the link.
+                self.toolbarUpdate();
+            }
         },
 
 
