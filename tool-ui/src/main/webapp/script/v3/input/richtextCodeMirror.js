@@ -7567,11 +7567,22 @@ define([
                             
                             // Create new line if this is a block element and we are not on the first line
                             if (matchStyleObj && val.length) {
+                                
+                                // Special case for lists (and nested lists)
                                 if (matchStyleObj.elementContainer) {
-                                    // Special case to handle nested lists: create a new line if needed
+                                    
+                                    // Create a new line for the first list item but not if list item
+                                    // is nested within another.
+                                    // Note this is not ideal because we get away from the "elementContainer"
+                                    // model, and are assuming we're dealing with LI elements.
+                                    if ($(next).is(':first-child') && $(next).parents('li').length === 0) {
+                                        val += '\n';
+                                    }
+                                    
                                     if (!val.match(/\n$/)) {
                                         val += '\n';
                                     }
+                                    
                                 } else if (matchStyleObj.line && !insideAnotherBlock) {
                                     // If this is a block element add a new line
                                     // But not if there are multiple blocks defined on the same line,
