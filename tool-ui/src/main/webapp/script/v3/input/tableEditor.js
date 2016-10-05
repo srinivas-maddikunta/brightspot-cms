@@ -75,6 +75,28 @@ define(['jquery'], function($) {
             unMerge: 'Unmerge Cells'
         },
 
+
+        /**
+         * Number of columns to show in the table sizer when creating a new table.
+         * @type {Number}
+         */
+        sizerCols: 20,
+
+        
+        /**
+         * Number of rows to show in the table sizer when creating a new table.
+         * @type {Number}
+         */
+        sizerRows: 10,
+
+        /**
+         * HTML to display above the table sizer when creating a new table.
+         * If an element with class 'sizerCount' appears within the HTML,
+         * the currently selected table size will be inserted like "(5 x 8)"
+         * @type {String}
+         */
+        sizerMessage: 'Click to set the starting columns and rows for the table: <span class="sizerCount"></span><br/>',
+        
         
         /**
          * @param {Element|jQuery|Selector} el
@@ -89,6 +111,7 @@ define(['jquery'], function($) {
          * 
          */
         init: function(el, options) {
+            var newTable;
             var self;
             self = this;
             self.$el = $(el);
@@ -102,7 +125,13 @@ define(['jquery'], function($) {
             } else if (options.tableHtml) {
                 self.$table = $(options.tableHtml);
             } else {
-                self.$table = $('<table><tr><td>&nbsp;</td><td>&nbsp;</td></tr></table>');
+                
+                // Set a flag so we know to display the sizer control
+                newTable = true;
+                
+                // We start by creating a small table, just in case the user submits the form
+                // before selecting a table size, it will use this blank table as a fallback
+                self.$table = self.sizerCreateTable(2, 1);
             }
 
             self.$wrapper = $('<div/>', {
@@ -121,6 +150,9 @@ define(['jquery'], function($) {
             
             self.initEvents();
             self.contextInit();
+            if (newTable) {
+                self.initSizer();
+            }
         },
 
 
@@ -149,6 +181,127 @@ define(['jquery'], function($) {
             });
         },
 
+
+        /**
+         * For a new table, hide the table initially and give the user a way to select the table size.
+         * After the size is selected replace the table with one of the selected size.
+         * @return {[type]}
+         */
+        initSizer: function() {
+            var self;
+            var $table;
+            self = this;
+            
+            // Hide the table we already created.
+            self.$tableWrapper.hide();
+            
+            // Create the sizer control: wrapper, a message, and a table for selecting row and column
+            self.$sizer = $('<div/>', {'class': self.className + 'Sizer'}).appendTo(self.$wrapper);
+
+            $('<div/>', {
+                'class': self.className + 'SizerMessage',
+                html: self.sizerMessage
+            }).appendTo(self.$sizer);
+            
+            $table = self.sizerCreateTable(self.sizerCols, self.sizerRows).appendTo(self.$sizer);
+            
+            // Set up events for the sizer control
+            $table.on('mouseover', 'td', function(event) {
+                var pos;
+                pos = self.sizerGetPos(event.target);
+                self.sizerHighlight(pos.col + 1, pos.row + 1);
+            });
+            $table.on('click', 'td', function(event) {
+                var pos;
+                pos = self.sizerGetPos(event.target);
+                self.sizerSetSize(pos.col + 1, pos.row + 1);
+            });
+            
+            self.$sizerTable = $table;
+        },
+
+        
+        /**
+         * When the user mouses over the size table, we set an active class on cells to show
+         * the table size that would be created.
+         * @param  {Number} col
+         * Number of columns to highlight.
+         * @param  {Number} row
+         * Number of rows to highlight.
+         */
+        sizerHighlight: function(col, row) {
+            var self;
+            
+            self = this;
+            self.$sizerTable.find('td').removeClass('active').each(function(){
+                var pos;
+                pos = self.sizerGetPos(this);
+                if (pos.col < col && pos.row < row) {
+                    $(this).addClass('active');
+                }
+            });
+            
+            // Update the sizer count
+            self.$sizer.find('.sizerCount').html('(' + col + ' x ' + row + ')');
+        },
+
+
+        /**
+         * When the user clicks a cell in the size table, we create a table sized based on
+         * which row,col the user clicked. Then we show the new table and remove the sizer control.
+         * @param  {Number} col
+         * Number of columns to create in the new table.
+         * @param  {Number} row
+         * Number of rows to create in the new table.
+         */
+        sizerSetSize: function(col, row) {
+            var self;
+            var $table;
+            
+            self = this;
+
+            // Replace the table with a new one of the selected size
+            $table = self.sizerCreateTable(col, row);
+            self.$table.replaceWith($table);
+            self.$table = $table;
+            self.$tableWrapper.show();
+            self.$sizer.remove();
+        },
+
+
+        /**
+         * Create an empty table element with the specified rows and columns.
+         * @param  {Number} rows
+         * @param  {Number} cols
+         */
+        sizerCreateTable: function(cols, rows) {
+            var col;
+            var row;
+            var $table;
+            var $tr;
+            
+            $table = $('<table>');
+            for (row = 0; row < rows; row++) {
+                $tr = $('<tr>').appendTo($table);
+                for (col = 0; col < cols; col++) {
+                    $tr.append('<td>&nbsp;</td>');
+                }
+            }
+            return $table;
+        },
+
+
+        /**
+         * Returns the row,col position of a td in the sizer table.
+         * @param  {Element} td The TD element.
+         * @return {Object} An object with row and col parameters.
+         */
+        sizerGetPos: function(td) {
+            var $td;
+            $td = $(td);
+            return {row: $td.closest('tr').index(), col: $td.index()};
+        },
+        
         
         /**
          * Set the table cell (td or th) that is currently selected.
