@@ -573,41 +573,31 @@ public class Search extends Record {
                         draftPredicate);
 
             } else if ("w".equals(visibility)) {
-                Set<String> ss = new HashSet<String>();
-
                 for (Workflow w : (selectedType == null
                         ? Query.from(Workflow.class)
                         : Query.from(Workflow.class).where("contentTypes = ?", selectedType)).selectAll()) {
-                    for (WorkflowState s : w.getStates()) {
-                        String value = s.getName();
 
-                        ss.add(value);
-                        addVisibilityTypeIds(visibilityTypeIds, validTypeIds, "cms.workflow.currentState", value);
+                    for (WorkflowState s : w.getStates()) {
+                        visibilitiesPredicate = CompoundPredicate.combine(
+                                PredicateParser.OR_OPERATOR,
+                                visibilitiesPredicate,
+                                addSelectedTypeIdsWithVisibility("cms.workflow.currentState", s.getName(), selectedTypeIds));
                     }
                 }
-
-                visibilitiesPredicate = CompoundPredicate.combine(
-                        PredicateParser.OR_OPERATOR,
-                        visibilitiesPredicate,
-                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", ss), selectedTypeIds));
 
             } else if (visibility.startsWith("w.")) {
                 String value = visibility.substring(2);
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", value), selectedTypeIds));
-
-                addVisibilityTypeIds(visibilityTypeIds, validTypeIds, "cms.workflow.currentState", value);
+                        addSelectedTypeIdsWithVisibility("cms.workflow.currentState", value, selectedTypeIds));
 
             } else if (visibility.startsWith("b.")) {
                 String field = visibility.substring(2);
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        addSelectedTypeIds(PredicateParser.Static.parse(field + " = true"), selectedTypeIds));
-
-                addVisibilityTypeIds(visibilityTypeIds, validTypeIds, field, "true");
+                        addSelectedTypeIdsWithVisibility(field, true, selectedTypeIds));
 
             } else if (visibility.startsWith("t.")) {
                 visibility = visibility.substring(2);
@@ -619,9 +609,7 @@ public class Search extends Record {
                     visibilitiesPredicate = CompoundPredicate.combine(
                             PredicateParser.OR_OPERATOR,
                             visibilitiesPredicate,
-                            addSelectedTypeIds(PredicateParser.Static.parse(field + " = ?", value), selectedTypeIds));
-
-                    addVisibilityTypeIds(visibilityTypeIds, validTypeIds, field, value);
+                            addSelectedTypeIdsWithVisibility(field, value, selectedTypeIds));
                 }
             }
         }
@@ -647,6 +635,33 @@ public class Search extends Record {
                     PredicateParser.AND_OPERATOR,
                     predicate,
                     PredicateParser.Static.parse("_type = ?", selectedTypeIds));
+
+        } else {
+            return predicate;
+        }
+    }
+
+    private static Predicate addSelectedTypeIdsWithVisibility(String field, Object value, Set<UUID> selectedTypeIds) {
+        Predicate predicate = PredicateParser.Static.parse(field + " = ?", value);
+
+        if (selectedTypeIds != null) {
+            Set<UUID> withVisibility = new HashSet<>(selectedTypeIds);
+            byte[] md5 = StringUtils.md5(field + "/" + value.toString().trim().toLowerCase(Locale.ENGLISH));
+
+            for (UUID selectedTypeId : selectedTypeIds) {
+                byte[] typeId = UuidUtils.toBytes(selectedTypeId);
+
+                for (int i = 0, length = typeId.length; i < length; ++ i) {
+                    typeId[i] ^= md5[i];
+                }
+
+                withVisibility.add(UuidUtils.fromBytes(typeId));
+            }
+
+            return CompoundPredicate.combine(
+                    PredicateParser.AND_OPERATOR,
+                    predicate,
+                    PredicateParser.Static.parse("_type = ?", withVisibility));
 
         } else {
             return predicate;
@@ -1204,24 +1219,6 @@ public class Search extends Record {
         }
 
         return query;
-    }
-
-    private static void addVisibilityTypeIds(Set<UUID> visibilityTypeIds, Set<UUID> validTypeIds, String field, String value) {
-        if (validTypeIds == null) {
-            return;
-        }
-
-        byte[] md5 = StringUtils.md5(field + "/" + value.toString().trim().toLowerCase(Locale.ENGLISH));
-
-        for (UUID validTypeId : validTypeIds) {
-            byte[] typeId = UuidUtils.toBytes(validTypeId);
-
-            for (int i = 0, length = typeId.length; i < length; ++ i) {
-                typeId[i] ^= md5[i];
-            }
-
-            visibilityTypeIds.add(UuidUtils.fromBytes(typeId));
-        }
     }
 
     private void addGlobalTypes(Set<ObjectType> globalTypes, ObjectType type) {
