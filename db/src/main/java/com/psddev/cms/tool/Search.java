@@ -575,6 +575,8 @@ public class Search extends Record {
             } else if ("w".equals(visibility)) {
                 Set<String> ss = new HashSet<String>();
 
+                Set<UUID> selectedVisibilityTypeIds = new HashSet<>();
+
                 for (Workflow w : (selectedType == null
                         ? Query.from(Workflow.class)
                         : Query.from(Workflow.class).where("contentTypes = ?", selectedType)).selectAll()) {
@@ -582,6 +584,7 @@ public class Search extends Record {
                         String value = s.getName();
 
                         ss.add(value);
+                        addVisibilityTypeIds(selectedVisibilityTypeIds, selectedTypeIds, "cms.workflow.currentState", value);
                         addVisibilityTypeIds(visibilityTypeIds, validTypeIds, "cms.workflow.currentState", value);
                     }
                 }
@@ -589,23 +592,31 @@ public class Search extends Record {
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", ss), selectedTypeIds));
+                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", ss), selectedVisibilityTypeIds));
 
             } else if (visibility.startsWith("w.")) {
                 String value = visibility.substring(2);
+
+                Set<UUID> selectedVisibilityTypeIds = new HashSet<>();
+                addVisibilityTypeIds(selectedVisibilityTypeIds, selectedTypeIds, "cms.workflow.currentState", value);
+
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", value), selectedTypeIds));
+                        addSelectedTypeIds(PredicateParser.Static.parse("cms.workflow.currentState = ?", value), selectedVisibilityTypeIds));
 
                 addVisibilityTypeIds(visibilityTypeIds, validTypeIds, "cms.workflow.currentState", value);
 
             } else if (visibility.startsWith("b.")) {
                 String field = visibility.substring(2);
+
+                Set<UUID> selectedVisibilityTypeIds = new HashSet<>();
+                addVisibilityTypeIds(selectedVisibilityTypeIds, selectedTypeIds, field, "true");
+
                 visibilitiesPredicate = CompoundPredicate.combine(
                         PredicateParser.OR_OPERATOR,
                         visibilitiesPredicate,
-                        addSelectedTypeIds(PredicateParser.Static.parse(field + " = true"), selectedTypeIds));
+                        addSelectedTypeIds(PredicateParser.Static.parse(field + " = true"), selectedVisibilityTypeIds));
 
                 addVisibilityTypeIds(visibilityTypeIds, validTypeIds, field, "true");
 
@@ -616,10 +627,14 @@ public class Search extends Record {
                 if (equalAt > -1) {
                     String field = visibility.substring(0, equalAt);
                     String value = visibility.substring(equalAt + 1);
+
+                    Set<UUID> selectedVisibilityTypeIds = new HashSet<>();
+                    addVisibilityTypeIds(selectedVisibilityTypeIds, selectedTypeIds, field, value);
+
                     visibilitiesPredicate = CompoundPredicate.combine(
                             PredicateParser.OR_OPERATOR,
                             visibilitiesPredicate,
-                            addSelectedTypeIds(PredicateParser.Static.parse(field + " = ?", value), selectedTypeIds));
+                            addSelectedTypeIds(PredicateParser.Static.parse(field + " = ?", value), selectedVisibilityTypeIds));
 
                     addVisibilityTypeIds(visibilityTypeIds, validTypeIds, field, value);
                 }
