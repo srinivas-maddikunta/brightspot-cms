@@ -7584,9 +7584,29 @@ define([
                             // Determine if the element maps to one of our defined styles
                             matchStyleObj = self.getStyleForElement(next);
                             
-                            // Create new line if this is a block element (and we are not already inside another block)
-                            if (val.length && matchStyleObj && matchStyleObj.line && !insideAnotherBlock) {
-                                val += '\n';
+                            // Create new line if this is a block element and we are not on the first line
+                            if (matchStyleObj && val.length) {
+                                
+                                // Special case for lists (and nested lists)
+                                if (matchStyleObj.elementContainer) {
+                                    
+                                    // Create a new line for the first list item but not if list item
+                                    // is nested within another.
+                                    // Note this is not ideal because we get away from the "elementContainer"
+                                    // model, and are assuming we're dealing with LI elements.
+                                    if ($(next).is(':first-child') && $(next).parents('li').length === 0) {
+                                        val += '\n';
+                                    }
+                                    
+                                    if (!val.match(/\n$/)) {
+                                        val += '\n';
+                                    }
+                                    
+                                } else if (matchStyleObj.line && !insideAnotherBlock) {
+                                    // If this is a block element add a new line
+                                    // But not if there are multiple blocks defined on the same line,
+                                    val += '\n';
+                                }
                             }
                         }
 
@@ -7763,9 +7783,11 @@ define([
                                 });
                             }
                         }
-                        // Add a new line for certain elements
-                        // Add a new line for custom elements
-                        if (self.newLineRegExp.test(elementName) || (matchStyleObj && matchStyleObj.line)) {
+                        
+                        // Add a new line for certain elements (like <br>)
+                        if (self.newLineRegExp.test(elementName)) {
+                            val += '\n';
+                        } else if (matchStyleObj && matchStyleObj.line) {
                             
                             // Special cases:
                             // If we are already inside another block do not add a newline.
