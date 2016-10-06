@@ -17,7 +17,7 @@ public abstract class ToolPageViewModel<M> extends ViewModel<M> {
      * Helper method to produce a {@link RawView} from
      * {@link ToolPageContext}#write... methods.
      */
-    protected RawView createRawView(RawViewWriter<ToolPageContext> writer) {
+    protected RawView createRawView(RawViewWriter writer) {
         StringWriter delegate = new StringWriter();
 
         ToolPageContext page = new ToolPageContext(
@@ -28,16 +28,16 @@ public abstract class ToolPageViewModel<M> extends ViewModel<M> {
 
         try {
             writer.write(page);
-        } catch (IOException e) {
+        } catch (IOException error) {
             // This should never happen.
-            throw new IllegalStateException(e);
+            throw new IllegalStateException(error);
         }
 
         return RawView.of(delegate.toString());
     }
 
     @FunctionalInterface
-    protected interface RawViewWriter<T> {
-        void write(T t) throws IOException;
+    protected interface RawViewWriter {
+        void write(ToolPageContext t) throws IOException;
     }
 }
