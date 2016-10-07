@@ -118,7 +118,7 @@ public final class Localization {
             skeleton = text(locale, null, SKELETON_TIME_KEY);
         }
 
-        DateFormat format = DateFormat.getPatternInstance(skeleton, locale);
+        DateFormat format = DateFormat.getInstanceForSkeleton(skeleton, locale);
         format.setTimeZone(TimeZone.getTimeZone(timeZoneId));
         return format.format(new Date(timeMillis));
     }
