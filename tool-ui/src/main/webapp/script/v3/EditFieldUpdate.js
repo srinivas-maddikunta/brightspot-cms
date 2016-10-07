@@ -81,7 +81,12 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
                     $some.append($viewer);
                 }
 
-                if (fieldNamesByObjectId && Object.keys(fieldNamesByObjectId).length > 0) {
+                function checkFieldNames(id) {
+                    var fieldNames = fieldNamesByObjectId[id];
+                    return fieldNames && fieldNames.length > 0;
+                }
+
+                if (fieldNamesByObjectId && Object.keys(fieldNamesByObjectId).filter(checkFieldNames).length > 0) {
                     $viewer.attr('data-editing', true);
 
                 } else {
