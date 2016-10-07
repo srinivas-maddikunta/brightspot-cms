@@ -40,8 +40,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
 import com.google.common.base.Preconditions;
-import com.ibm.icu.text.DateFormat;
-import com.ibm.icu.util.TimeZone;
 import com.psddev.cms.db.ElFunctionUtils;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
