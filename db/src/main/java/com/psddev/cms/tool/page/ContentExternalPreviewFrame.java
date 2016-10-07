@@ -26,7 +26,6 @@ public class ContentExternalPreviewFrame extends PageServlet {
 
         boolean noResponse = content.getResponse() == null;
 
-
         page.writeTag("!doctype html");
         page.writeStart("html");
             page.writeStart("head");
