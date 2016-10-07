@@ -97,7 +97,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             var minX = beginOffset.left;
             var maxX = minX + $begin.outerWidth();
             var minY = beginOffset.top;
-            var maxY = $begin.outerHeight();
+            var maxY = minY + $begin.outerHeight();
 
             if (minY < 37) {
                 minY = 37;
