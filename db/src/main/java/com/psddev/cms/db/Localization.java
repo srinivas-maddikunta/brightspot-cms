@@ -22,9 +22,9 @@ public final class Localization {
 
     public static final String TIME_ONLY_SKELETON = "_timeOnly";
 
-    private static final String ICU_DATE_SKELETON = "EEE MMM dd";
-    private static final String ICU_DATE_WITH_YEAR_SKELETON = "EEE MMM dd yyyy";
-    private static final String ICU_TIME_SKELETON = "hh:mm aa";
+    private static final String SKELETON_DATE_KEY = "skeleton.date";
+    private static final String SKELETON_DATE_WITH_YEAR_KEY = "skeleton.dateWithYear";
+    private static final String SKELETON_TIME_KEY = "skeleton.time";
 
     /**
      * Localizes the given {@code key} using the given {@code locale} and
@@ -109,13 +109,13 @@ public final class Localization {
         Date time = new Date(timeMillis);
 
         if (DATE_AND_TIME_SKELETON.equals(skeleton)) {
-            skeleton = dateSkeleton(timeMillis) + " " + ICU_TIME_SKELETON;
+            skeleton = dateSkeleton(locale, timeMillis) + " " + text(locale, null, SKELETON_TIME_KEY);
 
         } else if (DATE_ONLY_SKELETON.equals(skeleton)) {
-            skeleton = dateSkeleton(timeMillis);
+            skeleton = dateSkeleton(locale, timeMillis);
 
         } else if (TIME_ONLY_SKELETON.equals(skeleton)) {
-            skeleton = ICU_TIME_SKELETON;
+            skeleton = text(locale, null, SKELETON_TIME_KEY);
         }
 
         DateFormat format = DateFormat.getPatternInstance(skeleton, locale);
@@ -123,10 +123,10 @@ public final class Localization {
         return format.format(new Date(timeMillis));
     }
 
-    private static String dateSkeleton(long timeMillis) {
+    private static String dateSkeleton(Locale locale, long timeMillis) {
         return Instant.now().atOffset(ZoneOffset.UTC).getYear() == Instant.ofEpochMilli(timeMillis).atOffset(ZoneOffset.UTC).getYear()
-                ? ICU_DATE_SKELETON
-                : ICU_DATE_WITH_YEAR_SKELETON;
+                ? text(locale, null, SKELETON_DATE_KEY)
+                : text(locale, null, SKELETON_DATE_WITH_YEAR_KEY);
     }
 
     /**
