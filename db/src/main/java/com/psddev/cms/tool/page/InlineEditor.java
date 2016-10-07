@@ -62,7 +62,7 @@ public class InlineEditor extends HttpServlet {
             if (PageFilter.Static.isInlineEditingAllContents(page.getRequest())) {
                 page.writeStart("script",
                         "type", "text/javascript",
-                        "src", page.cmsUrl("/script/inlineeditor.js"));
+                        "src", page.cmsUrl("/script/v3/InlineEditor.js"));
                 page.writeEnd();
             }
         page.writeFooter();

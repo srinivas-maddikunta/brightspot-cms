@@ -190,11 +190,11 @@ public interface ViewRenderer {
 
                             String viewOutput = viewOutputSupplier.get().get();
 
-                            return () -> "<!--brightspot.object-begin "
+                            return () -> "<!--BrightspotCmsObjectBegin "
                                     + ObjectUtils.toJson(map)
                                     + "-->"
                                     + viewOutput
-                                    + "<!--brightspot.object-end-->";
+                                    + "<!--BrightspotCmsObjectEnd-->";
 
                         } finally {
                             PageFilter.Static.popObject(request);

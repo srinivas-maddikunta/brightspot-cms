@@ -4,31 +4,34 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             $parent = $(window.parent),
             $parentDocument = $($parent[0].document),
             $parentBody = $($parentDocument[0].body),
-            $editor = $parentBody.find('.cms-inlineEditor'),
-            mainObjectData = $.parseJSON($parentBody.find('.cms-mainObject').attr('data-object')),
-            ids = [ mainObjectData.id ];
+            $editor = $parentBody.find('.BrightspotCmsInlineEditor'),
+            mainObjectData;
 
     // Find all objects in the parent document.
-    var OBJECT_BEGIN_PREFIX = 'brightspot.object-begin ';
+    var MAIN_OBJECT_PREFIX = 'BrightspotCmsMainObject ';
+    var OBJECT_BEGIN_PREFIX = 'BrightspotCmsObjectBegin ';
     var parentCommentWalker = $parentDocument[0].createTreeWalker($parentBody[0], NodeFilter.SHOW_COMMENT, null, null);
 
     while (parentCommentWalker.nextNode()) {
         var comment = parentCommentWalker.currentNode;
         var commentValue = comment.nodeValue;
 
-        if (commentValue.indexOf(OBJECT_BEGIN_PREFIX) !== 0) {
-            continue;
-        }
+        if (commentValue.indexOf(MAIN_OBJECT_PREFIX) === 0) {
+            mainObjectData = $.parseJSON(commentValue.substring(MAIN_OBJECT_PREFIX.length));
 
-        $(comment.nextElementSibling).attr(
-                'data-cms-object',
-                commentValue.substring(OBJECT_BEGIN_PREFIX.length));
+        } else if (commentValue.indexOf(OBJECT_BEGIN_PREFIX) === 0) {
+            $(comment.nextElementSibling).attr(
+                    'data-brightspot-cms-object',
+                    commentValue.substring(OBJECT_BEGIN_PREFIX.length));
+        }
     }
 
+    var ids = [ mainObjectData.id ];
+
     // Create controls for all the objects in the parent document.
-    $parentBody.find('[data-cms-object]').each(function() {
+    $parentBody.find('[data-brightspot-cms-object]').each(function() {
         var $begin = $(this),
-                objectData = $.parseJSON($begin.attr('data-cms-object')),
+                objectData = $.parseJSON($begin.attr('data-brightspot-cms-object')),
                 id = objectData.id,
                 $outline,
                 $edit,
@@ -41,7 +44,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
         ids.push(id);
 
         $outline = $('<div/>', {
-            'class': 'inlineEditorOutline'
+            'class': 'InlineEditorOutline'
         });
 
         $edit = $('<a/>', {
@@ -51,13 +54,13 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             'text': objectData.typeLabel,
 
             'mouseenter': function() {
-                var box = $.data($begin[0], 'inlineEditor-box');
+                var box = $.data($begin[0], 'InlineEditor-box');
 
-                $controls.addClass('inlineEditorControls-hover');
+                $controls.addClass('InlineEditorControls-hover');
 
                 // Fade all the controls that overlap with this one.
-                $parentBody.find('.cms-object-hasControls').each(function() {
-                    var previousBox = $.data(this, 'inlineEditor-box');
+                $parentBody.find('.BrightspotCmsObject').each(function() {
+                    var previousBox = $.data(this, 'InlineEditor-box');
 
                     if (previousBox &&
                             previousBox !== box &&
@@ -65,33 +68,33 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
                             box.controlsCss.left <= previousBox.controlsCss.left + previousBox.controlsDimension.width &&
                             previousBox.controlsCss.top + previousBox.outlineCss.top <= box.controlsCss.top + box.outlineCss.top + box.outlineCss.height &&
                             box.controlsCss.top + box.outlineCss.top <= previousBox.controlsCss.top + previousBox.outlineCss.top + previousBox.controlsDimension.height) {
-                        previousBox.$controls.addClass('inlineEditorControls-under');
+                        previousBox.$controls.addClass('InlineEditorControls-under');
                     }
                 });
             },
 
             'mouseleave': function() {
-                $controls.removeClass('inlineEditorControls-hover');
-                $body.find('.inlineEditorControls').removeClass('inlineEditorControls-under');
+                $controls.removeClass('InlineEditorControls-hover');
+                $body.find('.InlineEditorControls').removeClass('InlineEditorControls-under');
             }
         });
 
         $controls = $('<ul/>', {
-            'class': 'inlineEditorControls',
+            'class': 'InlineEditorControls',
             'html': $('<li/>', {
                 'html': [ $outline, $edit ]
             })
         });
 
-        $.data(this, 'inlineEditor-$controls', $controls);
+        $.data(this, 'InlineEditor-$controls', $controls);
         $body.append($controls);
-        $begin.addClass('cms-object-hasControls');
+        $begin.addClass('BrightspotCmsObject');
     });
 
     var positionControls = bsp_utils.throttle(5, function () {
         var previousBoxes = [ ];
 
-        $parentBody.find('.cms-object-hasControls').each(function() {
+        $parentBody.find('.BrightspotCmsObject').each(function() {
             var $begin = $(this);
             var beginOffset = $begin.offset();
             var minX = beginOffset.left;
@@ -99,11 +102,11 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             var minY = beginOffset.top;
             var maxY = minY + $begin.outerHeight();
 
-            if (minY < 37) {
+            if (minY >= 0 && minY < 37) {
                 minY = 37;
             }
 
-            var $controls = $.data(this, 'inlineEditor-$controls');
+            var $controls = $.data(this, 'InlineEditor-$controls');
             var box = {
                 '$controls': $controls,
                 'controlsCss': {
@@ -121,7 +124,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
                 }
             };
 
-            $.data($begin[0], 'inlineEditor-box', box);
+            $.data($begin[0], 'InlineEditor-box', box);
 
             // Move the controls down until they don't overlay with
             // any other controls.
@@ -146,7 +149,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
 
             previousBoxes.push(box);
             $controls.css(box.controlsCss);
-            $controls.find('.inlineEditorOutline').css(box.outlineCss);
+            $controls.find('.InlineEditorOutline').css(box.outlineCss);
             $controls.show();
         });
     });
@@ -157,14 +160,14 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
 
     // Enable "click-through" editor IFRAME.
     $parentDocument.on('mousemove', function(event) {
-        if ($($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.inlineEditorControls').length > 0) {
+        if ($($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.InlineEditorControls').length > 0) {
             $editor.css('pointer-events', 'auto');
         }
     });
 
     $document.on('mousemove', function(event) {
         if ($body.find('.popup:visible').length === 0 &&
-                $($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.inlineEditorControls').length === 0) {
+                $($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.InlineEditorControls').length === 0) {
             $editor.css('pointer-events', 'none');
         }
     });
@@ -176,7 +179,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
     // Collapse the editor on right click because Chrome activates it on the
     // editor even with pointer-events: none.
     $document.on('contextmenu', function(event) {
-        var $logo = $body.find('.inlineEditorLogo');
+        var $logo = $body.find('.InlineEditorLogo');
 
         $editor.css({
             'max-height': $logo.outerHeight(true),
@@ -213,6 +216,6 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
 
     // Make sure that the main object controls are fixed at the top.
     $parent.scroll(function() {
-        $('.inlineEditorControls-main').css('top', $parent.scrollTop());
+        $('.InlineEditorControls-main').css('top', $parent.scrollTop());
     });
 });

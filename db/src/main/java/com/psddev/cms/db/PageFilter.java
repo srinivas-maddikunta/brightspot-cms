@@ -766,9 +766,9 @@ public class PageFilter extends AbstractFilter {
                 map.put("label", state.getLabel());
                 map.put("typeLabel", state.getType().getLabel());
 
-                marker.append("<span class=\"cms-mainObject\" style=\"display: none;\" data-object=\"");
-                marker.append(StringUtils.escapeHtml(ObjectUtils.toJson(map)));
-                marker.append("\"></span>");
+                marker.append("<!--BrightspotCmsMainObject ");
+                marker.append(ObjectUtils.toJson(map));
+                marker.append("-->");
 
                 lazyResponse.getLazyWriter().writeLazily(marker.toString());
             }
@@ -909,7 +909,7 @@ public class PageFilter extends AbstractFilter {
 
             if (user.getInlineEditing() != ToolUser.InlineEditing.DISABLED) {
                 page.writeStart("iframe",
-                        "class", "cms-inlineEditor",
+                        "class", "BrightspotCmsInlineEditor",
                         "id", "bsp-inlineEditorContents",
                         "onload", "this.style.visibility = 'visible';",
                         "scrolling", "no",
@@ -1684,7 +1684,7 @@ public class PageFilter extends AbstractFilter {
                     }
                 }
 
-                marker.append("<!--brightspot.object-begin ");
+                marker.append("<!--BrightspotCmsObjectBegin ");
                 marker.append(ObjectUtils.toJson(map));
                 marker.append("-->");
                 lazyWriter.writeLazily(marker.toString());
@@ -1706,7 +1706,7 @@ public class PageFilter extends AbstractFilter {
             }
 
             if (lazyWriter != null) {
-                lazyWriter.writeLazily("<!--brightspot.object-end-->");
+                lazyWriter.writeLazily("<!--BrightspotCmsObjectEnd-->");
                 lazyWriter.writePending();
             }
         }
