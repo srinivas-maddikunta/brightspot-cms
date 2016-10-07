@@ -1,4 +1,4 @@
-(function($, window, undefined) {
+require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
     var $document = $(window.document),
             $body = $($document[0].body),
             $parent = $(window.parent),
@@ -214,4 +214,4 @@
     $parent.scroll(function() {
         $('.inlineEditorControls-main').css('top', $parent.scrollTop());
     });
-})(jQuery, window);
+});
