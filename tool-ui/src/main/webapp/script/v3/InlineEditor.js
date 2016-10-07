@@ -91,7 +91,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
         $begin.addClass('BrightspotCmsObject');
     });
 
-    var positionControls = bsp_utils.throttle(5, function () {
+    var positionControls = bsp_utils.throttle(1, function () {
         var previousBoxes = [ ];
 
         $parentBody.find('.BrightspotCmsObject').each(function() {
@@ -160,14 +160,14 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
 
     // Enable "click-through" editor IFRAME.
     $parentDocument.on('mousemove', function(event) {
-        if ($($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.InlineEditorControls').length > 0) {
+        if ($($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.InlineEditorMainObject, .InlineEditorControls').length > 0) {
             $editor.css('pointer-events', 'auto');
         }
     });
 
     $document.on('mousemove', function(event) {
         if ($body.find('.popup:visible').length === 0 &&
-                $($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.InlineEditorControls').length === 0) {
+                $($document[0].elementFromPoint(event.pageX, event.pageY)).closest('.InlineEditorMainObject, .InlineEditorControls').length === 0) {
             $editor.css('pointer-events', 'none');
         }
     });
@@ -217,5 +217,10 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
     // Make sure that the main object controls are fixed at the top.
     $parent.scroll(function() {
         $('.InlineEditorControls-main').css('top', $parent.scrollTop());
+    });
+
+    $('.InlineEditorMainObject-close').on('click', function () {
+        $editor.remove();
+        return false;
     });
 });
