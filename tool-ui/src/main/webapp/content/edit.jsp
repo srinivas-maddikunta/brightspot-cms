@@ -1746,7 +1746,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                 pathsCanvas = $paths[0].getContext('2d');
 
-                var PLACEHOLDER_PREFIX = 'brightspot.field-access '
+                var PLACEHOLDER_PREFIX = 'BrightspotCmsFieldAccess ';
                 var frameDocument = $frame[0].contentDocument;
                 var frameCommentWalker = frameDocument.createTreeWalker(frameDocument.body, NodeFilter.SHOW_COMMENT, null, null);
 
@@ -1759,8 +1759,9 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                     }
 
                     var placeholderData = $.parseJSON(placeholderValue.substring(PLACEHOLDER_PREFIX.length));
+                    var placeholderName = placeholderData.id + '/' + placeholderData.name;
 
-                    if (placeholderData.name !== name) {
+                    if (placeholderName !== name) {
                         continue;
                     }
 

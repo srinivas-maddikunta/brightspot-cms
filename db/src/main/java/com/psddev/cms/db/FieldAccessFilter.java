@@ -67,7 +67,10 @@ public class FieldAccessFilter extends AbstractFilter {
             FilterChain chain)
             throws Exception {
 
-        if (ObjectUtils.to(boolean.class, request.getParameter("_fields"))) {
+        if (ObjectUtils.to(boolean.class, request.getParameter("_fields"))
+                || (PageFilter.Static.getMainObject(request) != null
+                && PageFilter.Static.isInlineEditingAllContents(request))) {
+
             super.doDispatch(request, response, chain);
 
         } else {
@@ -202,9 +205,10 @@ public class FieldAccessFilter extends AbstractFilter {
                 }
             }
 
-            markerData.put("name", state.getId().toString() + "/" + name);
+            markerData.put("id", state.getId().toString());
+            markerData.put("name", name);
 
-            return "<!--brightspot.field-access " + ObjectUtils.toJson(markerData) + "-->";
+            return "<!--BrightspotCmsFieldAccess " + ObjectUtils.toJson(markerData) + "-->";
         }
 
         /**
