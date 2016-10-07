@@ -88,7 +88,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
         $begin.addClass('cms-object-hasControls');
     });
 
-    function positionControls() {
+    var positionControls = bsp_utils.throttle(5, function () {
         var previousBoxes = [ ];
 
         $parentBody.find('.cms-object-hasControls').each(function() {
@@ -149,10 +149,11 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             $controls.find('.inlineEditorOutline').css(box.outlineCss);
             $controls.show();
         });
-    }
+    });
 
     positionControls();
-    setInterval(positionControls, 2000);
+    setInterval(positionControls, 1000 / 60);
+    $parent.scroll(positionControls);
 
     // Enable "click-through" editor IFRAME.
     $parentDocument.on('mousemove', function(event) {
