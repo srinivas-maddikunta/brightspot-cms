@@ -3737,6 +3737,16 @@ define([
                     text: label
                 }).appendTo($div);
 
+                // Check if this is a link with an href attribute
+                if (mark.attributes && mark.attributes.href) {
+                    $('<a/>', {
+                        'class': 'rte2-dropdown-href',
+                        text: mark.attributes.href,
+                        href: mark.attributes.href,
+                        target: '_blank'
+                    }).appendTo($div);
+                }
+                
                 // Popup edit defaults to true, but if set to false do not include edit link
                 if (styleObj.popup !== false && styleObj.onClick) {
                     $('<a/>', {
