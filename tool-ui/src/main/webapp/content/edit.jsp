@@ -898,6 +898,12 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                         wp.writeStart("div", "class", "widget-publishingWorkflow");
                                             WorkflowLog newLog = new WorkflowLog();
 
+                                            newLog.getState().setId(wp.param(UUID.class, "workflowLogId"));
+
+                                            if (wp.isFormPost()) {
+                                                wp.updateUsingParameters(newLog);
+                                            }
+
                                             if (log != null) {
                                                 for (ObjectField field : ObjectType.getInstance(WorkflowLog.class).getFields()) {
                                                     if (field.as(WorkflowLog.FieldData.class).isPersistent()) {
