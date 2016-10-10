@@ -321,7 +321,7 @@ function($, bsp_utils, color_utils) {
             addState = function(stateData) {
                 var $state;
 
-                $visual.prepend($state = $('<div/>', {
+                $visual.append($state = $('<div/>', {
                     'class': 'workflowState',
                     'data-id': stateData.id,
                     'css': {
