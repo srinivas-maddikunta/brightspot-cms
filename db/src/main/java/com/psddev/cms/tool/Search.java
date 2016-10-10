@@ -646,7 +646,9 @@ public class Search extends Record {
 
         if (selectedTypeIds != null) {
             Set<UUID> withVisibility = new HashSet<>(selectedTypeIds);
-            byte[] md5 = StringUtils.md5(field + "/" + value.toString().trim().toLowerCase(Locale.ENGLISH));
+            int lastSlashAt = field.lastIndexOf('/');
+            String fieldNameOnly = lastSlashAt > -1 ? field.substring(lastSlashAt + 1) : field;
+            byte[] md5 = StringUtils.md5(fieldNameOnly + "/" + value.toString().trim().toLowerCase(Locale.ENGLISH));
 
             for (UUID selectedTypeId : selectedTypeIds) {
                 byte[] typeId = UuidUtils.toBytes(selectedTypeId);
