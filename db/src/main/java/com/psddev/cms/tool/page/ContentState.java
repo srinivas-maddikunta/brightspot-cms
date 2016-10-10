@@ -108,6 +108,7 @@ public class ContentState extends PageServlet {
 
                 log.getState().setId(workflowLogId);
                 page.updateUsingParameters(log);
+                state.as(Workflow.Data.class).setCurrentLog(log);
             }
 
             page.publish(object);
