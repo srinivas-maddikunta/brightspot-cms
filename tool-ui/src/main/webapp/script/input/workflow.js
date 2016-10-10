@@ -437,6 +437,10 @@ function($, bsp_utils) {
 
                 $arrows.trigger('redraw');
             }
+
+            $(window).resize(function () {
+                $arrows.trigger('redraw');
+            });
         }
     });
 });
