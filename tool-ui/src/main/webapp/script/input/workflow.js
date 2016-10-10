@@ -1,22 +1,21 @@
 define([
     'jquery',
-    'bsp-utils' ],
+    'bsp-utils',
+    'v3/color-utils' ],
 
-function($, bsp_utils) {
+function($, bsp_utils, color_utils) {
     var $win = $(window);
     var getTransitionColor;
 
     (function() {
-        var hue = Math.random(),
-                GOLDEN_RATIO = 0.618033988749895;
+        var hue;
 
         getTransitionColor = function($transition) {
             var transitionColor = $.data($transition[0], 'workflow-transitionColor');
 
             if (!transitionColor) {
-                hue += GOLDEN_RATIO;
-                hue %= 1.0;
-                transitionColor = 'hsl(' + (hue * 360) + ', 50%, 50%)';
+                hue = color_utils.changeHue(hue);
+                transitionColor = color_utils.generateFromHue(hue);
                 $.data($transition[0], 'workflow-transitionColor', transitionColor);
             }
 

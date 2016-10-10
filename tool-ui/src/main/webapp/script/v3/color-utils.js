@@ -5,6 +5,10 @@ define({
   },
   
   changeHue: function(hue) {
+    if (!hue) {
+      return 0.5396341463414634;
+    }
+
     var GOLDEN_RATIO = 0.618033988749895;
     hue += GOLDEN_RATIO;
     hue %= 1.0;
