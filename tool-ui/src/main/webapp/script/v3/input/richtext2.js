@@ -1298,6 +1298,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 var styleName = rtElement.styleName;
                 var submenuName = rtElement.submenu;
                 var $submenu;
+                var submenuClass;
                 var toolbarButton;
 
                 toolbarButton = {
@@ -1312,11 +1313,28 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     toolbarButton.action = 'table';
                 }
 
+                // The style defined in RICH_TEXT_ELEMENTS might have a submenu property, Which
+                // is the label of a submenu like "My Enhancements".
+                // Multiple styles can be grouped using this submenu name, so we need to ensure
+                // that we only create the submenu once, then use it for any subsequent styles.
                 if (submenuName) {
                     
+                    // Check to see if the submenu has already been created
                     $submenu = submenus[submenuName];
                     if (!$submenu) {
-                        $submenu = submenus[submenuName] = self.toolbarAddSubmenu({text: submenuName}, $toolbar);
+                        
+                        // The submenu does not exist so create it now and save the value
+                        
+                        // Calculate a safe classname to use for the submenu.
+                        // Since the submenu name could be something like "My Enhancements",
+                        // substitute a dash character for any non-alphanumeric characters
+                        // to end up with class "rte2-toolbar-submenu-My-Enhancements"
+                        submenuClass = 'rte2-toolbar-submenu-' + submenuName.replace(/\W+/g, '-');
+                        
+                        $submenu = submenus[submenuName] = self.toolbarAddSubmenu({
+                            text: submenuName,
+                            className:submenuClass
+                        }, $toolbar);
                     }
 
                     self.toolbarAddButton(toolbarButton, $submenu);
