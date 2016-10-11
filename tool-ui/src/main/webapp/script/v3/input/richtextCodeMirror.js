@@ -3,6 +3,7 @@
 define([
     'jquery',
     'bsp-utils',
+    'v3/RecalculateDimensions',
     'v3/spellcheck',
     'undomanager',
     'codemirror/lib/codemirror',
@@ -10,7 +11,7 @@ define([
     'codemirror/addon/dialog/dialog',
     'codemirror/addon/search/searchcursor',
     'codemirror/addon/search/search'
-], function($, bsp_utils, spellcheckAPI, UndoManager, CodeMirror) {
+], function($, bsp_utils, RecalculateDimensions, spellcheckAPI, UndoManager, CodeMirror) {
     
     var CodeMirrorRte;
 
@@ -369,7 +370,11 @@ define([
             var $wrapper = $(self.codeMirror.getWrapperElement());
             var wrapperWidth = $wrapper.width();
 
-            $(window).resize(bsp_utils.throttle(500, function () {
+            RecalculateDimensions.bind(element, function () {
+                self.refresh();
+            });
+
+            $(window).resize(bsp_utils.throttle(500, function (event) {
                 var newWrapperWidth = $wrapper.width();
 
                 if (wrapperWidth !== newWrapperWidth) {
