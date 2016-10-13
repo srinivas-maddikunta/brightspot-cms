@@ -441,7 +441,15 @@ function($, bsp_utils, color_utils) {
             }
 
             $(window).resize(function () {
-                $arrows.trigger('redraw');
+                window.requestAnimationFrame(function () {
+                    console.log('resize', $visual.width());
+                    $arrows.attr({
+                        'width': $visual.width(),
+                        'height': $visual.height()
+                    });
+
+                    $arrows.trigger('redraw');
+                });
             });
         }
     });
