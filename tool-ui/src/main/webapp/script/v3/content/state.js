@@ -88,6 +88,10 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
           }).get().join(''),
 
           'success': function(data) {
+            if (!data) {
+              return;
+            }
+
             if (wipEnabled) {
               var wipMessage = data._wip;
 
