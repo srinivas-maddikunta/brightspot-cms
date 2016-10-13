@@ -442,7 +442,6 @@ function($, bsp_utils, color_utils) {
 
             $(window).resize(function () {
                 window.requestAnimationFrame(function () {
-                    console.log('resize', $visual.width());
                     $arrows.attr({
                         'width': $visual.width(),
                         'height': $visual.height()
