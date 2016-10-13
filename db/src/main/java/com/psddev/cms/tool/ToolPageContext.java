@@ -3015,7 +3015,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", "standardForm",
                 "method", "post",
                 "enctype", "multipart/form-data",
-                "action", url("", "id", state.getId()),
+                "action", url("", "typeId", state.getTypeId(), "id", state.getId()),
                 "autocomplete", "off",
                 "data-type", type != null ? type.getInternalName() : null);
             boolean trash = writeTrashMessage(object);
