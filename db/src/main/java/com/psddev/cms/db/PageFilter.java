@@ -444,17 +444,18 @@ public class PageFilter extends AbstractFilter {
             // current request is the redirect path, then redirect to the
             // permalink.
             Directory.Path redirectPath = null;
-            boolean isRedirect = false;
+            Directory.PathType redirectType = null;
 
             for (Directory.Path p : State.getInstance(mainObject).as(Directory.Data.class).getPaths()) {
 
-                if (p.getType() == Directory.PathType.REDIRECT
+                if ((p.getType() == Directory.PathType.REDIRECT
+                        || p.getType() == Directory.PathType.REDIRECT_TEMPORARY)
                         && ObjectUtils.equals(p.getSite(), site)) {
                     String path = p.getPath();
                     String requestPath = Static.getPath(request);
 
                     if (requestPath.equalsIgnoreCase(path)) {
-                        isRedirect = true;
+                        redirectType = p.getType();
 
                     } else {
                         // handle wildcards
@@ -470,14 +471,14 @@ public class PageFilter extends AbstractFilter {
                                     String requestPathLeftover = requestPath.substring(wildcardIndex, requestPath.length());
 
                                     if (requestPathLeftover.isEmpty()) {
-                                        isRedirect = true;
+                                        redirectType = Directory.PathType.REDIRECT;
 
                                     } else {
                                         String wildcard = path.substring(wildcardIndex, path.length());
 
                                         if (wildcard.equals("/**")
                                                 || (wildcard.equals("/*") && requestPathLeftover.split("/").length < 3)) {
-                                            isRedirect = true;
+                                            redirectType = Directory.PathType.REDIRECT;
                                         }
                                     }
                                 }
@@ -491,12 +492,20 @@ public class PageFilter extends AbstractFilter {
                 }
             }
 
-            if (isRedirect && redirectPath != null) {
+            if (redirectType != null && redirectPath != null) {
                 String rp = StringUtils.removeEnd(StringUtils.removeEnd(redirectPath.getPath(), "*"), "*");
 
-                JspUtils.redirectPermanently(request, response, site != null
-                        ? site.getPrimaryUrl() + rp
-                        : rp);
+                if (redirectType == Directory.PathType.REDIRECT) {
+                    JspUtils.redirectPermanently(request, response, site != null
+                            ? site.getPrimaryUrl() + rp
+                            : rp);
+
+                } else {
+                    JspUtils.redirect(request, response, site != null
+                            ? site.getPrimaryUrl() + rp
+                            : rp);
+                }
+
                 return;
             }
 
