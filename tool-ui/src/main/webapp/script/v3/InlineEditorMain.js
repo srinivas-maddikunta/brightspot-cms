@@ -1,5 +1,6 @@
 require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
     var $document = $(window.document),
+            $body = $($document[0].body),
             $parent = $(window.parent),
             $parentDocument = $($parent[0].document),
             $parentBody = $($parentDocument[0].body),
