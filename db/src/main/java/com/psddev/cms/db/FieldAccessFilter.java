@@ -2,7 +2,6 @@ package com.psddev.cms.db;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +12,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
@@ -160,68 +160,38 @@ public class FieldAccessFilter extends AbstractFilter {
             FilterChain chain)
             throws IOException, ServletException {
 
+        JspBufferFilter.Static.overrideBuffer(0);
+
         try {
-            JspBufferFilter.Static.overrideBuffer(0);
+            FieldAccessDatabase db = new FieldAccessDatabase(Static.getDisplayIds(request));
 
-            Object mainObject = PageFilter.Static.getMainObject(request);
-            Set<UUID> displayIds = Static.getDisplayIds(request);
-
-            if (mainObject != null) {
-                State mainState = State.getInstance(mainObject);
-
-                displayIds.add(mainState.getId());
-                addDisplayIds(displayIds, mainState.getSimpleValues());
-            }
-
-            FieldAccessListener listener = new FieldAccessListener(request);
+            db.setDelegate(Database.Static.getDefault());
+            Database.Static.overrideDefault(db);
 
             try {
-                State.Static.addListener(listener);
-                doInclude(request, response, chain);
+                Object mainObject = PageFilter.Static.getMainObject(request);
+
+                if (mainObject != null) {
+                    db.addDisplayIds(mainObject);
+                }
+
+                FieldAccessListener listener = new FieldAccessListener(request);
+
+                try {
+                    State.Static.addListener(listener);
+                    doInclude(request, response, chain);
+
+                } finally {
+                    State.Static.removeListener(listener);
+                }
 
             } finally {
-                State.Static.removeListener(listener);
+                Database.Static.restoreDefault();
             }
 
         } finally {
             JspBufferFilter.Static.restoreBuffer();
         }
-    }
-
-    private void addDisplayIds(Set<UUID> displayIds, Object value) {
-        if (value instanceof Iterable) {
-            for (Object item : (Collection<?>) value) {
-                addDisplayIds(displayIds, item);
-            }
-
-        } else if (value instanceof Map) {
-            Map<?, ?> valueMap = (Map<?, ?>) value;
-            UUID id = ObjectUtils.to(UUID.class, valueMap.get("_id"));
-
-            if (id != null) {
-                displayIds.add(id);
-
-            } else {
-                for (Object item : valueMap.values()) {
-                    addDisplayIds(displayIds, item);
-                }
-            }
-        }
-    }
-
-    /**
-     * Creates the marker HTML that identifies access to a field with the
-     * given {@code name} in the given {@code state}.
-     *
-     * @param state Can't be {@code null}.
-     * @param name Can't be {@code null}.
-     * @return Never blank.
-     *
-     * @deprecated Use {@link Static#createMarkerHtml} instead.
-     */
-    @Deprecated
-    public static String createMarkerHtml(State state, String name) {
-        return Static.createMarkerHtml(state, name);
     }
 
     /**
@@ -251,6 +221,9 @@ public class FieldAccessFilter extends AbstractFilter {
 
     private static class FieldAccessListener extends State.Listener {
 
+        private static final String ATTRIBUTE_PREFIX = FieldAccessListener.class.getName() + ".";
+        private static final String PREVIOUS_MARKER_HTML_ATTRIBUTE = ATTRIBUTE_PREFIX + "previousMarkerHtml";
+
         private final HttpServletRequest request;
 
         public FieldAccessListener(HttpServletRequest request) {
@@ -259,7 +232,7 @@ public class FieldAccessFilter extends AbstractFilter {
 
         @Override
         public void beforeFieldGet(State state, String name) {
-            if (!Static.getDisplayIds(request).contains(state.getId())) {
+            if (!getDisplayIds(request).contains(state.getId())) {
                 return;
             }
 
@@ -275,7 +248,13 @@ public class FieldAccessFilter extends AbstractFilter {
                 }
 
                 if (writer != null) {
-                    writer.writeLazily(createMarkerHtml(state, name));
+                    String markerHtml = createMarkerHtml(state, name);
+                    String previousMarkerHtml = (String) request.getAttribute(PREVIOUS_MARKER_HTML_ATTRIBUTE);
+
+                    if (!markerHtml.equals(previousMarkerHtml)) {
+                        request.setAttribute(PREVIOUS_MARKER_HTML_ATTRIBUTE, markerHtml);
+                        writer.writeLazily(markerHtml);
+                    }
                 }
 
             } catch (IOException error) {
