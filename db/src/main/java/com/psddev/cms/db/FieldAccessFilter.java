@@ -32,9 +32,9 @@ public class FieldAccessFilter extends AbstractFilter {
 
     private static final String ATTRIBUTE_PREFIX = FieldAccessFilter.class.getName() + ".";
     private static final String DISPLAY_IDS_ATTRIBUTE = ATTRIBUTE_PREFIX + "displayIds";
-    private static final String CURRENT_RESPONSE_ATTRIBUTE = ATTRIBUTE_PREFIX + "currentResponse";
+    static final String CURRENT_RESPONSE_ATTRIBUTE = ATTRIBUTE_PREFIX + "currentResponse";
 
-    private static final ThreadLocalStack<LazyWriter> THREAD_DEFAULT_LAZY_WRITER = new ThreadLocalStack<>();
+    static final ThreadLocalStack<LazyWriter> THREAD_DEFAULT_LAZY_WRITER = new ThreadLocalStack<>();
 
     /**
      * Returns IDs of of all objects whose field accesses should be
@@ -216,51 +216,6 @@ public class FieldAccessFilter extends AbstractFilter {
         @Deprecated
         public static Set<UUID> getDisplayIds(HttpServletRequest request) {
             return FieldAccessFilter.getDisplayIds(request);
-        }
-    }
-
-    private static class FieldAccessListener extends State.Listener {
-
-        private static final String ATTRIBUTE_PREFIX = FieldAccessListener.class.getName() + ".";
-        private static final String PREVIOUS_MARKER_HTML_ATTRIBUTE = ATTRIBUTE_PREFIX + "previousMarkerHtml";
-
-        private final HttpServletRequest request;
-
-        public FieldAccessListener(HttpServletRequest request) {
-            this.request = request;
-        }
-
-        @Override
-        public void beforeFieldGet(State state, String name) {
-            if (!getDisplayIds(request).contains(state.getId())) {
-                return;
-            }
-
-            try {
-                LazyWriter writer = THREAD_DEFAULT_LAZY_WRITER.get();
-
-                if (writer == null) {
-                    LazyWriterResponse response = (LazyWriterResponse) request.getAttribute(CURRENT_RESPONSE_ATTRIBUTE);
-
-                    if (response != null) {
-                        writer = response.getLazyWriter();
-                    }
-                }
-
-                if (writer != null) {
-                    String markerHtml = createMarkerHtml(state, name);
-                    String previousMarkerHtml = (String) request.getAttribute(PREVIOUS_MARKER_HTML_ATTRIBUTE);
-
-                    if (!markerHtml.equals(previousMarkerHtml)) {
-                        request.setAttribute(PREVIOUS_MARKER_HTML_ATTRIBUTE, markerHtml);
-                        writer.writeLazily(markerHtml);
-                    }
-                }
-
-            } catch (IOException error) {
-                // Can't write the field access marker HTML to the response,
-                // but that's OK, so move on.
-            }
         }
     }
 }
