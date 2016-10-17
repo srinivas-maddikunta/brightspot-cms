@@ -394,7 +394,6 @@ function() {
       $html.find('del,.rte-comment').remove();
       $html.find('br,p,div,ul,ol,li').after('\n');
       text = $html.text();
-      console.log('word count', text.length);
 
       updateWordCount($container, $input, text);
     }
