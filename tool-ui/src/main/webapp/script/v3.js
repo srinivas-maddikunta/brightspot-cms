@@ -384,22 +384,33 @@ function() {
 
     // For new rich text editor, special handling for the word count.
     // Note this counts only the text content not the final output which includes extra HTML elements.
-    $doc.on('rteChange', $.throttle(1000, function(event, rte) {
+    var rteWordCountInterval;
 
-        var $input, $container, html, $html, text;
+    function rteWordCount(rte) {
+      var $input, $container, html, $html, text;
 
-        $input = rte.$el;
-        $container = $input.closest('.rte2-wrapper').find('> .rte2-toolbar');
+      $input = rte.$el;
+      $container = $input.closest('.rte2-wrapper').find('> .rte2-toolbar');
 
-        html = rte.toHTML();
-        $html = $(new DOMParser().parseFromString(html, "text/html").body);
-        $html.find('del,.rte-comment').remove();
-        $html.find('br,p,div,ul,ol,li').after('\n');
-        text = $html.text();
+      html = rte.toHTML();
+      $html = $(new DOMParser().parseFromString(html, "text/html").body);
+      $html.find('del,.rte-comment').remove();
+      $html.find('br,p,div,ul,ol,li').after('\n');
+      text = $html.text();
+      console.log('word count', text.length);
 
-        updateWordCount($container, $input, text);
+      updateWordCount($container, $input, text);
+    }
 
-    }));
+    $doc.on('rteChange', function (event, rte) {
+      if (rteWordCountInterval) {
+        clearInterval(rteWordCountInterval);
+      }
+
+      rteWordCountInterval = setTimeout(function () {
+        rteWordCount(rte);
+      }, 1000);
+    });
 
   })();
 
