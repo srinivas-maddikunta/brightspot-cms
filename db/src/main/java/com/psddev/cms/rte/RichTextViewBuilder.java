@@ -1,8 +1,9 @@
 package com.psddev.cms.rte;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -10,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.google.common.base.Preconditions;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.DataNode;
@@ -23,6 +25,8 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Reference;
 import com.psddev.dari.db.ReferentialText;
 import com.psddev.dari.util.HtmlElement;
+import com.psddev.dari.util.HtmlWriter;
+import com.psddev.dari.util.ObjectUtils;
 
 /**
  * <p>A builder of views from rich text Strings for the purpose of rendering
@@ -67,15 +71,14 @@ public class RichTextViewBuilder {
 
     public static final String RICH_TEXT_ELEMENT_VIEW_TYPE = "cms.rte";
 
-    public static final String REFERENCE_VIEW_TYPE = "cms.ref";
+    private static final String REFERENCE_TAG_NAME = "brightspot-cms-reference";
+    private static final String REFERENCE_TAG_VALUES_ATTRIBUTE = "values";
 
-    Collection<?> richText;
+    private String richText;
 
     Function<String, Object> htmlViewFunction;
 
     Function<RichTextElement, Object> richTextElementViewFunction;
-
-    Function<Reference, Object> referenceViewFunction;
 
     BiFunction<HtmlElement, List<Object>, Object> htmlElementWrapperViewFunction;
 
@@ -89,7 +92,7 @@ public class RichTextViewBuilder {
      * @param richText the rich text to be converted to a view.
      */
     public RichTextViewBuilder(String richText) {
-        this.richText = Collections.singletonList(richText);
+        this.richText = richText;
     }
 
     /**
@@ -98,7 +101,33 @@ public class RichTextViewBuilder {
      * @param referentialText the ReferentialText to be converted to view(s).
      */
     public RichTextViewBuilder(ReferentialText referentialText) {
-        this.richText = referentialText;
+
+        // convert the ReferentialText into a String
+        StringBuilder builder = new StringBuilder();
+        for (Object item : referentialText) {
+
+            if (item instanceof Reference) {
+
+                Reference ref = (Reference) item;
+
+                StringWriter refHtml = new StringWriter();
+                try {
+                    new HtmlWriter(refHtml) { {
+                        writeTag(REFERENCE_TAG_NAME,
+                                REFERENCE_TAG_VALUES_ATTRIBUTE, ObjectUtils.toJson(ref.getState().getSimpleValues()));
+                    } };
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                }
+
+                builder.append(refHtml);
+
+            } else {
+                builder.append(item);
+            }
+        }
+
+        this.richText = builder.toString();
     }
 
     /**
@@ -125,18 +154,6 @@ public class RichTextViewBuilder {
      */
     public RichTextViewBuilder richTextElementViewFunction(Function<RichTextElement, Object> richTextElementViewFunction) {
         this.richTextElementViewFunction = richTextElementViewFunction;
-        return this;
-    }
-
-    /**
-     * Sets a handler for converting Reference objects into views. The function
-     * is passed a Reference and is expected to return the resulting view.
-     *
-     * @param referenceViewFunction the Reference view function to be applied.
-     * @return this builder.
-     */
-    public RichTextViewBuilder referenceViewFunction(Function<Reference, Object> referenceViewFunction) {
-        this.referenceViewFunction = referenceViewFunction;
         return this;
     }
 
@@ -206,36 +223,18 @@ public class RichTextViewBuilder {
 
         Map<String, ObjectType> tagTypes = RichTextElement.getConcreteTagTypes();
 
-        if (richText != null) {
+        Document document = Jsoup.parseBodyFragment(richText);
+        document.outputSettings().prettyPrint(false);
 
-            for (Object item : richText) {
-
-                if (item instanceof String) {
-
-                    String html = (String) item;
-
-                    Document document = Jsoup.parseBodyFragment(html);
-                    document.outputSettings().prettyPrint(false);
-
-                    for (RichTextProcessor preProcessor : preProcessors) {
-                        preProcessor.process(document.body());
-                    }
-
-                    toBuilderNodes(document.body().childNodes(), tagTypes)
-                            .stream()
-                            .map(node -> node.toViews(this))
-                            .flatMap(Collection::stream)
-                            .forEach(views::add);
-
-                } else if (item instanceof Reference && referenceViewFunction != null) {
-
-                    Object referenceView = referenceViewFunction.apply((Reference) item);
-                    if (referenceView != null) {
-                        views.add(referenceView);
-                    }
-                }
-            }
+        for (RichTextProcessor preProcessor : preProcessors) {
+            preProcessor.process(document.body());
         }
+
+        toBuilderNodes(document.body().childNodes(), tagTypes)
+                .stream()
+                .map(node -> node.toViews(this))
+                .flatMap(Collection::stream)
+                .forEach(views::add);
 
         return views;
     }
