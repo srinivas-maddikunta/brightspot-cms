@@ -65,9 +65,9 @@ import com.psddev.dari.util.HtmlElement;
  */
 public class RichTextViewBuilder {
 
-    public static final String RICH_TEXT_ELEMENT_VIEW_TYPE = "rte";
+    public static final String RICH_TEXT_ELEMENT_VIEW_TYPE = "cms.rte";
 
-    public static final String REFERENCE_VIEW_TYPE = "ref";
+    public static final String REFERENCE_VIEW_TYPE = "cms.ref";
 
     Collection<?> richText;
 
