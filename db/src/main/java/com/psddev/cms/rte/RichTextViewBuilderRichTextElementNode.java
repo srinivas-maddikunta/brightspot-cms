@@ -1,24 +1,22 @@
 package com.psddev.cms.rte;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.function.Function;
 
 import com.psddev.cms.db.RichTextElement;
 
-class RichTextViewBuilderRichTextElementNode implements RichTextViewBuilderNode {
+class RichTextViewBuilderRichTextElementNode<V> implements RichTextViewBuilderNode<V> {
 
     private RichTextElement richTextElement;
+    private Function<RichTextElement, V> richTextElementViewFunction;
 
-    RichTextViewBuilderRichTextElementNode(RichTextElement richTextElement) {
+    RichTextViewBuilderRichTextElementNode(RichTextElement richTextElement,
+                                           Function<RichTextElement, V> richTextElementViewFunction) {
         this.richTextElement = richTextElement;
+        this.richTextElementViewFunction = richTextElementViewFunction;
     }
 
     @Override
-    public List<Object> toViews(RichTextViewBuilder builder) {
-        Object view = null;
-        if (builder.richTextElementViewFunction != null) {
-            view = builder.richTextElementViewFunction.apply(richTextElement);
-        }
-        return view != null ? Collections.singletonList(view) : Collections.emptyList();
+    public V toView() {
+        return richTextElementViewFunction != null ? richTextElementViewFunction.apply(richTextElement) : null;
     }
 }

@@ -1,14 +1,15 @@
 package com.psddev.cms.rte;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.function.Function;
 
-class RichTextViewBuilderStringNode implements RichTextViewBuilderNode {
+class RichTextViewBuilderStringNode<T> implements RichTextViewBuilderNode<T> {
 
     private String html;
+    private Function<String, T> htmlViewFunction;
 
-    RichTextViewBuilderStringNode(String html) {
+    RichTextViewBuilderStringNode(String html, Function<String, T> htmlViewFunction) {
         this.html = html;
+        this.htmlViewFunction = htmlViewFunction;
     }
 
     String getHtml() {
@@ -16,13 +17,7 @@ class RichTextViewBuilderStringNode implements RichTextViewBuilderNode {
     }
 
     @Override
-    public List<Object> toViews(RichTextViewBuilder builder) {
-        Object view;
-        if (builder.htmlViewFunction != null) {
-            view = builder.htmlViewFunction.apply(html);
-        } else {
-            view = html;
-        }
-        return view != null ? Collections.singletonList(view) : Collections.emptyList();
+    public T toView() {
+        return htmlViewFunction != null ? htmlViewFunction.apply(html) : null;
     }
 }

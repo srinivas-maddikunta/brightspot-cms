@@ -1,8 +1,6 @@
 package com.psddev.cms.rte;
 
-import java.util.List;
+interface RichTextViewBuilderNode<V> {
 
-interface RichTextViewBuilderNode {
-
-    List<Object> toViews(RichTextViewBuilder builder);
+    V toView();
 }

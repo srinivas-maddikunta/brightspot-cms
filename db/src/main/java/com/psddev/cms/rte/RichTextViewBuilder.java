@@ -3,9 +3,9 @@ package com.psddev.cms.rte;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -67,7 +67,7 @@ import com.psddev.dari.util.ObjectUtils;
  * instead of a list, the implementer should wrap the list of views inside of
  * another view that is setup to handle such a list.</p>
  */
-public class RichTextViewBuilder {
+public class RichTextViewBuilder<V> {
 
     public static final String RICH_TEXT_ELEMENT_VIEW_TYPE = "cms.rte";
 
@@ -76,15 +76,15 @@ public class RichTextViewBuilder {
 
     private String richText;
 
-    Function<String, Object> htmlViewFunction;
+    private Function<String, V> htmlViewFunction;
 
-    Function<RichTextElement, Object> richTextElementViewFunction;
+    private Function<RichTextElement, V> richTextElementViewFunction;
 
-    BiFunction<HtmlElement, List<Object>, Object> htmlElementWrapperViewFunction;
+    private BiFunction<HtmlElement, List<V>, V> htmlElementWrapperViewFunction;
 
-    boolean renderUnhandledRichTextElements;
+    private boolean renderUnhandledRichTextElements;
 
-    List<RichTextProcessor> preProcessors = new ArrayList<>();
+    private List<RichTextProcessor> preProcessors = new ArrayList<>();
 
     /**
      * Creates a new builder for the given rich text.
@@ -141,7 +141,7 @@ public class RichTextViewBuilder {
      * @param htmlViewFunction the HTML view function to be applied.
      * @return this builder.
      */
-    public RichTextViewBuilder htmlViewFunction(Function<String, Object> htmlViewFunction) {
+    public RichTextViewBuilder<V> htmlViewFunction(Function<String, V> htmlViewFunction) {
         this.htmlViewFunction = htmlViewFunction;
         return this;
     }
@@ -154,7 +154,7 @@ public class RichTextViewBuilder {
      *        to be applied.
      * @return this builder.
      */
-    public RichTextViewBuilder richTextElementViewFunction(Function<RichTextElement, Object> richTextElementViewFunction) {
+    public RichTextViewBuilder<V> richTextElementViewFunction(Function<RichTextElement, V> richTextElementViewFunction) {
         this.richTextElementViewFunction = richTextElementViewFunction;
         return this;
     }
@@ -170,7 +170,7 @@ public class RichTextViewBuilder {
      *        function to be applied.
      * @return this builder.
      */
-    public RichTextViewBuilder htmlElementWrapperViewFunction(BiFunction<HtmlElement, List<Object>, Object> htmlElementWrapperViewFunction) {
+    public RichTextViewBuilder<V> htmlElementWrapperViewFunction(BiFunction<HtmlElement, List<V>, V> htmlElementWrapperViewFunction) {
         this.htmlElementWrapperViewFunction = htmlElementWrapperViewFunction;
         return this;
     }
@@ -183,7 +183,7 @@ public class RichTextViewBuilder {
      *        in the DOM if unhandled, false otherwise.
      * @return this builder.
      */
-    public RichTextViewBuilder renderUnhandledRichTextElements(boolean renderUnhandledRichTextElements) {
+    public RichTextViewBuilder<V> renderUnhandledRichTextElements(boolean renderUnhandledRichTextElements) {
         this.renderUnhandledRichTextElements = renderUnhandledRichTextElements;
         return this;
     }
@@ -195,7 +195,7 @@ public class RichTextViewBuilder {
      * @param preProcessor the rich text processor to be applied.
      * @return this builder.
      */
-    public RichTextViewBuilder addPreProcessor(RichTextProcessor preProcessor) {
+    public RichTextViewBuilder<V> addPreProcessor(RichTextProcessor preProcessor) {
         if (preProcessor != null) {
             this.preProcessors.add(preProcessor);
         }
@@ -208,7 +208,7 @@ public class RichTextViewBuilder {
      *
      * @return this builder.
      */
-    public RichTextViewBuilder addAllDefaultPreProcessors() {
+    public RichTextViewBuilder<V> addAllDefaultPreProcessors() {
         addPreProcessor(new RichTextEditorialMarkupProcessor());
         addPreProcessor(new RichTextLineBreakProcessor());
         return this;
@@ -219,9 +219,9 @@ public class RichTextViewBuilder {
      *
      * @return a list of views.
      */
-    public List<Object> build() {
+    public List<V> build() {
 
-        List<Object> views = new ArrayList<>();
+        List<V> views = new ArrayList<>();
 
         Map<String, ObjectType> tagTypes = RichTextElement.getConcreteTagTypes();
 
@@ -234,8 +234,8 @@ public class RichTextViewBuilder {
 
         toBuilderNodes(document.body().childNodes(), tagTypes)
                 .stream()
-                .map(node -> node.toViews(this))
-                .flatMap(Collection::stream)
+                .map(RichTextViewBuilderNode::toView)
+                .filter(Objects::nonNull)
                 .forEach(views::add);
 
         return views;
@@ -252,9 +252,9 @@ public class RichTextViewBuilder {
      * defined in which case the element will be converted into a potentially
      * unbalanced HTML String.
      */
-    private List<RichTextViewBuilderNode> toBuilderNodes(List<Node> siblings, Map<String, ObjectType> tagTypes) {
+    private List<RichTextViewBuilderNode<V>> toBuilderNodes(List<Node> siblings, Map<String, ObjectType> tagTypes) {
 
-        List<RichTextViewBuilderNode> builderNodes = new ArrayList<>();
+        List<RichTextViewBuilderNode<V>> builderNodes = new ArrayList<>();
 
         for (Node sibling : siblings) {
 
@@ -274,23 +274,23 @@ public class RichTextViewBuilder {
 
                     rte.fromBody(element.html());
 
-                    builderNodes.add(new RichTextViewBuilderRichTextElementNode(rte));
+                    builderNodes.add(new RichTextViewBuilderRichTextElementNode<>(rte, richTextElementViewFunction));
 
                 } else if (tagType == null || renderUnhandledRichTextElements) {
 
-                    List<RichTextViewBuilderNode> childRteNodes = toBuilderNodes(element.childNodes(), tagTypes);
+                    List<RichTextViewBuilderNode<V>> childRteNodes = toBuilderNodes(element.childNodes(), tagTypes);
 
                     if (htmlElementWrapperViewFunction != null
                             && childRteNodes.stream().filter(rteNode -> !(rteNode instanceof RichTextViewBuilderStringNode)).count() > 0) {
 
                         // preserve the RteElement, and collapse children as much as possible
-                        builderNodes.add(new RichTextViewBuilderElementNode(element, childRteNodes));
+                        builderNodes.add(new RichTextViewBuilderElementNode<>(element, childRteNodes, htmlElementWrapperViewFunction));
 
                     } else {
                         String elementHtml = element.outerHtml();
 
                         if (element.tag().isSelfClosing()) {
-                            builderNodes.add(new RichTextViewBuilderStringNode(elementHtml));
+                            builderNodes.add(new RichTextViewBuilderStringNode<>(elementHtml, htmlViewFunction));
 
                         } else {
                             int firstGtAt = elementHtml.indexOf('>');
@@ -302,9 +302,9 @@ public class RichTextViewBuilder {
                             // a RuntimeException will be thrown and we can
                             // re-evaluate from there.
 
-                            builderNodes.add(new RichTextViewBuilderStringNode(elementHtml.substring(0, firstGtAt + 1)));
+                            builderNodes.add(new RichTextViewBuilderStringNode<>(elementHtml.substring(0, firstGtAt + 1), htmlViewFunction));
                             builderNodes.addAll(childRteNodes);
-                            builderNodes.add(new RichTextViewBuilderStringNode(elementHtml.substring(lastLtAt)));
+                            builderNodes.add(new RichTextViewBuilderStringNode<>(elementHtml.substring(lastLtAt), htmlViewFunction));
                         }
                     }
                 }
@@ -312,10 +312,10 @@ public class RichTextViewBuilder {
             } else if (sibling instanceof TextNode || sibling instanceof DataNode) {
 
                 if (sibling instanceof TextNode) {
-                    builderNodes.add(new RichTextViewBuilderStringNode(((TextNode) sibling).text()));
+                    builderNodes.add(new RichTextViewBuilderStringNode<>(((TextNode) sibling).text(), htmlViewFunction));
 
                 } else {
-                    builderNodes.add(new RichTextViewBuilderStringNode(((DataNode) sibling).getWholeData()));
+                    builderNodes.add(new RichTextViewBuilderStringNode<>(((DataNode) sibling).getWholeData(), htmlViewFunction));
                 }
             }
         }
@@ -324,22 +324,22 @@ public class RichTextViewBuilder {
         return collapseBuilderNodes(builderNodes);
     }
 
-    private List<RichTextViewBuilderNode> collapseBuilderNodes(List<RichTextViewBuilderNode> builderNodes) {
+    private List<RichTextViewBuilderNode<V>> collapseBuilderNodes(List<RichTextViewBuilderNode<V>> builderNodes) {
 
-        List<RichTextViewBuilderNode> collapsedRteNodes = new ArrayList<>();
+        List<RichTextViewBuilderNode<V>> collapsedRteNodes = new ArrayList<>();
 
-        List<RichTextViewBuilderStringNode> adjacentHtmlNodes = new ArrayList<>();
+        List<RichTextViewBuilderStringNode<V>> adjacentHtmlNodes = new ArrayList<>();
 
-        for (RichTextViewBuilderNode childBuilderNode : builderNodes) {
+        for (RichTextViewBuilderNode<V> childBuilderNode : builderNodes) {
 
             if (childBuilderNode instanceof RichTextViewBuilderStringNode) {
-                adjacentHtmlNodes.add((RichTextViewBuilderStringNode) childBuilderNode);
+                adjacentHtmlNodes.add((RichTextViewBuilderStringNode<V>) childBuilderNode);
 
             } else {
-                collapsedRteNodes.add(new RichTextViewBuilderStringNode(
+                collapsedRteNodes.add(new RichTextViewBuilderStringNode<>(
                         adjacentHtmlNodes.stream()
                                 .map(RichTextViewBuilderStringNode::getHtml)
-                                .collect(Collectors.joining())));
+                                .collect(Collectors.joining()), htmlViewFunction));
 
                 adjacentHtmlNodes.clear();
 
@@ -348,10 +348,10 @@ public class RichTextViewBuilder {
         }
 
         if (!adjacentHtmlNodes.isEmpty()) {
-            collapsedRteNodes.add(new RichTextViewBuilderStringNode(
+            collapsedRteNodes.add(new RichTextViewBuilderStringNode<>(
                     adjacentHtmlNodes.stream()
                             .map(RichTextViewBuilderStringNode::getHtml)
-                            .collect(Collectors.joining())));
+                            .collect(Collectors.joining()), htmlViewFunction));
         }
 
         return collapsedRteNodes;
