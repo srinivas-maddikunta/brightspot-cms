@@ -92,6 +92,7 @@ public class RichTextViewBuilder {
      * @param richText the rich text to be converted to a view.
      */
     public RichTextViewBuilder(String richText) {
+        Preconditions.checkNotNull(richText, "richText");
         this.richText = richText;
     }
 
@@ -101,6 +102,7 @@ public class RichTextViewBuilder {
      * @param referentialText the ReferentialText to be converted to view(s).
      */
     public RichTextViewBuilder(ReferentialText referentialText) {
+        Preconditions.checkNotNull(referentialText, "referentialText");
 
         // convert the ReferentialText into a String
         StringBuilder builder = new StringBuilder();
