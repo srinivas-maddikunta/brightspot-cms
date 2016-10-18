@@ -218,7 +218,7 @@ public class RichTextViewBuilder {
                     document.outputSettings().prettyPrint(false);
 
                     for (RichTextProcessor preProcessor : preProcessors) {
-                        preProcessor.process(document);
+                        preProcessor.process(document.body());
                     }
 
                     toBuilderNodes(document.body().childNodes(), tagTypes)
