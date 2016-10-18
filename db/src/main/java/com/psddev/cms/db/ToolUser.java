@@ -1049,16 +1049,22 @@ public class ToolUser extends Record implements ToolEntity {
             html.writeStart("span", "class", "ToolUserAvatar", "title", name);
             {
                 StringBuilder initials = new StringBuilder();
-                String[] nameParts = name.split("\\s+");
 
-                for (int i = 0, length = nameParts.length; i < length; ++ i) {
-                    char initial = nameParts[i].charAt(0);
+                if (StringUtils.isBlank(name)) {
+                    initials.append("?");
 
-                    if (Character.isLetter(initial)) {
-                        initials.append(initial);
+                } else {
+                    String[] nameParts = name.trim().split("\\s+");
 
-                        if (initials.length() >= 2) {
-                            break;
+                    for (int i = 0, length = nameParts.length; i < length; ++i) {
+                        char initial = nameParts[i].charAt(0);
+
+                        if (Character.isLetter(initial)) {
+                            initials.append(initial);
+
+                            if (initials.length() >= 2) {
+                                break;
+                            }
                         }
                     }
                 }

@@ -40,7 +40,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
 import com.google.common.base.Preconditions;
-import com.ibm.icu.text.DateFormat;
 import com.psddev.cms.db.ElFunctionUtils;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
@@ -1335,15 +1334,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTimeWith(Object dateTime, String format) throws IOException {
-        if (dateTime != null) {
-            Locale locale = ObjectUtils.firstNonNull(getUser().getLocale(), Locale.getDefault());
-            DateFormat dateFormat = DateFormat.getPatternInstance(format, locale);
-
-            return dateFormat.format(toUserDateTime(dateTime).toDate());
-
-        } else {
-            return localize(null, "label.notAvailable");
-        }
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                format);
     }
 
     /**
@@ -1353,11 +1346,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTime(Object dateTime) throws IOException {
-        return formatUserDateTimeWith(
-                dateTime,
-                new DateTime(dateTime).getYear() == new DateTime().getYear()
-                        ? "EEE MMM dd hh:mm aa"
-                        : "EEE MMM dd yyyy hh:mm aa");
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                Localization.DATE_AND_TIME_SKELETON);
     }
 
     /**
@@ -1368,11 +1359,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDate(Object dateTime) throws IOException {
-        return formatUserDateTimeWith(
-                dateTime,
-                new DateTime(dateTime).getYear() == new DateTime().getYear()
-                        ? "EEE MMM dd"
-                        : "EEE MMM dd yyyy");
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                Localization.DATE_ONLY_SKELETON);
     }
 
     /**
@@ -1383,7 +1372,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserTime(Object dateTime) throws IOException {
-        return formatUserDateTimeWith(dateTime, "hh:mm aa");
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                Localization.TIME_ONLY_SKELETON);
     }
 
     /**
@@ -2479,10 +2470,7 @@ public class ToolPageContext extends WebPageContext {
         Map<String, String> statuses = new HashMap<String, String>();
 
         statuses.put("p", "Published");
-
-        if (type == null) {
-            statuses.put("d", "Draft");
-        }
+        statuses.put("d", localize(type, "visibility.draft"));
 
         boolean hasWorkflow = false;
 
@@ -3027,7 +3015,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", "standardForm",
                 "method", "post",
                 "enctype", "multipart/form-data",
-                "action", url("", "id", state.getId()),
+                "action", url("", "typeId", state.getTypeId(), "id", state.getId()),
                 "autocomplete", "off",
                 "data-type", type != null ? type.getInternalName() : null);
             boolean trash = writeTrashMessage(object);

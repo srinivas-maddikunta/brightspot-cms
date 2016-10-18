@@ -3,6 +3,7 @@
 define([
     'jquery',
     'bsp-utils',
+    'v3/RecalculateDimensions',
     'v3/spellcheck',
     'undomanager',
     'codemirror/lib/codemirror',
@@ -10,7 +11,7 @@ define([
     'codemirror/addon/dialog/dialog',
     'codemirror/addon/search/searchcursor',
     'codemirror/addon/search/search'
-], function($, bsp_utils, spellcheckAPI, UndoManager, CodeMirror) {
+], function($, bsp_utils, RecalculateDimensions, spellcheckAPI, UndoManager, CodeMirror) {
     
     var CodeMirrorRte;
 
@@ -83,6 +84,11 @@ define([
          * styles like trackInsert and trackDelete.
          * However, an internal style can still output HTML elements.
          *
+         * Boolean [trackChanges=true]
+         * Set this to false if the style should not allow track changes marks within it.
+         * For example, a comment style where you do not want to track changes.
+         * Defaults to true if not set.
+         * 
          * Function [fromHTML($el, mark)]
          * A function that extracts additional information from the HTML element
          * and adds it to the mark object for future use.
@@ -351,20 +357,24 @@ define([
             // Create a mapping from self.styles so we can perform quick lookups on the classname
             self.classes = self.getClassNameMap();
 
+            self.trackInit();
             self.historyInit();
             self.enhancementInit();
             self.initListListeners();
             self.dropdownInit();
             self.initEvents();
             self.clipboardInit();
-            self.trackInit();
             self.spellcheckInit();
             self.modeInit();
 
             var $wrapper = $(self.codeMirror.getWrapperElement());
             var wrapperWidth = $wrapper.width();
 
-            $(window).resize(bsp_utils.throttle(500, function () {
+            RecalculateDimensions.bind(element, function () {
+                self.refresh();
+            });
+
+            $(window).resize(bsp_utils.throttle(500, function (event) {
                 var newWrapperWidth = $wrapper.width();
 
                 if (wrapperWidth !== newWrapperWidth) {
@@ -1061,10 +1071,6 @@ define([
 
             lineNumber = from.line;
             
-            // Before beginning, clean up the CodeMirror marks
-            // to make sure they do not span across separate lines.
-            self.inlineCleanup();
-
             editor.eachLine(from.line, to.line + 1, function(line) {
 
                 var fromCh;
@@ -1836,41 +1842,6 @@ define([
             }
         },
 
-        
-        /**
-         * CodeMirror makes marks across line boundaries.
-         * This function steps through all marks and splits up the styles
-         * so they do not cross the end of the line.
-         * This allows other functions to operate correctly.
-         */
-        inlineCleanup: function() {
-            var self;
-            
-            self = this;
-
-            // For performance, tell CodeMirror not to update the DOM
-            // until our inlineCleanup() has completed.
-            self.codeMirror.operation(function(){
-                self._inlineCleanup();
-            });
-        },
-        _inlineCleanup: function() {
-
-            var editor;
-            var self;
-
-            self = this;
-            editor = self.codeMirror;
-
-            // Loop through all the marks in the document,
-            // find the ones that span across lines and split them
-            $.each(editor.getAllMarks(), function(i, mark) {
-                self.inlineSplitMarkAcrossLines(mark);
-            });
-
-            self.inlineCombineAdjacentMarks();
-        },
-
 
         /**
          * Inside any "raw" HTML mark, remove all other marks.
@@ -2011,126 +1982,118 @@ define([
 
 
         /**
-         * Combine all marks that are overlapping or adjacent.
-         * Note this assumes that the marks do not span across multiple lines.
+        * Combine all marks that are overlapping or adjacent.
+        * Note this assumes that the marks do not span across multiple lines.
+         * @param  {Array} spans
+         * An array of spans returned by CodeMirror's line.markedSpans parameter.
+         * This array consists of objects where each object has a from and to character position,
+         * plus a marker.
+         * @return {Array}
+         * Returns a modified array where the overlapping spans have been combined into a single span.
          */
-        inlineCombineAdjacentMarks: function() {
+        inlineCombineAdjacentMarks: function(spans) {
 
             var editor;
-            var marks;
-            var marksByClassName;
+            var spansByClassName;
             var self;
 
             self = this;
             editor = self.codeMirror;
             
-            // Combine adjacent marks
-            // Note this assumes that marks do not span across lines
-            
-            // First get a list of the marks
-            marks = editor.getAllMarks();
-
             // Remove any bookmarks (which are used for enhancements and markers)
-            marks = $.map(marks, function(mark, i) {
+            spans = $.map(spans, function(span, i) {
                 
-                if (mark.type === 'bookmark') {
+                if (!span.marker) {
                     return undefined;
-                } else {
-                    return mark;
                 }
+                if (span.marker.type === 'bookmark') {
+                    return undefined;
+                }
+                return span;
             });
             
             // Sort the marks in order of position
-            marks = marks.sort(function(a, b){
-                
-                var posA;
-                var posB;
-
-                posA = a.find();
-                posB = b.find();
-
-                if (posA.from.line === posB.from.line) {
-                    // If marks are on same line sort by the character number
-                    return posA.from.ch - posB.from.ch;
-                } else {
-                    // If marks are on differnt lines sort by the line number
-                    return posA.from.line - posB.from.line;
-                }
+            spans = spans.sort(function(a, b){
+                return a.from - b.from;
             });
 
             // Next group the marks by class name
             // This will give us a list of classnames, and each one will contain a list of marks in order
-            marksByClassName = {};
-            $.each(marks, function(i, mark) {
+            spansByClassName = {};
+            $.each(spans, function(i, span) {
                 var className;
 
-                className = mark.className;
+                className = span.marker.className;
 
                 // Skip any classname that is not in our styles list
                 if (!self.classes[className]) {
                     return;
                 }
-     
-                // Skip any classname that has an onClick since we dont' want to mess with those.
-                // For example, links.
-                if (self.classes[className].onClick) {
-                    return;
+                     
+                if (!spansByClassName[className]) {
+                    spansByClassName[className] = [];
                 }
-                
-                if (!marksByClassName[className]) {
-                    marksByClassName[className] = [];
-                }
-                marksByClassName[className].push(mark);
+                spansByClassName[className].push(span);
             });
 
-            // Next go through all the classes, and combine the marks
-            $.each(marksByClassName, function(className, marks) {
+            // Next go through all the classes, and combine the spans that are adjacent
+            var spansAdjusted = [];
+            $.each(spansByClassName, function(className, spans) {
 
                 var i;
                 var mark;
                 var markNext;
-                var markNew;
-                var pos;
-                var posNext;
+                var hasAttributes;
 
                 i = 0;
-                while (marks[i]) {
 
-                    mark = marks[i];
-                    markNext = marks[i + 1];
+                if (self.classes[className].onClick) {
+                    // Do not combine any classname that has an onClick since we dont' want to mess with those.
+                    // For example, links.
+                } else if (self.classes[className].initialBody) {
+                    // Do not combine any classname that has initialBody (for example, a "discretionary hyphen")
+                    // because we don't want to combine them
 
-                    if (!markNext) {
-                        break;
-                    }
-
-                    pos = mark.find();
-                    posNext = markNext.find();
-
-                    if (pos.from.line === posNext.from.line) {
-
-                        if (posNext.from.ch <= pos.to.ch) {
-
-                            // The marks are overlapping or adjacent, so combine them into a new mark
-                            markNew = editor.markText(
-                                { line: pos.from.line, ch: pos.from.ch },
-                                { line: pos.from.line, ch: Math.max(pos.to.ch, posNext.to.ch) },
-                                mark
-                            );
-
-                            // Clear the original two marks
-                            mark.clear();
-                            markNext.clear();
-
-                            // Replace markNext with markNew so the next loop will start with the new mark
-                            // and we can check to see if the following mark needs to be combined again
-                            marks[i + 1] = markNew;
-                            
+                } else {
+                    // Combine spans if necessary
+                    while (spans[i]) {
+                        
+                        mark = spans[i];
+                        markNext = spans[i + 1];
+                        
+                        if (!markNext) {
+                            break;
                         }
-                    }
+                        
+                        // Check if either mark has attributes, in which case we should not combine
+                        hasAttributes = Boolean((mark.marker && !$.isEmptyObject(mark.marker.attributes)) ||
+                            (markNext.marker && !$.isEmptyObject(markNext.marker.attributes)));
 
-                    i++;
+                        // Check if the marks overlap
+                        if ((markNext.from <= mark.to) && !hasAttributes) {
+                            
+                            // Extend the first mark
+                            mark.to = markNext.to;
+                            
+                            // Remove the next mark
+                            spans.splice(i + 1, 1);
+                            
+                            // Do not increment the counter in this case because
+                            // we need to recheck the first mark against the following
+                            // mark because it might overlap that one too
+                            continue;
+                        }
+                        
+                        // Continue to the next mark
+                        i++;
+                    }
                 }
+                
+                // Add these spans to the list of marks we will return
+                Array.prototype.push.apply(spansAdjusted, spans);
             });
+            
+            return spansAdjusted;
         },
 
         
@@ -3249,7 +3212,7 @@ define([
 
                 if (lineInfo && lineInfo.widgets) {
                     $.each(lineInfo.widgets, function(i,mark) {
-                        if (mark.rteEnhancement) {
+                        if (mark && mark.rteEnhancement) {
                             self.enhancementMoveToLine(mark, lineNumber);
                         }
                     });
@@ -3779,6 +3742,16 @@ define([
                     text: label
                 }).appendTo($div);
 
+                // Check if this is a link with an href attribute
+                if (mark.attributes && mark.attributes.href) {
+                    $('<a/>', {
+                        'class': 'rte2-dropdown-href',
+                        text: mark.attributes.href,
+                        href: mark.attributes.href,
+                        target: '_blank'
+                    }).appendTo($div);
+                }
+                
                 // Popup edit defaults to true, but if set to false do not include edit link
                 if (styleObj.popup !== false && styleObj.onClick) {
                     $('<a/>', {
@@ -4120,14 +4093,14 @@ define([
                             // Currently the entire content that is pasted will be marked as inserted text,
                             // but it could have deleted text within it.
                             // We need to remove that deleted text *after* the new content is pasted in.
-                            editor.replaceRange(changeObj.text, changeObj.from, undefined, '+brightspotTrackInsert');
+                            editor.replaceRange(changeObj.text, changeObj.from, undefined, 'brightspotTrackInsert');
                             
                         }
                     }
                     
                     break;
 
-                case '+brightspotTrackInsert':
+                case 'brightspotTrackInsert':
 
                     // Some text was pasted in and already marked as new,
                     // but we must remove any regions within that were previously marked deleted
@@ -4173,6 +4146,13 @@ define([
                     }
                 }
             }
+            
+            // After performing the change, clean up track changes marks
+            // to remove them from styles that don't allow them (like comments)
+            // after a timeout so the change event has time to complete first
+            setTimeout(function(){
+                self.trackAfterCleanup(changeObj);
+            }, 1);
         },
 
 
@@ -4214,6 +4194,47 @@ define([
             
         },
 
+
+        /**
+         * Clean up certain styles that don't allow track changes (like comments)
+         * @param  {Object} range
+         * The change object which contains the from/to range to be checked.
+         */
+        trackAfterCleanup: function(range) {
+
+            var editor;
+            var marks;
+            var marksToClean;
+            var self;
+            
+            self = this;
+            editor = self.codeMirror;
+            
+            // Find all the marks within this range
+            marks = editor.findMarks(range.from, range.to);
+            marksToClean = [];
+            
+            // Determine which marks do not allow tracked changes
+            $.each(marks, function(i, mark) {
+                var markPos;
+                var styleObj;
+                if (mark.className && mark.find) {
+                    styleObj = self.classes[mark.className];
+                    if (styleObj && styleObj.trackChanges === false) {
+                        marksToClean.push(mark);
+                    }
+                }
+            });
+            
+            // Loop through the marks to clean, and remove track changes marks within
+            $.each(marksToClean, function(i,mark) {
+                var markPos;
+                markPos = mark.find();
+                self.inlineRemoveStyle('trackDelete', {from:markPos.from, to:markPos.to}, {deleteText:true, triggerChange:false});
+                self.inlineRemoveStyle('trackInsert', {from:markPos.from, to:markPos.to}, {triggerChange:false});
+            });
+        },
+        
         
         /**
          * For a given range, mark everything as deleted.
@@ -4261,9 +4282,6 @@ define([
             self = this;
             editor = self.codeMirror;
 
-            // First combine any of the adjacent track changes
-            self.inlineCleanup();
-            
             range = range || self.getRange();
 
             $.each(editor.findMarks(range.from, range.to), function(i, mark) {
@@ -4283,9 +4301,6 @@ define([
 
             self = this;
             editor = self.codeMirror;
-            
-            // First combine any of the adjacent track changes
-            self.inlineCleanup();
             
             range = range || self.getRange();
 
@@ -5404,7 +5419,10 @@ define([
 
             // Listen for CodeMirror change events and add to our history.
             self.codeMirror.on('beforeChange', function(instance, beforeChange) {
-                self.historyHandleCodeMirrorEvent(beforeChange);
+                // Check to see if this event was canceled, which sometime happens when trackChanges is on
+                if (!beforeChange.canceled) {
+                    self.historyHandleCodeMirrorEvent(beforeChange);
+                }
             });
         },
 
@@ -5591,7 +5609,7 @@ define([
          */
         historyHandleCodeMirrorEvent: function(beforeChange) {
             
-            var change, marks, marksAndMore, self;
+            var change, marks, marksAndMore, origin, self;
 
             self = this;
             
@@ -5599,11 +5617,30 @@ define([
             if (self.historyIsExecuting()) {
                 return;
             }
-                
-            // Ignore changes where we set the origin containing "brightspot",
-            // because in those instances we will add directly to the history
-            if (beforeChange.origin && beforeChange.origin.indexOf('brightspot') !== -1 || beforeChange.origin === 'paste') {
-                return;
+
+            // Check where this change came from
+            origin = beforeChange.origin || '';
+
+            // Since we handle the "paste" event within our own clipboard handler,
+            // ignore the codemirror paste event. Instead that will come through
+            // in a separate brightspotPaste event.
+            if (origin == 'paste') {
+                return false;
+            }
+
+            // Check for brightspot events
+            if (origin.indexOf('brightspot') !== -1) {
+                switch (origin) {
+                    // Let certain operations be added to the history
+                    case 'brightspotPaste':
+                    case 'brightspotCut':
+                    case 'brightspotTrackInsert':
+                    break;
+                    
+                    default:
+                    // Prevent other brightspot changes from being added to the history
+                    return;
+                }
             }
                 
             // Save a list of the marks that are defined in this range.
@@ -6644,10 +6681,6 @@ define([
             rangeWasSpecified = Boolean(range);
             range = range || self.getRangeAll();
             
-            // Before beginning make sure all the marks are cleaned up and simplified.
-            // This will ensure that none of the marks span across lines.
-            self.inlineCleanup();
-
             // Clean up any "raw html" areas so they do not allow styles inside
             // Removing this for now as it causes performance problems when there are many raw marks.
             // However, that means user might be able to mark up raw areas and produce invalid HTML.
@@ -6728,7 +6761,9 @@ define([
                     // Get any line classes and determine which kind of line we are on (bullet, etc)
                     // From CodeMirror, the textClass property will contain multiple line styles separated by space
                     // like 'rte2-style-ol rte2-style-align-left'
-                    lineClasses = (line.textClass || '').split(' ').filter(function(value){
+                    // We reverse the array because that seems to keep the same order of elements that was
+                    // imported from HTML.
+                    lineClasses = (line.textClass || '').split(' ').reverse().filter(function(value){
                         return value !== '';
                     });
                     $.each(lineClasses, function() {
@@ -7264,6 +7299,9 @@ define([
             // First reverse the order of the marks so the last applied will "wrap" any previous marks
             spans = line.markedSpans.slice(0).reverse();
 
+            // Check to see if any of the spans is adjacent and needs to be combined
+            spans = self.inlineCombineAdjacentMarks(spans);
+            
             // Group the marks by starting character so we can tell if multiple marks start on the same character
             spansByChar = [];
             $.each(spans, function() {
@@ -7439,7 +7477,7 @@ define([
             annotations = [];
             enhancements = [];
             
-            function processNode(n, rawParent, indentLevel) {
+            function processNode(n, rawParent, indentLevel, insideAnotherBlock) {
                 
                 var elementAttributes;
                 var elementClose;
@@ -7561,9 +7599,29 @@ define([
                             // Determine if the element maps to one of our defined styles
                             matchStyleObj = self.getStyleForElement(next);
                             
-                            // Create new line if this is a block element
-                            if (matchStyleObj && matchStyleObj.line) {
-                                val += '\n';
+                            // Create new line if this is a block element and we are not on the first line
+                            if (matchStyleObj && val.length) {
+                                
+                                // Special case for lists (and nested lists)
+                                if (matchStyleObj.elementContainer) {
+                                    
+                                    // Create a new line for the first list item but not if list item
+                                    // is nested within another.
+                                    // Note this is not ideal because we get away from the "elementContainer"
+                                    // model, and are assuming we're dealing with LI elements.
+                                    if ($(next).is(':first-child') && $(next).parents('li').length === 0) {
+                                        val += '\n';
+                                    }
+                                    
+                                    if (!val.match(/\n$/)) {
+                                        val += '\n';
+                                    }
+                                    
+                                } else if (matchStyleObj.line && !insideAnotherBlock) {
+                                    // If this is a block element add a new line
+                                    // But not if there are multiple blocks defined on the same line,
+                                    val += '\n';
+                                }
                             }
                         }
 
@@ -7680,8 +7738,9 @@ define([
                             }
                         }
 
-                        // Recursively go into our element and add more text to the value
-                        processNode(next, rawChildren, indentChildren);
+                        // Recursively go into our element and add more text to the value.
+                        // If we are already inside a block element, pass a flag so we don't add extra newlines.
+                        processNode(next, rawChildren, indentChildren, (matchStyleObj && matchStyleObj.line) || insideAnotherBlock);
 
                         if (elementClose) {
 
@@ -7739,14 +7798,17 @@ define([
                                 });
                             }
                         }
-                        // Add a new line for certain elements
-                        // Add a new line for custom elements
-                        if (self.newLineRegExp.test(elementName) || (matchStyleObj && matchStyleObj.line)) {
+                        
+                        // Add a new line for certain elements (like <br>)
+                        if (self.newLineRegExp.test(elementName)) {
+                            val += '\n';
+                        } else if (matchStyleObj && matchStyleObj.line) {
                             
-                            // Special case:
+                            // Special cases:
+                            // If we are already inside another block do not add a newline.
                             // If this is a list item, and there is already a newline at the end,
-                            // then do not add another newline
-                            if (!(matchStyleObj && matchStyleObj.elementContainer && val.match(/\n$/))) {
+                            // then do not add another newline.
+                            if (!insideAnotherBlock && !(matchStyleObj && matchStyleObj.elementContainer && val.match(/\n$/))) {
                                 val += '\n';
                             }
                         }

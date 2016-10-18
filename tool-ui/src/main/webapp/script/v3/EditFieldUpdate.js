@@ -81,7 +81,12 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
                     $some.append($viewer);
                 }
 
-                if (fieldNamesByObjectId && Object.keys(fieldNamesByObjectId).length > 0) {
+                function checkFieldNames(id) {
+                    var fieldNames = fieldNamesByObjectId[id];
+                    return fieldNames && fieldNames.length > 0;
+                }
+
+                if (fieldNamesByObjectId && Object.keys(fieldNamesByObjectId).filter(checkFieldNames).length > 0) {
                     $viewer.attr('data-editing', true);
 
                 } else {
@@ -175,6 +180,8 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
                 return;
             }
 
+            var oldFieldNamesByObjectId = null;
+
             function update() {
                 var fieldNamesByObjectId = {};
 
@@ -185,7 +192,9 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
                     (fieldNamesByObjectId[objectId] = fieldNamesByObjectId[objectId] || []).push($container.attr('data-field-name'));
                 });
 
-                if (fieldNamesByObjectId) {
+                if (fieldNamesByObjectId && JSON.stringify(fieldNamesByObjectId) !== JSON.stringify(oldFieldNamesByObjectId)) {
+                    oldFieldNamesByObjectId = fieldNamesByObjectId;
+
                     rtc.execute('com.psddev.cms.tool.page.content.EditFieldUpdateAction', {
                         contentId: contentId,
                         fieldNamesByObjectId: fieldNamesByObjectId
@@ -195,7 +204,11 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
 
             rtc.initialize('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
                 contentId: contentId
-            }, update);
+
+            }, function () {
+                oldFieldNamesByObjectId = null;
+                update();
+            });
 
             var updateTimeout;
 
