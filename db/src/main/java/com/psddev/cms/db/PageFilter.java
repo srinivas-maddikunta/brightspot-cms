@@ -775,9 +775,9 @@ public class PageFilter extends AbstractFilter {
                 map.put("label", state.getLabel());
                 map.put("typeLabel", state.getType().getLabel());
 
-                marker.append("<span class=\"cms-mainObject\" style=\"display: none;\" data-object=\"");
-                marker.append(StringUtils.escapeHtml(ObjectUtils.toJson(map)));
-                marker.append("\"></span>");
+                marker.append("<!--BrightspotCmsMainObject ");
+                marker.append(ObjectUtils.toJson(map));
+                marker.append("-->");
 
                 lazyResponse.getLazyWriter().writeLazily(marker.toString());
             }
@@ -810,115 +810,13 @@ public class PageFilter extends AbstractFilter {
                 user.saveAction(request, mainObject);
             }
 
-            @SuppressWarnings("all")
-            ToolPageContext page = new ToolPageContext(getServletContext(), request, response);
-            State mainState = State.getInstance(mainObject);
-
-            page.setDelegate(writer instanceof HtmlWriter ? (HtmlWriter) writer : new HtmlWriter(writer));
-
-            page.writeStart("style", "type", "text/css");
-                page.writeCss(".bsp-inlineEditorMain",
-                        "background", "rgba(32, 52, 63, 0.8) !important",
-                        "color", "white !important",
-                        "font-family", "'Helvetica Neue', sans-serif !important",
-                        "font-size", "13px !important",
-                        "font-weight", "normal !important",
-                        "left", "0 !important",
-                        "line-height", "21px !important",
-                        "list-style", "none !important",
-                        "margin", "0 !important",
-                        "padding", "0 !important",
-                        "position", "fixed !important",
-                        "top", "0 !important",
-                        "z-index", "1000001 !important");
-
-                page.writeCss(".bsp-inlineEditorMain a",
-                        "color", "#54d1f0 !important",
-                        "display", "block !important",
-                        "float", "left !important",
-                        "max-width", "250px",
-                        "overflow", "hidden",
-                        "padding", "5px !important",
-                        "text-overflow", "ellipsis",
-                        "white-space", "nowrap");
-
-                page.writeCss(".bsp-inlineEditorMain a:hover",
-                        "background", "#54d1f0 !important",
-                        "color", "black !important");
-
-                page.writeCss(".bsp-inlineEditorMain .bsp-inlineEditorMain_logo",
-                        "padding", "8px 10px !important");
-
-                page.writeCss(".bsp-inlineEditorMain .bsp-inlineEditorMain_logo:hover",
-                        "background", "transparent !important");
-
-                page.writeCss(".bsp-inlineEditorMain .bsp-inlineEditorMain_logo img",
-                        "display", "block !important");
-
-                page.writeCss(".bsp-inlineEditorMain .bsp-inlineEditorMain_remove",
-                        "color", "#ff0e40 !important",
-                        "font-size", "21px");
-            page.writeEnd();
-
-            page.writeStart("div", "class", "bsp-inlineEditorMain");
-                page.writeStart("a",
-                        "class", "bsp-inlineEditorMain_logo",
-                        "target", "_blank",
-                        "href", page.fullyQualifiedToolUrl(CmsTool.class, "/"));
-                    page.writeElement("img",
-                            "src", page.cmsUrl("/style/brightspot.png"),
-                            "alt", "Brightspot",
-                            "width", 104,
-                            "height", 14);
-                page.writeEnd();
-
-                Schedule currentSchedule = user.getCurrentSchedule();
-
-                if (currentSchedule != null) {
-                    page.writeStart("a",
-                            "target", "_blank",
-                            "href", page.fullyQualifiedToolUrl(CmsTool.class, "/scheduleEdit", "id", currentSchedule.getId()));
-                        page.writeHtml("Current Schedule: ");
-                        page.writeObjectLabel(currentSchedule);
-                    page.writeEnd();
-                }
-
-                page.writeStart("a",
-                        "target", "_blank",
-                        "href", page.fullyQualifiedToolUrl(CmsTool.class, "/content/edit.jsp", "id", State.getInstance(mainObject).getId()));
-                    page.writeHtml("Edit ");
-                    page.writeTypeObjectLabel(mainObject);
-                page.writeEnd();
-
-                if (Boolean.TRUE.equals(request.getAttribute(PERSISTENT_PREVIEW_ATTRIBUTE))) {
-                    page.writeStart("a",
-                            "target", "_blank",
-                            "href", page.url("", "_clearPreview", true));
-                        page.writeHtml("(Previewing - View Live Instead)");
-                    page.writeEnd();
-                }
-
-                page.writeStart("a",
-                        "class", "bsp-inlineEditorMain_remove",
-                        "href", "#",
-                        "onclick",
-                                "var main = this.parentNode,"
-                                        + "contents = this.ownerDocument.getElementById('bsp-inlineEditorContents');"
-
-                                + "main.parentNode.removeChild(main);"
-
-                                + "if (contents) {"
-                                    + "contents.parentNode.removeChild(contents);"
-                                + "}"
-
-                                + "return false;");
-                    page.writeHtml("\u00d7");
-                page.writeEnd();
-            page.writeEnd();
-
             if (user.getInlineEditing() != ToolUser.InlineEditing.DISABLED) {
+                ToolPageContext page = new ToolPageContext(getServletContext(), request, response);
+                State mainState = State.getInstance(mainObject);
+
+                page.setDelegate(writer instanceof HtmlWriter ? (HtmlWriter) writer : new HtmlWriter(writer));
                 page.writeStart("iframe",
-                        "class", "cms-inlineEditor",
+                        "class", "BrightspotCmsInlineEditor",
                         "id", "bsp-inlineEditorContents",
                         "onload", "this.style.visibility = 'visible';",
                         "scrolling", "no",
@@ -1693,7 +1591,7 @@ public class PageFilter extends AbstractFilter {
                     }
                 }
 
-                marker.append("<!--brightspot.object-begin ");
+                marker.append("<!--BrightspotCmsObjectBegin ");
                 marker.append(ObjectUtils.toJson(map));
                 marker.append("-->");
                 lazyWriter.writeLazily(marker.toString());
@@ -1715,7 +1613,7 @@ public class PageFilter extends AbstractFilter {
             }
 
             if (lazyWriter != null) {
-                lazyWriter.writeLazily("<!--brightspot.object-end-->");
+                lazyWriter.writeLazily("<!--BrightspotCmsObjectEnd-->");
                 lazyWriter.writePending();
             }
         }
