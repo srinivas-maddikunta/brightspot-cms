@@ -530,6 +530,7 @@ public class Search extends Record {
         try {
             addSorts(sorts, selectedType);
             addSorts(sorts, Database.Static.getDefault().getEnvironment());
+
         } catch (IOException e) {
             // Ignore.
         }
@@ -553,12 +554,8 @@ public class Search extends Record {
         return sorts;
     }
 
-    /**
+    /*
      * Adds and localizes sorts.
-     *
-     * @param sorts Can't be {@code null}.
-     * @param struct May be {@code null}.
-     * @throws IOException if unable to write to the given {@code page}.
      */
     private void addSorts(Map<String, String> sorts, ObjectStruct struct) throws IOException {
         if (struct != null) {
@@ -584,13 +581,13 @@ public class Search extends Record {
                     } else {
 
                         if (sortOperators.contains(Sorter.ASCENDING_OPERATOR)) {
-                            sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX, page.localize(
-                                    AbstractSearchResultView.class, label, "option.sortAscending"));
+                            sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX,
+                                    page.localize(AbstractSearchResultView.class, label, "option.sortAscending"));
                         }
 
                         if (sortOperators.contains(Sorter.DESCENDING_OPERATOR)) {
-                            sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX, page.localize(
-                                    AbstractSearchResultView.class, label, "option.sortDescending"));
+                            sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX,
+                                    page.localize(AbstractSearchResultView.class, label, "option.sortDescending"));
                         }
                     }
                 }
