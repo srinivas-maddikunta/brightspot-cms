@@ -1298,7 +1298,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 var styleName = rtElement.styleName;
                 var submenuName = rtElement.submenu;
                 var $submenu;
-                var submenuClass;
                 var toolbarButton;
 
                 toolbarButton = {
@@ -1324,16 +1323,10 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     if (!$submenu) {
                         
                         // The submenu does not exist so create it now and save the value
-                        
-                        // Calculate a safe classname to use for the submenu.
-                        // Since the submenu name could be something like "My Enhancements",
-                        // substitute a dash character for any non-alphanumeric characters
-                        // to end up with class "rte2-toolbar-submenu-My-Enhancements"
-                        submenuClass = 'rte2-toolbar-submenu-' + submenuName.replace(/\W+/g, '-');
-                        
                         $submenu = submenus[submenuName] = self.toolbarAddSubmenu({
                             text: submenuName,
-                            className:submenuClass
+                            // Save the submenu name in a data attribute so it can be used to style the submenu
+                            attr: {'data-rte-toolbar-submenu': submenuName}
                         }, $toolbar);
                     }
 
@@ -1352,8 +1345,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
          *
          * @param {Object} item
          * The toolbar item to add.
-         * @param {Object} item.className
          * @param {Object} item.text
+         * @param {Object} [item.className] Class name for the submenu element
+         * @param {Object} [item.attr] Attributes for the submenu element
          *
          * @param {Object} [$addToSubmenu]
          * Optional submenu where the submenu should be added.
@@ -1368,7 +1362,13 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             var $toolbar = $addToSubmenu || self.$toolbar;
             var $submenu;
 
-            $submenu = $('<li class="rte2-toolbar-submenu ' + (item.className || '') + '"><span></span><ul></ul></li>');
+            $submenu = $('<li class="rte2-toolbar-submenu"><span></span><ul></ul></li>');
+            if (item.className) {
+                $submenu.addClass(item.className);
+            }
+            if (item.attr) {
+                $submenu.attr(item.attr);
+            }
             $submenu.find('span').html(item.text);
             $submenu.appendTo($toolbar);
 
