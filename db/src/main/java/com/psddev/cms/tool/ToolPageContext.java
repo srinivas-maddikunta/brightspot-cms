@@ -3493,6 +3493,18 @@ public class ToolPageContext extends WebPageContext {
         return (Map<String, Object>) ObjectUtils.fromJson(param(String.class, state.getId() + "/oldValues"));
     }
 
+    private void updateCurrentWorkflowLog(State state) throws IOException, ServletException {
+        UUID workflowLogId = param(UUID.class, "workflowLogId");
+
+        if (workflowLogId != null) {
+            WorkflowLog log = new WorkflowLog();
+
+            log.getState().setId(workflowLogId);
+            updateUsingParameters(log);
+            state.as(Workflow.Data.class).setCurrentLog(log);
+        }
+    }
+
     /**
      * Tries to save the given {@code object} as a draft if the user has
      * asked for it in the current request.
@@ -3529,6 +3541,8 @@ public class ToolPageContext extends WebPageContext {
 
                 state.as(Content.ObjectModification.class).setDraft(true);
             }
+
+            updateCurrentWorkflowLog(state);
 
             Map<String, Map<String, Object>> differences = Draft.findDifferences(
                     state.getDatabase().getEnvironment(),
@@ -3610,6 +3624,8 @@ public class ToolPageContext extends WebPageContext {
                 state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
             }
 
+            updateCurrentWorkflowLog(state);
+
             if (state.isNew()) {
                 state.as(Content.ObjectModification.class).setDraft(true);
                 publish(state);
@@ -3685,6 +3701,7 @@ public class ToolPageContext extends WebPageContext {
         try {
             state.beginWrites();
             state.as(Workflow.Data.class).changeState(null, user, (WorkflowLog) null);
+            state.as(Workflow.Data.class).setCurrentLog(null);
 
             if (variationId == null
                     || (site != null
