@@ -106,6 +106,11 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             }
 
             var $controls = $.data(this, 'InlineEditor-$controls');
+
+            if (!$controls) {
+                return;
+            }
+
             var box = {
                 '$controls': $controls,
                 'controlsCss': {
