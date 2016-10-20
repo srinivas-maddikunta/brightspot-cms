@@ -79,7 +79,7 @@ public class InlineEdit extends PageServlet {
                     "data-object-id", id,
                     "data-type", type != null ? type.getInternalName() : null); {
 
-                page.writeStart("div", "class", "contentForm-main"); {
+                page.writeStart("div", "class", "contentForm-main inline"); {
                     page.writeStart("div", "class", "widget widget-content"); {
 
                         // Heading
