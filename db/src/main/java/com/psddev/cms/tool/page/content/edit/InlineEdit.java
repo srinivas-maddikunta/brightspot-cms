@@ -58,7 +58,7 @@ public class InlineEdit extends PageServlet {
 
         if (type != null) {
             ToolUi ui = type.as(ToolUi.class);
-            iconName = ui.getIconName();
+            iconName = ObjectUtils.firstNonBlank(ui.getIconName(), iconName);
             buttonText = ObjectUtils.firstNonNull(
                     ui.getPublishButtonText(),
                     ui.isPublishable() ? page.localize(type, "action.publish") : buttonText);
@@ -80,9 +80,10 @@ public class InlineEdit extends PageServlet {
 
                         // Heading
                         page.writeStart("h1", "class", "icon icon-" + iconName); {
-                            page.writeHtml(page.localize(InlineEdit.class, ImmutableMap.of("label", typeLabel), "title.heading"));
-                            page.writeHtml(": ");
-                            page.write(page.createObjectLabelHtml(object));
+                            page.writeHtml(page.localize(
+                                    InlineEdit.class,
+                                    ImmutableMap.of("typeLabel", typeLabel, "objectLabel", page.createObjectLabelHtml(object)),
+                                    "title.heading"));
                         }
                         page.writeEnd();
 
