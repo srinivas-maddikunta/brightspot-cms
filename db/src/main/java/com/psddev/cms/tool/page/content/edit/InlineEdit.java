@@ -5,7 +5,6 @@ import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectType;
-import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
@@ -28,11 +27,10 @@ public class InlineEdit extends PageServlet {
 
     @Override
     protected void doService(ToolPageContext page) throws IOException, ServletException {
-        UUID id = page.param(UUID.class, "id");
-        Object object = Query.fromAll().where("id = ?", id).first();
+        Object object = page.findOrReserve();
 
         if (object == null) {
-            throw new IllegalArgumentException(String.format("No object with id [%s]!", id));
+            throw new IllegalArgumentException("No object found!");
         }
 
         Boolean error = null;
