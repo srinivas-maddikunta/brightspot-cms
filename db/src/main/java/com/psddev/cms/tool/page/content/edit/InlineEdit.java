@@ -59,7 +59,7 @@ public class InlineEdit extends PageServlet {
         if (type != null) {
             ToolUi ui = type.as(ToolUi.class);
             iconName = ObjectUtils.firstNonBlank(ui.getIconName(), iconName);
-            buttonText = ObjectUtils.firstNonNull(
+            buttonText = ObjectUtils.firstNonBlank(
                     ui.getPublishButtonText(),
                     ui.isPublishable() ? page.localize(type, "action.publish") : buttonText);
         }
