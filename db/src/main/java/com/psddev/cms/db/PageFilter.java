@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
+import com.psddev.dari.util.CompactMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.psddev.cms.tool.AuthenticationFilter;
@@ -765,23 +766,6 @@ public class PageFilter extends AbstractFilter {
 
             endPage(request, response, writer, page);
 
-            if (Static.isInlineEditingAllContents(request)) {
-                LazyWriterResponse lazyResponse = (LazyWriterResponse) response;
-                Map<String, String> map = new HashMap<String, String>();
-                State state = State.getInstance(mainObject);
-                StringBuilder marker = new StringBuilder();
-
-                map.put("id", state.getId().toString());
-                map.put("label", state.getLabel());
-                map.put("typeLabel", state.getType().getLabel());
-
-                marker.append("<!--BrightspotCmsMainObject ");
-                marker.append(ObjectUtils.toJson(map));
-                marker.append("-->");
-
-                lazyResponse.getLazyWriter().writeLazily(marker.toString());
-            }
-
         } finally {
             Database.Static.restoreDefault();
 
@@ -815,6 +799,14 @@ public class PageFilter extends AbstractFilter {
                 State mainState = State.getInstance(mainObject);
 
                 page.setDelegate(writer instanceof HtmlWriter ? (HtmlWriter) writer : new HtmlWriter(writer));
+
+                Map<String, String> markerMap = new CompactMap<>();
+
+                markerMap.put("id", mainState.getId().toString());
+                markerMap.put("label", mainState.getLabel());
+                markerMap.put("typeLabel", mainState.getType().getLabel());
+
+                page.write("<!--BrightspotCmsMainObject " + ObjectUtils.toJson(markerMap) + "-->");
                 page.writeStart("iframe",
                         "class", "BrightspotCmsInlineEditor",
                         "id", "bsp-inlineEditorContents",
@@ -833,11 +825,11 @@ public class PageFilter extends AbstractFilter {
                                 "width", "100%",
                                 "z-index", 1000000));
                 page.writeEnd();
-            }
-        }
 
-        if (response instanceof LazyWriterResponse) {
-            ((LazyWriterResponse) response).getLazyWriter().writePending();
+                if (response instanceof LazyWriterResponse) {
+                    ((LazyWriterResponse) response).getLazyWriter().writePending();
+                }
+            }
         }
     }
 
