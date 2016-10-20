@@ -50,8 +50,7 @@ public class InlineEdit extends PageServlet {
     }
 
     private void writeForm(ToolPageContext page, Object object, List<String> fields, Boolean error) throws IOException, ServletException {
-        State state = State.getInstance(object);
-        ObjectType type = state.getType();
+        ObjectType type = State.getInstance(object).getType();
         String typeLabel = page.getTypeLabel(object);
 
         String iconName = "object";
@@ -90,7 +89,7 @@ public class InlineEdit extends PageServlet {
                         // Error message
                         if (Boolean.TRUE.equals(error)) {
                             page.writeStart("div", "class", "message message-error"); {
-                                page.writeObject(page.localize("com.psddev.cms.tool.page.content.Errors", "error.validation"));
+                                page.writeHtml(page.localize("com.psddev.cms.tool.page.content.Errors", "error.validation"));
                             }
                             page.writeEnd();
 
