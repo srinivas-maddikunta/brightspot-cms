@@ -75,6 +75,7 @@ public class InlineEdit extends PageServlet {
                     "enctype", "multipart/form-data",
                     "action", page.url(""),
                     "autocomplete", "off",
+                    "data-rtc-content-id", page.getCmsTool().isDisableFieldLocking() ? null : id,
                     "data-object-id", id,
                     "data-type", type != null ? type.getInternalName() : null); {
 
