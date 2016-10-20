@@ -83,7 +83,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             'class': 'InlineEditorOutline'
         });
 
-        href = window.CONTEXT_PATH + '/content/edit.jsp?id=' + objectData.id;
+        href = window.CONTEXT_PATH + '/content/inlineEdit?id=' + objectData.id;
         if (objectFields[id]) {
             $.each(objectFields[id], function(fieldName){
                 href += '&f=' + encodeURIComponent(fieldName);
