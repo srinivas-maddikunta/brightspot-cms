@@ -50,9 +50,11 @@ public class InlineEdit extends PageServlet {
     }
 
     private void writeForm(ToolPageContext page, Object object, List<String> fields, Boolean error) throws IOException, ServletException {
+        State state = State.getInstance(object);
+        UUID id = state.getId();
         ObjectType type = State.getInstance(object).getType();
-        String typeLabel = page.getTypeLabel(object);
 
+        String typeLabel = page.getTypeLabel(object);
         String iconName = "object";
         String buttonText = page.localize(type, "action.save");
 
@@ -73,17 +75,26 @@ public class InlineEdit extends PageServlet {
                     "enctype", "multipart/form-data",
                     "action", page.url(""),
                     "autocomplete", "off",
+                    "data-object-id", id,
                     "data-type", type != null ? type.getInternalName() : null); {
 
                 page.writeStart("div", "class", "contentForm-main"); {
                     page.writeStart("div", "class", "widget widget-content"); {
 
                         // Heading
-                        page.writeStart("h1", "class", "icon icon-" + iconName); {
-                            page.writeHtml(page.localize(
-                                    InlineEdit.class,
-                                    ImmutableMap.of("typeLabel", typeLabel, "objectLabel", page.createObjectLabelHtml(object)),
-                                    "title.heading"));
+                        page.writeStart("h1", "class", "breadcrumbs"); {
+                            page.writeStart("span", "class", "breadcrumbItem icon icon-" + iconName); {
+                                page.writeHtml(page.localize(InlineEdit.class, ImmutableMap.of("label", typeLabel), "title.heading"));
+                                page.writeHtml(": ");
+                                page.writeStart("span",
+                                        "class", "ContentLabel",
+                                        "data-dynamic-html", "${toolPageContext.createObjectLabelHtml(content)}"); {
+
+                                    page.write(page.createObjectLabelHtml(object));
+                                }
+                                page.writeEnd();
+                            }
+                            page.writeEnd();
                         }
                         page.writeEnd();
 
