@@ -88,14 +88,14 @@ public class InlineEdit extends PageServlet {
                         page.writeEnd();
 
                         // Error message
-                        if (error == Boolean.TRUE) {
+                        if (Boolean.TRUE.equals(error)) {
                             page.writeStart("div", "class", "message message-error"); {
                                 page.writeObject(page.localize("com.psddev.cms.tool.page.content.Errors", "error.validation"));
                             }
                             page.writeEnd();
 
                         // Success message
-                        } else if (error == Boolean.FALSE) {
+                        } else if (Boolean.FALSE.equals(error)) {
                             page.include("/WEB-INF/objectMessage.jsp", "object", object);
                         }
 
