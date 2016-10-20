@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Creates inline edit form with applicable fields.
+ */
 @RoutingFilter.Path(application = "cms", value = "/content/inlineEdit")
 public class InlineEdit extends PageServlet {
 
@@ -94,6 +97,19 @@ public class InlineEdit extends PageServlet {
                                     page.write(page.createObjectLabelHtml(object));
                                 }
                                 page.writeEnd();
+                            }
+                            page.writeEnd();
+                        }
+                        page.writeEnd();
+
+                        // Full form button
+                        page.writeStart("div", "class", "widgetControls"); {
+                            page.writeStart("a",
+                                    "class", "icon icon-action-edit",
+                                    "target", "_blank",
+                                    "href", page.cmsUrl("/content/edit.jsp", "id", id)); {
+
+                                page.writeHtml("View Full Form");
                             }
                             page.writeEnd();
                         }
