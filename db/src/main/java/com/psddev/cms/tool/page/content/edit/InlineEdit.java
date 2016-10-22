@@ -53,7 +53,7 @@ public class InlineEdit extends PageServlet {
     private void writeForm(ToolPageContext page, Object object, List<String> fields, Boolean error) throws IOException, ServletException {
         State state = State.getInstance(object);
         UUID id = state.getId();
-        ObjectType type = State.getInstance(object).getType();
+        ObjectType type = state.getType();
 
         String typeLabel = page.getTypeLabel(object);
         String iconName = "object";
