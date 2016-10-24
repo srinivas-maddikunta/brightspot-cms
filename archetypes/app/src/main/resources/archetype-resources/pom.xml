@@ -8,10 +8,8 @@
         <bsp.handlebars.version>1.2.101-12aba4</bsp.handlebars.version>
         <bsp.styleguide.version>1.1.350-86f868</bsp.styleguide.version>
         <cms.version>${project.version}</cms.version>
-        <dari.version>${dari.version}</dari.version>
+        <dari.version>3.2-SNAPSHOT</dari.version>
         <slf4j.version>1.7.12</slf4j.version>
-        <solr.version>4.8.1</solr.version>
-        <mysql.port>4706</mysql.port>
         <tomcat.port>9480</tomcat.port>
         <styleguide.viewgenerator.skip>false</styleguide.viewgenerator.skip>
         <styleguide.viewgenerator.watch>false</styleguide.viewgenerator.watch>
@@ -22,7 +20,7 @@
     <parent>
         <groupId>com.psddev</groupId>
         <artifactId>dari-parent</artifactId>
-        <version>${dari.version}</version>
+        <version>3.2-SNAPSHOT</version>
     </parent>
 
     <groupId>\${groupId}</groupId>
@@ -67,6 +65,12 @@
 
         <dependency>
             <groupId>com.psddev</groupId>
+            <artifactId>dari-h2</artifactId>
+            <version>\${dari.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.psddev</groupId>
             <artifactId>dari-util</artifactId>
             <version>\${dari.version}</version>
         </dependency>
@@ -102,18 +106,6 @@
             <artifactId>javax.servlet.jsp-api</artifactId>
             <version>2.3.1</version>
             <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.35</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.solr</groupId>
-            <artifactId>solr-solrj</artifactId>
-            <version>4.8.1</version>
         </dependency>
 
         <dependency>
@@ -244,27 +236,6 @@
         <profile>
             <id>run</id>
 
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.solr</groupId>
-                    <artifactId>solr</artifactId>
-                    <version>${solr.version}</version>
-                    <type>war</type>
-                </dependency>
-
-                <dependency>
-                    <groupId>mysql</groupId>
-                    <artifactId>mysql-connector-mxj</artifactId>
-                    <version>5.0.12</version>
-                </dependency>
-
-                <dependency>
-                    <groupId>mysql</groupId>
-                    <artifactId>mysql-connector-mxj-db-files</artifactId>
-                    <version>5.0.12</version>
-                </dependency>
-            </dependencies>
-
             <build>
                 <plugins>
                     <plugin>
@@ -279,7 +250,6 @@
                                     <downloadDir>\${user.home}/.brightspot/cargo-downloads</downloadDir>
                                 </zipUrlInstaller>
                                 <systemProperties>
-                                    <mysql.port>\${mysql.port}</mysql.port>
                                     <tomcat.port>\${tomcat.port}</tomcat.port>
                                 </systemProperties>
                                 <dependencies>
@@ -320,30 +290,12 @@
                                         <todir>conf/Catalina/localhost</todir>
                                         <tofile>storage.xml</tofile>
                                     </configfile>
-                                    <configfile>
-                                        <file>\${project.basedir}/etc/solr-schema.xml</file>
-                                        <todir>solr/collection1/conf</todir>
-                                        <tofile>schema.xml</tofile>
-                                    </configfile>
-                                    <configfile>
-                                        <file>\${project.basedir}/etc/solr-config.xml</file>
-                                        <todir>solr/collection1/conf</todir>
-                                        <tofile>solrconfig.xml</tofile>
-                                    </configfile>
                                 </configfiles>
                             </configuration>
                             <deployables>
                                 <deployable>
                                     <properties>
                                         <context>/</context>
-                                    </properties>
-                                </deployable>
-                                <deployable>
-                                    <groupId>org.apache.solr</groupId>
-                                    <artifactId>solr</artifactId>
-                                    <type>war</type>
-                                    <properties>
-                                        <context>/solr</context>
                                     </properties>
                                 </deployable>
                             </deployables>
@@ -359,11 +311,6 @@
                                     <groupId>com.psddev</groupId>
                                     <artifactId>cms-tool-ui</artifactId>
                                     <targetPath>cms</targetPath>
-                                </overlay>
-                                <overlay>
-                                    <groupId>org.apache.solr</groupId>
-                                    <artifactId>solr</artifactId>
-                                    <skip>true</skip>
                                 </overlay>
                             </overlays>
                         </configuration>
