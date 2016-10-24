@@ -183,7 +183,7 @@
                                 <argument>--java-package-prefix=\${groupId}.view</argument>
                                 <argument>--build-dir=\${project.build.directory}/generated-sources/styleguide</argument>
                                 <argument>--watch=${styleguide.viewgenerator.watch}</argument>
-                                <argument>--ignore-files=_config.json</argument>
+                                <argument>--ignore-files=_config.json,package.json</argument>
                             </arguments>
                         </configuration>
                     </execution>

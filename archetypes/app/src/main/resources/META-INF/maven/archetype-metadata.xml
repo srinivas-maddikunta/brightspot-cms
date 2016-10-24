@@ -132,6 +132,13 @@ ${dataDirectory}</defaultValue>
                 <include>**/*</include>
             </includes>
         </fileSet>
+
+        <fileSet filtered="true" encoding="UTF-8">
+            <directory>styleguide</directory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+        </fileSet>
     </fileSets>
 
 </archetype-descriptor>
