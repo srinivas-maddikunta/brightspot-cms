@@ -1,6 +1,6 @@
 /* global require window NodeFilter setInterval document */
 
-require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
+require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
     var $document = $(window.document),
             $body = $($document[0].body),
             $parent = $(window.parent),
@@ -220,7 +220,6 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             url: ''
         },
 
-
         /**
          * Initialize the iframe editor.
          * @param  {Object} options
@@ -235,54 +234,144 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             self.options = $.extend({}, self.defaults, options);
         },
 
-
         /**
          * Open the iframe and set everything up for editing
          * @return {[type]}
          */
         open: function() {
-            // Create a container for the iframe
-            // Create a close button
-            // Create the iframe
-            // Set the position of the iframe.
-            // Set up auto resizing for the iframe
-            // Set up listener for the update event
             var self;
             self = this;
             
             // Create a container for the iframe editor
-            self.container = $('<div/>', {'class':'iframeEdit-container'});
+            self.$container = $('<div/>', {'class':'iframeEdit-container'});
             
             // Create a close button
-            self.closeButton = $('<button>', {
+            self.$closeButton = $('<button>', {
                 'type': 'button',
                 'class': 'iframeEdit-close',
                 html: '<span>Close</span>'
             }).on('click', function(event){
                 event.preventDefault();
                 self.close();
-            }).appendTo(self.container);
+            }).appendTo(self.$container);
             
             // Create a loading message
-            self.loadingMsg = $('<div>', {
+            self.$loadingMsg = $('<div>', {
                 'class': 'iframeEdit-loading',
                 html: '<span>Loading...</span>'
-            }).appendTo(self.container);
+            }).appendTo(self.$container);
             
             // Create the iframe and add a class when it has loaded
-            self.iframe = $('<iframe>', {
+            self.$iframe = $('<iframe/>', {
                 'class': 'iframeEdit-iframe',
                 'src': self.options.url,
                 'load': function(event) {
-                    self.container.addClass('loaded');
+                    
+                    /*
+                    // Alternative way to determine if the iframe has been published:
+                    // just assume that the content has been updated if the iframe loads a second page.
+                    if (self.$container.hasClass('loaded')) {
+                        // This is the second load of the iframe so we assume the content has been updated
+                        self.close();
+                        self.reload();
+                        return;
+                    }
+                    */
+                   
+                    self.$container.addClass('loaded');
                 }
-            }).appendTo(self.container);
+            }).appendTo(self.$container);
             
-            self.container.appendTo('body');
+            self.$container.appendTo('body');
+
+            // Move the iframe just below the link that launched it
             self.position();
+            
+            // Listen for a postMessage event that tells us the data was updated in the CMS
+            self.listenerOpen();
+
+            // Set up the iframe to resize automatically.
+            self.$iframe.iFrameResize();
+        },
+
+
+        /**
+         * Listen for the "brightspot-update" message that will be sent from the embedded iframe.
+         * Because the page we are editing might be on a different domain from the CMS, the browser's
+         * same-origin restrictions might prevent the CMS page from directly notifying the page.
+         * So instead the CMS page can notify via postMessage and we can listen for that message.
+         * @return {[type]}
+         */
+        listenerOpen: function() {
+            var self;
+            self = this;
+            
+            // Prevent multiple listeners from running
+            self.listenerClose();
+            
+            $(window).on('message', function(event) {
+                var data;
+
+                // Note: normally using postMessage you would want to check the origin of the message
+                // for security; however in this case, the message doesn't really make any changes
+                // other than reloading the page so we probably don't need to check.
+                // if (event.origin !== "http://example.com:8080") {
+                //     return;
+                // }
+                 
+                // Get the data that was sent in the message
+                data = event.originalEvent.data;
+                
+                // Pass the data to our update handler
+                self.listenerHandleMessage(data);
+            });
         },
         
         
+        /**
+         * Remove the update event listener.
+         */
+        listenerClose: function() {
+            $(window).off('message');
+        },
+
+
+        /**
+         * Check a message received from the iframe and act on it.
+         * @param  {String} data
+         * Data from the postMessage event.
+         */
+        listenerHandleMessage: function(data) {
+            var self;
+            self = this;
+            // If we receive 'brightspot-updated' message, close the iframe and reload the page
+            // so we can display the changed content.
+            if (/^brightspot-updated$/.test(data)) {
+                self.close();
+                self.reload();
+            }
+        },
+        
+        
+        /**
+         * Example of how to post the update message.
+         * This would normally be done on the CMS edit page after the form has posted and updated
+         * the content, but is provided here as an example.
+         */
+        listenerSendMessage: function() {
+            var w;
+            
+            // Since we're in an iframe, get the parent window (or do nothing)
+            w = window.parent;
+            if (w) {
+            
+                // Send a message to the parent window.
+                // We're using '*' as the targetOrigin because security is not an issue for this message.
+                w.postMessage('brightspot-updated', '*');
+            }
+        },
+
+
         /**
          * Position the iframe near the link that triggered it.
          * This depends on the options.positionElement being set.
@@ -301,7 +390,7 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
             }
             
             pos = $el.offset();
-            self.container.css('top', pos.top)
+            self.$container.css('top', pos.top)
         },
 
 
@@ -311,7 +400,8 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
         close: function() {
             var self;
             self = this;
-            self.container.remove();
+            self.$container.remove();
+            self.listenerClose();
         },
         
         
@@ -320,7 +410,8 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
          * in the iframe editor.
          */
         reload: function() {
-            document.location.reload();
+            // Reload the page without using the browser cache
+            document.location.reload(true);
         }
     };
     
