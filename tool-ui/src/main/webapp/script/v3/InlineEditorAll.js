@@ -1,4 +1,4 @@
-/* global require window NodeFilter setInterval */
+/* global require window NodeFilter setInterval document */
 
 require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
     var $document = $(window.document),
@@ -201,4 +201,146 @@ require([ 'bsp-utils', 'jquery' ], function (bsp_utils, $) {
     positionControls();
     setInterval(positionControls, 1000 / 60);
     $parent.scroll(positionControls);
+    
+    
+    /**
+     * Controler for the inline iframe-based editor.
+     * @example
+     * var editor = Object.create(iframeEditor);
+     * editor.init({url:'/edit?id=123'});
+     * editor.open();
+     */
+    var iframeEditor = {
+
+        /**
+         * Default values for the options.
+         */
+        defaults: {
+            positionElement: $('body'),
+            url: ''
+        },
+
+
+        /**
+         * Initialize the iframe editor.
+         * @param  {Object} options
+         * @param {Element} options.positionElement
+         * The element that provides the position for the iframe.
+         * @param {String} options.url
+         * The url of the edit page to open in the iframe.
+         */
+        init: function(options) {
+            var self;
+            self = this;
+            self.options = $.extend({}, self.defaults, options);
+        },
+
+
+        /**
+         * Open the iframe and set everything up for editing
+         * @return {[type]}
+         */
+        open: function() {
+            // Create a container for the iframe
+            // Create a close button
+            // Create the iframe
+            // Set the position of the iframe.
+            // Set up auto resizing for the iframe
+            // Set up listener for the update event
+            var self;
+            self = this;
+            
+            // Create a container for the iframe editor
+            self.container = $('<div/>', {'class':'iframeEdit-container'});
+            
+            // Create a close button
+            self.closeButton = $('<button>', {
+                'type': 'button',
+                'class': 'iframeEdit-close',
+                html: '<span>Close</span>'
+            }).on('click', function(event){
+                event.preventDefault();
+                self.close();
+            }).appendTo(self.container);
+            
+            // Create a loading message
+            self.loadingMsg = $('<div>', {
+                'class': 'iframeEdit-loading',
+                html: '<span>Loading...</span>'
+            }).appendTo(self.container);
+            
+            // Create the iframe and add a class when it has loaded
+            self.iframe = $('<iframe>', {
+                'class': 'iframeEdit-iframe',
+                'src': self.options.url,
+                'load': function(event) {
+                    self.container.addClass('loaded');
+                }
+            }).appendTo(self.container);
+            
+            self.container.appendTo('body');
+            self.position();
+        },
+        
+        
+        /**
+         * Position the iframe near the link that triggered it.
+         * This depends on the options.positionElement being set.
+         */
+        position: function() {
+            var self;
+            var $el;
+            var pos;
+            self = this;
+            
+            // Get the position element
+            if (!self.options.positionElement) { return; }
+            $el = $(self.options.positionElement);
+            if (!$el.length) {
+                return;
+            }
+            
+            pos = $el.offset();
+            self.container.css('top', pos.top)
+        },
+
+
+        /**
+         * Close the iframe editor.
+         */
+        close: function() {
+            var self;
+            self = this;
+            self.container.remove();
+        },
+        
+        
+        /**
+         * Reload the page. We'll do this after the user publishes a change
+         * in the iframe editor.
+         */
+        reload: function() {
+            document.location.reload();
+        }
+    };
+    
+    // Intercept edit links so when they are clicked we use iframe editor instead of going to the url
+    $('body').on('click', 'a.icon-action-edit', function(event) {
+        var editor;
+        var link;
+        
+        // Do not follow the link since we will open an iframe instead
+        event.preventDefault();
+        
+        // Get the link that was clicked
+        link = this;
+        
+        // Create the iframeEditor
+        editor = Object.create(iframeEditor);
+        editor.init({
+            positionElement: $(link).closest('.InlineEditorControls'),
+            url: link.href
+        });
+        editor.open();
+    });
 });
