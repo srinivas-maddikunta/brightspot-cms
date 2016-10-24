@@ -151,6 +151,70 @@
             </plugin>
 
             <plugin>
+                <groupId>org.codehaus.cargo</groupId>
+                <artifactId>cargo-maven2-plugin</artifactId>
+                <version>1.4.14</version>
+                <configuration>
+                    <container>
+                        <containerId>tomcat8x</containerId>
+                        <zipUrlInstaller>
+                            <url>http://archive.apache.org/dist/tomcat/tomcat-8/v8.0.23/bin/apache-tomcat-8.0.23.zip</url>
+                            <downloadDir>\${user.home}/.brightspot/cargo-downloads</downloadDir>
+                        </zipUrlInstaller>
+                        <systemProperties>
+                            <tomcat.port>\${tomcat.port}</tomcat.port>
+                        </systemProperties>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.slf4j</groupId>
+                                <artifactId>jcl-over-slf4j</artifactId>
+                                <type>jar</type>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.slf4j</groupId>
+                                <artifactId>slf4j-api</artifactId>
+                                <type>jar</type>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.slf4j</groupId>
+                                <artifactId>slf4j-jdk14</artifactId>
+                                <type>jar</type>
+                            </dependency>
+                        </dependencies>
+                    </container>
+                    <configuration>
+                        <properties>
+                            <cargo.servlet.port>\${tomcat.port}</cargo.servlet.port>
+                        </properties>
+                        <configfiles>
+                            <configfile>
+                                <file>\${project.basedir}/etc/tomcat-context.xml</file>
+                                <todir>conf</todir>
+                                <tofile>context.xml</tofile>
+                            </configfile>
+                            <configfile>
+                                <file>\${project.basedir}/etc/tomcat-logging.properties</file>
+                                <todir>conf</todir>
+                                <tofile>logging.properties</tofile>
+                            </configfile>
+                            <configfile>
+                                <file>\${project.basedir}/etc/tomcat-storage.xml</file>
+                                <todir>conf/Catalina/localhost</todir>
+                                <tofile>storage.xml</tofile>
+                            </configfile>
+                        </configfiles>
+                    </configuration>
+                    <deployables>
+                        <deployable>
+                            <properties>
+                                <context>/</context>
+                            </properties>
+                        </deployable>
+                    </deployables>
+                </configuration>
+            </plugin>
+
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.2.1</version>
@@ -231,93 +295,5 @@
             </snapshots>
         </pluginRepository>
     </pluginRepositories>
-
-    <profiles>
-        <profile>
-            <id>run</id>
-
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.cargo</groupId>
-                        <artifactId>cargo-maven2-plugin</artifactId>
-                        <version>1.4.14</version>
-                        <configuration>
-                            <container>
-                                <containerId>tomcat8x</containerId>
-                                <zipUrlInstaller>
-                                    <url>http://archive.apache.org/dist/tomcat/tomcat-8/v8.0.23/bin/apache-tomcat-8.0.23.zip</url>
-                                    <downloadDir>\${user.home}/.brightspot/cargo-downloads</downloadDir>
-                                </zipUrlInstaller>
-                                <systemProperties>
-                                    <tomcat.port>\${tomcat.port}</tomcat.port>
-                                </systemProperties>
-                                <dependencies>
-                                    <dependency>
-                                        <groupId>org.slf4j</groupId>
-                                        <artifactId>jcl-over-slf4j</artifactId>
-                                        <type>jar</type>
-                                    </dependency>
-                                    <dependency>
-                                        <groupId>org.slf4j</groupId>
-                                        <artifactId>slf4j-api</artifactId>
-                                        <type>jar</type>
-                                    </dependency>
-                                    <dependency>
-                                        <groupId>org.slf4j</groupId>
-                                        <artifactId>slf4j-jdk14</artifactId>
-                                        <type>jar</type>
-                                    </dependency>
-                                </dependencies>
-                            </container>
-                            <configuration>
-                                <properties>
-                                    <cargo.servlet.port>\${tomcat.port}</cargo.servlet.port>
-                                </properties>
-                                <configfiles>
-                                    <configfile>
-                                        <file>\${project.basedir}/etc/tomcat-context.xml</file>
-                                        <todir>conf</todir>
-                                        <tofile>context.xml</tofile>
-                                    </configfile>
-                                    <configfile>
-                                        <file>\${project.basedir}/etc/tomcat-logging.properties</file>
-                                        <todir>conf</todir>
-                                        <tofile>logging.properties</tofile>
-                                    </configfile>
-                                    <configfile>
-                                        <file>\${project.basedir}/etc/tomcat-storage.xml</file>
-                                        <todir>conf/Catalina/localhost</todir>
-                                        <tofile>storage.xml</tofile>
-                                    </configfile>
-                                </configfiles>
-                            </configuration>
-                            <deployables>
-                                <deployable>
-                                    <properties>
-                                        <context>/</context>
-                                    </properties>
-                                </deployable>
-                            </deployables>
-                        </configuration>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-war-plugin</artifactId>
-                        <configuration>
-                            <overlays>
-                                <overlay>
-                                    <groupId>com.psddev</groupId>
-                                    <artifactId>cms-tool-ui</artifactId>
-                                    <targetPath>cms</targetPath>
-                                </overlay>
-                            </overlays>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
 </project>
