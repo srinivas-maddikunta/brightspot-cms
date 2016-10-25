@@ -77,66 +77,31 @@ ${dataDirectory}</defaultValue>
         <fileSet encoding="UTF-8">
             <directory></directory>
             <includes>
-                <include>*</include>
+                <include>**/*</include>
             </includes>
             <excludes>
-                <exclude>bower.json</exclude>
-                <exclude>package.json</exclude>
+                <exclude>etc/tomcat-context.xml</exclude>
+                <exclude>etc/tomcat-storage.xml</exclude>
+                <exclude>src/main/java/**/*.java</exclude>
+                <exclude>src/main/webapp/**/*</exclude>
+                <exclude>styleguide/**/*</exclude>
             </excludes>
         </fileSet>
 
         <fileSet filtered="true" encoding="UTF-8">
             <directory></directory>
             <includes>
-                <include>bower.json</include>
-                <include>package.json</include>
-            </includes>
-        </fileSet>
-
-        <fileSet encoding="UTF-8">
-            <directory>etc</directory>
-            <includes>
-                <include>**/*</include>
-            </includes>
-            <excludes>
-                <exclude>tomcat-context.xml</exclude>
-                <exclude>tomcat-storage.xml</exclude>
-            </excludes>
-        </fileSet>
-
-        <fileSet filtered="true" encoding="UTF-8">
-            <directory>etc</directory>
-            <includes>
-                <include>tomcat-context.xml</include>
-                <include>tomcat-storage.xml</include>
+                <include>etc/tomcat-context.xml</include>
+                <include>etc/tomcat-storage.xml</include>
+                <include>src/main/webapp/**/*</include>
+                <include>styleguide/**/*</include>
             </includes>
         </fileSet>
 
         <fileSet filtered="true" packaged="true" encoding="UTF-8">
-            <directory>src/main/java</directory>
+            <directory></directory>
             <includes>
-                <include>**/*.java</include>
-            </includes>
-        </fileSet>
-
-        <fileSet filtered="true" encoding="UTF-8">
-            <directory>src/main/resources</directory>
-            <includes>
-                <include>**/*</include>
-            </includes>
-        </fileSet>
-
-        <fileSet filtered="true" encoding="UTF-8">
-            <directory>src/main/webapp</directory>
-            <includes>
-                <include>**/*</include>
-            </includes>
-        </fileSet>
-
-        <fileSet filtered="true" encoding="UTF-8">
-            <directory>styleguide</directory>
-            <includes>
-                <include>**/*</include>
+                <include>src/main/java/**/*.java</include>
             </includes>
         </fileSet>
     </fileSets>
