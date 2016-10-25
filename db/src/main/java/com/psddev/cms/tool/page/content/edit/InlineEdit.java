@@ -126,7 +126,7 @@ public class InlineEdit extends PageServlet {
                         }
 
                         // Fields
-                        page.writeSomeFormFields(object, false, fields, null);
+                        page.writeSomeFormFields(object, false, fields.isEmpty() ? null : fields, null);
 
                         // Publish/Save button
                         page.writeStart("div", "class", "actions widget-publishingPublish"); {
