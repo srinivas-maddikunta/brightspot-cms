@@ -41,7 +41,7 @@ public class RtcSessionTask extends RepeatingTask {
                     .from(RtcSession.class)
                     .where("lastPing < ?", past);
 
-            for (List<RtcSession> sessions; !(sessions = query.select(0, 100).getItems()).isEmpty(); ) {
+            for (List<RtcSession> sessions; !(sessions = query.select(0, 100).getItems()).isEmpty();) {
                 sessions.forEach(RtcSession::disconnect);
             }
 
