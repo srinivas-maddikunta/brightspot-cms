@@ -3575,6 +3575,7 @@ public class ToolPageContext extends WebPageContext {
 
             draft.update(findOldValuesInForm(state), object);
             publish(draft);
+            deleteWorksInProgress(object);
 
             if (param(String.class, "action-draftAndReturn") != null) {
                 getResponse().sendRedirect(cmsUrl("/"));
