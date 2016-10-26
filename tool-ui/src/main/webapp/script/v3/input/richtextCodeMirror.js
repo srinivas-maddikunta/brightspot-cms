@@ -6958,8 +6958,12 @@ define([
                         var startCh;
                         var styleObj;
 
-                        startCh = markedSpan.from;
-                        endCh = markedSpan.to;
+                        // If the from character is null, that means the mark was carried over from the previous line,
+                        // so treat that as starting at the first character.
+                        startCh = (markedSpan.from === null) ? 0 : markedSpan.from;
+                        // If the to character is null, that means the mark carries over to the next line,
+                        // so treat that as ending at the last character.
+                        endCh = (markedSpan.to === null) ? line.text.length : markedSpan.to;
                         className = markedSpan.marker.className;
 
                         // Skip markers that do not have a className.
@@ -7308,7 +7312,9 @@ define([
                 var char;
                 var span;
                 span = this;
-                char = span.from;
+                // If the from character is null, that means the mark was carried over from the previous line,
+                // so treat that as starting at the first character.
+                char = (span.from === null) ? 0 : span.from;
                 spansByChar[char] = spansByChar[char] || [];
                 spansByChar[char].push(span);
             });
