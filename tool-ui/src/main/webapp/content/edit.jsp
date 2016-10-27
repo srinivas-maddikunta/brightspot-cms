@@ -136,7 +136,7 @@ if (selected instanceof Page) {
     }
 }
 
-Map<String, Object> editingOldValues = State.getInstance(editing).getSimpleValues();
+Map<String, Object> editingOldValues = Draft.findOldValues(editing);
 WorkStream workStream = Query.from(WorkStream.class).where("_id = ?", wp.param(UUID.class, "workStreamId")).first();
 
 if (workStream != null) {
