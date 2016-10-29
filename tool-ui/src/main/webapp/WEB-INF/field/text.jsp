@@ -57,7 +57,7 @@ if ((Boolean) request.getAttribute("isFormPost")) {
 // --- Presentation ---
 
 if (testSms) {
-    wp.writeStart("div", "class", "phoneNumberWrapper");
+    wp.writeStart("div", "class", "Sms");
 }
 
 wp.write("<div class=\"inputSmall inputSmall-text\">");
@@ -125,13 +125,13 @@ if (validValues != null) {
 wp.write("</div>");
 
 if (testSms) {
-    wp.writeStart("button", "class", "smsButton"); {
-        wp.writeHtml("Send Test Message");
+    wp.writeStart("button", "class", "Sms-button").writeHtml("Send Test Message").writeEnd();
+    wp.writeStart("div", "class", "Sms-response"); {
+        wp.writeStart("div", "class", "Sms-pending").writeEnd();
     }
     wp.writeEnd();
-    wp.writeStart("div", "class", "smsResponseText").writeEnd();
 
-    // phoneNumberWrapper.
+    // Sms div.
     wp.writeEnd();
 }
 %>
