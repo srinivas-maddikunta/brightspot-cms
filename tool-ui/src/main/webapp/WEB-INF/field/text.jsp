@@ -2,6 +2,7 @@
 
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.tool.ToolPageContext,
+com.psddev.cms.tool.page.TestSms,
 com.psddev.cms.tool.page.content.Edit,
 
 com.psddev.dari.db.ObjectField,
@@ -125,7 +126,7 @@ if (validValues != null) {
 wp.write("</div>");
 
 if (testSms) {
-    wp.writeStart("button", "class", "Sms-button").writeHtml("Send Test Message").writeEnd();
+    wp.writeStart("button", "class", "Sms-button").writeHtml(wp.localize(TestSms.class, "action.send")).writeEnd();
     wp.writeStart("div", "class", "Sms-response"); {
         wp.writeStart("div", "class", "Sms-pending").writeEnd();
     }

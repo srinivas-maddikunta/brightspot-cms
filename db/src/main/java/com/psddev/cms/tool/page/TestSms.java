@@ -35,10 +35,10 @@ public class TestSms extends PageServlet {
 
             try {
                 SmsProvider.Static.getDefault().send(null, page.param(String.class, "number"), sms);
-                page.writeStart("div", "class", "Sms-success").writeHtml("Test Message Sent!").writeEnd();
+                page.writeStart("div", "class", "Sms-success").writeHtml(page.localize(TestSms.class, "message.success")).writeEnd();
 
             } catch (IllegalStateException e) {
-                page.writeStart("div", "class", "Sms-error").writeHtml("Unable to send test message!").writeEnd();
+                page.writeStart("div", "class", "Sms-error").writeHtml(page.localize(TestSms.class, "message.error")).writeEnd();
             }
 
         } else {
