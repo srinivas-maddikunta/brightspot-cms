@@ -15,7 +15,11 @@ define(['jquery'], function($) {
 
             report = function(force) {
 
-                if (debugViewersCache() && !force && !((putCount + fetchCount) % 15 === 0)) {
+                if (!debugViewersCache()) {
+                    return;
+                }
+
+                if (force !== true && !((putCount + fetchCount) % 15 === 0)) {
                     return;
                 }
 
