@@ -11,6 +11,92 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
         return colorsByUuid[uuid];
     }
 
+    // shared-use function for updating a container element either from cached data
+    // stored in dataByContentId or from an EditFieldUpdateBroadcast RTC event
+    function updateContainer(container, data) {
+
+        var userId = data.userId;
+        var fieldNamesByObjectId = data.fieldNamesByObjectId;
+
+        var $container = $(container);
+
+        var $viewersContainer = $container.find('[data-rtc-edit-field-update-viewers]');
+
+        if ($viewersContainer.length > 0) {
+
+            var userAvatarHtml = data.userAvatarHtml;
+            var closed = data.closed;
+            var $viewers = $viewersContainer.find('> .EditFieldUpdateViewers');
+            var $some;
+
+            if ($viewers.length === 0) {
+                var $none = $('<div/>', {
+                    'class': 'EditFieldUpdateViewers-none',
+                    html: $viewersContainer.html()
+                });
+
+                $some = $('<div/>', {
+                    'class': 'EditFieldUpdateViewers-some'
+                });
+
+                $viewers = $('<div/>', {
+                    'class': 'EditFieldUpdateViewers',
+                    html: [
+                        $none,
+                        $some
+                    ]
+                });
+
+                $viewers.append($none);
+                $viewers.append($some);
+                $viewersContainer.html($viewers);
+
+            } else {
+                $some = $viewers.find('> .EditFieldUpdateViewers-some');
+            }
+
+            var $viewer = $some.find('> .EditFieldUpdateViewers-viewer[data-user-id="' + userId + '"]');
+
+            if ($viewer.length > 0) {
+                if (closed) {
+                    $viewer.remove();
+                }
+
+            } else if (!closed) {
+                $viewer = $('<div/>', {
+                    'class': 'EditFieldUpdateViewers-viewer',
+                    'data-user-id': userId,
+                    html: userAvatarHtml
+                });
+
+                $viewer.find('.ToolUserAvatar').css({
+                    'background-color': backgroundColor(userId)
+                });
+
+                $some.append($viewer);
+            }
+
+            function checkFieldNames(id) {
+                var fieldNames = fieldNamesByObjectId[id];
+                return fieldNames && fieldNames.length > 0;
+            }
+
+            if (fieldNamesByObjectId && Object.keys(fieldNamesByObjectId).filter(checkFieldNames).length > 0) {
+                $viewer.attr('data-editing', true);
+
+            } else {
+                $viewer.removeAttr('data-editing');
+            }
+
+            if ($some.find('> .EditFieldUpdateViewers-viewer').length > 0) {
+                $viewers.attr('data-some', true);
+
+            } else {
+                $viewers.removeAttr('data-some');
+            }
+        }
+    }
+
     rtc.receive('com.psddev.cms.tool.page.content.EditFieldUpdateBroadcast', function(data) {
         var contentId = data.contentId;
         var $containers = $('[data-rtc-content-id="' + contentId + '"]');
@@ -24,82 +110,9 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
 
         $containers.each(function() {
 
+            updateContainer(this, data);
+
             var $container = $(this);
-
-            var $viewersContainer = $container.find('[data-rtc-edit-field-update-viewers]');
-
-            if ($viewersContainer.length > 0) {
-                var userAvatarHtml = data.userAvatarHtml;
-                var closed = data.closed;
-                var $viewers = $viewersContainer.find('> .EditFieldUpdateViewers');
-                var $some;
-
-                if ($viewers.length === 0) {
-                    var $none = $('<div/>', {
-                        'class': 'EditFieldUpdateViewers-none',
-                        html: $viewersContainer.html()
-                    });
-
-                    $some = $('<div/>', {
-                        'class': 'EditFieldUpdateViewers-some'
-                    });
-
-                    $viewers = $('<div/>', {
-                        'class': 'EditFieldUpdateViewers',
-                        html: [
-                            $none,
-                            $some
-                        ]
-                    });
-
-                    $viewers.append($none);
-                    $viewers.append($some);
-                    $viewersContainer.html($viewers);
-
-                } else {
-                    $some = $viewers.find('> .EditFieldUpdateViewers-some');
-                }
-
-                var $viewer = $some.find('> .EditFieldUpdateViewers-viewer[data-user-id="' + userId + '"]');
-
-                if ($viewer.length > 0) {
-                    if (closed) {
-                        $viewer.remove();
-                    }
-
-                } else if (!closed) {
-                    $viewer = $('<div/>', {
-                        'class': 'EditFieldUpdateViewers-viewer',
-                        'data-user-id': userId,
-                        html: userAvatarHtml
-                    });
-
-                    $viewer.find('.ToolUserAvatar').css({
-                        'background-color': backgroundColor(userId)
-                    });
-
-                    $some.append($viewer);
-                }
-
-                function checkFieldNames(id) {
-                    var fieldNames = fieldNamesByObjectId[id];
-                    return fieldNames && fieldNames.length > 0;
-                }
-
-                if (fieldNamesByObjectId && Object.keys(fieldNamesByObjectId).filter(checkFieldNames).length > 0) {
-                    $viewer.attr('data-editing', true);
-
-                } else {
-                    $viewer.removeAttr('data-editing');
-                }
-
-                if ($some.find('> .EditFieldUpdateViewers-viewer').length > 0) {
-                    $viewers.attr('data-some', true);
-
-                } else {
-                    $viewers.removeAttr('data-some');
-                }
-            }
 
             if (!$container.is('form')) {
                 return;
