@@ -1,159 +1,125 @@
 define(['jquery'], function($) {
-    var viewerDataCache = { };
-    var hitCount = 0;
-    var missCount = 0;
-    var fetchCount = 0;
-    var putCount = 0;
+    var cache = { };
+    var puts = 0;
+    var gets = 0;
+    var hits = 0;
     var cleanCallCount = 0;
 
-    function debugViewersCache() {
-        return window.LOG_VIEWERS_REPORTS && typeof console !== "undefined";
-    }
-
-    function report() {
-        if (!debugViewersCache()) {
+    function log() {
+        if (!window.DEBUG_EDIT_FIELD_UPDATE_CACHE || typeof console === "undefined") {
             return;
         }
 
-        var total = hitCount + missCount,
-            ratio = (total === 0 && hitCount === 0) ? 0.0 : (total === 0 ? 1.0 : (hitCount === 0 ? 0.0 : hitCount / total));
+        var newArguments = Array.prototype.slice.call(arguments, 0);
 
-        ratio *= 100;
+        newArguments[0] = '[EditFieldUpdateCache] ' + newArguments[0];
+        newArguments.push('puts');
+        newArguments.push(puts);
+        newArguments.push('gets');
+        newArguments.push(gets);
+        newArguments.push('hits');
+        newArguments.push(((gets === 0 || hits === 0) ? 0.0 : (gets === 0 ? 1.0 : (hits === 0 ? 0.0 : hits / gets)) * 100) + '%');
+        newArguments.push('entries');
+        newArguments.push(Object.keys(cache).length);
 
-        console.log(
-            "putCount: ", putCount,
-            ", fetchCount: ", fetchCount,
-            ", ratio: ", ratio + "%",
-            "size: ", Object.keys(viewerDataCache).length
-        );
-    }
-
-    // fetches data from cache
-    function fetchData(contentId) {
-
-        fetchCount += 1;
-
-        report();
-
-        return viewerDataCache[contentId];
+        console.log.apply(console, newArguments);
     }
 
     return {
-
-        putEmpty: function(key) {
-
-            if (!viewerDataCache[key]) {
-
-                if (debugViewersCache()) {
-                    console.log("%cSEED", "color: green", key);
-                }
-
-                viewerDataCache[key] = [ ];
+        init: function(key) {
+            if (!cache[key]) {
+                log('%cinit', 'color: blue', key);
+                cache[key] = [ ];
             }
         },
 
         put: function(data) {
+            if (!data) {
+                return;
+            }
 
-            if (data && data.contentId) {
+            var contentId = data.contentId;
 
-                // only cache data that's existed or been
-                // pre-seeded to ensure that data in the
-                // cache was intentionally placed there
-                // starting with a restore
-                if (viewerDataCache[data.contentId]) {
+            if (!contentId) {
+                return;
+            }
 
-                    if (debugViewersCache()) {
-                        console.log("PUT", data.contentId);
-                    }
+            // only cache data that's existed or been
+            // pre-seeded to ensure that data in the
+            // cache was intentionally placed there
+            // starting with a restore
+            if (cache[contentId]) {
+                log('%cput', 'color: blue', contentId);
 
-                    // caches the specified viewer data in the specified cache object,
-                    // keyed by contentId then userId.
-                    putCount += 1;
+                // caches the specified viewer data in the specified cache object,
+                // keyed by contentId then userId.
+                puts += 1;
 
-                    var contentId = data.contentId,
-                            userId = data.userId,
-                            contentData,
-                            userDataIndex = undefined,
-                            i;
+                var userId = data.userId;
+                var contentData = cache[contentId];
+                var userDataIndex = undefined;
+                var i;
 
-                    contentData = viewerDataCache[contentId];
+                if (contentData === undefined) {
+                    contentData = [ ];
+                    cache[contentId] = contentData;
+                }
 
-                    if (contentData === undefined) {
-                        contentData = [ ];
-                        viewerDataCache[contentId] = contentData;
-                    }
-
-                    for (i = 0; i < contentData.length; i += 1) {
-                        if (contentData[i].userId === userId) {
-                            userDataIndex = i;
-                        }
-                    }
-
-                    if (userDataIndex !== undefined && userDataIndex >= 0) {
-                        contentData.splice(userDataIndex, 1, data);
-                    } else {
-                        contentData.push(data);
-                    }
-
-                    report();
-
-                } else {
-
-                    if (debugViewersCache()) {
-                        console.log("SKIP", data.contentId);
+                for (i = 0; i < contentData.length; i += 1) {
+                    if (contentData[i].userId === userId) {
+                        userDataIndex = i;
                     }
                 }
-            }
-        },
 
-        fetch: function(contentId) {
+                if (userDataIndex !== undefined && userDataIndex >= 0) {
+                    contentData.splice(userDataIndex, 1, data);
 
-            var result = fetchData(contentId);
-
-            if (result) {
-
-                hitCount += 1;
-                if (debugViewersCache()) {
-                    console.log("%cCACHE HIT", "color: blue", contentId);
+                } else {
+                    contentData.push(data);
                 }
 
             } else {
+                log("%cput (skipped)", 'color: blue', contentId);
+            }
+        },
 
-                missCount += 1;
+        get: function(contentId) {
+            gets += 1;
+            var result = cache[contentId];
 
-                if (debugViewersCache()) {
-                    console.log("%cCACHE MISS", "color: red", contentId);
-                }
+            if (result) {
+                hits += 1;
+                log('%cget (hit)', 'color: green', contentId);
+
+            } else {
+                log('%cget (miss)', 'color: red', contentId);
             }
 
             return result;
         },
 
         clearUnused: function() {
-
             cleanCallCount += 1;
 
             if (!(cleanCallCount % 20 === 0)) {
                 return;
             }
 
-            if (debugViewersCache()) {
-                console.log("CLEAR");
-            }
+            log('%cclear', 'color: blue');
 
             // clean out unused cache entries before making call to restore
             var cleanCache = { };
 
             $('[data-rtc-content-id]').each(function() {
-                var contentId = $(this).attr('data-rtc-content-id'),
-                    cachedData = fetchData(contentId);
+                var contentId = $(this).attr('data-rtc-content-id');
+                var cachedData = cache[contentId];
 
                 if (cachedData) {
                     cleanCache[contentId] = cachedData;
                 }
             });
 
-            viewerDataCache = cleanCache;
+            cache = cleanCache;
         }
     };
 });
