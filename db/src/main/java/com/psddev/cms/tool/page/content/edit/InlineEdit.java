@@ -161,6 +161,10 @@ public class InlineEdit extends PageServlet {
                                 // Success message
                                 } else if (Boolean.FALSE.equals(error)) {
                                     page.include("/WEB-INF/objectMessage.jsp", "object", object);
+                                    page.writeStart("script", "type", "text/javascript"); {
+                                        page.writeRaw("$('.Message-returnToDashboard').hide();");
+                                    }
+                                    page.writeEnd();
                                 }
 
                                 // Fields
