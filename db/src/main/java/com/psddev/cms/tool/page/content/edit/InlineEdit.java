@@ -107,7 +107,7 @@ public class InlineEdit extends PageServlet {
                                     "target", "_blank",
                                     "href", page.cmsUrl("/content/edit.jsp", "id", id)); {
 
-                                page.writeHtml("View Full Form");
+                                page.writeHtml(page.localize(InlineEdit.class, "action.fullForm"));
                             }
                             page.writeEnd();
                         }
