@@ -55,6 +55,8 @@ public class InlineEdit extends PageServlet {
     }
 
     private void writeForm(ToolPageContext page, Object object, List<String> fields, Boolean error) throws IOException, ServletException {
+        Site site = page.getSite();
+        ToolUser user = page.getUser();
         State state = State.getInstance(object);
         UUID id = state.getId();
         ObjectType type = state.getType();
@@ -70,9 +72,6 @@ public class InlineEdit extends PageServlet {
                     ui.getPublishButtonText(),
                     ui.isPublishable() ? page.localize(type, "action.publish") : buttonText);
         }
-
-        Site site = page.getSite();
-        ToolUser user = page.getUser();
 
         page.writeTag("!doctype html");
         page.writeStart("html",
