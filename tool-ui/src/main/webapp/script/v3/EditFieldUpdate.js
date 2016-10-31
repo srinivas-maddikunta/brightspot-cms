@@ -1,4 +1,4 @@
-define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_utils, rtc, color_utils) {
+define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateCache' ], function ($, bsp_utils, rtc, color_utils, efu_cache) {
 
     var colorsByUuid = { };
 
@@ -104,6 +104,8 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils' ], function ($, bsp_u
         if ($containers.length === 0) {
             return;
         }
+
+        efu_cache.put(data);
         
         var userId = data.userId;
         var fieldNamesByObjectId = data.fieldNamesByObjectId;
