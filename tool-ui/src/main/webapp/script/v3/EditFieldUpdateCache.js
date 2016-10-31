@@ -3,10 +3,9 @@ define(['jquery'], function($) {
     var puts = 0;
     var gets = 0;
     var hits = 0;
-    var cleanCallCount = 0;
 
     function log() {
-        if (!window.DEBUG_EDIT_FIELD_UPDATE_CACHE || typeof console === "undefined") {
+        if (!window.DEBUG_EDIT_FIELD_UPDATE_CACHE || typeof console === 'undefined') {
             return;
         }
 
@@ -28,8 +27,9 @@ define(['jquery'], function($) {
     return {
         init: function(key) {
             if (!cache[key]) {
-                log('%cinit', 'color: blue', key);
                 cache[key] = [ ];
+
+                log('%cinit', 'color: blue', key);
             }
         },
 
@@ -49,11 +49,12 @@ define(['jquery'], function($) {
             // cache was intentionally placed there
             // starting with a restore
             if (cache[contentId]) {
-                log('%cput', 'color: blue', contentId);
 
                 // caches the specified viewer data in the specified cache object,
                 // keyed by contentId then userId.
                 puts += 1;
+
+                log('%cput', 'color: blue', contentId);
 
                 var userId = data.userId;
                 var contentData = cache[contentId];
@@ -79,15 +80,15 @@ define(['jquery'], function($) {
                 }
 
             } else {
-                log("%cput (skipped)", 'color: blue', contentId);
+                log('%cput (skipped)', 'color: blue', contentId);
             }
         },
 
         get: function(contentId) {
             gets += 1;
-            var result = cache[contentId];
+            var contentData = cache[contentId];
 
-            if (result) {
+            if (contentData) {
                 hits += 1;
                 log('%cget (hit)', 'color: green', contentId);
 
@@ -95,31 +96,28 @@ define(['jquery'], function($) {
                 log('%cget (miss)', 'color: red', contentId);
             }
 
-            return result;
+            return contentData;
         },
 
-        clearUnused: function() {
-            cleanCallCount += 1;
-
-            if (!(cleanCallCount % 20 === 0)) {
+        invalidate: function (contentIds) {
+            if (contentIds.length < 1) {
                 return;
             }
-
-            log('%cclear', 'color: blue');
 
             // clean out unused cache entries before making call to restore
             var cleanCache = { };
 
-            $('[data-rtc-content-id]').each(function() {
-                var contentId = $(this).attr('data-rtc-content-id');
-                var cachedData = cache[contentId];
+            $.each(contentIds, function (i, contentId) {
+                var contentData = cache[contentId];
 
-                if (cachedData) {
-                    cleanCache[contentId] = cachedData;
+                if (contentData) {
+                    cleanCache[contentId] = contentData;
                 }
             });
 
             cache = cleanCache;
+
+            log('%cinvalidate', 'color: blue', 'keep: ' + contentIds);
         }
     };
 });

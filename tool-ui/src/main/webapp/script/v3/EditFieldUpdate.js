@@ -175,6 +175,8 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
         })
     });
 
+    var invalidateTimeout;
+
     bsp_utils.onDomInsert(document, '[data-rtc-content-id]', {
         insert: function (container) {
             var $container = $(container);
@@ -267,7 +269,17 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
             });
 
             if (contentIds.length > 0) {
-                efu_cache.clearUnused();
+                if (invalidateTimeout) {
+                    clearTimeout(invalidateTimeout);
+                }
+
+                invalidateTimeout = setTimeout(function () {
+                    invalidateTimeout = null;
+
+                    efu_cache.invalidate($('[data-rtc-content-id]').map(function () {
+                        return $(this).attr('data-rtc-content-id');
+                    }).get());
+                }, 5000);
 
                 rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
                     contentId: contentIds
