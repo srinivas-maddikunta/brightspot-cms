@@ -13,13 +13,9 @@ define(['jquery'], function($) {
                 return window.LOG_VIEWERS_REPORTS && typeof console !== "undefined";
             },
 
-            report = function(force) {
+            report = function() {
 
                 if (!debugViewersCache()) {
-                    return;
-                }
-
-                if (force !== true && !((putCount + fetchCount) % 15 === 0)) {
                     return;
                 }
 
