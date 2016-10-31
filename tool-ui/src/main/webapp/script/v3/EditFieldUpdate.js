@@ -250,7 +250,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
                     var contentId = $container.attr('data-rtc-content-id');
 
                     if (contentId) {
-                        var contentData = VIEWERS_CACHE.fetch(contentId);
+                        var contentData = efu_cache.fetch(contentId);
                         var i;
 
                         if (typeof contentData === 'object' && contentData instanceof Array) {
