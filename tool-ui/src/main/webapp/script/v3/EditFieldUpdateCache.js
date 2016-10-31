@@ -28,40 +28,6 @@ define(['jquery'], function($) {
         );
     }
 
-    // caches the specified viewer data in the specified cache object,
-    // keyed by contentId then userId.
-    function cacheData(cache, data) {
-
-        putCount += 1;
-
-        var contentId = data.contentId,
-            userId = data.userId,
-            contentData,
-            userDataIndex = undefined,
-            i;
-
-        contentData = cache[contentId];
-
-        if (contentData === undefined) {
-            contentData = [ ];
-            cache[contentId] = contentData;
-        }
-
-        for (i = 0; i < contentData.length; i += 1) {
-            if (contentData[i].userId === userId) {
-                userDataIndex = i;
-            }
-        }
-
-        if (userDataIndex !== undefined && userDataIndex >= 0) {
-            contentData.splice(userDataIndex, 1, data);
-        } else {
-            contentData.push(data);
-        }
-
-        report();
-    }
-
     // fetches data from cache
     function fetchData(contentId) {
 
@@ -70,10 +36,6 @@ define(['jquery'], function($) {
         report();
 
         return viewerDataCache[contentId];
-    }
-
-    function containsKey(key) {
-        return viewerDataCache[key];
     }
 
     return {
@@ -98,13 +60,43 @@ define(['jquery'], function($) {
                 // pre-seeded to ensure that data in the
                 // cache was intentionally placed there
                 // starting with a restore
-                if (containsKey(data.contentId)) {
+                if (viewerDataCache[data.contentId]) {
 
                     if (debugViewersCache()) {
                         console.log("PUT", data.contentId);
                     }
 
-                    cacheData(viewerDataCache, data);
+                    // caches the specified viewer data in the specified cache object,
+                    // keyed by contentId then userId.
+                    putCount += 1;
+
+                    var contentId = data.contentId,
+                            userId = data.userId,
+                            contentData,
+                            userDataIndex = undefined,
+                            i;
+
+                    contentData = viewerDataCache[contentId];
+
+                    if (contentData === undefined) {
+                        contentData = [ ];
+                        viewerDataCache[contentId] = contentData;
+                    }
+
+                    for (i = 0; i < contentData.length; i += 1) {
+                        if (contentData[i].userId === userId) {
+                            userDataIndex = i;
+                        }
+                    }
+
+                    if (userDataIndex !== undefined && userDataIndex >= 0) {
+                        contentData.splice(userDataIndex, 1, data);
+                    } else {
+                        contentData.push(data);
+                    }
+
+                    report();
+
                 } else {
 
                     if (debugViewersCache()) {
