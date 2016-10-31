@@ -243,6 +243,11 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
         },
 
         afterInsert: function (containers) {
+
+            // restores viewer data on the specified containers,
+            // fetching from cache if available, otherwise making
+            // an rtc.restore call for the data
+
             var contentIds = [ ];
 
             $(containers).each(function () {
@@ -252,12 +257,29 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
                     var contentId = $container.attr('data-rtc-content-id');
 
                     if (contentId) {
-                        contentIds.push(contentId);
+
+                        var contentData = VIEWERS_CACHE.fetch(contentId);
+                        var i;
+                        if (typeof contentData === 'object' && contentData instanceof Array) {
+
+                            for (i = 0; i < contentData.length; i += 1) {
+
+                                updateContainer($container, contentData[i]);
+                            }
+
+                        } else {
+
+                            efu_cache.putEmpty(contentId);
+                            contentIds.push(contentId);
+                        }
                     }
                 }
             });
 
             if (contentIds.length > 0) {
+
+                efu_cache.clearUnused();
+
                 rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
                     contentId: contentIds
                 });
