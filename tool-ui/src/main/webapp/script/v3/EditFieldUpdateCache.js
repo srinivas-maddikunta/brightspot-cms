@@ -1,81 +1,80 @@
 define(['jquery'], function($) {
-    var viewerDataCache = { },
-        hitCount = 0,
-        missCount = 0,
-        fetchCount = 0,
-        putCount = 0,
-        cleanCallCount = 0,
+    var viewerDataCache = { };
+    var hitCount = 0;
+    var missCount = 0;
+    var fetchCount = 0;
+    var putCount = 0;
+    var cleanCallCount = 0;
 
-        debugViewersCache = function() {
-            return window.LOG_VIEWERS_REPORTS && typeof console !== "undefined";
-        },
+    function debugViewersCache() {
+        return window.LOG_VIEWERS_REPORTS && typeof console !== "undefined";
+    }
 
-        report = function() {
+    function report() {
+        if (!debugViewersCache()) {
+            return;
+        }
 
-            if (!debugViewersCache()) {
-                return;
-            }
+        var total = hitCount + missCount,
+            ratio = (total === 0 && hitCount === 0) ? 0.0 : (total === 0 ? 1.0 : (hitCount === 0 ? 0.0 : hitCount / total));
 
-            var total = hitCount + missCount,
-                ratio = (total === 0 && hitCount === 0) ? 0.0 : (total === 0 ? 1.0 : (hitCount === 0 ? 0.0 : hitCount / total));
+        ratio *= 100;
 
-            ratio *= 100;
-
-            console.log(
-                "putCount: ", putCount,
-                ", fetchCount: ", fetchCount,
-                ", ratio: ", ratio + "%",
-                "size: ", Object.keys(viewerDataCache).length
-            );
-        },
+        console.log(
+            "putCount: ", putCount,
+            ", fetchCount: ", fetchCount,
+            ", ratio: ", ratio + "%",
+            "size: ", Object.keys(viewerDataCache).length
+        );
+    }
 
     // caches the specified viewer data in the specified cache object,
     // keyed by contentId then userId.
-        cacheData = function(cache, data) {
+    function cacheData(cache, data) {
 
-            putCount += 1;
+        putCount += 1;
 
-            var contentId = data.contentId,
-                userId = data.userId,
-                contentData,
-                userDataIndex = undefined,
-                i;
+        var contentId = data.contentId,
+            userId = data.userId,
+            contentData,
+            userDataIndex = undefined,
+            i;
 
-            contentData = cache[contentId];
+        contentData = cache[contentId];
 
-            if (contentData === undefined) {
-                contentData = [ ];
-                cache[contentId] = contentData;
+        if (contentData === undefined) {
+            contentData = [ ];
+            cache[contentId] = contentData;
+        }
+
+        for (i = 0; i < contentData.length; i += 1) {
+            if (contentData[i].userId === userId) {
+                userDataIndex = i;
             }
+        }
 
-            for (i = 0; i < contentData.length; i += 1) {
-                if (contentData[i].userId === userId) {
-                    userDataIndex = i;
-                }
-            }
+        if (userDataIndex !== undefined && userDataIndex >= 0) {
+            contentData.splice(userDataIndex, 1, data);
+        } else {
+            contentData.push(data);
+        }
 
-            if (userDataIndex !== undefined && userDataIndex >= 0) {
-                contentData.splice(userDataIndex, 1, data);
-            } else {
-                contentData.push(data);
-            }
-
-            report();
-        },
+        report();
+    }
 
     // fetches data from cache
-        fetchData = function(contentId) {
+    function fetchData(contentId) {
 
-            fetchCount += 1;
+        fetchCount += 1;
 
-            report();
+        report();
 
-            return viewerDataCache[contentId];
-        },
+        return viewerDataCache[contentId];
+    }
 
-        containsKey = function(key) {
-            return viewerDataCache[key];
-        };
+    function containsKey(key) {
+        return viewerDataCache[key];
+    }
 
     return {
 
