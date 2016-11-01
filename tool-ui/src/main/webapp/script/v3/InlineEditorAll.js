@@ -410,8 +410,11 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
          * in the iframe editor.
          */
         reload: function() {
-            // Reload the page without using the browser cache
-            document.location.reload(true);
+            var w;
+            w = window.parent;
+            if (w) {
+                w.location.reload();
+            }
         }
     };
     
