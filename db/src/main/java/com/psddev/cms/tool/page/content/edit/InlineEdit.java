@@ -65,7 +65,6 @@ public class InlineEdit extends PageServlet {
         UUID id = state.getId();
         ObjectType type = state.getType();
 
-        String typeLabel = page.getTypeLabel(object);
         String iconName = "object";
         String buttonText = page.localize(type, "action.save");
 
@@ -126,7 +125,7 @@ public class InlineEdit extends PageServlet {
                                     page.writeStart("span", "class", "breadcrumbItem icon icon-" + iconName); {
                                         page.writeHtml(page.localize(
                                                 InlineEdit.class,
-                                                ImmutableMap.of("label", typeLabel),
+                                                ImmutableMap.of("label", page.getTypeLabel(object)),
                                                 "title.heading"));
                                         page.writeHtml(": ");
                                         page.writeStart("span",
