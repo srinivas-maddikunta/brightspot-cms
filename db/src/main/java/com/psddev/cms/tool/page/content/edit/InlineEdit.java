@@ -94,9 +94,9 @@ public class InlineEdit extends PageServlet {
                         .writeEnd();
 
                 page.writeStart("style", "type", "text/css"); {
-                    page.writeCss("body", "background", "transparent", "margin-left", "10px", "margin-right", "10px");
+                    page.writeCss("body, .toolContent", "background", "transparent");
+                    page.writeCss("body", "margin-left", "10px", "margin-right", "10px");
                     page.writeCss(".toolHeader", "display", "none");
-                    page.writeCss(".toolContent", "background", "transparent");
                     page.writeCss(".widget.widget-content", "box-shadow", "none");
                 }
                 page.writeEnd();
