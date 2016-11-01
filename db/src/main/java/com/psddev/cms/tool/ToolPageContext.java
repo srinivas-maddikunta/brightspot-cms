@@ -3701,8 +3701,29 @@ public class ToolPageContext extends WebPageContext {
 
         try {
             state.beginWrites();
-            state.as(Workflow.Data.class).changeState(null, user, (WorkflowLog) null);
-            state.as(Workflow.Data.class).setCurrentLog(null);
+
+            Schedule schedule = user.getCurrentSchedule();
+            Date publishDate = null;
+
+            if (schedule == null) {
+                publishDate = getContentFormPublishDate();
+
+            } else if (draft == null) {
+                draft = Query
+                        .from(Draft.class)
+                        .where("schedule = ?", schedule)
+                        .and("objectId = ?", object)
+                        .first();
+            }
+
+            Workflow.Data workflowData = state.as(Workflow.Data.class);
+
+            if ((schedule != null || publishDate != null) && workflowData.getCurrentState() != null) {
+                contentData.setDraft(true);
+            }
+
+            workflowData.changeState(null, user, (WorkflowLog) null);
+            workflowData.setCurrentLog(null);
 
             if (variationId == null
                     || (site != null
@@ -3751,20 +3772,6 @@ public class ToolPageContext extends WebPageContext {
                 State.getInstance(original).getExtras().put("cms.variedObject", object);
                 object = original;
                 state = State.getInstance(object);
-            }
-
-            Schedule schedule = user.getCurrentSchedule();
-            Date publishDate = null;
-
-            if (schedule == null) {
-                publishDate = getContentFormPublishDate();
-
-            } else if (draft == null) {
-                draft = Query
-                        .from(Draft.class)
-                        .where("schedule = ?", schedule)
-                        .and("objectId = ?", object)
-                        .first();
             }
 
             if (schedule != null || publishDate != null) {
