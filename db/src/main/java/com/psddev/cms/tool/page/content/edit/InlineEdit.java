@@ -37,17 +37,21 @@ public class InlineEdit extends PageServlet {
             throw new IllegalArgumentException("No object found!");
         }
 
-        Boolean error = null;
+        boolean error = false;
 
         if (page.isFormPost() && page.param(String.class, "action-publish") != null) {
 
             try {
                 page.include("/WEB-INF/objectPost.jsp", "object", object);
                 page.publish(object);
-                error = Boolean.FALSE;
+                page.writeStart("script", "type", "text/javascript"); {
+                    page.writeRaw("parent.postMessage('brightspot-updated', '*');");
+                }
+                page.writeEnd();
+                return;
 
             } catch (Exception e) {
-                error = Boolean.TRUE;
+                error = true;
             }
         }
 
@@ -151,20 +155,21 @@ public class InlineEdit extends PageServlet {
                                 page.writeEnd();
 
                                 // Error message
-                                if (Boolean.TRUE.equals(error)) {
+                                if (error) {
                                     page.writeStart("div", "class", "message message-error"); {
                                         page.writeHtml(page.localize("com.psddev.cms.tool.page.content.Errors", "error.validation"));
                                     }
                                     page.writeEnd();
+                                }
 
                                 // Success message
-                                } else if (Boolean.FALSE.equals(error)) {
+                                /*} else if (Boolean.FALSE.equals(error)) {
                                     page.include("/WEB-INF/objectMessage.jsp", "object", object);
                                     page.writeStart("script", "type", "text/javascript"); {
                                         page.writeRaw("$('.Message-returnToDashboard').hide();");
                                     }
                                     page.writeEnd();
-                                }
+                                }*/
 
                                 // Fields
                                 page.writeSomeFormFields(object, false, fields.isEmpty() ? null : fields, null);
