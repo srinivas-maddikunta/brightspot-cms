@@ -3701,8 +3701,6 @@ public class ToolPageContext extends WebPageContext {
 
         try {
             state.beginWrites();
-            state.as(Workflow.Data.class).changeState(null, user, (WorkflowLog) null);
-            state.as(Workflow.Data.class).setCurrentLog(null);
 
             if (variationId == null
                     || (site != null
@@ -3752,6 +3750,11 @@ public class ToolPageContext extends WebPageContext {
                 object = original;
                 state = State.getInstance(object);
             }
+
+            Workflow.Data workflowData = state.as(Workflow.Data.class);
+
+            workflowData.changeState(null, user, (WorkflowLog) null);
+            workflowData.setCurrentLog(null);
 
             Schedule schedule = user.getCurrentSchedule();
             Date publishDate = null;
