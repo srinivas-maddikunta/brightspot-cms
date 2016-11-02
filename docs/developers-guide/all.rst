@@ -4,13 +4,14 @@
 
    <h1>Developer Support Guide</h1>
 
+   {{ toc }}
+
 .. toctree::
-    
+
     Developer Support <self>
     content-modeling/all
     annotations/all
     templating/all
-    brightspot-base/all
     query/all
     dari-tools/all
     customization/all
