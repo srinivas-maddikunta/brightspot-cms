@@ -3,7 +3,9 @@ package com.psddev.cms.db;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.ObjectFieldComparator;
@@ -97,61 +99,82 @@ public interface Taxon extends Recordable {
             }
 
             List<T> roots = query.selectAll();
-            filter(roots, predicate);
-            sort(roots);
 
-            return roots;
+            // If there's no children, we can just return the empty list
+            if (roots.isEmpty()) {
+                return roots;
+            }
+
+            // If there's nothing to filter on, just return the list, sorted
+            if (predicate == null) {
+                return roots.stream()
+                        .sorted(Taxon.Static.getSorter(roots))
+                        .collect(Collectors.toList());
+            }
+
+            // mark the roots that don't match the predicate as not selectable
+            roots.stream()
+                    .filter(taxon -> !PredicateParser.Static.evaluate(taxon, predicate))
+                    .forEach(taxon -> taxon.as(Taxon.Data.class).setSelectable(false));
+
+            // Filter out any roots that are not selectable AND have no children that are selectable
+            return roots.stream()
+                    .filter(taxon -> taxon.as(Taxon.Data.class).isSelectable() || hasChildren(taxon, predicate))
+                    .sorted(Taxon.Static.getSorter(roots))
+                    .collect(Collectors.toList());
+        }
+
+        public static <T extends Taxon> boolean hasChildren(T taxon, Predicate predicate) {
+            return taxon.getChildren().stream()
+                    .anyMatch(childTaxon -> PredicateParser.Static.evaluate(childTaxon, predicate) || hasChildren(childTaxon, predicate));
         }
 
         public static <T extends Taxon> List<? extends Taxon> getChildren(T taxon, Predicate predicate) {
-            List<Taxon> children = new ArrayList<Taxon>();
-
-            if (taxon != null) {
-                children.addAll(taxon.getChildren());
+            if (taxon == null) {
+                return Collections.emptyList();
             }
 
-            filter(children, predicate);
-            sort(children);
+            List<Taxon> children = new ArrayList<>();
+            children.addAll(taxon.getChildren());
 
-            return children;
-        }
-
-        private static <T extends Taxon> void sort(List<T> taxa) {
-            if (taxa != null && !taxa.isEmpty()) {
-                ObjectType taxonType = taxa.get(0).getState().getType();
-                ToolUi ui = taxonType.as(ToolUi.class);
-                if (!ObjectUtils.isBlank(ui.getDefaultSortField())) {
-                    Collections.sort(taxa, new ObjectFieldComparator(ui.getDefaultSortField(), true));
-                }
+            // If there's no children, we can just return the empty list
+            if (children.isEmpty()) {
+                return children;
             }
-        }
 
-        /*
-         * This applies the given predicate (usually @Where) to the list.
-         * It completely filters out items that do not match the predicate AND do not have any children that do match the predicate.
-         * If any items in the list have children that should not be filtered out, they are included with Taxon.Data#isSelectable = false.
-         * SearchResultRenderer uses this flag to make the parent navigable but not selectable.
-         */
-        private static <T extends Taxon> void filter(List<T> taxa, Predicate predicate) {
-            if (taxa != null && predicate != null) {
-                for (T t : new ArrayList<T>(taxa)) {
-                    if (!PredicateParser.Static.evaluate(t, predicate)) {
-                        List<? extends Taxon> children = getChildren(t, null);
-                        if (children.isEmpty()) {
-                            taxa.remove(t);
-                        } else {
-                            filter(children, predicate);
-                            if (children.isEmpty()) {
-                                taxa.remove(t);
-                            } else {
-                                t.as(Taxon.Data.class).setSelectable(false);
-                            }
-                        }
-                    }
-                }
+            // If there's nothing to filter on, just return the list, sorted
+            if (predicate == null) {
+                return children.stream()
+                        .sorted(Taxon.Static.getSorter(children))
+                        .collect(Collectors.toList());
             }
+
+            // mark the roots that don't match the predicate as not selectable
+            children.stream()
+                    .filter(child -> !PredicateParser.Static.evaluate(child, predicate))
+                    .forEach(child -> child.as(Taxon.Data.class).setSelectable(false));
+
+            // Filter out any roots that are not selectable AND have no children that are selectable
+            return children.stream()
+                    .filter(child -> child.as(Taxon.Data.class).isSelectable() || hasChildren(child, predicate))
+                    .sorted(Taxon.Static.getSorter(children))
+                    .collect(Collectors.toList());
         }
 
+        public static <T extends Taxon> Comparator<T> getSorter(List<T> taxons) {
+            if (ObjectUtils.isBlank(taxons)) {
+                return (o1, o2) -> 0;
+            }
+
+            ObjectType taxonType = taxons.get(0).getState().getType();
+            ToolUi ui = taxonType.as(ToolUi.class);
+            if (ObjectUtils.isBlank(ui.getDefaultSortField())) {
+                return (o1, o2) -> 0;
+            }
+
+            ObjectFieldComparator comparator = new ObjectFieldComparator(ui.getDefaultSortField(), true);
+            return (o1, o2) -> comparator.compare(o1, o2);
+        }
     }
 
 }
