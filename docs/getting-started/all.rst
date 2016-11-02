@@ -7,8 +7,8 @@
 .. toctree::
 
     Getting Started <self>
-    /getting-started/intro/all
-    /getting-started/install/all
-    /getting-started/hello-world/all
-    /getting-started/creating-content/all
-    /getting-started/license/all
+    intro/all
+    install/all
+    hello-world/all
+    creating-content/all
+    license/all
