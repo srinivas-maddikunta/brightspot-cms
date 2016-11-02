@@ -100,28 +100,7 @@ public interface Taxon extends Recordable {
 
             List<T> roots = query.selectAll();
 
-            // If there's no children, we can just return the empty list
-            if (roots.isEmpty()) {
-                return roots;
-            }
-
-            // If there's nothing to filter on, just return the list, sorted
-            if (predicate == null) {
-                return roots.stream()
-                        .sorted(Taxon.Static.getSorter(roots))
-                        .collect(Collectors.toList());
-            }
-
-            // mark the roots that don't match the predicate as not selectable
-            roots.stream()
-                    .filter(taxon -> !PredicateParser.Static.evaluate(taxon, predicate))
-                    .forEach(taxon -> taxon.as(Taxon.Data.class).setSelectable(false));
-
-            // Filter out any roots that are not selectable AND have no children that are selectable
-            return roots.stream()
-                    .filter(taxon -> taxon.as(Taxon.Data.class).isSelectable() || hasChildren(taxon, predicate))
-                    .sorted(Taxon.Static.getSorter(roots))
-                    .collect(Collectors.toList());
+            return filter(roots, predicate);
         }
 
         public static <T extends Taxon> boolean hasChildren(T taxon, Predicate predicate) {
@@ -137,28 +116,7 @@ public interface Taxon extends Recordable {
             List<Taxon> children = new ArrayList<>();
             children.addAll(taxon.getChildren());
 
-            // If there's no children, we can just return the empty list
-            if (children.isEmpty()) {
-                return children;
-            }
-
-            // If there's nothing to filter on, just return the list, sorted
-            if (predicate == null) {
-                return children.stream()
-                        .sorted(Taxon.Static.getSorter(children))
-                        .collect(Collectors.toList());
-            }
-
-            // mark the roots that don't match the predicate as not selectable
-            children.stream()
-                    .filter(child -> !PredicateParser.Static.evaluate(child, predicate))
-                    .forEach(child -> child.as(Taxon.Data.class).setSelectable(false));
-
-            // Filter out any roots that are not selectable AND have no children that are selectable
-            return children.stream()
-                    .filter(child -> child.as(Taxon.Data.class).isSelectable() || hasChildren(child, predicate))
-                    .sorted(Taxon.Static.getSorter(children))
-                    .collect(Collectors.toList());
+            return filter(children, predicate);
         }
 
         public static <T extends Taxon> Comparator<T> getSorter(List<T> taxons) {
@@ -174,6 +132,31 @@ public interface Taxon extends Recordable {
 
             ObjectFieldComparator comparator = new ObjectFieldComparator(ui.getDefaultSortField(), true);
             return (o1, o2) -> comparator.compare(o1, o2);
+        }
+
+        public static <T extends Taxon> List<T> filter(List<T> taxons, Predicate predicate) {
+            // If there's no items, we can just return the empty list
+            if (taxons.isEmpty()) {
+                return taxons;
+            }
+
+            // If there's nothing to filter on, just return the list, sorted
+            if (predicate == null) {
+                return taxons.stream()
+                        .sorted(getSorter(taxons))
+                        .collect(Collectors.toList());
+            }
+
+            // mark the roots that don't match the predicate as not selectable
+            taxons.stream()
+                    .filter(taxon -> !PredicateParser.Static.evaluate(taxon, predicate))
+                    .forEach(child -> child.as(Taxon.Data.class).setSelectable(false));
+
+            // Filter out any roots that are not selectable AND have no children that are selectable
+            return taxons.stream()
+                    .filter(taxon -> taxon.as(Taxon.Data.class).isSelectable() || hasChildren(taxon, predicate))
+                    .sorted(getSorter(taxons))
+                    .collect(Collectors.toList());
         }
     }
 
