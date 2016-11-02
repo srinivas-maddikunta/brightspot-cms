@@ -4,8 +4,6 @@
 
    <h1>Developer Support Guide</h1>
 
-{{ toc }}
-
 .. toctree::
 
     Developer Support <self>
