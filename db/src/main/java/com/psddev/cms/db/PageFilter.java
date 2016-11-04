@@ -368,6 +368,22 @@ public class PageFilter extends AbstractFilter {
         ToolUser user = AuthenticationFilter.Static.getInsecureToolUser(request);
         request.setAttribute("toolUser", user);
 
+        CmsTool cms = Query.from(CmsTool.class).first();
+
+        if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
+            String origin = request.getHeader("origin");
+
+            if (origin != null) {
+                if (origin.endsWith("/")) {
+                    origin = origin.substring(0, origin.length() - 1);
+                }
+
+                if (Query.from(Site.class).where("urls = ?", origin).hasMoreThan(0)) {
+                    response.setHeader("Access-Control-Allow-Origin", origin);
+                }
+            }
+        }
+
         VaryingDatabase varying = new VaryingDatabase();
         varying.setDelegate(Database.Static.getDefault());
         varying.setRequest(request);
@@ -567,8 +583,6 @@ public class PageFilter extends AbstractFilter {
                             break SCHEDULED;
                         }
                     }
-
-                    CmsTool cms = Query.from(CmsTool.class).first();
 
                     if (user == null || (cms != null && cms.isDisableInvisibleContentPreview())) {
                         if (Settings.isProduction()) {

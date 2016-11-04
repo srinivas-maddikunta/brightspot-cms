@@ -1,6 +1,7 @@
 package com.psddev.cms.rtc;
 
 import com.google.common.collect.ImmutableMap;
+import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.cms.tool.CmsTool;
@@ -107,12 +108,29 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
             return;
         }
 
-        // RTC disabled?
         CmsTool cms = Query.from(CmsTool.class).first();
 
-        if (cms != null && cms.isDisableRtc()) {
-            chain.doFilter(request, response);
-            return;
+        if (cms != null) {
+
+            // RTC disabled?
+            if (cms.isDisableRtc()) {
+                chain.doFilter(request, response);
+                return;
+            }
+
+            if (cms.isEnableCrossDomainInlineEditing()) {
+                String origin = request.getHeader("origin");
+
+                if (origin != null) {
+                    if (origin.endsWith("/")) {
+                        origin = origin.substring(0, origin.length() - 1);
+                    }
+
+                    if (Query.from(Site.class).where("urls = ?", origin).hasMoreThan(0)) {
+                        response.setHeader("Access-Control-Allow-Origin", origin);
+                    }
+                }
+            }
         }
 
         // Make sure that the user is available.
