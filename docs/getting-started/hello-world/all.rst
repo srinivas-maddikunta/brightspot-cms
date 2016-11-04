@@ -253,4 +253,4 @@ To access all articles externally, you can generate an API for use outside of Br
         }
     }
     
-Access http://www.yoursite.com/api-feed to view a JSON result of the constructed query.
+Access ```http://<your-domain>/api-feed``` to view a JSON result of the constructed query.
