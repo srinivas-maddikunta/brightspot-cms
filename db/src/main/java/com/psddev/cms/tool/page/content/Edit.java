@@ -1,5 +1,6 @@
 package com.psddev.cms.tool.page.content;
 
+import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Draft;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
@@ -14,6 +15,7 @@ import com.psddev.dari.util.ObjectUtils;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -140,6 +142,14 @@ public class Edit {
                 .first();
 
         if (wip == null) {
+            return;
+        }
+
+        Date wipUpdate = wip.getUpdateDate();
+        Date contentUpdate = State.getInstance(content).as(Content.ObjectModification.class).getUpdateDate();
+
+        if (wipUpdate != null && contentUpdate != null && wipUpdate.getTime() >= contentUpdate.getTime()) {
+            wip.delete();
             return;
         }
 
