@@ -2011,6 +2011,7 @@ public class ToolPageContext extends WebPageContext {
                     getCmsTool().isDisableCodeMirrorRichTextEditor()
                             || (getUser() != null && getUser().isDisableCodeMirrorRichTextEditor()), ';');
             write("var DISABLE_RTC = ", getCmsTool().isDisableRtc(), ';');
+            write("var DISABLE_EDIT_FIELD_UPDATE_CACHE = ", getCmsTool().isDisableEditFieldUpdateCache(), ';');
             write("var DISABLE_AJAX_SAVES = ", getCmsTool().isDisableAjaxSaves(), ';');
         writeEnd();
 
