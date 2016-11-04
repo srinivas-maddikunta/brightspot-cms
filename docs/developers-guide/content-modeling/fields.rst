@@ -162,7 +162,7 @@ This field can be implemented into an Object by adding private List<Author> auth
         private List<Author> authors; 
     }
 
-http://cdn.brightspotcms.psdops.com/dims4/default/4ca2a6e/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F08%2F06%2F9feb1745466081025b0fa8922dfb%2Fscreen-shot-2014-11-12-at-121942-pmpng.4%20-%20List%20Field.png
+.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/4ca2a6e/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F08%2F06%2F9feb1745466081025b0fa8922dfb%2Fscreen-shot-2014-11-12-at-121942-pmpng.4%20-%20List%20Field.png
 
 Set Fields
 ~~~~~~~~~~
