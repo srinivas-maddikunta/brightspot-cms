@@ -1419,6 +1419,7 @@ public class ToolPageContext extends WebPageContext {
                 "data-time-zone", getUserDateTimeZone().getID(),
                 "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag());
             writeStart("head");
+                writeElement("base", "href", fullyQualifiedToolUrl(CmsTool.class, ""));
                 writeStart("title");
                     if (!ObjectUtils.isBlank(title)) {
                         writeHtml(title);
