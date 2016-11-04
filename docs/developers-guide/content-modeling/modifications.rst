@@ -8,7 +8,7 @@ Application Object Modifications
 
 One example of implementing an application object modification is a global property, promoTitle or promoImage, that needs to be added to a group of objects like Blog, Article, Image, or Slideshow. They do not inherit from one global class that can be changed, so there is no quick means to apply the property to them all. You can use a modification to add the fields to all objects.
 
-Step 1: Create Common Interface
+**Step 1: Create Common Interface**
 
 Create an interface that all inheriting classes will implement:
 
@@ -18,7 +18,7 @@ Create an interface that all inheriting classes will implement:
 
     }
 
-Step 2: Create Modification Class
+**Step 2: Create Modification Class**
 
 In the interface, create a static class to contain the modification class properties. In this example, a promo title and image will be added to any classes implementing the Promotable interface. The name of the@BeanProperty path is used when accessing these properties:
 
@@ -37,7 +37,7 @@ In the interface, create a static class to contain the modification class proper
         }
     }
 
-Step 3: Implement Modification
+**Step 3: Implement Modification**
 
 Add interface implementation to any classes that should be Promotable:
 
@@ -52,7 +52,7 @@ Add interface implementation to any classes that should be Promotable:
 
     }
 
-Accessing Modification Fields
+**Accessing Modification Fields**
 
 In the example above, a new promoTitle and promoImage can be added to the objects implementing the interface. To access these fields when rendering the content the @BeanProperty("data") is used:
 

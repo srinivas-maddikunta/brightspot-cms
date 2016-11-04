@@ -29,7 +29,7 @@ Brightspot's Rich Text Editor is even better in 3.2. Anchor links are now suppor
 Search Improvements
 ===================
 
-Tou can now multi-select images in grid view by clicking anywhere on the image. Search will now offer you options to create new content based on the content you've chosen. For example, if you've chosen multiple images, Brightspot will offer a "Create New Gallery" button. You can also save your multi-selected content as a Selection, which you can return to later, use for bulk actions, or convert into a Workstream.
+You can now multi-select images in grid view by clicking anywhere on the image. Search will now offer you options to create new content based on the content you've chosen. For example, if you've chosen multiple images, Brightspot will offer a "Create New Gallery" button. You can also save your multi-selected content as a Selection, which you can return to later, use for bulk actions, or convert into a Workstream.
 
 Dashboard Improvements
 ======================
