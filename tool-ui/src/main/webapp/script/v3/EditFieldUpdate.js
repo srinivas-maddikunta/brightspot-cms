@@ -231,7 +231,7 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
                 updateTimeout = setTimeout(function () {
                     updateTimeout = null;
                     update();
-                }, 50);
+                }, 1000);
             }
 
             $container.on('blur focus change', ':input', throttledUpdate);
