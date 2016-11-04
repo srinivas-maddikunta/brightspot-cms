@@ -291,7 +291,7 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
             self.listenerOpen();
 
             // Set up the iframe to resize automatically.
-            self.$iframe.iFrameResize();
+            self.$iframe.iFrameResize({checkOrigin:false});
         },
 
 
