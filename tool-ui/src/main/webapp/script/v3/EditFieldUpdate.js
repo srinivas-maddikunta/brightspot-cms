@@ -100,7 +100,9 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
             return;
         }
 
-        efu_cache.put(data);
+        if (!window.DISABLE_EDIT_FIELD_UPDATE_CACHE) {
+            efu_cache.put(data);
+        }
 
         var userId = data.userId;
         var fieldNamesByObjectId = data.fieldNamesByObjectId;
@@ -252,16 +254,22 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
                     var contentId = $container.attr('data-rtc-content-id');
 
                     if (contentId) {
-                        var contentData = efu_cache.get(contentId);
-                        var i;
 
-                        if (typeof contentData === 'object' && contentData instanceof Array) {
-                            for (i = 0; i < contentData.length; i += 1) {
-                                updateContainer($container, contentData[i]);
+                        if (!window.DISABLE_EDIT_FIELD_UPDATE_CACHE) {
+                            var contentData = efu_cache.get(contentId);
+                            var i;
+
+                            if (typeof contentData === 'object' && contentData instanceof Array) {
+                                for (i = 0; i < contentData.length; i += 1) {
+                                    updateContainer($container, contentData[i]);
+                                }
+
+                            } else {
+
+                                efu_cache.init(contentId);
+                                contentIds.push(contentId);
                             }
-
                         } else {
-                            efu_cache.init(contentId);
                             contentIds.push(contentId);
                         }
                     }
@@ -269,17 +277,20 @@ define([ 'jquery', 'bsp-utils', 'v3/rtc', 'v3/color-utils', 'v3/EditFieldUpdateC
             });
 
             if (contentIds.length > 0) {
-                if (invalidateTimeout) {
-                    clearTimeout(invalidateTimeout);
+
+                if (!window.DISABLE_EDIT_FIELD_UPDATE_CACHE) {
+                    if (invalidateTimeout) {
+                        clearTimeout(invalidateTimeout);
+                    }
+
+                    invalidateTimeout = setTimeout(function () {
+                        invalidateTimeout = null;
+
+                        efu_cache.invalidate($('[data-rtc-content-id]').map(function () {
+                            return $(this).attr('data-rtc-content-id');
+                        }).get());
+                    }, 5000);
                 }
-
-                invalidateTimeout = setTimeout(function () {
-                    invalidateTimeout = null;
-
-                    efu_cache.invalidate($('[data-rtc-content-id]').map(function () {
-                        return $(this).attr('data-rtc-content-id');
-                    }).get());
-                }, 5000);
 
                 rtc.restore('com.psddev.cms.tool.page.content.EditFieldUpdateState', {
                     contentId: contentIds
