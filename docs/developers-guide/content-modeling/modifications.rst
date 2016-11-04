@@ -52,7 +52,7 @@ Add interface implementation to any classes that should be Promotable:
 
     }
 
-Accessing Modification Fields
+**Accessing Modification Fields**
 
 In the example above, a new promoTitle and promoImage can be added to the objects implementing the interface. To access these fields when rendering the content the @BeanProperty("data") is used:
 
