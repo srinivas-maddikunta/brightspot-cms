@@ -59,8 +59,6 @@ public class InlineEdit extends PageServlet {
     }
 
     private void writeForm(ToolPageContext page, Object object, List<String> fields, Boolean error) throws IOException, ServletException {
-        Site site = page.getSite();
-        ToolUser user = page.getUser();
         State state = State.getInstance(object);
         UUID id = state.getId();
         ObjectType type = state.getType();
@@ -76,106 +74,86 @@ public class InlineEdit extends PageServlet {
                     ui.isPublishable() ? page.localize(type, "action.publish") : buttonText);
         }
 
-        page.writeTag("!doctype html");
-        page.writeStart("html",
-                "class", site != null ? site.getCmsCssClass() : null,
-                "data-user-id", user != null ? user.getId() : null,
-                "data-user-label", user != null ? user.getLabel() : null,
-                "data-time-zone", page.getUserDateTimeZone().getID(),
-                "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag()); {
+        page.writeHeader(null, false); {
+            page.writeStart("script",
+                    "type", "text/javascript",
+                    "src", page.cmsUrl("/script/iframeResizer.contentWindow.js"))
+                    .writeEnd();
 
-            page.writeStart("head"); {
-                page.writeStylesAndScripts();
-
-                page.writeStart("script",
-                        "type", "text/javascript",
-                        "src", page.cmsUrl("/script/iframeResizer.contentWindow.js"))
-                        .writeEnd();
-
-                page.writeStart("style", "type", "text/css"); {
-                    page.writeCss("body, .toolContent", "background", "transparent");
-                    page.writeCss("body", "margin-left", "10px", "margin-right", "10px");
-                    page.writeCss(".toolHeader", "display", "none");
-                    page.writeCss(".widget.widget-content", "box-shadow", "none");
-                }
-                page.writeEnd();
+            page.writeStart("style", "type", "text/css"); {
+                page.writeCss(".toolBroadcast, .toolHeader, .toolBackground, .toolFooter", "display", "none");
+                page.writeCss("body, .toolContent", "background", "transparent");
+                page.writeCss("body", "margin-left", "10px", "margin-right", "10px");
+                page.writeCss(".widget.widget-content", "box-shadow", "none");
             }
             page.writeEnd();
 
-            page.writeStart("body"); {
-                page.writeStart("div", "class", "toolHeader").writeEnd();
-                page.writeStart("div", "class", "toolContent"); {
+            // Form
+            page.writeStart("form",
+                    "class", "standardForm",
+                    "method", "post",
+                    "enctype", "multipart/form-data",
+                    "action", page.url(""),
+                    "autocomplete", "off",
+                    "data-rtc-content-id", page.getCmsTool().isDisableFieldLocking() ? null : id,
+                    "data-object-id", id,
+                    "data-type", type != null ? type.getInternalName() : null); {
 
-                    // Form
-                    page.writeStart("form",
-                            "class", "standardForm",
-                            "method", "post",
-                            "enctype", "multipart/form-data",
-                            "action", page.url(""),
-                            "autocomplete", "off",
-                            "data-rtc-content-id", page.getCmsTool().isDisableFieldLocking() ? null : id,
-                            "data-object-id", id,
-                            "data-type", type != null ? type.getInternalName() : null); {
+                page.writeStart("div", "class", "contentForm-main inline"); {
+                    page.writeStart("div", "class", "widget widget-content"); {
 
-                        page.writeStart("div", "class", "contentForm-main inline"); {
-                            page.writeStart("div", "class", "widget widget-content"); {
+                        // Heading
+                        page.writeStart("h1", "class", "breadcrumbs"); {
+                            page.writeStart("span", "class", "breadcrumbItem icon icon-" + iconName); {
+                                page.writeHtml(page.localize(
+                                        InlineEdit.class,
+                                        ImmutableMap.of("label", page.getTypeLabel(object)),
+                                        "title.heading"));
+                                page.writeHtml(": ");
+                                page.writeStart("span",
+                                        "class", "ContentLabel",
+                                        "data-dynamic-html", "${toolPageContext.createObjectLabelHtml(content)}"); {
 
-                                // Heading
-                                page.writeStart("h1", "class", "breadcrumbs"); {
-                                    page.writeStart("span", "class", "breadcrumbItem icon icon-" + iconName); {
-                                        page.writeHtml(page.localize(
-                                                InlineEdit.class,
-                                                ImmutableMap.of("label", page.getTypeLabel(object)),
-                                                "title.heading"));
-                                        page.writeHtml(": ");
-                                        page.writeStart("span",
-                                                "class", "ContentLabel",
-                                                "data-dynamic-html", "${toolPageContext.createObjectLabelHtml(content)}"); {
-
-                                            page.write(page.createObjectLabelHtml(object));
-                                        }
-                                        page.writeEnd();
-                                    }
-                                    page.writeEnd();
+                                    page.write(page.createObjectLabelHtml(object));
                                 }
                                 page.writeEnd();
+                            }
+                            page.writeEnd();
+                        }
+                        page.writeEnd();
 
-                                // Full form button
-                                page.writeStart("div", "class", "widgetControls"); {
-                                    page.writeStart("a",
-                                            "class", "icon icon-action-edit",
-                                            "target", "_blank",
-                                            "href", page.cmsUrl("/content/edit.jsp", "id", id)); {
+                        // Full form button
+                        page.writeStart("div", "class", "widgetControls"); {
+                            page.writeStart("a",
+                                    "class", "icon icon-action-edit",
+                                    "target", "_blank",
+                                    "href", page.cmsUrl("/content/edit.jsp", "id", id)); {
 
-                                        page.writeHtml(page.localize(InlineEdit.class, "action.fullForm"));
-                                    }
-                                    page.writeEnd();
-                                }
-                                page.writeEnd();
+                                page.writeHtml(page.localize(InlineEdit.class, "action.fullForm"));
+                            }
+                            page.writeEnd();
+                        }
+                        page.writeEnd();
 
-                                // Error message
-                                if (error) {
-                                    page.writeStart("div", "class", "message message-error"); {
-                                        page.writeHtml(page.localize("com.psddev.cms.tool.page.content.Errors", "error.validation"));
-                                    }
-                                    page.writeEnd();
-                                }
+                        // Error message
+                        if (error) {
+                            page.writeStart("div", "class", "message message-error"); {
+                                page.writeHtml(page.localize("com.psddev.cms.tool.page.content.Errors", "error.validation"));
+                            }
+                            page.writeEnd();
+                        }
 
-                                // Fields
-                                page.writeSomeFormFields(object, false, fields.isEmpty() ? null : fields, null);
+                        // Fields
+                        page.writeSomeFormFields(object, false, fields.isEmpty() ? null : fields, null);
 
-                                // Publish/Save button
-                                page.writeStart("div", "class", "actions widget-publishingPublish"); {
-                                    page.writeStart("button",
-                                            "class", "icon icon-action-save",
-                                            "name", "action-publish",
-                                            "value", "true"); {
+                        // Publish/Save button
+                        page.writeStart("div", "class", "actions widget-publishingPublish"); {
+                            page.writeStart("button",
+                                    "class", "icon icon-action-save",
+                                    "name", "action-publish",
+                                    "value", "true"); {
 
-                                        page.writeHtml(buttonText);
-                                    }
-                                    page.writeEnd();
-                                }
-                                page.writeEnd();
+                                page.writeHtml(buttonText);
                             }
                             page.writeEnd();
                         }
@@ -187,6 +165,6 @@ public class InlineEdit extends PageServlet {
             }
             page.writeEnd();
         }
-        page.writeEnd();
+        page.writeFooter();
     }
 }
