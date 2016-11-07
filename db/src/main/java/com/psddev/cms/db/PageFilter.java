@@ -378,7 +378,7 @@ public class PageFilter extends AbstractFilter {
                     origin = origin.substring(0, origin.length() - 1);
                 }
 
-                if (Query.from(Site.class).where("urls = ?", origin).hasMoreThan(0)) {
+                if (Query.from(Site.class).where("urls startsWith ?", origin).hasMoreThan(0)) {
                     response.setHeader("Access-Control-Allow-Origin", origin);
                 }
             }
