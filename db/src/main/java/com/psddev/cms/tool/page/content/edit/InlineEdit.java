@@ -1,10 +1,7 @@
 package com.psddev.cms.tool.page.content.edit;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUi;
-import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectType;
@@ -15,7 +12,6 @@ import com.psddev.dari.util.RoutingFilter;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 /**
