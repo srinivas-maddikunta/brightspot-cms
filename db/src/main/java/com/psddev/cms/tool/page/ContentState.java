@@ -32,6 +32,7 @@ import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.tool.page.content.Edit;
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.PredicateParser;
@@ -68,6 +69,8 @@ public class ContentState extends PageServlet {
         if (object == null) {
             return;
         }
+
+        Date wipCreateDate = new Date(Database.Static.getDefault().now());
 
         // Pretend to update the object.
         State state = State.getInstance(object);
@@ -278,7 +281,8 @@ public class ContentState extends PageServlet {
                 }
 
                 wip.setContentLabel(state.getLabel());
-                wip.setUpdateDate(new Date());
+                wip.setCreateDate(wipCreateDate);
+                wip.setUpdateDate(new Date(Database.Static.getDefault().now()));
                 wip.setDifferences(differences);
                 wip.save();
 
