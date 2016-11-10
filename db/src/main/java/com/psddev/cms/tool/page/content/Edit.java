@@ -145,12 +145,18 @@ public class Edit {
             return;
         }
 
+        Date wipCreate = wip.getCreateDate();
         Date wipUpdate = wip.getUpdateDate();
         Date contentUpdate = State.getInstance(content).as(Content.ObjectModification.class).getUpdateDate();
 
-        if (wipUpdate != null && contentUpdate != null && wipUpdate.getTime() >= contentUpdate.getTime()) {
-            wip.delete();
-            return;
+        if (wipCreate != null && wipUpdate != null && contentUpdate != null) {
+            long contentTime = contentUpdate.getTime();
+
+            if (wipCreate.getTime() < contentTime && contentTime <= wipUpdate.getTime()) {
+                System.out.println("race condition delete");
+                wip.delete();
+                return;
+            }
         }
 
         Map<String, Map<String, Object>> differences = wip.getDifferences();

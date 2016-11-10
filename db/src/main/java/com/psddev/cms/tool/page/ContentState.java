@@ -70,6 +70,8 @@ public class ContentState extends PageServlet {
             return;
         }
 
+        Date wipCreateDate = new Date(Database.Static.getDefault().now());
+
         // Pretend to update the object.
         State state = State.getInstance(object);
         String oldValuesString = page.param(String.class, state.getId() + "/oldValues");
@@ -279,6 +281,7 @@ public class ContentState extends PageServlet {
                 }
 
                 wip.setContentLabel(state.getLabel());
+                wip.setCreateDate(wipCreateDate);
                 wip.setUpdateDate(new Date(Database.Static.getDefault().now()));
                 wip.setDifferences(differences);
                 wip.save();
