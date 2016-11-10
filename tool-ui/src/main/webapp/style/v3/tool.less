@@ -318,6 +318,15 @@
   z-index: 0;
 }
 
+// Special case for inlineEdit page within an iframe
+.inlineEdit { // class added to the body element only on the inlineEdit page
+  margin:auto;
+  .toolContent {
+    padding:0;
+    margin:auto;
+  }
+}
+
 .toolBackground {
   display: none;
 

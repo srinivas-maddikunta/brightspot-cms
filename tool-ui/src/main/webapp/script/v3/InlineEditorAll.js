@@ -291,7 +291,13 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
             self.listenerOpen();
 
             // Set up the iframe to resize automatically.
-            self.$iframe.iFrameResize({checkOrigin:false});
+            self.$iframe.iFrameResize({
+                // Prevent cross-domain errors
+                checkOrigin:false,
+                // Need to use 'lowestElement' method because we sometimes have content
+                // that goes outside the body element
+                heightCalculationMethod:'lowestElement'
+            });
         },
 
 
