@@ -2784,11 +2784,24 @@ public class ToolPageContext extends WebPageContext {
                 layoutPlaceholdersJson = ObjectUtils.toJson(jsons);
             }
 
+            StringBuilder cssClass = new StringBuilder("objectInputs");
+
+            if ((type != null && type.as(ToolUi.class).isReadOnly())
+                    || !ContentEditable.shouldContentBeEditable(state)) {
+                cssClass.append(" objectInputs-readOnly");
+            }
+
+            if (type != null) {
+                String customCssClass = type.as(ToolUi.class).getCssClass();
+
+                if (!StringUtils.isBlank(customCssClass)) {
+                    cssClass.append(' ');
+                    cssClass.append(customCssClass);
+                }
+            }
+
             writeStart("div",
-                    "class", "objectInputs"
-                            + (type.as(ToolUi.class).isReadOnly()
-                            || !ContentEditable.shouldContentBeEditable(state)
-                            ? " objectInputs-readOnly" : ""),
+                    "class", cssClass,
                     "lang", type != null ? type.as(ToolUi.class).getLanguageTag() : null,
                     "data-type", type != null ? type.getInternalName() : null,
                     "data-id", state.getId(),

@@ -969,17 +969,25 @@ public class ToolUi extends Modification<Object> {
      */
     @Documented
     @ObjectField.AnnotationProcessorClass(CssClassProcessor.class)
+    @ObjectType.AnnotationProcessorClass(CssClassProcessor.class)
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.FIELD, ElementType.METHOD })
+    @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.TYPE })
     public @interface CssClass {
         String value();
     }
 
-    private static class CssClassProcessor implements ObjectField.AnnotationProcessor<CssClass> {
+    private static class CssClassProcessor implements
+            ObjectField.AnnotationProcessor<CssClass>,
+            ObjectType.AnnotationProcessor<CssClass> {
 
         @Override
         public void process(ObjectType type, ObjectField field, CssClass annotation) {
             field.as(ToolUi.class).setCssClass(annotation.value());
+        }
+
+        @Override
+        public void process(ObjectType type, CssClass annotation) {
+            type.as(ToolUi.class).setCssClass(annotation.value());
         }
     }
 
