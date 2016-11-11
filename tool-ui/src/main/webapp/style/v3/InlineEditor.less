@@ -49,6 +49,17 @@
     }
 }
 
+.contentEditor-showing .InlineEditorControls {
+    visibility:hidden;
+}
+
+.contentEditor-controls {
+    button {
+        &:not(:last-child) {
+            margin-right:5px;
+        }
+    }
+}
 .InlineEditorControls {
     background: fade(#20343f, 80%);
     color: white;

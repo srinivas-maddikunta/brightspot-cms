@@ -1,4 +1,4 @@
-/* global require window NodeFilter setInterval document */
+/* global alert document require window NodeFilter setInterval */
 
 require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
     var $document = $(window.document),
@@ -10,6 +10,445 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
             objectFields = {},
             objectFieldList;
 
+    /**
+    * Controler for the inline conentEditable editor, used for "text" fields.
+    * The user can directly click on the text and edit it only the page,
+    * then the text will be updated by making a service call to the backend.
+    *
+    * We start by finding a BrightspotCmsObjectBegin comment that specifies a brightspot object.
+    * The first element we find after that comment will be considered the wrapping element for the object.
+    * 
+    * Then we find a BrightspotCmsFieldAccess comment that specifies the field to be edited.
+    * We only use this if the comment contains a "text" parameter. For example:
+    * <!--BrightspotCmsFieldAccess {"id":"123,"name":"firstname","text":"Patrick"}-->
+    *
+    * Since these text fields do not have a standardized HTML structure, we just do our best to find a
+    * text node that matches the text we are looking for, within the wrapping element for the object.
+    * Note the text node might contain extra text that is not actually part of the field, so we need
+    * to search for the text as a substring within the text node, and split the text node if necessary.
+    *
+    * @example
+    * var editor = Object.create(contendEditableEditor);
+    * editor.init({el:myObjectElement, id:myObjectId, field:myFieldName, text:myText});
+    */
+    var contentEditor = {
+        
+        // Key to use to save the text value (in case user decides to cancel the change)
+        dataKey: 'contentEditor-value',
+        
+        // Classname to add to the body when the content editor is showing.
+        // This can be used to hide other controls on the page.
+        showingClass: 'contentEditor-showing',
+        
+        controlsClass: 'contentEditor-controls',
+        
+        defaults: {},
+        
+        /**
+        * Initialize the contentEditor.
+        * @param  {Object} options Set of key/value paris to set up the editor.
+        * @param  {Element} options.el
+        * The element wrapper for the object that contains the text we will be editing.
+        * @param  {String} options.id
+        * The id of the object that we will be editing.
+        * @param {String} options.field
+        * The field name that we will be editing.
+        * @return {String} options.text
+        * The text value that will be edited.
+        */
+        init: function(options) {
+            var self;
+            self = this;
+            self.options = $.extend({}, self.defaults, options || {});
+            self.initTextNode();
+        },
+        
+        /**
+        * Find the text node within the object that matches the text we are looking for.
+        * If found, splits the text node if necessary, then wraps it in an element,
+        * and returns that element as a jQuery object.
+        * If not found returns an empty jQuery object.
+        * @param
+        * @return {jQueryElemnt}
+        */
+        initTextNode: function() {
+            
+            var $wrapper;
+            var end;
+            var i;
+            var node;
+            var nodes;
+            var self;
+            var start;
+            var text;
+            var value;
+            
+            self = this;
+            value = self.options.text;
+            nodes = self.textNodesUnder(self.options.el);
+            for (i=0; i < nodes.length; i++) {
+                node = nodes[i];
+                text = node.nodeValue || '';
+                start = text.indexOf(value);
+                if (start === -1) {
+                    // Did not find the value in this text node go to the next node
+                    continue;
+                }
+                
+                // If the value is in the middle of a text node, we might
+                // need to split the text node. For example, if looking for FOO and
+                // we find "xxxFOOyyy" then split the text node into "xxx", "FOO", and "yyy" text nodes.
+                
+                // Trim the end of the text node if necessary
+                end = start + value.length;
+                if (end < text.length) {
+                    node.splitText(end);
+                }
+                
+                // Trim the start of the text node if necessary
+                if (start > 0) {
+                    node = node.splitText(start);
+                }
+                
+                // Create an element to wrap the text node
+                // because contentEditable only works for elements
+                $wrapper = $('<span>', {
+                    'style': 'cursor: cell;'
+                }).on('click', function(event){
+                    
+                    // Prevent the click event from propagating up,
+                    // so if the text is in a link for example we don't want
+                    // to leave the page
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    if (!self.isEditable()) {
+                        self.setEditable();
+                        self.focus();
+                    }
+                }).hover(
+                    function(event){
+                        if (!self.isEditable()) {
+                            self.setOutline(true);
+                        }
+                    },
+                    function(event) {
+                        if (!self.isEditable()) {
+                            self.setOutline(false);
+                        }
+                    }
+                );
+                
+                $(node).wrap($wrapper);
+                
+                $wrapper = $(node).parent();
+                
+                // In case the user turns off the other inline editor controls, stop allowing edits
+                $( $wrapper[0].ownerDocument ).on('brightspot-editor-close', function(){
+                    self.disable();
+                })
+
+                self.$el = $wrapper;
+
+                // Save the default value in the text node in case user starts edting but then decides to cancel
+                self.setDefaultValue();
+            }
+        },
+        
+        
+        /**
+         * Make the element editable, or turn off editable.
+         * @param  {Boolean} flag
+         * Optional flag. Set to true to make the element editable, or false to turn off editable.
+         * Defaults to true if not specified.
+         */
+        setEditable: function(flag) {
+            var self;
+            self = this;
+            
+            // Default the flag to true
+            flag = (flag === false) ? false : true;
+            
+            if (flag) {
+                self.showControls();
+                self.$el.attr('contenteditable', true);
+            } else {
+                self.hideControls();
+                self.$el.removeAttr('contenteditable');
+            }
+        },
+
+
+        isEditable: function() {
+            var self;
+            self = this;
+            return self.$el[0].hasAttribute('contenteditable');
+        },
+        
+        
+        /**
+         * Focus on the element.
+         * @return {[type]}
+         */
+        focus: function() {
+            var self;
+            self = this;
+            self.$el.focus();
+        },
+
+
+        /**
+         * Save the current value of the element so it can be restored if user decides to cancel.
+         * @return {[type]}
+         */
+        setDefaultValue: function() {
+            var self;
+            var value;
+            self = this;
+            value = self.getValue();
+            self.$el.data(self.dataKey, value);
+        },
+
+        
+        /**
+         * Retrieves the value that was saved before the user made chagnes.
+         * @return {String}
+         * Text value that was saved, or undefined if a value was not previously saved.
+         */
+        getDefaultValue: function() {
+            var self;
+            self = this;
+            return self.$el.data(self.dataKey);
+        },
+
+        
+        /**
+         * Restore the value that was saved before user started modifying the text.
+         */
+        resetDefaultValue: function() {
+            var self;
+            var value;
+            self = this;
+            value = self.getDefaultValue();
+            if (value !== undefined) {
+                self.setValue(value);
+            }
+        },
+
+
+        /**
+         * Get the current value of the text.
+         * @return {String}
+         */
+        getValue: function() {
+            var self;
+            self = this;
+            return self.$el.text();
+        },
+
+        
+        /**
+         * Set the text to a new value.
+         * @param {String} value [description]
+         */
+        setValue: function(value) {
+            var self;
+            self = this;
+            self.$el.text(value);
+        },
+
+        
+        showControls: function() {
+            var self;
+            self = this;
+            
+            // Add a class to the body to indicate the content editor is showing,
+            // so other controls can be hidden
+            $('body').addClass(self.showingClass);
+            
+            // Add buttons for save and cancel.
+            // Note these appear on the iframe overlay
+            self.$controls = $('<div>', {
+                'class': self.controlsClass, // 'InlineEditorControls', //self.controlsClass,
+                css: {
+                    position: 'absolute',
+                    'z-index': '999',
+                    visibility: 'visible'
+                }
+            }).appendTo('body');
+            self.$controlsSave = $('<button>', {
+                'type': 'button',
+                text: 'Save',
+                on: {
+                    click: function(event) {
+                        self.hideControls();
+                        self.publish();
+                    }
+                }
+            }).appendTo(self.$controls);
+            self.$controlsCancel = $('<button>', {
+                'type': 'button',
+                text: 'Cancel',
+                on: {
+                    click: function(event) {
+                        self.hideControls();
+                        self.cancel();
+                    }
+                }
+            }).appendTo(self.$controls);
+            
+            self.updateControlsPosition();
+            self.setOutline(true);
+        },
+
+        
+        hideControls: function() {
+            var self;
+            self = this;
+            
+            self.$controls.remove();
+            
+            // Remove class from the body to indicate the content editor is no longer showing,
+            // so other controls can be shown again
+            $('body').removeClass(self.showingClass);
+            
+            self.setOutline(false);
+        },
+
+
+        updateControlsPosition: function() {
+            // Get position of the element we are editing
+            // Move controls above it
+            var pos;
+            var self;
+            self = this;
+            pos = self.$el.offset();
+            self.$controls.css({
+                left: pos.left,
+                top: pos.top - 40
+            })
+        },
+
+        setOutline: function(flag) {
+            var self;
+            self = this;
+            flag = (flag === false) ? false : true;
+            if (flag) {
+                self.$el.css({outline:'4px solid #54D1F1'});
+            } else {
+                self.$el.css({outline:'inherit'});                
+            }
+        },
+
+        
+        /**
+         * Publish the current value.
+         * @return {Promise}
+         * Returns a jquery promise so you can determine if the publish was successful.
+         */
+        publish: function() {
+            var self;
+            var valueNew;
+            var valueOld;
+
+            self = this;
+            
+            // Turn off contentEditable
+            self.setEditable(false);
+            
+            // Check if the value has actually changed
+            valueNew = self.getValue();
+            valueOld = self.getDefaultValue();
+            if (valueNew !== valueOld) {
+                updateService.update(self.options.id, self.options.field, valueNew).done(function(){
+                    
+                    // Since we successfully updated the value, make this value the new default
+                    // in case user edits the value again
+                    self.setDefaultValue();
+                    
+                }).fail(function(){
+                    self.setEditable(true);
+                    alert('Unable to update the value');
+                });
+            }
+        },
+        
+        
+        cancel: function() {
+            var self;
+            self = this;
+            self.setEditable(false);
+            self.resetDefaultValue();
+        },
+
+        
+        /**
+         * Turn off the content editor for the element.
+         */
+        disable: function() {
+            var self;
+            self = this;
+            self.$el.removeAttr('style').off('click blur');
+        },
+
+
+        /**
+        * Get an array of text nodes that live within a certain element.
+        * @param  {Element} el
+        * @return {Array} Array of text nodes.
+        */
+        textNodesUnder: function(el){
+            var textNodes;
+            var n;
+            var walk;
+            
+            textNodes = [];
+            walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+            while(n = walk.nextNode()) {
+                textNodes.push(n);
+            }
+            return textNodes;
+        }
+    };
+    
+    
+    // Define an API for updating a single field
+    var updateService = {
+        
+        // The URL of the update service
+        // TODO: this is a temporary value until the actual service can be created
+        url: (window.CONTEXT_PATH || '') + '/content/inlineEdit',
+
+        /**
+         * Function to call the update service
+         * @param  {String} id
+         * The object id that will be updated.
+         * @param  {String} field
+         * The name of the field to be updated.
+         * @param  {String} value
+         * The new text value for the field.
+         * 
+         * @return {Promise}
+         * A promise that can be used to determine if the service call was successful.
+         */
+        update: function(id, field, value) {
+            var data;
+            var self;
+            var url;
+            self = this;
+            data = {
+                'action-publish':'true'
+            };
+            data[ id + '/' + field ] = value;
+            url = self.url + '?id=' + encodeURIComponent(id) + '&f=' + encodeURIComponent(field);
+            return $.ajax(url, {
+                type: 'POST',
+                data: data
+            });
+        }
+    };
+    
+    
     // Find all objects in the parent document.
     var MAIN_OBJECT_PREFIX = 'BrightspotCmsMainObject ';
     var OBJECT_BEGIN_PREFIX = 'BrightspotCmsObjectBegin ';
@@ -56,7 +495,7 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
             // Add this field to the list of fields for an object id. For example:
             // objectFields['123'] = {"firstname":true,"lastname":true};
             objectFieldList = objectFields[ fieldData.id ] || {};
-            objectFieldList[ fieldData.name ] = true;
+            objectFieldList[ fieldData.name ] = fieldData;
             objectFields[ fieldData.id ] = objectFieldList;
         }
     }
@@ -85,8 +524,24 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
 
         href = window.CONTEXT_PATH + '/content/inlineEdit?id=' + objectData.id;
         if (objectFields[id]) {
-            $.each(objectFields[id], function(fieldName){
+            
+            $.each(objectFields[id], function(fieldName, fieldData){
+                
+                var textEditor;
+                
                 href += '&f=' + encodeURIComponent(fieldName);
+                
+                // Check if this field has a "text" parameter and if so create a contentEditor
+                // so the user can do inplace editing
+                if (fieldData && fieldData.text) {
+                    textEditor = Object.create(contentEditor);
+                    textEditor.init({
+                        el: $begin[0],
+                        id: id,
+                        field: fieldName,
+                        text: fieldData.text
+                    })
+                }
             });
         }
         
