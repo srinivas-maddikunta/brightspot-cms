@@ -71,13 +71,13 @@ public class InlineEdit extends PageServlet {
         }
 
         page.writeHeader(null, false); {
-            
+
             // Add a class name to the body so we can style the iframe contents
             page.writeStart("script", "type", "text/javascript"); {
                 page.writeRaw("document.body.className += ' inlineEdit';");
             }
             page.writeEnd();
-            
+
             page.writeStart("script",
                     "type", "text/javascript",
                     "src", page.cmsUrl("/script/iframeResizer.contentWindow.js"))
