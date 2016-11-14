@@ -32,9 +32,9 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.PageContext;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.lang.reflect.Modifier;
 import java.util.Iterator;
 import java.util.List;
@@ -153,23 +153,20 @@ public class ExportContent extends PageServlet {
         private Search search;
         private SearchResultSelection selection;
 
-        public Context(PageContext pageContext) {
-            this(pageContext.getServletContext(), (HttpServletRequest) pageContext.getRequest(), (HttpServletResponse) pageContext.getResponse(), null, null);
-        }
-
         public Context(ToolPageContext page) {
 
-            this(page.getServletContext(), page.getRequest(), page.getResponse(), null, null);
+            this(page.getServletContext(), page.getRequest(), page.getResponse(), page.getDelegate(), null, null);
         }
 
         public Context(ToolPageContext page, Search search, SearchResultSelection selection) {
 
-            this(page.getServletContext(), page.getRequest(), page.getResponse(), search, selection);
+            this(page.getServletContext(), page.getRequest(), page.getResponse(), page.getDelegate(), search, selection);
         }
 
-        public Context(ServletContext servletContext, HttpServletRequest request, HttpServletResponse response, Search search, SearchResultSelection selection) {
+        public Context(ServletContext servletContext, HttpServletRequest request, HttpServletResponse response, Writer delegate, Search search, SearchResultSelection selection) {
 
             super(servletContext, request, response);
+            setDelegate(delegate);
 
             String selectionId = param(String.class, SELECTION_ID_PARAMETER);
 
