@@ -12,8 +12,6 @@ import com.psddev.cms.db.ToolUserPersonalDictionary;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.ObjectUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
@@ -45,8 +43,6 @@ import java.util.stream.Stream;
  */
 public class HunspellSpellChecker implements SpellChecker {
 
-    Logger LOGGER = LoggerFactory.getLogger(HunspellSpellChecker.class);
-
     /**
      * Affix file suffix/extension.
      *
@@ -61,7 +57,7 @@ public class HunspellSpellChecker implements SpellChecker {
      */
     public static final String DICTIONARY_FILE_SUFFIX = ".dic";
 
-    public static final String RESOURCE_BASE_NAME = "HunspellDictionary";
+    public static final String DICTIONARY_BASE_NAME = "HunspellDictionary";
 
     private final LoadingCache<Locale, Optional<Hunspell>> hunspells = CacheBuilder
             .newBuilder()
@@ -85,13 +81,14 @@ public class HunspellSpellChecker implements SpellChecker {
 
                     ResourceBundle.Control control = ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_CLASS);
                     List<String> names = control
-                            .getCandidateLocales(RESOURCE_BASE_NAME, locale)
+                            .getCandidateLocales(DICTIONARY_BASE_NAME, locale)
                             .stream()
                             .filter(l -> !Locale.ROOT.equals(l))
-                            .map(l -> control.toBundleName(RESOURCE_BASE_NAME, l))
+                            .map(l -> control.toBundleName(DICTIONARY_BASE_NAME, l))
                             .collect(Collectors.toList());
 
                     for (String name : names) {
+
                         String variant = locale.getVariant();
                         name = name.replace("_" + variant, "");
 
@@ -100,7 +97,6 @@ public class HunspellSpellChecker implements SpellChecker {
                                 try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
                                     if (dictionaryInput != null) {
 
-                                        // get user's locale-specific personal dictionary or create one if it doesn't exist
                                         ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class)
                                                 .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
 
@@ -112,14 +108,13 @@ public class HunspellSpellChecker implements SpellChecker {
                                         }
 
                                         String prefixPath = name + "_" + userDictionary.getId();
+
                                         String tmpdir = System.getProperty("java.io.tmpdir");
                                         Path affixPath = Paths.get(tmpdir, prefixPath + AFFIX_FILE_SUFFIX);
                                         Path dictionaryPath = Paths.get(tmpdir, prefixPath + DICTIONARY_FILE_SUFFIX);
 
                                         Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
                                         Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
-
-
 
                                         Hunspell hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
 
@@ -188,6 +183,7 @@ public class HunspellSpellChecker implements SpellChecker {
 
             ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class)
                     .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
+
             if (userDictionary == null) {
                 userDictionary = new ToolUserPersonalDictionary();
                 userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
