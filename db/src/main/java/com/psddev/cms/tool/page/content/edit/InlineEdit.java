@@ -10,12 +10,14 @@ import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Creates inline edit form with applicable fields.
+ * Provides inline edit capability for an object as well as a simple text field
+ * of an object.
  */
 @RoutingFilter.Path(application = "cms", value = "/content/inlineEdit")
 public class InlineEdit extends PageServlet {
@@ -33,8 +35,26 @@ public class InlineEdit extends PageServlet {
             throw new IllegalArgumentException("No object found!");
         }
 
+        // Update a simple text field.
+        if (page.isAjaxRequest()) {
+            State state = State.getInstance(object);
+            state.put(page.param(String.class, "f"), page.param(String.class, "value"));
+            HttpServletResponse response = page.getResponse();
+
+            try {
+                page.publish(object);
+                response.setStatus(HttpServletResponse.SC_OK);
+
+            } catch (Exception ex) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
+
+            return;
+        }
+
         boolean error = false;
 
+        // Update an object as a result of an inline edit form publish.
         if (page.isFormPost() && page.param(String.class, "action-publish") != null) {
 
             try {
