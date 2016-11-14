@@ -42,7 +42,7 @@ public class InlineEdit extends PageServlet {
             String field = page.param(String.class, "f");
 
             if (field == null) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
             } else {
                 state.put(field, page.param(String.class, "value"));
