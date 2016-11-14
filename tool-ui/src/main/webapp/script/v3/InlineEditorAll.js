@@ -368,7 +368,7 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
                     
                 }).fail(function(){
                     self.setEditable(true);
-                    alert('Unable to update the value');
+                    alert('Unable to update the value.');
                 });
             }
         },
@@ -437,11 +437,11 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
             var url;
             self = this;
             data = {
-                'action-publish':'true'
+                id:id,
+                f:field,
+                value:value
             };
-            data[ id + '/' + field ] = value;
-            url = self.url + '?id=' + encodeURIComponent(id) + '&f=' + encodeURIComponent(field);
-            return $.ajax(url, {
+            return $.ajax(self.url, {
                 type: 'POST',
                 data: data
             });
