@@ -37,16 +37,23 @@ public class InlineEdit extends PageServlet {
 
         // Update a simple text field.
         if (page.isAjaxRequest()) {
-            State state = State.getInstance(object);
-            state.put(page.param(String.class, "f"), page.param(String.class, "value"));
             HttpServletResponse response = page.getResponse();
+            State state = State.getInstance(object);
+            String field = page.param(String.class, "f");
 
-            try {
-                page.publish(object);
-                response.setStatus(HttpServletResponse.SC_OK);
-
-            } catch (Exception ex) {
+            if (field == null) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+            } else {
+                state.put(field, page.param(String.class, "value"));
+
+                try {
+                    page.publish(object);
+                    response.setStatus(HttpServletResponse.SC_OK);
+
+                } catch (Exception ex) {
+                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                }
             }
 
             return;
