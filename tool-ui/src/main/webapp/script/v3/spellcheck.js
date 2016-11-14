@@ -60,9 +60,9 @@ define(['jquery'], function($) {
          * });
          */
         lookup: function(words, options) {
-
+            
             var cachedResult, deferred, self, results, word, wordsArray, wordsToFetch, wordsUnique;
-
+            
             self = this;
 
             options = $.extend({}, {
@@ -90,12 +90,12 @@ define(['jquery'], function($) {
             // "length", since it uses that to determine if is is dealing with an object or an array.
             wordsToFetch = [];
             for (word in wordsUnique) {
-
+                
                 // Make sure this is actually a word and not some other object property
                 if(!wordsUnique.hasOwnProperty(word)) {
                     continue;
                 }
-
+                
                 cachedResult = self.cacheLookup(word);
                 if (cachedResult === undefined || !options.useCache) {
                     wordsToFetch.push(word);
@@ -110,24 +110,23 @@ define(['jquery'], function($) {
                 $.ajax(self.serviceUrl, {
 
                     type: 'POST',
-
+                    
                     dataType: 'json',
-
+                    
                     // For array of words, use multiple parameters like word=apple&word=orange
                     traditional:true,
-
+                    
                     data: {
                         locale: options.locale,
-                        word: wordsToFetch,
-                        suggestWords: null
+                        word: wordsToFetch
                     }
-
+                    
                 }).done(function(data, textStatus, jqXHR){
 
                     // Data returned will be for example:
                     // /cms/spellCheck?locale=en&word=perfcet&word=sense
                     // {"status":"supported","results":[["perfect"],null]}
-
+                    
                     // Check if the locale provided is supported
                     if (data.status === 'supported') {
 
@@ -135,7 +134,6 @@ define(['jquery'], function($) {
                         $.each(wordsToFetch, function(i, word) {
                             var result;
                             result = data.results[i];
-                            if (result) { result.push("Add to personal dictionary"); }
                             results[word] = result;
                             if (options.useCache) {
                                 self.cacheAdd(word, result);
