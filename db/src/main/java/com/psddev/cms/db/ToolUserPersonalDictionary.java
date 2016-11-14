@@ -1,4 +1,4 @@
-package com.psddev.cms.hunspell;
+package com.psddev.cms.db;
 
 import com.psddev.dari.db.Record;
 
@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-public class UserPersonalDictionary extends Record {
+public class ToolUserPersonalDictionary extends Record {
 
     private Set<String> words;
 

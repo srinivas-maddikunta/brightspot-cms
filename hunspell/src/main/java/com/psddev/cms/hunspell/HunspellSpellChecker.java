@@ -8,6 +8,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.psddev.cms.db.ToolUser;
+import com.psddev.cms.db.ToolUserPersonalDictionary;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Query;
 import org.slf4j.Logger;
@@ -145,9 +146,9 @@ public class HunspellSpellChecker implements SpellChecker {
         } else {
 
             if (!areUserDictionaryWordsAdded) {
-                UserPersonalDictionary userDictionary = Query.from(UserPersonalDictionary.class).where("userId = ?", user.getId()).first();
+                ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class).where("userId = ?", user.getId()).first();
                 if (userDictionary == null) {
-                    userDictionary = new UserPersonalDictionary();
+                    userDictionary = new ToolUserPersonalDictionary();
                     userDictionary.setUserId(user.getId());
                     userDictionary.save();
                 }
@@ -175,9 +176,9 @@ public class HunspellSpellChecker implements SpellChecker {
             return;
         } else {
 
-            UserPersonalDictionary userDictionary = Query.from(UserPersonalDictionary.class).where("userId = ?", user.getId()).first();
+            ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class).where("userId = ?", user.getId()).first();
             if (userDictionary == null) {
-                userDictionary = new UserPersonalDictionary();
+                userDictionary = new ToolUserPersonalDictionary();
                 userDictionary.setUserId(user.getId());
             }
             userDictionary.add(word);
