@@ -964,7 +964,7 @@ public class ToolUi extends Modification<Object> {
     }
 
     /**
-     * Specifies the CSS class to add to HTML element that represents the
+     * Specifies the CSS class to add to the HTML element that represents the
      * target type or field.
      *
      * <p>If the annotation is on a type, the CSS class is added to the
