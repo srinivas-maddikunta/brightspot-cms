@@ -1,7 +1,6 @@
 package com.psddev.cms.nlp;
 
 import com.google.common.base.Preconditions;
-import com.psddev.cms.db.ToolUser;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.Lazy;
 import com.psddev.dari.util.TypeDefinition;

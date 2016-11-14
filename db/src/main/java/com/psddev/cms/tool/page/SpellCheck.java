@@ -1,20 +1,14 @@
 package com.psddev.cms.tool.page;
 
-import com.google.common.base.Preconditions;
 import com.psddev.cms.db.ToolUser;
-import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.ObjectUtils;
-import com.psddev.dari.util.PageContextFilter;
 import com.psddev.dari.util.RoutingFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -42,10 +36,8 @@ public class SpellCheck extends PageServlet {
 
         if (isActionSuggestWord) {
             suggestWords(page, response);
-            return;
         } else if (isActionAddWord) {
             addWord(page, response);
-            return;
         }
     }
 
@@ -87,8 +79,9 @@ public class SpellCheck extends PageServlet {
         try {
             ToolUser user = page.getUser();
             String userId = user.getId().toString();
-            Locale IetfBcp47FLocale = Locale.forLanguageTag(page.param(String.class, "locale"));
-            Locale locale = new Locale(IetfBcp47FLocale.getLanguage(), IetfBcp47FLocale.getCountry(), userId);
+            Locale languageTag = Locale.forLanguageTag(page.param(String.class, "locale"));
+            Locale locale = new Locale(languageTag.getLanguage(), languageTag.getCountry(), userId);
+
             SpellChecker spellChecker = SpellChecker.getInstance(locale);
 
             if (spellChecker == null) {
