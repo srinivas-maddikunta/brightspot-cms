@@ -118,7 +118,8 @@ define(['jquery'], function($) {
                     
                     data: {
                         locale: options.locale,
-                        word: wordsToFetch
+                        word: wordsToFetch,
+                        suggestWords: null
                     }
                     
                 }).done(function(data, textStatus, jqXHR){
@@ -134,6 +135,7 @@ define(['jquery'], function($) {
                         $.each(wordsToFetch, function(i, word) {
                             var result;
                             result = data.results[i];
+                            if (result) { result.push("Add to personal dictionary"); }
                             results[word] = result;
                             if (options.useCache) {
                                 self.cacheAdd(word, result);

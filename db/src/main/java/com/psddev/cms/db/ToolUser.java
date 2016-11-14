@@ -85,11 +85,6 @@ public class ToolUser extends Record implements ToolEntity {
     @Embedded
     private Dashboard dashboard;
 
-    @DisplayName("Dictionary")
-    @ToolUi.Tab("Dictionary")
-    @Embedded
-    private ToolUserPersonalDictionary dictionary;
-
     @ToolUi.Hidden
     private Date passwordChangedDate;
 

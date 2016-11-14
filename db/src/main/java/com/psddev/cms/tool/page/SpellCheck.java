@@ -56,7 +56,7 @@ public class SpellCheck extends PageServlet {
             Locale languageTag = Locale.forLanguageTag(page.param(String.class, "locale"));
             Locale locale = new Locale(languageTag.getLanguage(), languageTag.getCountry(), userId);
 
-            SpellChecker spellChecker = SpellChecker.getInstance(user, locale);
+            SpellChecker spellChecker = SpellChecker.getInstance(locale);
 
             if (spellChecker == null) {
                 response.put("status", "unsupported");
@@ -69,7 +69,7 @@ public class SpellCheck extends PageServlet {
                 if (!ObjectUtils.isBlank(words)) {
                     response.put("results", words
                             .stream()
-                            .map(word -> spellChecker.suggest(user, locale, word))
+                            .map(word -> spellChecker.suggest(locale, word))
                             .collect(Collectors.toList()));
                 }
             }
@@ -89,7 +89,7 @@ public class SpellCheck extends PageServlet {
             String userId = user.getId().toString();
             Locale IetfBcp47FLocale = Locale.forLanguageTag(page.param(String.class, "locale"));
             Locale locale = new Locale(IetfBcp47FLocale.getLanguage(), IetfBcp47FLocale.getCountry(), userId);
-            SpellChecker spellChecker = SpellChecker.getInstance(user, locale);
+            SpellChecker spellChecker = SpellChecker.getInstance(locale);
 
             if (spellChecker == null) {
                 response.put("status", "unsupported");
@@ -97,7 +97,7 @@ public class SpellCheck extends PageServlet {
             } else {
                 response.put("status", "supported");
                 String word = page.param(String.class, "word");
-                spellChecker.addToDictionary(user, locale, word);
+                spellChecker.addToDictionary(locale, word);
             }
 
         } catch (Exception error) {

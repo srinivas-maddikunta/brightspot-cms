@@ -11,6 +11,7 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.db.ToolUserPersonalDictionary;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Query;
+import com.psddev.dari.util.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Spell checker implementation using
@@ -56,15 +61,15 @@ public class HunspellSpellChecker implements SpellChecker {
      */
     public static final String DICTIONARY_FILE_SUFFIX = ".dic";
 
-    private boolean areUserDictionaryWordsAdded = false;
+    public static final String RESOURCE_BASE_NAME = "HunspellDictionary";
 
-    private final LoadingCache<String, Optional<Hunspell>> hunspells = CacheBuilder
+    private final LoadingCache<Locale, Optional<Hunspell>> hunspells = CacheBuilder
             .newBuilder()
-            .removalListener(new RemovalListener<String, Optional<Hunspell>>() {
+            .removalListener(new RemovalListener<Locale, Optional<Hunspell>>() {
 
                 @Override
                 @ParametersAreNonnullByDefault
-                public void onRemoval(RemovalNotification<String, Optional<Hunspell>> removalNotification) {
+                public void onRemoval(RemovalNotification<Locale, Optional<Hunspell>> removalNotification) {
                     Optional<Hunspell> hunspellOptional = removalNotification.getValue();
 
                     if (hunspellOptional != null) {
@@ -72,29 +77,58 @@ public class HunspellSpellChecker implements SpellChecker {
                     }
                 }
             })
-            .build(new CacheLoader<String, Optional<Hunspell>>() {
+            .build(new CacheLoader<Locale, Optional<Hunspell>>() {
 
                 @Override
                 @ParametersAreNonnullByDefault
-                public Optional<Hunspell> load(String name) throws IOException {
-                    List<String> arr = Arrays.asList(name.split("&"));
+                public Optional<Hunspell> load(Locale locale) throws IOException {
 
-                    name = arr.get(0);
-                    String userID = arr.get(1).replace('&', '_');
+                    ResourceBundle.Control control = ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_CLASS);
+                    List<String> names = control
+                            .getCandidateLocales(RESOURCE_BASE_NAME, locale)
+                            .stream()
+                            .filter(l -> !Locale.ROOT.equals(l))
+                            .map(l -> control.toBundleName(RESOURCE_BASE_NAME, l))
+                            .collect(Collectors.toList());
 
-                    try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
-                        if (affixInput != null) {
-                            try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
-                                if (dictionaryInput != null) {
-                                    String prefixPath = name + userID;
-                                    String tmpdir = System.getProperty("java.io.tmpdir");
-                                    Path affixPath = Paths.get(tmpdir, prefixPath + AFFIX_FILE_SUFFIX);
-                                    Path dictionaryPath = Paths.get(tmpdir, prefixPath + DICTIONARY_FILE_SUFFIX + userID);
+                    for (String name : names) {
+                        String variant = locale.getVariant();
+                        name = name.replace("_" + variant, "");
 
-                                    Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
-                                    Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
+                        try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
+                            if (affixInput != null) {
+                                try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
+                                    if (dictionaryInput != null) {
 
-                                    return Optional.of(new Hunspell(dictionaryPath.toString(), affixPath.toString()));
+                                        // get user's locale-specific personal dictionary or create one if it doesn't exist
+                                        ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class)
+                                                .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
+
+                                        if (userDictionary == null) {
+                                            userDictionary = new ToolUserPersonalDictionary();
+                                            userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
+                                            userDictionary.setLocaleLanguageCode(locale.getLanguage());
+                                            userDictionary.save();
+                                        }
+
+                                        String prefixPath = name + "_" + userDictionary.getId();
+                                        String tmpdir = System.getProperty("java.io.tmpdir");
+                                        Path affixPath = Paths.get(tmpdir, prefixPath + AFFIX_FILE_SUFFIX);
+                                        Path dictionaryPath = Paths.get(tmpdir, prefixPath + DICTIONARY_FILE_SUFFIX);
+
+                                        Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
+                                        Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
+
+
+
+                                        Hunspell hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
+
+                                        for (String userWord : userDictionary.getWords()) {
+                                            hunspell.add(userWord);
+                                        }
+
+                                        return Optional.of(hunspell);
+                                    }
                                 }
                             }
                         }
@@ -103,24 +137,15 @@ public class HunspellSpellChecker implements SpellChecker {
                 }
             });
 
-    private Hunspell findHunspell(ToolUser user, Locale locale) {
-
-       return SpellChecker.createDictionaryNames("HunspellDictionary", locale)
-            .stream()
-            .map(l -> {
-                String name = l.concat("&").concat(user.getId().toString());
-                return hunspells.getUnchecked(name).orElse(null);
-            })
-            .filter(h -> h != null)
-            .findFirst()
-            .orElse(null);
+    private Hunspell findHunspell(Locale locale) {
+        return hunspells.getUnchecked(locale).orElse(null);
     }
 
     @Override
-    public boolean isSupported(ToolUser user, Locale locale) {
+    public boolean isSupported(Locale locale) {
         Preconditions.checkNotNull(locale);
 
-        return findHunspell(user, locale) != null;
+        return findHunspell(locale) != null;
     }
 
     @Override
@@ -131,11 +156,11 @@ public class HunspellSpellChecker implements SpellChecker {
     }
 
     @Override
-    public List<String> suggest(ToolUser user, Locale locale, String word) {
+    public List<String> suggest(Locale locale, String word) {
         Preconditions.checkNotNull(locale);
         Preconditions.checkNotNull(word);
 
-        Hunspell hunspell = findHunspell(user, locale);
+        Hunspell hunspell = findHunspell(locale);
 
         if (hunspell == null) {
             throw new UnsupportedOperationException();
@@ -144,30 +169,15 @@ public class HunspellSpellChecker implements SpellChecker {
             return null;
 
         } else {
-
-            if (!areUserDictionaryWordsAdded) {
-                ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class).where("userId = ?", user.getId()).first();
-                if (userDictionary == null) {
-                    userDictionary = new ToolUserPersonalDictionary();
-                    userDictionary.setUserId(user.getId());
-                    userDictionary.save();
-                }
-
-                for (String userWord : userDictionary.getWords()) {
-                    hunspell.add(userWord);
-                }
-                areUserDictionaryWordsAdded = true;
-            }
-
             return hunspell.suggest(word);
         }
     }
 
-    public void addToDictionary(ToolUser user, Locale locale, String word) {
+    public void addToDictionary(Locale locale, String word) {
         Preconditions.checkNotNull(locale);
         Preconditions.checkNotNull(word);
 
-        Hunspell hunspell = findHunspell(user, locale);
+        Hunspell hunspell = findHunspell(locale);
 
         if (hunspell == null) {
             throw new UnsupportedOperationException();
@@ -176,10 +186,12 @@ public class HunspellSpellChecker implements SpellChecker {
             return;
         } else {
 
-            ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class).where("userId = ?", user.getId()).first();
+            ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class)
+                    .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
             if (userDictionary == null) {
                 userDictionary = new ToolUserPersonalDictionary();
-                userDictionary.setUserId(user.getId());
+                userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
+                userDictionary.setLocaleLanguageCode(locale.getLanguage());
             }
             userDictionary.add(word);
             userDictionary.save();

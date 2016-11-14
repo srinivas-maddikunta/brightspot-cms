@@ -13,6 +13,9 @@ public class ToolUserPersonalDictionary extends Record {
     @Indexed
     private UUID userId;
 
+    @Indexed
+    private String localeLanguageCode;
+
     public Set<String> getWords() {
         if (words == null) {
             words = new HashSet<>();
@@ -33,6 +36,14 @@ public class ToolUserPersonalDictionary extends Record {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public String getLocaleLanguageCode() {
+        return localeLanguageCode;
+    }
+
+    public void setLocaleLanguageCode(String localeLanguageCode) {
+        this.localeLanguageCode = localeLanguageCode;
     }
 
     public void add(String word) {
