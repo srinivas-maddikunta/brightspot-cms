@@ -433,17 +433,25 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
          */
         update: function(id, field, value) {
             var data;
-            var self;
             var url;
-            self = this;
+            
+            url = (window.CONTEXT_PATH || '');
+            url = url.replace(/\/$/, ''); // remove slash at end of line if necessary
+            url += '/content/inlineEdit';
+
             data = {
                 id:id,
                 f:field,
                 value:value
             };
-            return $.ajax(self.url, {
+
+            return $.ajax(url, {
                 type: 'POST',
-                data: data
+                data: data,
+                // For cross-domain request include cookies
+                xhrFields: {
+                    withCredentials: true
+                }
             });
         }
     };
