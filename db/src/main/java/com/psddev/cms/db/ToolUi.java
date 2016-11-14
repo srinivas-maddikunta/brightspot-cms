@@ -964,8 +964,14 @@ public class ToolUi extends Modification<Object> {
     }
 
     /**
-     * Specifies the CSS class to add to {@code .inputContainer} when
-     * displaying the target field.
+     * Specifies the CSS class to add to HTML element that represents the
+     * target type or field.
+     *
+     * <p>If the annotation is on a type, the CSS class is added to the
+     * {@code .objectInputs} element.</p>
+     *
+     * <p>If the annotation is on a field, the CSS class is added to the
+     * {@code .inputContainer} element.</p>
      */
     @Documented
     @ObjectField.AnnotationProcessorClass(CssClassProcessor.class)
