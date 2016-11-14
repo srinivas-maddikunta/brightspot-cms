@@ -23,9 +23,12 @@ class FieldAccessDatabase extends ForwardingDatabase {
     public <T> T addDisplayIds(T value) {
         if (value instanceof Recordable) {
             State valueState = ((Recordable) value).getState();
+            UUID id = valueState.getId();
 
-            displayIds.add(valueState.getId());
-            addDisplayIds(valueState.getSimpleValues());
+            if (!displayIds.contains(id)) {
+                displayIds.add(id);
+                addDisplayIds(valueState.getRawValues());
+            }
 
         } else if (value instanceof Iterable) {
             for (Object item : (Iterable<?>) value) {
