@@ -51,7 +51,7 @@ public class InlineEdit extends PageServlet {
                     page.publish(object);
                     response.setStatus(HttpServletResponse.SC_OK);
 
-                } catch (Exception ex) {
+                } catch (Exception e) {
                     response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 }
             }
