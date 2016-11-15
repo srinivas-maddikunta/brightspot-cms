@@ -118,6 +118,7 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
                 return;
             }
 
+            // Add CORS header if cross domain and origin matches a site url.
             if (cms.isEnableCrossDomainInlineEditing()) {
                 String origin = request.getHeader("origin");
 
