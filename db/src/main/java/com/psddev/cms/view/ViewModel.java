@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.psddev.dari.util.TypeDefinition;
@@ -19,6 +20,8 @@ import com.psddev.dari.util.TypeDefinition;
  * @param <M> the model type to bind with the view model.
  */
 public abstract class ViewModel<M> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ViewModel.class);
 
     private ViewModelCreator viewModelCreator;
 
@@ -212,22 +215,20 @@ public abstract class ViewModel<M> {
 
                         return viewModelClass;
                     } else {
-                        LoggerFactory.getLogger(ViewModel.class)
-                                .warn("Found " + viewModelClasses.size()
-                                        + " conflicting view model bindings for model type ["
-                                        + model.getClass() + "] and view type [" + viewClass + "]: "
-                                        + viewModelClasses);
+                        LOGGER.warn("Found " + viewModelClasses.size()
+                                + " conflicting view model bindings for model type ["
+                                + model.getClass() + "] and view type [" + viewClass + "]: "
+                                + viewModelClasses);
                     }
                 } else {
                     Set<Class<? extends ViewModel>> conflictingViewModelClasses = new LinkedHashSet<>();
                     for (Class<?> nearestModelClass : nearestModelClasses) {
                         conflictingViewModelClasses.addAll(modelToViewModelClassMap.get(nearestModelClass));
                     }
-                    LoggerFactory.getLogger(ViewModel.class)
-                            .warn("Found " + conflictingViewModelClasses.size()
-                                    + " conflicting view model bindings for model type ["
-                                    + model.getClass() + "] and view type [" + viewClass + "]: "
-                                    + conflictingViewModelClasses);
+                    LOGGER.warn("Found " + conflictingViewModelClasses.size()
+                            + " conflicting view model bindings for model type ["
+                            + model.getClass() + "] and view type [" + viewClass + "]: "
+                            + conflictingViewModelClasses);
                 }
             }
         }
