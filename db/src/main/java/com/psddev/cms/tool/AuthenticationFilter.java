@@ -1,6 +1,7 @@
 package com.psddev.cms.tool;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.UUID;
 
 import javax.servlet.FilterChain;
@@ -10,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.psddev.cms.db.Preview;
+import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.ForwardingDatabase;
@@ -79,6 +81,24 @@ public class AuthenticationFilter extends AbstractFilter {
             HttpServletResponse response,
             FilterChain chain)
             throws Exception {
+
+        CmsTool cms = Query.from(CmsTool.class).first();
+
+        // Add CORS headers if cross domain and origin matches a site url.
+        if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
+            String origin = request.getHeader("origin");
+
+            if (origin != null) {
+                if (origin.endsWith("/")) {
+                    origin = origin.substring(0, origin.length() - 1);
+                }
+
+                if (Query.from(Site.class).where("urls startsWith ?", origin).hasMoreThan(0)) {
+                    response.setHeader("Access-Control-Allow-Origin", origin);
+                    response.setHeader("Access-Control-Allow-Credentials", "true");
+                }
+            }
+        }
 
         if (ObjectUtils.to(boolean.class, request.getParameter("_clearPreview"))) {
             Static.removeCurrentPreview(request, response);
@@ -351,10 +371,13 @@ public class AuthenticationFilter extends AbstractFilter {
             csrfCookie.setSecure(JspUtils.isSecure(request));
             response.addCookie(csrfCookie);
 
+            String csrfCookieValue = csrfCookie.getValue();
+
             if (JspUtils.isFormPost(request)
-                    && !csrfCookie.getValue().equals(ObjectUtils.firstNonNull(
+                    && !csrfCookieValue.equals(ObjectUtils.firstNonNull(
                     request.getHeader("Brightspot-CSRF"),
-                    request.getParameter("_csrf")))) {
+                    request.getParameter("_csrf")))
+                    && !Arrays.stream(request.getCookies()).map(Cookie::getValue).anyMatch(csrfCookieValue::equals)) {
 
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
                 return true;
