@@ -35,46 +35,47 @@ public class InlineEdit extends PageServlet {
             throw new IllegalArgumentException("No object found!");
         }
 
-        // Update a simple text field.
-        if (page.isAjaxRequest()) {
-            HttpServletResponse response = page.getResponse();
-            State state = State.getInstance(object);
-            String field = page.param(String.class, "f");
-
-            if (state.get(field) == null) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, String.format("No field found for f [%s]!", field));
-
-            } else {
-                state.put(field, page.param(String.class, "value"));
-
-                try {
-                    page.publish(object);
-                    response.setStatus(HttpServletResponse.SC_OK);
-
-                } catch (Exception e) {
-                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
-                }
-            }
-
-            return;
-        }
-
         boolean error = false;
 
-        // Update an object as a result of an inline edit form publish.
-        if (page.isFormPost() && page.param(String.class, "action-publish") != null) {
+        if (page.isFormPost()) {
 
-            try {
-                page.include("/WEB-INF/objectPost.jsp", "object", object);
-                page.publish(object);
-                page.writeStart("script", "type", "text/javascript"); {
-                    page.writeRaw("parent.postMessage('brightspot-updated', '*');");
+            // Update an object as a result of an inline edit form publish.
+            if (page.param(String.class, "action-publish") == null) {
+                HttpServletResponse response = page.getResponse();
+                State state = State.getInstance(object);
+                String field = page.param(String.class, "f");
+
+                if (state.get(field) == null) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, String.format("No field found for f [%s]!", field));
+
+                } else {
+                    state.put(field, page.param(String.class, "value"));
+
+                    try {
+                        page.publish(object);
+                        response.setStatus(HttpServletResponse.SC_OK);
+
+                    } catch (Exception e) {
+                        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+                    }
                 }
-                page.writeEnd();
+
                 return;
 
-            } catch (Exception e) {
-                error = true;
+            // Update a simple text field.
+            } else {
+                try {
+                    page.include("/WEB-INF/objectPost.jsp", "object", object);
+                    page.publish(object);
+                    page.writeStart("script", "type", "text/javascript"); {
+                        page.writeRaw("parent.postMessage('brightspot-updated', '*');");
+                    }
+                    page.writeEnd();
+                    return;
+
+                } catch (Exception e) {
+                    error = true;
+                }
             }
         }
 
