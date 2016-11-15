@@ -41,8 +41,8 @@ public class InlineEdit extends PageServlet {
             State state = State.getInstance(object);
             String field = page.param(String.class, "f");
 
-            if (field == null) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            if (state.get(field) == null) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, String.format("No field found for f [%s]!", field));
 
             } else {
                 state.put(field, page.param(String.class, "value"));
@@ -52,7 +52,7 @@ public class InlineEdit extends PageServlet {
                     response.setStatus(HttpServletResponse.SC_OK);
 
                 } catch (Exception e) {
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
                 }
             }
 
