@@ -1,6 +1,5 @@
 package com.psddev.cms.rte;
 
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 /**
@@ -11,8 +10,7 @@ import org.jsoup.nodes.Element;
 public class RichTextEditorialMarkupProcessor implements RichTextProcessor {
 
     @Override
-    public void process(Document document) {
-        Element body = document.body();
+    public void process(Element body) {
 
         body.getElementsByTag("del").remove();
         body.getElementsByTag("ins").unwrap();

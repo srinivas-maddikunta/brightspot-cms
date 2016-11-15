@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
@@ -46,9 +45,7 @@ public class RichTextLineBreakProcessor implements RichTextProcessor {
     }
 
     @Override
-    public void process(Document document) {
-
-        Element body = document.body();
+    public void process(Element body) {
 
         body.select(".cms-textAlign-left, .cms-textAlign-center, .cms-textAlign-right, ol, ul").forEach(element -> {
             Element next = element.nextElementSibling();
@@ -102,7 +99,7 @@ public class RichTextLineBreakProcessor implements RichTextProcessor {
                 }
             }
 
-            Element paragraph = document.createElement(tag.getName());
+            Element paragraph = body.ownerDocument().createElement(tag.getName());
 
             for (Node child : paragraphChildren) {
                 child.remove();
