@@ -101,7 +101,7 @@ public class InlineEdit extends PageServlet {
 
             // Add a class name to the body so we can style the iframe contents
             page.writeStart("script", "type", "text/javascript"); {
-                page.writeRaw("document.body.className += ' inlineEdit';");
+                page.writeRaw("$('body').addClass('inlineEdit');");
             }
             page.writeEnd();
 
