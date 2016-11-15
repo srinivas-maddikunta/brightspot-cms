@@ -65,6 +65,7 @@ public class ToolUi extends Modification<Object> {
     private String inputProcessorApplication;
     private String inputProcessorPath;
     private String inputSearcherPath;
+    private String dynamicInputSearcherPath;
     private String storagePreviewProcessorApplication;
     private String storagePreviewProcessorPath;
     private String languageTag;
@@ -427,6 +428,14 @@ public class ToolUi extends Modification<Object> {
 
     public void setInputSearcherPath(String inputSearcherPath) {
         this.inputSearcherPath = inputSearcherPath;
+    }
+
+    public String getDynamicInputSearcherPath() {
+        return dynamicInputSearcherPath;
+    }
+
+    public void setDynamicInputSearcherPath(String dynamicInputSearcherPath) {
+        this.dynamicInputSearcherPath = dynamicInputSearcherPath;
     }
 
     public String getStoragePreviewProcessorPath() {
@@ -1327,13 +1336,16 @@ public class ToolUi extends Modification<Object> {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface InputSearcherPath {
-        String value();
+        String value() default "";
+
+        String dynamicPath() default "";
     }
 
     private static class InputSearcherPathProcessor implements ObjectField.AnnotationProcessor<InputSearcherPath> {
         @Override
         public void process(ObjectType type, ObjectField field, InputSearcherPath annotation) {
             field.as(ToolUi.class).setInputSearcherPath(annotation.value());
+            field.as(ToolUi.class).setDynamicInputSearcherPath(annotation.dynamicPath());
         }
     }
 
