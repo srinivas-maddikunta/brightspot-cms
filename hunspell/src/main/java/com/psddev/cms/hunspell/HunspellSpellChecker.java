@@ -1,5 +1,6 @@
 package com.psddev.cms.hunspell;
 
+import com.psddev.cms.db.ToolUserDictionary;
 import com.atlascopco.hunspell.Hunspell;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -7,7 +8,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.psddev.cms.db.ToolUserDictionary;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.ObjectUtils;
@@ -95,12 +95,12 @@ public class HunspellSpellChecker implements SpellChecker {
                                     if (dictionaryInput != null) {
 
                                         ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
-                                                .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
+                                                .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.toLanguageTag()).first();
 
                                         if (userDictionary == null) {
                                             userDictionary = new ToolUserDictionary();
                                             userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
-                                            userDictionary.setLocaleLanguageCode(locale.getLanguage());
+                                            userDictionary.setLocaleLanguageCode(locale.toLanguageTag());
                                             userDictionary.save();
                                         }
 
@@ -129,7 +129,7 @@ public class HunspellSpellChecker implements SpellChecker {
                 }
             });
 
-    private Hunspell findHunspell(Locale locale) {
+    public Hunspell findHunspell(Locale locale) {
         return hunspells.getUnchecked(locale).orElse(null);
     }
 
@@ -165,7 +165,8 @@ public class HunspellSpellChecker implements SpellChecker {
         }
     }
 
-    public void addToDictionary(Locale locale, String word) {
+    @Override
+    public boolean add(Locale locale, String word, boolean addToUserDictionary) {
         Preconditions.checkNotNull(locale);
         Preconditions.checkNotNull(word);
 
@@ -175,21 +176,42 @@ public class HunspellSpellChecker implements SpellChecker {
             throw new UnsupportedOperationException();
 
         } else if (hunspell.spell(word)) {
-            return;
+            return false;
         } else {
-
-            ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
-                    .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
-
-            if (userDictionary == null) {
-                userDictionary = new ToolUserDictionary();
-                userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
-                userDictionary.setLocaleLanguageCode(locale.getLanguage());
-            }
-            userDictionary.add(word);
-            userDictionary.save();
-
             hunspell.add(word);
+
+            if (addToUserDictionary) {
+                ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
+                        .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
+
+                if (userDictionary == null) {
+                    userDictionary = new ToolUserDictionary();
+                    userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
+                    userDictionary.setLocaleLanguageCode(locale.toLanguageTag());
+                }
+                userDictionary.add(word);
+                userDictionary.save();
+            }
+
+            return true;
+        }
+    }
+
+    @Override
+    public boolean remove(Locale locale, String word) {
+        Preconditions.checkNotNull(locale);
+        Preconditions.checkNotNull(word);
+
+        Hunspell hunspell = findHunspell(locale);
+
+        if (hunspell == null) {
+            throw new UnsupportedOperationException();
+
+        } else if (hunspell.spell(word)) {
+            hunspell.remove(word);
+            return true;
+        } else {
+            return false;
         }
     }
 }

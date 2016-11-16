@@ -4,6 +4,7 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.dari.db.Query;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.RoutingFilter;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RoutingFilter.Path(application = "cms", value = "spellCheck")
@@ -90,7 +92,7 @@ public class SpellCheck extends PageServlet {
             } else {
                 response.put("status", "supported");
                 String word = page.param(String.class, "word");
-                spellChecker.addToDictionary(locale, word);
+                spellChecker.add(locale, word, true);
             }
 
         } catch (Exception error) {

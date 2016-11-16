@@ -111,14 +111,28 @@ public interface SpellChecker {
 
     /**
      * Adds the {@code word} to the Hunspell dictionary
-     * corresponding to {@code user} and {@code locale}.
+     * corresponding to {@code locale}.
+     *
+     * If {@code addToCustomDictionary} flag is set to true,
+     * the word will be persisted to the users' custom dictionary.
      *
      * @param locale
      *        Can't be {@code null}.
      * @param word
      *        Can't be {@code null}.
      */
-    void addToDictionary(Locale locale, String word);
+    boolean add(Locale locale, String word, boolean addToUserDictionary);
+
+    /**
+     * Removes the {@code word} from the Hunspell dictionary
+     * corresponding to {@code locale}.
+     *
+     * @param locale
+     *        Can't be {@code null}.
+     * @param word
+     *        Can't be {@code null}.
+     */
+    boolean remove(Locale locale, String word);
 }
 
 class SpellCheckerPrivate {
