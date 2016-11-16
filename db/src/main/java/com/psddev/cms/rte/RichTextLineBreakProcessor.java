@@ -2,6 +2,7 @@ package com.psddev.cms.rte;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -205,7 +206,8 @@ public class RichTextLineBreakProcessor implements RichTextProcessor {
             }
         }
 
-        Map<String, ObjectType> tagTypes = RichTextElement.getConcreteTagTypes();
+        Map<String, ObjectType> tagTypes = new HashMap<>(RichTextElement.getConcreteTagTypes());
+        tagTypes.put(ReferenceRichTextElement.TAG_NAME, ObjectType.getInstance(ReferenceRichTextElement.class));
 
         // <p>before [enh] after</p> -> <p>before</p> [enh] <p>after</p>
         for (Element enhancement : tagTypes.keySet()

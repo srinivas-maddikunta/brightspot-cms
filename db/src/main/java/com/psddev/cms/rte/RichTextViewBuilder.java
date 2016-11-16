@@ -3,6 +3,7 @@ package com.psddev.cms.rte;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,20 +45,20 @@ import com.psddev.dari.util.ObjectUtils;
  * }
  * </pre></blockquote>
  *
- * <p>Typical use from within a {@link com.psddev.cms.view.ViewModel ViewModel} looks like:</p>
+ * <p>Typical use from within a {@link com.psddev.cms.view.ViewModel ViewModel} might look like:</p>
  *
  * <blockquote><pre>
  * // Create a new builder from the rich text String.
- * List&lt;Object&gt; views = new RichTextViewBuilder(model.body)
+ * List&lt;MyRichTextItemView&gt; views = new RichTextViewBuilder&lt;&gt;(model.body)
  *
  * &nbsp;   // Adds CMS default pre-processors (RichTextEditorialMarkupProcessor, RichTextLineBreakProcessor).
  * &nbsp;   .addAllDefaultPreProcessors()
  *
  * &nbsp;   // A function to convert a raw HTML String into a view object.
- * &nbsp;   .htmlViewFunction(html -> RawView.of(html))
+ * &nbsp;   .htmlViewFunction(html -> new RawHtmlView.Builder().html(html).build())
  *
  * &nbsp;   // A function to convert a RichTextElement into a view object.
- * &nbsp;   .richTextElementViewFunction(rte -> createView(rte, RichTextViewBuilder.RICH_TEXT_ELEMENT_VIEW_TYPE))
+ * &nbsp;   .richTextElementViewFunction(rte -> createView(MyRichTextItemView.class, rte))
  *
  * &nbsp;   // Builds the list of views.
  * &nbsp;   .build();
@@ -68,11 +69,6 @@ import com.psddev.dari.util.ObjectUtils;
  * another view that is setup to handle such a list.</p>
  */
 public class RichTextViewBuilder<V> {
-
-    public static final String RICH_TEXT_ELEMENT_VIEW_TYPE = "cms.rte";
-
-    private static final String REFERENCE_TAG_NAME = "brightspot-cms-reference";
-    private static final String REFERENCE_TAG_VALUES_ATTRIBUTE = "values";
 
     private String richText;
 
@@ -115,8 +111,9 @@ public class RichTextViewBuilder<V> {
                 StringWriter refHtml = new StringWriter();
                 try {
                     new HtmlWriter(refHtml) { {
-                        writeTag(REFERENCE_TAG_NAME,
-                                REFERENCE_TAG_VALUES_ATTRIBUTE, ObjectUtils.toJson(ref.getState().getSimpleValues()));
+                        writeStart(ReferenceRichTextElement.TAG_NAME,
+                                ReferenceRichTextElement.TAG_VALUES_ATTRIBUTE, ObjectUtils.toJson(ref.getState().getSimpleValues()));
+                        writeEnd();
                     } };
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
@@ -223,7 +220,8 @@ public class RichTextViewBuilder<V> {
 
         List<V> views = new ArrayList<>();
 
-        Map<String, ObjectType> tagTypes = RichTextElement.getConcreteTagTypes();
+        Map<String, ObjectType> tagTypes = new HashMap<>(RichTextElement.getConcreteTagTypes());
+        tagTypes.put(ReferenceRichTextElement.TAG_NAME, ObjectType.getInstance(ReferenceRichTextElement.class));
 
         Document document = Jsoup.parseBodyFragment(richText);
         document.outputSettings().prettyPrint(false);
