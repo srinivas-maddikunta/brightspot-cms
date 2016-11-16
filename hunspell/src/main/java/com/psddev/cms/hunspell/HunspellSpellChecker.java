@@ -7,8 +7,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.psddev.cms.db.ToolUser;
-import com.psddev.cms.db.ToolUserPersonalDictionary;
+import com.psddev.cms.db.ToolUserDictionary;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.ObjectUtils;
@@ -20,14 +19,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Spell checker implementation using
@@ -97,11 +94,11 @@ public class HunspellSpellChecker implements SpellChecker {
                                 try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
                                     if (dictionaryInput != null) {
 
-                                        ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class)
+                                        ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
                                                 .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
 
                                         if (userDictionary == null) {
-                                            userDictionary = new ToolUserPersonalDictionary();
+                                            userDictionary = new ToolUserDictionary();
                                             userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
                                             userDictionary.setLocaleLanguageCode(locale.getLanguage());
                                             userDictionary.save();
@@ -181,11 +178,11 @@ public class HunspellSpellChecker implements SpellChecker {
             return;
         } else {
 
-            ToolUserPersonalDictionary userDictionary = Query.from(ToolUserPersonalDictionary.class)
+            ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
                     .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
 
             if (userDictionary == null) {
-                userDictionary = new ToolUserPersonalDictionary();
+                userDictionary = new ToolUserDictionary();
                 userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
                 userDictionary.setLocaleLanguageCode(locale.getLanguage());
             }

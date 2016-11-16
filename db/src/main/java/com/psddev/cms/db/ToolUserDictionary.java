@@ -2,17 +2,22 @@ package com.psddev.cms.db;
 
 import com.psddev.dari.db.Record;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-public class ToolUserPersonalDictionary extends Record {
+public class ToolUserDictionary extends Record {
 
     private Set<String> words;
 
+    @ToolUi.ReadOnly
     @Indexed
     private UUID userId;
 
+    @ToolUi.ReadOnly
     @Indexed
     private String localeLanguageCode;
 
@@ -28,6 +33,11 @@ public class ToolUserPersonalDictionary extends Record {
             words = new HashSet<>();
         }
         this.words = words;
+    }
+
+    @Override
+    public String getLabel() {
+        return "Custom " + Locale.forLanguageTag(localeLanguageCode).getDisplayLanguage() + " Dictionary";
     }
 
     public UUID getUserId() {
