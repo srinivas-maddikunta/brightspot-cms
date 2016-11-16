@@ -3,7 +3,6 @@ package com.psddev.cms.db;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Record;
-import com.psddev.dari.db.Recordable;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -14,13 +13,15 @@ public class ToolUserDictionary extends Record {
 
     private Set<String> words;
 
+    @Required
     @ToolUi.ReadOnly
-    @Recordable.Indexed
+    @Indexed
     private UUID userId;
 
+    @Required
     @ToolUi.ReadOnly
-    @Recordable.Indexed
-    private String localeLanguageCode;
+    @Indexed
+    private String languageTag;
 
     public Set<String> getWords() {
         if (words == null) {
@@ -38,7 +39,7 @@ public class ToolUserDictionary extends Record {
 
     @Override
     public String getLabel() {
-        return "Custom " + Locale.forLanguageTag(localeLanguageCode).getDisplayLanguage() + " Dictionary";
+        return "Custom " + Locale.forLanguageTag(languageTag).getDisplayLanguage() + " Dictionary";
     }
 
     public UUID getUserId() {
@@ -50,11 +51,11 @@ public class ToolUserDictionary extends Record {
     }
 
     public String getLocaleLanguageCode() {
-        return localeLanguageCode;
+        return languageTag;
     }
 
     public void setLocaleLanguageCode(String localeLanguageCode) {
-        this.localeLanguageCode = localeLanguageCode;
+        this.languageTag = localeLanguageCode;
     }
 
     public void add(String word) {
@@ -65,26 +66,49 @@ public class ToolUserDictionary extends Record {
     }
 
     @Override
-    protected void beforeCommit() {
-        Locale languageTag = Locale.forLanguageTag(localeLanguageCode);
+    protected void beforeSave() {
+        Locale languageTag = Locale.forLanguageTag(getLocaleLanguageCode());
+        Locale locale = new Locale(languageTag.getLanguage(), languageTag.getCountry(), userId.toString());
+
+        ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class).where("id = ?", getId()).first();
+
+        if (userDictionary != null) {
+            SpellChecker spellChecker = SpellChecker.getInstance(locale);
+
+            if (spellChecker != null) {
+                Set<String> previousWords = Query.from(ToolUserDictionary.class).where("id = ?", getId()).first().getWords();
+
+
+                if (getWords().size() < previousWords.size()) {
+                    // one or more words were removed
+                    previousWords.removeAll(words);
+                    for (String word : previousWords) {
+                        spellChecker.remove(locale, word);
+                    }
+
+                } else if (getWords().size() > previousWords.size()) {
+
+                    Set<String> newWords = new HashSet<>(getWords());
+                    newWords.removeAll(previousWords);
+
+                    for (String word : newWords) {
+                        spellChecker.add(locale, word, false);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void beforeDelete() {
+
+        Locale languageTag = Locale.forLanguageTag(getLocaleLanguageCode());
         Locale locale = new Locale(languageTag.getLanguage(), languageTag.getCountry(), userId.toString());
         SpellChecker spellChecker = SpellChecker.getInstance(locale);
 
-        Set<String> previousWords = Query.from(ToolUserDictionary.class).where("id = ?", getId()).first().getWords();
-        if (words.size() < previousWords.size()) {
-            // one or more words were removed
-            previousWords.removeAll(words);
-            for (String word : previousWords) {
+        if (spellChecker != null) {
+            for (String word : getWords()) {
                 spellChecker.remove(locale, word);
-            }
-
-        } else if (words.size() > previousWords.size()) {
-
-            Set<String> newWords = new HashSet<>(words);
-            newWords.removeAll(previousWords);
-
-            for (String word : newWords) {
-                spellChecker.add(locale, word, false);
             }
         }
     }

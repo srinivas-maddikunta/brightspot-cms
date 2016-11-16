@@ -97,13 +97,6 @@ public class HunspellSpellChecker implements SpellChecker {
                                         ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
                                                 .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.toLanguageTag()).first();
 
-                                        if (userDictionary == null) {
-                                            userDictionary = new ToolUserDictionary();
-                                            userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
-                                            userDictionary.setLocaleLanguageCode(locale.toLanguageTag());
-                                            userDictionary.save();
-                                        }
-
                                         String prefixPath = name + "_" + userDictionary.getId();
 
                                         String tmpdir = System.getProperty("java.io.tmpdir");
@@ -115,8 +108,8 @@ public class HunspellSpellChecker implements SpellChecker {
 
                                         Hunspell hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
 
-                                        for (String userWord : userDictionary.getWords()) {
-                                            hunspell.add(userWord);
+                                        for (String word : userDictionary.getWords()) {
+                                            hunspell.add(word);
                                         }
 
                                         return Optional.of(hunspell);
@@ -129,7 +122,7 @@ public class HunspellSpellChecker implements SpellChecker {
                 }
             });
 
-    public Hunspell findHunspell(Locale locale) {
+    private Hunspell findHunspell(Locale locale) {
         return hunspells.getUnchecked(locale).orElse(null);
     }
 
@@ -178,21 +171,16 @@ public class HunspellSpellChecker implements SpellChecker {
         } else if (hunspell.spell(word)) {
             return false;
         } else {
-            hunspell.add(word);
+
+            ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
+                    .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.toLanguageTag()).first();
 
             if (addToUserDictionary) {
-                ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
-                        .where("userId = ?", locale.getVariant()).and("localeLanguageCode = ?", locale.getLanguage()).first();
-
-                if (userDictionary == null) {
-                    userDictionary = new ToolUserDictionary();
-                    userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
-                    userDictionary.setLocaleLanguageCode(locale.toLanguageTag());
-                }
                 userDictionary.add(word);
                 userDictionary.save();
             }
 
+            hunspell.add(word);
             return true;
         }
     }

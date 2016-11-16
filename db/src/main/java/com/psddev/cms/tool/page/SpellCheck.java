@@ -1,6 +1,7 @@
 package com.psddev.cms.tool.page;
 
 import com.psddev.cms.db.ToolUser;
+import com.psddev.cms.db.ToolUserDictionary;
 import com.psddev.cms.tool.PageServlet;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.cms.tool.ToolPageContext;
@@ -50,6 +51,8 @@ public class SpellCheck extends PageServlet {
             Locale languageTag = Locale.forLanguageTag(page.param(String.class, "locale"));
             Locale locale = new Locale(languageTag.getLanguage(), languageTag.getCountry(), userId);
 
+            createUserDictionaryIfNotExists(locale);
+
             SpellChecker spellChecker = SpellChecker.getInstance(locale);
 
             if (spellChecker == null) {
@@ -84,6 +87,8 @@ public class SpellCheck extends PageServlet {
             Locale languageTag = Locale.forLanguageTag(page.param(String.class, "locale"));
             Locale locale = new Locale(languageTag.getLanguage(), languageTag.getCountry(), userId);
 
+            createUserDictionaryIfNotExists(locale);
+
             SpellChecker spellChecker = SpellChecker.getInstance(locale);
 
             if (spellChecker == null) {
@@ -102,5 +107,17 @@ public class SpellCheck extends PageServlet {
 
         page.getResponse().setContentType(CONTENT_TYPE);
         page.write(ObjectUtils.toJson(response));
+    }
+
+    public void createUserDictionaryIfNotExists(Locale locale) {
+        ToolUserDictionary userDictionary = Query.from(ToolUserDictionary.class)
+                .where("userId = ?", locale.getVariant()).and("languageTag = ?", locale.toLanguageTag()).first();
+
+        if (userDictionary == null) {
+            userDictionary = new ToolUserDictionary();
+            userDictionary.setUserId(ObjectUtils.to(UUID.class, locale.getVariant()));
+            userDictionary.setLocaleLanguageCode(locale.toLanguageTag());
+            userDictionary.save();
+        }
     }
 }
