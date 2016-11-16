@@ -376,8 +376,17 @@ public class AuthenticationFilter extends AbstractFilter {
             if (JspUtils.isFormPost(request)
                     && !csrfCookieValue.equals(ObjectUtils.firstNonNull(
                     request.getHeader("Brightspot-CSRF"),
-                    request.getParameter("_csrf")))
-                    && !Arrays.stream(request.getCookies()).map(Cookie::getValue).anyMatch(csrfCookieValue::equals)) {
+                    request.getParameter("_csrf")))) {
+
+                // Check if cross domain and csrf cookie matches a request cookie.
+                CmsTool cms = Query.from(CmsTool.class).first();
+
+                if (cms != null
+                        && cms.isEnableCrossDomainInlineEditing()
+                        && Arrays.stream(request.getCookies()).map(Cookie::getValue).anyMatch(csrfCookieValue::equals)) {
+
+                    return false;
+                }
 
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
                 return true;
