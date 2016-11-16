@@ -230,6 +230,7 @@ public class AuthenticationFilter extends AbstractFilter {
                     Cookie inlineCsrfCookie = new Cookie("bsp.inlineCsrf", csrfCookieValue);
                     inlineCsrfCookie.setMaxAge(-1);
                     inlineCsrfCookie.setPath("/");
+                    inlineCsrfCookie.setSecure(JspUtils.isSecure(request));
                     response.addCookie(inlineCsrfCookie);
                 }
             }
