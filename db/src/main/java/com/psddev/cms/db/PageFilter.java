@@ -370,7 +370,7 @@ public class PageFilter extends AbstractFilter {
 
         CmsTool cms = Query.from(CmsTool.class).first();
 
-        // Add CORS header if cross domain and origin matches a site url.
+        // Set CORS header if cross domain is enabled and origin matches a site url.
         if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
             String origin = request.getHeader("origin");
 
