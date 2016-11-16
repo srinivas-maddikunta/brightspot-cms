@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
@@ -2138,10 +2139,12 @@ public class ToolPageContext extends WebPageContext {
                     String userId = user != null ? user.getId().toString() : UUID.randomUUID().toString();
                     String token = (String) getRequest().getAttribute(AuthenticationFilter.USER_TOKEN);
                     String signature = StringUtils.hex(StringUtils.hmacSha1(Settings.getSecret(), userId + token));
+                    Cookie csrfCookie = JspUtils.getCookie(getRequest(), "bsp.csrf");
                     String cookiePath = StringUtils.addQueryParameters(
                             cmsUrl("/inlineEditorCookie"),
                             "userId", userId,
                             "token", token,
+                            "csrf", csrfCookie != null ? csrfCookie.getValue() : null,
                             "signature", signature)
                             .substring(1);
 

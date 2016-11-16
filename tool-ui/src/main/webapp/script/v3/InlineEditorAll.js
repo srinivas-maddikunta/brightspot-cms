@@ -1,6 +1,6 @@
 /* global alert document require window NodeFilter setInterval */
 
-require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
+require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_utils, Cookies, $) {
     var $document = $(window.document),
             $body = $($document[0].body),
             $parent = $(window.parent),
@@ -442,7 +442,8 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
             data = {
                 id:id,
                 f:field,
-                value:value
+                value:value,
+                '_csrf':Cookies.get('bsp.inlineCsrf')
             };
 
             return $.ajax(url, {

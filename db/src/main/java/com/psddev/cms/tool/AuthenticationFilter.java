@@ -219,6 +219,20 @@ public class AuthenticationFilter extends AbstractFilter {
                 request.setAttribute(USER_TOKEN, token);
                 request.setAttribute(USER_CHECKED_ATTRIBUTE, Boolean.TRUE);
             }
+
+            // Add inline editing csrf cookie if cross domain.
+            CmsTool cms = Query.from(CmsTool.class).first();
+
+            if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
+                String csrfCookieValue = request.getParameter("csrf");
+
+                if (csrfCookieValue != null) {
+                    Cookie inlineCsrfCookie = new Cookie("bsp.inlineCsrf", csrfCookieValue);
+                    inlineCsrfCookie.setMaxAge(-1);
+                    inlineCsrfCookie.setPath("/");
+                    response.addCookie(inlineCsrfCookie);
+                }
+            }
         }
 
         /**
