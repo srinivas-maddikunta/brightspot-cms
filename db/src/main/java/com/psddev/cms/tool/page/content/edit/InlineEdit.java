@@ -39,7 +39,7 @@ public class InlineEdit extends PageServlet {
 
         if (page.isFormPost()) {
 
-            // Update an object as a result of an inline edit form publish.
+            // Update a simple text field.
             if (page.param(String.class, "action-publish") == null) {
                 HttpServletResponse response = page.getResponse();
                 State state = State.getInstance(object);
@@ -62,7 +62,7 @@ public class InlineEdit extends PageServlet {
 
                 return;
 
-            // Update a simple text field.
+            // Update an object as a result of an inline edit form publish.
             } else {
                 try {
                     page.include("/WEB-INF/objectPost.jsp", "object", object);
