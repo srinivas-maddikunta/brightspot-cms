@@ -83,7 +83,7 @@ public class AuthenticationFilter extends AbstractFilter {
 
         CmsTool cms = Query.from(CmsTool.class).first();
 
-        // Add CORS headers if cross domain and origin matches a site url.
+        // Set CORS headers if cross domain is enabled and origin matches a site url.
         if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
             String origin = request.getHeader("origin");
 
@@ -220,7 +220,7 @@ public class AuthenticationFilter extends AbstractFilter {
                 request.setAttribute(USER_CHECKED_ATTRIBUTE, Boolean.TRUE);
             }
 
-            // Add inline editing csrf cookie if cross domain.
+            // Add inline editing csrf cookie if cross domain is enabled.
             CmsTool cms = Query.from(CmsTool.class).first();
 
             if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
