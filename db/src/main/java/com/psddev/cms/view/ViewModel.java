@@ -215,20 +215,26 @@ public abstract class ViewModel<M> {
 
                         return viewModelClass;
                     } else {
-                        LOGGER.warn("Found " + viewModelClasses.size()
-                                + " conflicting view model bindings for model type ["
-                                + model.getClass() + "] and view type [" + viewClass + "]: "
-                                + viewModelClasses);
+                        LOGGER.warn("Found [{}] conflicting view model bindings for model type [{}] and view type [{}]: [{}]",
+                                new Object[] {
+                                        viewModelClasses.size(),
+                                        model.getClass(),
+                                        viewClass != null ? viewClass.getName() : null,
+                                        viewModelClasses.stream().map(Class::getName).collect(Collectors.joining(", "))
+                                });
                     }
                 } else {
                     Set<Class<? extends ViewModel>> conflictingViewModelClasses = new LinkedHashSet<>();
                     for (Class<?> nearestModelClass : nearestModelClasses) {
                         conflictingViewModelClasses.addAll(modelToViewModelClassMap.get(nearestModelClass));
                     }
-                    LOGGER.warn("Found " + conflictingViewModelClasses.size()
-                            + " conflicting view model bindings for model type ["
-                            + model.getClass() + "] and view type [" + viewClass + "]: "
-                            + conflictingViewModelClasses);
+                    LOGGER.warn("Found [{}] conflicting view model bindings for model type [{}] and view type [{}]: [{}]",
+                            new Object[] {
+                                    conflictingViewModelClasses.size(),
+                                    model.getClass().getName(),
+                                    viewClass != null ? viewClass.getName() : null,
+                                    conflictingViewModelClasses.stream().map(Class::getName).collect(Collectors.joining(", "))
+                            });
                 }
             }
         }

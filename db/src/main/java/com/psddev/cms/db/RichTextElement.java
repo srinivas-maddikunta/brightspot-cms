@@ -17,9 +17,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class RichTextElement extends Record {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RichTextElement.class);
 
     public abstract void fromAttributes(Map<String, String> attributes);
 
@@ -58,9 +61,12 @@ public abstract class RichTextElement extends Record {
 
                 ObjectType existingType = tagTypes.putIfAbsent(tagName, type);
                 if (existingType != null) {
-                    LoggerFactory.getLogger(RichTextElement.class).warn(String.format(
-                            "Ignoring RichTextElement [%s] with conflicting tag name [%s] as [%s].",
-                            type.getInternalName(), tagName, existingType.getInternalName()));
+                    LOGGER.warn("Ignoring RichTextElement [{}] with conflicting tag name [{}] as [{}].",
+                            new Object[] {
+                                    type.getInternalName(),
+                                    tagName,
+                                    existingType.getInternalName()
+                            });
                 }
             }
         });
