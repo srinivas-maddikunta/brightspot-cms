@@ -11,7 +11,7 @@ Step 1. Download
 
 .. note::
 
-    If you have git installed, you can alternatively ``git clone`` this repository.
+    If you have **git** installed, you can alternatively ``git clone`` this repository.
 
 Step 2. Extract
 ===============
@@ -27,7 +27,7 @@ The Brightspot Demo project contains scripts for OSX/Linux and Windows environme
 
 From the root of the project, execute the ``run.sh`` script from your terminal:
 
-.. code-block::
+::
 
     ./run.sh
 
@@ -35,7 +35,7 @@ From the root of the project, execute the ``run.sh`` script from your terminal:
 
 From the root of the project, execute the ``run.cmd` script from the Command Prompt:
 
-.. code-block::
+::
 
     run.cmd
 
