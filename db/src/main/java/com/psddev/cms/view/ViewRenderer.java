@@ -193,7 +193,7 @@ public interface ViewRenderer {
                             return () -> "<!--BrightspotCmsObjectBegin "
                                     + ObjectUtils.toJson(map)
                                     + "-->"
-                                    + viewOutput
+                                    + (viewOutput != null ? viewOutput : "")
                                     + "<!--BrightspotCmsObjectEnd-->";
 
                         } finally {
