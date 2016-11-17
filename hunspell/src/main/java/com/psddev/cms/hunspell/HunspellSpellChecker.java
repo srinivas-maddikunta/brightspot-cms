@@ -8,6 +8,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.psddev.cms.nlp.SpellChecker;
+import com.psddev.cms.nlp.SpellCheckerDictionary;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
@@ -16,8 +17,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -48,53 +53,86 @@ public class HunspellSpellChecker implements SpellChecker {
      */
     public static final String DICTIONARY_FILE_SUFFIX = ".dic";
 
-    private final LoadingCache<String, Optional<Hunspell>> hunspells = CacheBuilder
-            .newBuilder()
-            .removalListener(new RemovalListener<String, Optional<Hunspell>>() {
+    private final Map<Locale, Date> lastAccessed = Collections.synchronizedMap(new LinkedHashMap<>());
 
-                @Override
-                @ParametersAreNonnullByDefault
-                public void onRemoval(RemovalNotification<String, Optional<Hunspell>> removalNotification) {
-                    Optional<Hunspell> hunspellOptional = removalNotification.getValue();
+    private final LoadingCache<Locale, Optional<Hunspell>> hunspells = CacheBuilder
+        .newBuilder()
+        .removalListener(new RemovalListener<Locale, Optional<Hunspell>>() {
 
-                    if (hunspellOptional != null) {
-                        hunspellOptional.ifPresent(Hunspell::close);
-                    }
+            @Override
+            @ParametersAreNonnullByDefault
+            public void onRemoval(RemovalNotification<Locale, Optional<Hunspell>> removalNotification) {
+                Optional<Hunspell> hunspellOptional = removalNotification.getValue();
+
+                if (hunspellOptional != null) {
+                    hunspellOptional.ifPresent(Hunspell::close);
                 }
-            })
-            .build(new CacheLoader<String, Optional<Hunspell>>() {
+            }
+        })
+        .build(new CacheLoader<Locale, Optional<Hunspell>>() {
 
-                @Override
-                @ParametersAreNonnullByDefault
-                public Optional<Hunspell> load(String name) throws IOException {
+            @Override
+            @ParametersAreNonnullByDefault
+            public Optional<Hunspell> load(Locale locale) throws IOException {
+
+                Hunspell hunspell = null;
+
+                for (String name : SpellChecker.createDictionaryNames("HunspellDictionary", locale)) {
+
                     try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
                         if (affixInput != null) {
                             try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
                                 if (dictionaryInput != null) {
+
+                                    SpellCheckerDictionary dictionary = SpellCheckerDictionary.forLocale(locale);
+
+                                    String prefixPath = name;
+
+                                    if (dictionary != null) {
+
+                                        prefixPath = prefixPath + "_" + dictionary.getState().getId().toString().replaceAll("\\-", "");
+                                    }
+
                                     String tmpdir = System.getProperty("java.io.tmpdir");
-                                    Path affixPath = Paths.get(tmpdir, name + AFFIX_FILE_SUFFIX);
-                                    Path dictionaryPath = Paths.get(tmpdir, name + DICTIONARY_FILE_SUFFIX);
+
+                                    Path affixPath = Paths.get(tmpdir, prefixPath + AFFIX_FILE_SUFFIX);
+                                    Path dictionaryPath = Paths.get(tmpdir, prefixPath + DICTIONARY_FILE_SUFFIX);
 
                                     Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
                                     Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
 
-                                    return Optional.of(new Hunspell(dictionaryPath.toString(), affixPath.toString()));
+                                    hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
+
+                                    if (dictionary != null) {
+                                        for (String word : dictionary.getAllWords()) {
+                                            hunspell.add(word);
+                                        }
+                                    }
+
+                                    break;
                                 }
                             }
                         }
                     }
-
-                    return Optional.empty();
                 }
-            });
+
+                return hunspell == null ? Optional.empty() : Optional.of(hunspell);
+            }
+        });
 
     private Hunspell findHunspell(Locale locale) {
-        return SpellChecker.createDictionaryNames("HunspellDictionary", locale)
-                .stream()
-                .map(l -> hunspells.getUnchecked(l).orElse(null))
-                .filter(h -> h != null)
-                .findFirst()
-                .orElse(null);
+
+        if (lastAccessed.containsKey(locale)) {
+            SpellCheckerDictionary spellCheckerDictionary = SpellCheckerDictionary.forLocale(locale);
+            if (spellCheckerDictionary != null) {
+                Date lastUpdated = spellCheckerDictionary.getLastUpdated();
+                if (lastUpdated != null && lastUpdated.after(lastAccessed.get(locale))) {
+                    hunspells.invalidate(locale);
+                }
+            }
+        }
+        lastAccessed.put(locale, new Date());
+        return hunspells.getUnchecked(locale).orElse(null);
     }
 
     @Override
