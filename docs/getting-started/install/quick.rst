@@ -7,7 +7,7 @@ This option should be used for developers looking to experiment with Brightspot 
 Step 1. Download
 ================
 
-`Download the ZIP <https://github.com/perfectsense/brightspot-demo>`_ for the Brightspot Demo project.
+`Download the ZIP <https://github.com/perfectsense/brightspot-demo/archive/master.zip>`_ for the Brightspot Demo project.
 
 .. note::
 
