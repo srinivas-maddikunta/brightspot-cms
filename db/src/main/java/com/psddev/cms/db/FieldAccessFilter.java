@@ -86,7 +86,7 @@ public class FieldAccessFilter extends AbstractFilter {
         markerData.put("id", state.getId().toString());
         markerData.put("name", name);
 
-        return "<!--BrightspotCmsFieldAccess " + ObjectUtils.toJson(markerData) + "-->";
+        return "<!--BrightspotCmsFieldAccess " + ObjectUtils.toJson(markerData).replace("--", "\\u002d\\u002d") + "-->";
     }
 
     /**
