@@ -1066,7 +1066,7 @@ The HTML within the repeatable element must conform to these standards:
              */
             getCollectionItemWeightColor: function(item) {
                 var $item = $(item);
-                var weightColor = $item.data('weight-color');
+                var weightColor = $item.data('weight-color-field-value');
 
                 if (weightColor) {
                     return weightColor;
@@ -1084,7 +1084,7 @@ The HTML within the repeatable element must conform to these standards:
                 weightColor = colors.generateFromHue(hue);
 
                 $repeatableForm.data('lastHue', hue);
-                $item.data('weight-color', weightColor);
+                $item.data('weight-color-field-value', weightColor);
 
                 return weightColor;
             },
