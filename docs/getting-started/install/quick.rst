@@ -1,41 +1,47 @@
-******************
+##################
 Quick Installation
-******************
+##################
 
-The quick installation of Brightspot uses the Cargo plugin and Tomcat to run the application locally. Installation is a two-step process that requires Java 8 and Maven 3 or higher.
+This option should be used for developers looking to experiment with Brightspot locally. The sole dependency for running this project is Java 8.
 
-Step 1. Create a Project
-========================
+****************
+Step 1. Download
+****************
 
-Once you have `downloaded and installed Maven <http://maven.apache.org/download.cgi>`_, create a Brightspot project by running the following archetype on the command line.
-
-:: 
-
-    mvn archetype:generate -B \
-        -DarchetypeRepository=http://artifactory.psdops.com/public/ \
-        -DarchetypeGroupId=com.psddev \
-        -DarchetypeArtifactId=cms-app-archetype \
-        -DarchetypeVersion=3.2-SNAPSHOT \
-        -DgroupId=com.project \
-        -DartifactId=projectName
-
-The -DgroupId= and -DartifactId= can be customized.
+`Download the ZIP <https://github.com/perfectsense/brightspot-demo>`_ for the Brightspot Demo project.
 
 .. note::
 
-    Windows users must run the archetype on one line without breaks (\).
+    If you have git installed, you can alternatively ``git clone`` this repository.
 
-The default archetype uses a MySQL database.
+***************
+Step 2. Extract
+***************
 
-Step 2. Run the Project
-=======================
+If you've downloaded the ZIP from Step 1, extract the ZIP in a location of your choice.
 
-When you've successfully built a starter project, navigate to the pom.xml file in the root directory.
+***********
+Step 3. Run
+***********
 
-Run the command mvn -P run clean package cargo:run to download Brightspot in the project and start the application on port 9480 (http://localhost:9480/cms).
+The Brightspot Demo project contains scripts for OSX/Linux and Windows environments.
 
-.. note::
+OSX / Linux
+===========
 
-    Make sure nothing is running on port 9480 before running the final command, and ensure that MySQL is not running when using Cargo.
+From the root of the project, execute the ``run.sh`` script from your terminal:
 
-To continue with your first Brightspot project, see :doc:`../hello-world/all`.
+```
+    ./run.sh
+```
+
+Windows
+=======
+
+From the root of the project, execute the ``run.cmd` script from the Command Prompt:
+
+```
+    run.cmd
+```
+
+After you have executed one of the above scripts, your project will build and deploy using the `Maven Cargo <https://codehaus-cargo.github.io/>`_ plugin. This local environment is comprised of a Tomcat 8 container, and an H2 database.
