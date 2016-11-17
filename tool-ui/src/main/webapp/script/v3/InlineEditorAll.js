@@ -42,6 +42,8 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
         
         controlsClass: 'contentEditor-controls',
         
+        eventNamespace: '.contentEditor',
+        
         defaults: {},
         
         /**
@@ -121,11 +123,21 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
                     // to leave the page
                     event.preventDefault();
                     event.stopPropagation();
-                    
-                    if (!self.isEditable()) {
-                        self.setEditable();
-                        self.focus();
+
+                    // Just in case the user is already editing this value and clicks on it again...
+                    if (self.isEditable()) {
+                        return;
                     }
+                    
+                    // Check if another items is already being edited
+                    if (self.controlsAreShowing()) {
+                        alert('Another value is being edited: save or cancel to continue.');
+                        return;
+                    }
+                    
+                    self.setEditable();
+                    self.focus();
+                    
                 }).hover(
                     function(event){
                         if (!self.isEditable()) {
@@ -269,7 +281,7 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             // Add buttons for save and cancel.
             // Note these appear on the iframe overlay
             self.$controls = $('<div>', {
-                'class': self.controlsClass, // 'InlineEditorControls', //self.controlsClass,
+                'class': self.controlsClass,
                 css: {
                     position: 'absolute',
                     'z-index': '999',
@@ -299,6 +311,11 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             
             self.updateControlsPosition();
             self.setOutline(true);
+            
+            // Listen for scroll changes in the parent window so we can keep the save/cancel button aligned
+            $(window.parent).on('scroll' + self.eventNamespace, bsp_utils.throttle(10, function(){
+                self.updateControlsPosition();
+            }));
         },
 
         
@@ -313,9 +330,19 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             $('body').removeClass(self.showingClass);
             
             self.setOutline(false);
+            
+            // Cancel the scroll listener
+            $(window.parent).off('scroll' + self.eventNamespace);
         },
 
 
+        controlsAreShowing: function() {
+            var self;
+            self = this;
+            return $('body').hasClass(self.showingClass);
+        },
+
+        
         updateControlsPosition: function() {
             // Get position of the element we are editing
             // Move controls above it
