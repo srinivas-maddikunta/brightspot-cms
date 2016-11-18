@@ -33,7 +33,7 @@ From the root of the project, execute the ``run.sh`` script from your terminal:
 
 **Windows**
 
-From the root of the project, execute the ``run.cmd` script from the Command Prompt:
+From the root of the project, execute the ``run.cmd`` script from the Command Prompt:
 
 ::
 
