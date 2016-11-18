@@ -139,10 +139,10 @@ public final class ElFunctionUtils {
             }
         }
 
-        return pathWithTimestamp(servletContext, servletPath);
+        return pathWithTimestamp(servletContext, request, servletPath);
     }
 
-    private static String pathWithTimestamp(ServletContext context, String path) {
+    private static String pathWithTimestamp(ServletContext context, HttpServletRequest request, String path) {
         if (context != null) {
             try {
                 URL resource = CodeUtils.getResource(context, path);
@@ -153,7 +153,7 @@ public final class ElFunctionUtils {
 
                     try {
                         return StringUtils.addQueryParameters(
-                                path,
+                                request.getContextPath() + StringUtils.ensureStart(path, "/"),
                                 "_", resourceConnection.getLastModified());
 
                     } finally {
@@ -204,7 +204,7 @@ public final class ElFunctionUtils {
             }
         }
 
-        return pathWithTimestamp(servletContext, servletPath);
+        return pathWithTimestamp(servletContext, request, servletPath);
     }
 
     public static UrlBuilder absolutePath(String path) {
