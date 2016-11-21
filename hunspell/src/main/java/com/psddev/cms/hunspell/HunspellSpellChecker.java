@@ -67,7 +67,6 @@ public class HunspellSpellChecker implements SpellChecker {
                 @Override
                 @ParametersAreNonnullByDefault
                 public Optional<Hunspell> load(String name) throws IOException {
-
                     try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
                         if (affixInput != null) {
                             try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
