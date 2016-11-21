@@ -1,9 +1,9 @@
-package com.psddev.cms.nlp;
+package com.psddev.cms.hunspell;
 
 import com.google.common.base.Preconditions;
+import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.Recordable;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.UuidFormatException;
 import com.psddev.dari.util.UuidUtils;
@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * Additional dictionary for {@link SpellChecker SpellCheckers}.
  */
-public interface SpellCheckerDictionary extends Recordable {
+public interface HunspellDictionary {
 
     String LOCALE_EXTENSION_PREFIX = "bsp-";
 
@@ -39,7 +39,7 @@ public interface SpellCheckerDictionary extends Recordable {
      *         contain a scoped {@link java.util.UUID} of a SpellCheckerDictionary
      *         object.
      */
-    static SpellCheckerDictionary forLocale(Locale locale) {
+    static HunspellDictionary forLocale(Locale locale) {
 
         Preconditions.checkNotNull(locale);
 
@@ -60,7 +60,7 @@ public interface SpellCheckerDictionary extends Recordable {
         }
 
         try {
-            return Query.findById(SpellCheckerDictionary.class, UuidUtils.fromString(extension));
+            return Query.findById(HunspellDictionary.class, UuidUtils.fromString(extension));
         } catch (UuidFormatException e) {
             return null;
         }
@@ -70,10 +70,10 @@ public interface SpellCheckerDictionary extends Recordable {
      * Provides a method to acquire a {@link Locale} representing the
      * SpellCheckerDictionary.
      */
-    class LocaleModification extends Modification<SpellCheckerDictionary> {
+    class LocaleModification extends Modification<HunspellDictionary> {
 
         /**
-         * Returns a {@link Locale} based on {@link SpellCheckerDictionary#getBaseLocale()}
+         * Returns a {@link Locale} based on {@link HunspellDictionary#getBaseLocale()}
          * or {@link Locale#getDefault()} with the {@link Locale#PRIVATE_USE_EXTENSION}
          * containing the {@link com.psddev.dari.db.State#id id} of the modified
          * object.
@@ -82,9 +82,9 @@ public interface SpellCheckerDictionary extends Recordable {
          */
         public Locale getDictionaryLocale() {
 
-            SpellCheckerDictionary spellCheckerDictionary = getOriginalObject();
+            HunspellDictionary hunspellDictionary = getOriginalObject();
 
-            Locale baseLocale = spellCheckerDictionary.getBaseLocale();
+            Locale baseLocale = hunspellDictionary.getBaseLocale();
 
             if (baseLocale == null) {
                 baseLocale = Locale.getDefault();

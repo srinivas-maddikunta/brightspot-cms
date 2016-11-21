@@ -8,7 +8,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.psddev.cms.nlp.SpellChecker;
-import com.psddev.cms.nlp.SpellCheckerDictionary;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.IOException;
@@ -84,19 +83,12 @@ public class HunspellSpellChecker implements SpellChecker {
                             try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
                                 if (dictionaryInput != null) {
 
-                                    SpellCheckerDictionary dictionary = SpellCheckerDictionary.forLocale(locale);
-
-                                    String prefixPath = name;
-
-                                    if (dictionary != null) {
-
-                                        prefixPath = prefixPath + "_" + dictionary.getState().getId().toString().replaceAll("\\-", "");
-                                    }
+                                    HunspellDictionary dictionary = HunspellDictionary.forLocale(locale);
 
                                     String tmpdir = System.getProperty("java.io.tmpdir");
 
-                                    Path affixPath = Paths.get(tmpdir, prefixPath + AFFIX_FILE_SUFFIX);
-                                    Path dictionaryPath = Paths.get(tmpdir, prefixPath + DICTIONARY_FILE_SUFFIX);
+                                    Path affixPath = Paths.get(tmpdir, name + AFFIX_FILE_SUFFIX);
+                                    Path dictionaryPath = Paths.get(tmpdir, name + DICTIONARY_FILE_SUFFIX);
 
                                     Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
                                     Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
@@ -123,9 +115,9 @@ public class HunspellSpellChecker implements SpellChecker {
     private Hunspell findHunspell(Locale locale) {
 
         if (lastAccessed.containsKey(locale)) {
-            SpellCheckerDictionary spellCheckerDictionary = SpellCheckerDictionary.forLocale(locale);
-            if (spellCheckerDictionary != null) {
-                Date lastUpdated = spellCheckerDictionary.getLastUpdated();
+            HunspellDictionary hunspellDictionary = HunspellDictionary.forLocale(locale);
+            if (hunspellDictionary != null) {
+                Date lastUpdated = hunspellDictionary.getLastUpdated();
                 if (lastUpdated != null && lastUpdated.after(lastAccessed.get(locale))) {
                     hunspells.invalidate(locale);
                 }
