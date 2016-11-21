@@ -8,12 +8,11 @@ import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.UuidFormatException;
 import com.psddev.dari.util.UuidUtils;
 
-import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
 
 /**
- * Additional dictionary for {@link SpellChecker SpellCheckers}.
+ * Additional dictionary for {@link HunspellSpellChecker HunspellSpellCheckers}.
  */
 public interface HunspellDictionary {
 
@@ -22,10 +21,6 @@ public interface HunspellDictionary {
     Locale getBaseLocale();
 
     Set<String> getAllWords();
-
-    default Date getLastUpdated() {
-        return null;
-    }
 
     /**
      * Returns a SpellCheckerDictionary for a {@link Locale} when the
