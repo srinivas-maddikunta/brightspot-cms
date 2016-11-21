@@ -72,11 +72,9 @@ public class HunspellSpellChecker implements SpellChecker {
                         if (affixInput != null) {
                             try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
                                 if (dictionaryInput != null) {
-
                                     HunspellDictionary dictionary = HunspellDictionary.forName(name);
 
                                     String tmpdir = System.getProperty("java.io.tmpdir");
-
                                     Path affixPath = Paths.get(tmpdir, name + AFFIX_FILE_SUFFIX);
                                     Path dictionaryPath = Paths.get(tmpdir, name + DICTIONARY_FILE_SUFFIX);
 
