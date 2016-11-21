@@ -1,7 +1,6 @@
 package com.psddev.cms.hunspell;
 
 import com.google.common.base.Preconditions;
-import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.ObjectUtils;
