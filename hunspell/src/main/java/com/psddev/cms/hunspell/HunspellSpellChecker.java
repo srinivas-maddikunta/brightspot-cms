@@ -49,56 +49,56 @@ public class HunspellSpellChecker implements SpellChecker {
     public static final String DICTIONARY_FILE_SUFFIX = ".dic";
 
     private final LoadingCache<String, Optional<Hunspell>> hunspells = CacheBuilder
-        .newBuilder()
-        .removalListener(new RemovalListener<String, Optional<Hunspell>>() {
+            .newBuilder()
+            .removalListener(new RemovalListener<String, Optional<Hunspell>>() {
 
-            @Override
-            @ParametersAreNonnullByDefault
-            public void onRemoval(RemovalNotification<String, Optional<Hunspell>> removalNotification) {
-                Optional<Hunspell> hunspellOptional = removalNotification.getValue();
+                @Override
+                @ParametersAreNonnullByDefault
+                public void onRemoval(RemovalNotification<String, Optional<Hunspell>> removalNotification) {
+                    Optional<Hunspell> hunspellOptional = removalNotification.getValue();
 
-                if (hunspellOptional != null) {
-                    hunspellOptional.ifPresent(Hunspell::close);
+                    if (hunspellOptional != null) {
+                        hunspellOptional.ifPresent(Hunspell::close);
+                    }
                 }
-            }
-        })
-        .build(new CacheLoader<String, Optional<Hunspell>>() {
+            })
+            .build(new CacheLoader<String, Optional<Hunspell>>() {
 
-            @Override
-            @ParametersAreNonnullByDefault
-            public Optional<Hunspell> load(String name) throws IOException {
+                @Override
+                @ParametersAreNonnullByDefault
+                public Optional<Hunspell> load(String name) throws IOException {
 
-                try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
-                    if (affixInput != null) {
-                        try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
-                            if (dictionaryInput != null) {
+                    try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
+                        if (affixInput != null) {
+                            try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
+                                if (dictionaryInput != null) {
 
-                                HunspellDictionary dictionary = HunspellDictionary.forName(name);
+                                    HunspellDictionary dictionary = HunspellDictionary.forName(name);
 
-                                String tmpdir = System.getProperty("java.io.tmpdir");
+                                    String tmpdir = System.getProperty("java.io.tmpdir");
 
-                                Path affixPath = Paths.get(tmpdir, name + AFFIX_FILE_SUFFIX);
-                                Path dictionaryPath = Paths.get(tmpdir, name + DICTIONARY_FILE_SUFFIX);
+                                    Path affixPath = Paths.get(tmpdir, name + AFFIX_FILE_SUFFIX);
+                                    Path dictionaryPath = Paths.get(tmpdir, name + DICTIONARY_FILE_SUFFIX);
 
-                                Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
-                                Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
+                                    Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
+                                    Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
 
-                                Hunspell hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
+                                    Hunspell hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
 
-                                if (dictionary != null) {
-                                    for (String word : dictionary.getAllWords()) {
-                                        hunspell.add(word);
+                                    if (dictionary != null) {
+                                        for (String word : dictionary.getAllWords()) {
+                                            hunspell.add(word);
+                                        }
                                     }
-                                }
 
-                                return Optional.of(hunspell);
+                                    return Optional.of(hunspell);
+                                }
                             }
                         }
                     }
-                }
 
-                return Optional.empty();
-            }
+                    return Optional.empty();
+                }
         });
 
     private Hunspell findHunspell(Locale locale) {
