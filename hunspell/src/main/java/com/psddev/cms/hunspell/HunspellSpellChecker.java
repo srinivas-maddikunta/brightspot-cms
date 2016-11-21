@@ -99,15 +99,15 @@ public class HunspellSpellChecker implements SpellChecker {
 
                     return Optional.empty();
                 }
-        });
+            });
 
     private Hunspell findHunspell(Locale locale) {
         return SpellChecker.createDictionaryNames("HunspellDictionary", locale)
-            .stream()
-            .map(l -> hunspells.getUnchecked(l).orElse(null))
-            .filter(h -> h != null)
-            .findFirst()
-            .orElse(null);
+                .stream()
+                .map(l -> hunspells.getUnchecked(l).orElse(null))
+                .filter(h -> h != null)
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
