@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.psddev.cms.nlp.SpellChecker;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.Query;
+import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.UuidFormatException;
 import com.psddev.dari.util.UuidUtils;
@@ -32,16 +33,18 @@ public interface HunspellDictionary {
      * Locale's {@link Locale#PRIVATE_USE_EXTENSION} represents a Brightspot
      * SpellCheckerDictionary object.
      *
-     * @param locale
+     * @param name
      *        Can't be {@code null}.
      *
      * @return {@code null} if the provided Locale's extension does not
      *         contain a scoped {@link java.util.UUID} of a SpellCheckerDictionary
      *         object.
      */
-    static HunspellDictionary forLocale(Locale locale) {
+    static HunspellDictionary forName(String name) {
 
-        Preconditions.checkNotNull(locale);
+        Preconditions.checkArgument(!ObjectUtils.isBlank(name));
+
+        Locale locale = Locale.forLanguageTag(name);
 
         String extension = locale.getExtension('x');
 

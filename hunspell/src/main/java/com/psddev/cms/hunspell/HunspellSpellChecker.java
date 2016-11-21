@@ -16,12 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -52,15 +48,13 @@ public class HunspellSpellChecker implements SpellChecker {
      */
     public static final String DICTIONARY_FILE_SUFFIX = ".dic";
 
-    private final Map<Locale, Date> lastAccessed = Collections.synchronizedMap(new LinkedHashMap<>());
-
-    private final LoadingCache<Locale, Optional<Hunspell>> hunspells = CacheBuilder
+    private final LoadingCache<String, Optional<Hunspell>> hunspells = CacheBuilder
         .newBuilder()
-        .removalListener(new RemovalListener<Locale, Optional<Hunspell>>() {
+        .removalListener(new RemovalListener<String, Optional<Hunspell>>() {
 
             @Override
             @ParametersAreNonnullByDefault
-            public void onRemoval(RemovalNotification<Locale, Optional<Hunspell>> removalNotification) {
+            public void onRemoval(RemovalNotification<String, Optional<Hunspell>> removalNotification) {
                 Optional<Hunspell> hunspellOptional = removalNotification.getValue();
 
                 if (hunspellOptional != null) {
@@ -68,63 +62,52 @@ public class HunspellSpellChecker implements SpellChecker {
                 }
             }
         })
-        .build(new CacheLoader<Locale, Optional<Hunspell>>() {
+        .build(new CacheLoader<String, Optional<Hunspell>>() {
 
             @Override
             @ParametersAreNonnullByDefault
-            public Optional<Hunspell> load(Locale locale) throws IOException {
+            public Optional<Hunspell> load(String name) throws IOException {
 
-                Hunspell hunspell = null;
+                try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
+                    if (affixInput != null) {
+                        try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
+                            if (dictionaryInput != null) {
 
-                for (String name : SpellChecker.createDictionaryNames("HunspellDictionary", locale)) {
+                                HunspellDictionary dictionary = HunspellDictionary.forName(name);
 
-                    try (InputStream affixInput = getClass().getResourceAsStream("/" + name + AFFIX_FILE_SUFFIX)) {
-                        if (affixInput != null) {
-                            try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
-                                if (dictionaryInput != null) {
+                                String tmpdir = System.getProperty("java.io.tmpdir");
 
-                                    HunspellDictionary dictionary = HunspellDictionary.forLocale(locale);
+                                Path affixPath = Paths.get(tmpdir, name + AFFIX_FILE_SUFFIX);
+                                Path dictionaryPath = Paths.get(tmpdir, name + DICTIONARY_FILE_SUFFIX);
 
-                                    String tmpdir = System.getProperty("java.io.tmpdir");
+                                Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
+                                Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
 
-                                    Path affixPath = Paths.get(tmpdir, name + AFFIX_FILE_SUFFIX);
-                                    Path dictionaryPath = Paths.get(tmpdir, name + DICTIONARY_FILE_SUFFIX);
+                                Hunspell hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
 
-                                    Files.copy(affixInput, affixPath, StandardCopyOption.REPLACE_EXISTING);
-                                    Files.copy(dictionaryInput, dictionaryPath, StandardCopyOption.REPLACE_EXISTING);
-
-                                    hunspell = new Hunspell(dictionaryPath.toString(), affixPath.toString());
-
-                                    if (dictionary != null) {
-                                        for (String word : dictionary.getAllWords()) {
-                                            hunspell.add(word);
-                                        }
+                                if (dictionary != null) {
+                                    for (String word : dictionary.getAllWords()) {
+                                        hunspell.add(word);
                                     }
-
-                                    break;
                                 }
+
+                                return Optional.of(hunspell);
                             }
                         }
                     }
                 }
 
-                return hunspell == null ? Optional.empty() : Optional.of(hunspell);
+                return Optional.empty();
             }
         });
 
     private Hunspell findHunspell(Locale locale) {
-
-        if (lastAccessed.containsKey(locale)) {
-            HunspellDictionary hunspellDictionary = HunspellDictionary.forLocale(locale);
-            if (hunspellDictionary != null) {
-                Date lastUpdated = hunspellDictionary.getLastUpdated();
-                if (lastUpdated != null && lastUpdated.after(lastAccessed.get(locale))) {
-                    hunspells.invalidate(locale);
-                }
-            }
-        }
-        lastAccessed.put(locale, new Date());
-        return hunspells.getUnchecked(locale).orElse(null);
+        return SpellChecker.createDictionaryNames("HunspellDictionary", locale)
+            .stream()
+            .map(l -> hunspells.getUnchecked(l).orElse(null))
+            .filter(h -> h != null)
+            .findFirst()
+            .orElse(null);
     }
 
     @Override
