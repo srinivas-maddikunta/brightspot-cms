@@ -91,7 +91,6 @@ public class InlineEdit extends PageServlet {
             }
             page.writeEnd();
 
-            // Form
             page.writeStart("form",
                     "class", "standardForm",
                     "method", "post",
@@ -105,7 +104,6 @@ public class InlineEdit extends PageServlet {
                 page.writeStart("div", "class", "contentForm-main inline"); {
                     page.writeStart("div", "class", "widget widget-content"); {
 
-                        // Heading
                         page.writeStart("h1", "class", "breadcrumbs"); {
                             page.writeStart("span", "class", "breadcrumbItem icon icon-" + iconName); {
                                 page.writeHtml(page.localize(
@@ -125,7 +123,6 @@ public class InlineEdit extends PageServlet {
                         }
                         page.writeEnd();
 
-                        // Full form button
                         page.writeStart("div", "class", "widgetControls"); {
                             page.writeStart("a",
                                     "class", "icon icon-action-edit",
@@ -138,7 +135,6 @@ public class InlineEdit extends PageServlet {
                         }
                         page.writeEnd();
 
-                        // Error message
                         if (error) {
                             page.writeStart("div", "class", "message message-error"); {
                                 page.writeHtml(page.localize("com.psddev.cms.tool.page.content.Errors", "error.validation"));
@@ -146,10 +142,8 @@ public class InlineEdit extends PageServlet {
                             page.writeEnd();
                         }
 
-                        // Fields
                         page.writeSomeFormFields(object, false, fields.isEmpty() ? null : fields, null);
 
-                        // Publish/Save button
                         page.writeStart("div", "class", "actions widget-publishingPublish"); {
                             page.writeStart("button",
                                     "class", "icon icon-action-save",
