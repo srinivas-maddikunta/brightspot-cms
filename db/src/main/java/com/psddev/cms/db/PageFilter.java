@@ -106,7 +106,7 @@ public class PageFilter extends AbstractFilter {
     private static final String PATH_MATCHES_ATTRIBUTE = ATTRIBUTE_PREFIX + ".matches";
     private static final String PREVIEW_ATTRIBUTE = ".preview";
     private static final String PERSISTENT_PREVIEW_ATTRIBUTE = ".persistentPreview";
-    private static final String VIEW_TEMPLATE_LOADER_ATTRIBUTE = ".viewTemplateLoader";
+    private static final String VIEW_TEMPLATE_LOADER_ATTRIBUTE = ATTRIBUTE_PREFIX + ".viewTemplateLoader";
 
     public static final String ABORTED_ATTRIBUTE = ATTRIBUTE_PREFIX + ".aborted";
     public static final String CURRENT_SECTION_ATTRIBUTE = ATTRIBUTE_PREFIX + ".currentSection";
