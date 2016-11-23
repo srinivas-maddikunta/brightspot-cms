@@ -79,9 +79,8 @@ public class ContentMetadata extends PageServlet {
                     page.writeStart("div", "class", "objectInputs"); {
                         page.writeStart("div", "class", "repeatableForm"); {
                             page.writeStart("ul"); {
-                                for (Object obj : valueMap.entrySet()) {
-                                    Map.Entry subEntry = (Map.Entry) obj;
-                                    writeEntry(page, subEntry);
+                                for (Object subEntry : valueMap.entrySet()) {
+                                    writeEntry(page, (Map.Entry) subEntry);
                                 }
                             }
                             page.writeEnd();
