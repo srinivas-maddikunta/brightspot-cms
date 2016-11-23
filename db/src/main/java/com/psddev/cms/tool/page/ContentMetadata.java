@@ -9,6 +9,8 @@ import com.psddev.dari.util.RoutingFilter;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Displays core image metadata that has been extracted via
@@ -26,8 +28,19 @@ public class ContentMetadata extends PageServlet {
 
     @Override
     protected void doService(ToolPageContext page) throws IOException, ServletException {
+        String metadataJson = page.param(String.class, "metadata");
+
+        if (metadataJson == null) {
+            throw new IllegalArgumentException("No metadata found!");
+        }
+
         @SuppressWarnings("unchecked")
-        Map<String, Object> metadata = (Map<String, Object>) ObjectUtils.fromJson(page.param(String.class, "metadata"));
+        Map<String, Object> metadata = new TreeMap<>(((Map<String, Object>) ObjectUtils.fromJson(metadataJson)).entrySet()
+                .stream()
+                .collect(Collectors.toMap(entry -> {
+                    String key = entry.getKey();
+                    return key.substring(0, 1).toUpperCase() + key.substring(1);
+                }, Map.Entry::getValue)));
 
         // Disable remove button.
         page.writeStart("style", "type", "text/css"); {
@@ -57,13 +70,12 @@ public class ContentMetadata extends PageServlet {
     private void writeEntry(ToolPageContext page, Map.Entry<String, Object> entry) throws IOException {
         String key = entry.getKey();
         Object value = entry.getValue();
-        String label = key.substring(0, 1).toUpperCase() + key.substring(1);
 
         if (value instanceof CompactMap) {
             CompactMap valueMap = (CompactMap) value;
 
             if (!valueMap.isEmpty()) {
-                page.writeStart("li", "data-type", label); {
+                page.writeStart("li", "data-type", key); {
                     page.writeStart("div", "class", "objectInputs"); {
                         page.writeStart("div", "class", "repeatableForm"); {
                             page.writeStart("ul"); {
@@ -83,14 +95,14 @@ public class ContentMetadata extends PageServlet {
             }
 
         } else {
-            label += ": " + value;
+            key += ": " + value;
         }
 
-        page.writeStart("li", "data-type", label).writeEnd();
+        page.writeStart("li", "data-type", key).writeEnd();
 
         // Disable pointer events.
         page.writeStart("style", "type", "text/css"); {
-            String labelSelector = "li[data-type=\"" + label + "\"] .repeatableLabel";
+            String labelSelector = "li[data-type=\"" + key + "\"] .repeatableLabel";
             page.writeCss(labelSelector, "pointer-events", "none");
             page.writeCss(labelSelector + ":after", "content", "none !important");
         }
