@@ -59,16 +59,10 @@ public class ContentMetadata extends PageServlet {
         Object value = entry.getValue();
         String label = key.substring(0, 1).toUpperCase() + key.substring(1);
 
-        if (!(value instanceof CompactMap)) {
-            writeEntry(page, label, value);
-
-        } else {
+        if (value instanceof CompactMap) {
             CompactMap valueMap = (CompactMap) value;
 
-            if (valueMap.isEmpty()) {
-                writeEntry(page, label, null);
-
-            } else {
+            if (!valueMap.isEmpty()) {
                 page.writeStart("li", "data-type", label); {
                     page.writeStart("div", "class", "objectInputs"); {
                         page.writeStart("div", "class", "repeatableForm"); {
@@ -85,15 +79,18 @@ public class ContentMetadata extends PageServlet {
                     page.writeEnd();
                 }
                 page.writeEnd();
+                return;
             }
         }
+
+        writeEntry(page, label, value);
     }
 
     /*
      * Writes metadata for key with simple or no value.
      */
     private void writeEntry(ToolPageContext page, String label, Object value) throws IOException {
-        if (value != null) {
+        if (!(value instanceof CompactMap)) {
             label += ": " + value;
         }
 
