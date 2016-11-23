@@ -7,11 +7,11 @@ This option should be used for developers looking to experiment with Brightspot 
 Step 1. Download
 ================
 
-`Download the ZIP <https://github.com/perfectsense/brightspot-demo/archive/master.zip>`_ for the Brightspot Demo project.
+`Download the ZIP <https://github.com/perfectsense/brightspot-tutorial/archive/master.zip>`_ for the `Brightspot Tutorial <https://github.com/perfectsense/brightspot-tutorial>`_ project.
 
 .. note::
 
-    If you have **git** installed, you can alternatively ``git clone`` this repository.
+    If you have **git** installed, you can alternatively ``git clone`` `the repository <https://github.com/perfectsense/brightspot-tutorial>`_.
 
 Step 2. Extract
 ===============
