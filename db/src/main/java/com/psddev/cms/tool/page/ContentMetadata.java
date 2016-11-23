@@ -60,26 +60,25 @@ public class ContentMetadata extends PageServlet {
         String label = key.substring(0, 1).toUpperCase() + key.substring(1);
 
         if (!(value instanceof CompactMap)) {
-            label += ": " + value;
-            page.writeStart("li", "data-type", label).writeEnd();
-
-            // Disable pointer events.
-            page.writeStart("style", "type", "text/css"); {
-                String labelSelector = "li[data-type=\"" + label + "\"] .repeatableLabel";
-                page.writeCss(labelSelector, "pointer-events", "none");
-                page.writeCss(labelSelector + ":after", "content", "none !important");
-            }
-            page.writeEnd();
+            writeEntry(page, label, value);
 
         } else {
-            page.writeStart("li", "data-type", label); {
-                page.writeStart("div", "class", "objectInputs"); {
-                    page.writeStart("div", "class", "repeatableForm"); {
-                        page.writeStart("ul"); {
-                            for (Object obj : ((CompactMap) value).entrySet()) {
-                                Map.Entry subEntry = (Map.Entry) obj;
-                                writeEntry(page, subEntry);
+            CompactMap valueMap = (CompactMap) value;
+
+            if (valueMap.isEmpty()) {
+                writeEntry(page, label, null);
+
+            } else {
+                page.writeStart("li", "data-type", label); {
+                    page.writeStart("div", "class", "objectInputs"); {
+                        page.writeStart("div", "class", "repeatableForm"); {
+                            page.writeStart("ul"); {
+                                for (Object obj : valueMap.entrySet()) {
+                                    Map.Entry subEntry = (Map.Entry) obj;
+                                    writeEntry(page, subEntry);
+                                }
                             }
+                            page.writeEnd();
                         }
                         page.writeEnd();
                     }
@@ -87,7 +86,25 @@ public class ContentMetadata extends PageServlet {
                 }
                 page.writeEnd();
             }
-            page.writeEnd();
         }
+    }
+
+    /*
+     * Writes metadata for key with simple or no value.
+     */
+    private void writeEntry(ToolPageContext page, String label, Object value) throws IOException {
+        if (value != null) {
+            label += ": " + value;
+        }
+
+        page.writeStart("li", "data-type", label).writeEnd();
+
+        // Disable pointer events.
+        page.writeStart("style", "type", "text/css"); {
+            String labelSelector = "li[data-type=\"" + label + "\"] .repeatableLabel";
+            page.writeCss(labelSelector, "pointer-events", "none");
+            page.writeCss(labelSelector + ":after", "content", "none !important");
+        }
+        page.writeEnd();
     }
 }
