@@ -18,6 +18,7 @@ import com.psddev.cms.db.ResizeOption;
 import com.psddev.cms.db.StandardImageSize;
 import com.psddev.cms.tool.FileContentType;
 import com.psddev.cms.tool.ToolPageContext;
+import com.psddev.cms.tool.page.ContentMetadata;
 import com.psddev.dari.db.ColorDistribution;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.State;
@@ -178,6 +179,20 @@ public class ImageFileType implements FileContentType {
                                 page.writeHtml(page.localize(ImageFileType.class, "action.viewOriginal"));
                             page.writeEnd();
                         page.writeEnd();
+
+                        if (!fieldValueMetadata.isEmpty()) {
+                            page.writeStart("li"); {
+                                page.writeStart("a",
+                                        "class", "action-image-viewMetadata",
+                                        "href", page.cmsUrl(ContentMetadata.PATH, "metadata", ObjectUtils.toJson(fieldValueMetadata)),
+                                        "target", "contentMetadata"); {
+
+                                    page.writeHtml(page.localize(ImageFileType.class, "action.viewMetadata"));
+                                }
+                                page.writeEnd();
+                            }
+                            page.writeEnd();
+                        }
 
                         page.writeStart("li");
                             page.writeStart("a",
