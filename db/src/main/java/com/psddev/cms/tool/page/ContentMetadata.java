@@ -81,16 +81,8 @@ public class ContentMetadata extends PageServlet {
                 page.writeEnd();
                 return;
             }
-        }
 
-        writeEntry(page, label, value);
-    }
-
-    /*
-     * Writes metadata for key with simple or no value.
-     */
-    private void writeEntry(ToolPageContext page, String label, Object value) throws IOException {
-        if (!(value instanceof CompactMap)) {
+        } else {
             label += ": " + value;
         }
 
