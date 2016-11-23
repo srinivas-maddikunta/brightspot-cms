@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Displays image metadata that has been extracted via
+ * Displays core image metadata that has been extracted via
  * <a href="http://www.drewnoakes.com/code/exif/">Metadata Extractor</a>.
  */
 @RoutingFilter.Path(application = "cms", value = ContentMetadata.PATH)
@@ -56,12 +56,6 @@ public class ContentMetadata extends PageServlet {
     @SuppressWarnings("unchecked")
     private void writeEntry(ToolPageContext page, Map.Entry<String, Object> entry) throws IOException {
         String key = entry.getKey();
-
-        // Skip cms image metadata.
-        if (key.startsWith("cms.")) {
-            return;
-        }
-
         Object value = entry.getValue();
         String label = key.substring(0, 1).toUpperCase() + key.substring(1);
 

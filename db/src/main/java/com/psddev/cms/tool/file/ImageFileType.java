@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -180,11 +181,16 @@ public class ImageFileType implements FileContentType {
                             page.writeEnd();
                         page.writeEnd();
 
-                        if (!fieldValueMetadata.isEmpty()) {
+                        Map<String, Object> coreMetadata = fieldValueMetadata.entrySet()
+                                .stream()
+                                .filter(entry -> !entry.getKey().startsWith("cms."))
+                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                        if (!coreMetadata.isEmpty()) {
                             page.writeStart("li"); {
                                 page.writeStart("a",
                                         "class", "action-image-viewMetadata",
-                                        "href", page.cmsUrl(ContentMetadata.PATH, "metadata", ObjectUtils.toJson(fieldValueMetadata)),
+                                        "href", page.cmsUrl(ContentMetadata.PATH, "metadata", ObjectUtils.toJson(coreMetadata)),
                                         "target", "contentMetadata"); {
 
                                     page.writeHtml(page.localize(ImageFileType.class, "action.viewMetadata"));
