@@ -35,26 +35,33 @@ public class ReferenceRichTextElement extends RichTextElement {
 
     @Override
     public void fromAttributes(Map<String, String> attributes) {
-        if (attributes != null) {
-
-            String valuesString = attributes.get(VALUES_ATTRIBUTE);
-            if (valuesString != null) {
-
-                @SuppressWarnings("unchecked")
-                Map<String, Object> values = (Map<String, Object>) ObjectUtils.fromJson(valuesString);
-
-                ObjectType type = ObjectType.getInstance(ObjectUtils.to(UUID.class, values.get("_type")));
-                if (type != null) {
-
-                    Object object = type.createObject(ObjectUtils.to(UUID.class, values.get("_id")));
-                    if (object instanceof Reference) {
-                        State state = State.getInstance(object);
-                        state.setValues(values);
-                        reference = (Reference) object;
-                    }
-                }
-            }
+        if (attributes == null) {
+            return;
         }
+
+        String valuesString = attributes.get(VALUES_ATTRIBUTE);
+
+        if (valuesString == null) {
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> values = (Map<String, Object>) ObjectUtils.fromJson(valuesString);
+        ObjectType type = ObjectType.getInstance(ObjectUtils.to(UUID.class, values.get("_type")));
+
+        if (type == null) {
+            return;
+        }
+
+        Object object = type.createObject(ObjectUtils.to(UUID.class, values.get("_id")));
+
+        if (!(object instanceof Reference)) {
+            return;
+        }
+
+        State state = State.getInstance(object);
+        state.setValues(values);
+        reference = (Reference) object;
     }
 
     @Override
