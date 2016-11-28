@@ -72,7 +72,7 @@ public class RichTextViewBuilder<V> {
      * @param richText the rich text to be converted to a view.
      */
     public RichTextViewBuilder(String richText) {
-        Preconditions.checkNotNull(richText, "richText");
+        Preconditions.checkNotNull(richText);
         this.richText = richText;
     }
 
@@ -82,7 +82,7 @@ public class RichTextViewBuilder<V> {
      * @param referentialText the ReferentialText to be converted to view(s).
      */
     public RichTextViewBuilder(ReferentialText referentialText) {
-        Preconditions.checkNotNull(referentialText, "referentialText");
+        Preconditions.checkNotNull(referentialText);
         this.richText = toRichText(referentialText);
     }
 
@@ -133,9 +133,8 @@ public class RichTextViewBuilder<V> {
      * @return this builder.
      */
     public RichTextViewBuilder<V> addPreprocessor(RichTextPreprocessor preprocessor) {
-        if (preprocessor != null) {
-            this.preprocessors.add(preprocessor);
-        }
+        Preconditions.checkNotNull(preprocessor);
+        this.preprocessors.add(preprocessor);
         return this;
     }
 
@@ -297,7 +296,6 @@ public class RichTextViewBuilder<V> {
      * @return the list of views.
      */
     public static <V> List<V> build(String richText, Function<RichTextElement, V> richTextElementViewFunction) {
-        Preconditions.checkNotNull(richTextElementViewFunction, "richTextElementViewFunction");
         if (richText != null) {
             return new RichTextViewBuilder<V>(richText)
                     .addPreprocessor(new EditorialMarkupRichTextPreprocessor())
