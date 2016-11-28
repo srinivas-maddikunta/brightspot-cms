@@ -360,7 +360,7 @@ public class RichTextViewBuilder<V> {
                 try {
                     new HtmlWriter(refHtml) { {
                         writeStart(ReferenceRichTextElement.TAG_NAME,
-                                ReferenceRichTextElement.TAG_VALUES_ATTRIBUTE, ObjectUtils.toJson(ref.getState().getSimpleValues()));
+                                ReferenceRichTextElement.VALUES_ATTRIBUTE, ObjectUtils.toJson(ref.getState().getSimpleValues()));
                         writeEnd();
                     } };
                 } catch (IOException e) {

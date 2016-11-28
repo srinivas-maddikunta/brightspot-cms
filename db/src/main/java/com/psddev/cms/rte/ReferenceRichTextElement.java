@@ -25,7 +25,7 @@ import com.psddev.dari.util.ObjectUtils;
 public class ReferenceRichTextElement extends RichTextElement {
 
     public static final String TAG_NAME = "brightspot-cms-reference";
-    public static final String TAG_VALUES_ATTRIBUTE = "values";
+    public static final String VALUES_ATTRIBUTE = "values";
 
     private Reference reference;
 
@@ -37,7 +37,7 @@ public class ReferenceRichTextElement extends RichTextElement {
     public void fromAttributes(Map<String, String> attributes) {
         if (attributes != null) {
 
-            String valuesString = attributes.get(TAG_VALUES_ATTRIBUTE);
+            String valuesString = attributes.get(VALUES_ATTRIBUTE);
             if (valuesString != null) {
 
                 @SuppressWarnings("unchecked")
@@ -61,7 +61,7 @@ public class ReferenceRichTextElement extends RichTextElement {
     public Map<String, String> toAttributes() {
         Map<String, String> attributes = new CompactMap<>();
         if (reference != null) {
-            attributes.put(TAG_VALUES_ATTRIBUTE, ObjectUtils.toJson(reference.getState().getSimpleValues()));
+            attributes.put(VALUES_ATTRIBUTE, ObjectUtils.toJson(reference.getState().getSimpleValues()));
         }
         return attributes;
     }
