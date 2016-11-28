@@ -167,17 +167,15 @@ public class RichTextViewBuilder<V> {
         return views;
     }
 
-    /*
-     * Traverses the siblings all the way down the tree, collapsing balanced
-     * blocks of HTML that do NOT contain any rich text elements into a single
-     * HTML String. If a non-rich text element is found and NONE of its
-     * descendants are rich text elements, then it will be collapsed into a
-     * String. If ANY of its descendants DO contain a rich text element then
-     * each parent of the rich text element will remain an Element object and
-     * not be collapsed into a String UNLESS there is no htmlElementWrapperViewFunction
-     * defined in which case the element will be converted into a potentially
-     * unbalanced HTML String.
-     */
+    // Traverses the siblings all the way down the tree, collapsing balanced
+    // blocks of HTML that do NOT contain any rich text elements into a single
+    // HTML String. If a non-rich text element is found and NONE of its
+    // descendants are rich text elements, then it will be collapsed into a
+    // String. If ANY of its descendants DO contain a rich text element then
+    // each parent of the rich text element will remain an Element object and
+    // not be collapsed into a String UNLESS there is no htmlElementWrapperViewFunction
+    // defined in which case the element will be converted into a potentially
+    // unbalanced HTML String.
     private List<RichTextViewBuilderNode<V>> toBuilderNodes(List<Node> siblings, Map<String, ObjectType> tagTypes) {
 
         List<RichTextViewBuilderNode<V>> builderNodes = new ArrayList<>();
@@ -338,9 +336,7 @@ public class RichTextViewBuilder<V> {
         return build(toRichText(referentialText), richTextElementViewFunction);
     }
 
-    /*
-     * Converts ReferentialText into an RTE HTML String.
-     */
+    // Converts ReferentialText into an RTE HTML String.
     private static String toRichText(ReferentialText referentialText) {
 
         if (referentialText == null) {

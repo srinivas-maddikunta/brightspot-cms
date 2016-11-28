@@ -9,8 +9,7 @@ class RichTextViewBuilderRichTextElementNode<V> implements RichTextViewBuilderNo
     private final RichTextElement richTextElement;
     private final Function<RichTextElement, V> richTextElementViewFunction;
 
-    RichTextViewBuilderRichTextElementNode(RichTextElement richTextElement,
-                                           Function<RichTextElement, V> richTextElementViewFunction) {
+    RichTextViewBuilderRichTextElementNode(RichTextElement richTextElement, Function<RichTextElement, V> richTextElementViewFunction) {
         this.richTextElement = richTextElement;
         this.richTextElementViewFunction = richTextElementViewFunction;
     }
