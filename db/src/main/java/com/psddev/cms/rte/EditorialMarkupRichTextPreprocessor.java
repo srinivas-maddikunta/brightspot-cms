@@ -7,10 +7,10 @@ import org.jsoup.nodes.Element;
  * use and not meant for consumption by external sources. For example, markup
  * produced by the Track Changes feature would be removed.
  */
-public class RichTextEditorialMarkupProcessor implements RichTextProcessor {
+public class EditorialMarkupRichTextPreprocessor implements RichTextPreprocessor {
 
     @Override
-    public void process(Element body) {
+    public void preprocess(Element body) {
 
         body.getElementsByTag("del").remove();
         body.getElementsByTag("ins").unwrap();

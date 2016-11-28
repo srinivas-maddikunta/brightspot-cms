@@ -21,7 +21,7 @@ import com.psddev.dari.db.ObjectType;
  * converts them into paragraphs (&lt;p&gt; tags) or some other block level
  * elements.
  */
-public class RichTextLineBreakProcessor implements RichTextProcessor {
+public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
 
     private static final Tag BR_TAG = Tag.valueOf("br");
     private static final Tag DIV_TAG = Tag.valueOf("div");
@@ -30,23 +30,23 @@ public class RichTextLineBreakProcessor implements RichTextProcessor {
 
     private Map<String, String> attributes;
 
-    public RichTextLineBreakProcessor() {
+    public LineBreakRichTextPreprocessor() {
         this("p", null);
     }
 
     // TODO: Support additional tags
-    private RichTextLineBreakProcessor(String tagName) {
+    private LineBreakRichTextPreprocessor(String tagName) {
         this(tagName, null);
     }
 
     // TODO: Support additional tags and attributes
-    private RichTextLineBreakProcessor(String tagName, Map<String, String> attributes) {
+    private LineBreakRichTextPreprocessor(String tagName, Map<String, String> attributes) {
         this.tag = Tag.valueOf(tagName);
         this.attributes = attributes;
     }
 
     @Override
-    public void process(Element body) {
+    public void preprocess(Element body) {
 
         body.select(".cms-textAlign-left, .cms-textAlign-center, .cms-textAlign-right, ol, ul").forEach(element -> {
             Element next = element.nextElementSibling();

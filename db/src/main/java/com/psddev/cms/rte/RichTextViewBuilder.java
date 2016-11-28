@@ -64,7 +64,7 @@ public class RichTextViewBuilder<V> {
 
     private boolean renderUnhandledRichTextElements;
 
-    private List<RichTextProcessor> processors = new ArrayList<>();
+    private List<RichTextPreprocessor> preprocessors = new ArrayList<>();
 
     /**
      * Creates a new builder for the given rich text.
@@ -126,15 +126,15 @@ public class RichTextViewBuilder<V> {
     }
 
     /**
-     * Adds a rich text processor to be applied to the rich text prior to the
+     * Adds a rich text preprocessor to be applied to the rich text prior to the
      * transformation into a set of views.
      *
-     * @param processor the rich text processor to be applied.
+     * @param preprocessor the rich text preprocessor to be applied.
      * @return this builder.
      */
-    public RichTextViewBuilder<V> addProcessor(RichTextProcessor processor) {
-        if (processor != null) {
-            this.processors.add(processor);
+    public RichTextViewBuilder<V> addPreprocessor(RichTextPreprocessor preprocessor) {
+        if (preprocessor != null) {
+            this.preprocessors.add(preprocessor);
         }
         return this;
     }
@@ -154,8 +154,8 @@ public class RichTextViewBuilder<V> {
         Document document = Jsoup.parseBodyFragment(richText);
         document.outputSettings().prettyPrint(false);
 
-        for (RichTextProcessor processor : processors) {
-            processor.process(document.body());
+        for (RichTextPreprocessor preprocessor : preprocessors) {
+            preprocessor.preprocess(document.body());
         }
 
         toBuilderNodes(document.body().childNodes(), tagTypes)
@@ -302,8 +302,8 @@ public class RichTextViewBuilder<V> {
         Preconditions.checkNotNull(richTextElementViewFunction, "richTextElementViewFunction");
         if (richText != null) {
             return new RichTextViewBuilder<V>(richText)
-                    .addProcessor(new RichTextEditorialMarkupProcessor())
-                    .addProcessor(new RichTextLineBreakProcessor())
+                    .addPreprocessor(new EditorialMarkupRichTextPreprocessor())
+                    .addPreprocessor(new LineBreakRichTextPreprocessor())
                     .richTextElementViewFunction(richTextElementViewFunction)
                     .build();
         } else {
