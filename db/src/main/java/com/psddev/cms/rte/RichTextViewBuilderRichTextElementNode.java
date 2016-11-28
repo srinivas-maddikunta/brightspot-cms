@@ -6,8 +6,8 @@ import com.psddev.cms.db.RichTextElement;
 
 class RichTextViewBuilderRichTextElementNode<V> implements RichTextViewBuilderNode<V> {
 
-    private RichTextElement richTextElement;
-    private Function<RichTextElement, V> richTextElementViewFunction;
+    private final RichTextElement richTextElement;
+    private final Function<RichTextElement, V> richTextElementViewFunction;
 
     RichTextViewBuilderRichTextElementNode(RichTextElement richTextElement,
                                            Function<RichTextElement, V> richTextElementViewFunction) {

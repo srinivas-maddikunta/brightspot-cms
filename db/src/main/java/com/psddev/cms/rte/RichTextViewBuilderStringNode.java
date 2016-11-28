@@ -6,15 +6,15 @@ import com.psddev.cms.view.RawView;
 
 class RichTextViewBuilderStringNode<V> implements RichTextViewBuilderNode<V> {
 
-    private String html;
-    private Function<String, V> htmlViewFunction;
+    private final String html;
+    private final Function<String, V> htmlViewFunction;
 
     RichTextViewBuilderStringNode(String html, Function<String, V> htmlViewFunction) {
         this.html = html;
         this.htmlViewFunction = htmlViewFunction;
     }
 
-    String getHtml() {
+    public String getHtml() {
         return html;
     }
 

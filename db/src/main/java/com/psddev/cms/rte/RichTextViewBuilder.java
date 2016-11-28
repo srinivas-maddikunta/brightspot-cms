@@ -56,7 +56,7 @@ import com.psddev.dari.util.ObjectUtils;
  */
 public class RichTextViewBuilder<V> {
 
-    private String richText;
+    private final String richText;
 
     private Function<String, V> htmlViewFunction;
 
@@ -64,7 +64,7 @@ public class RichTextViewBuilder<V> {
 
     private boolean renderUnhandledRichTextElements;
 
-    private List<RichTextPreprocessor> preprocessors = new ArrayList<>();
+    private final List<RichTextPreprocessor> preprocessors = new ArrayList<>();
 
     /**
      * Creates a new builder for the given rich text.
