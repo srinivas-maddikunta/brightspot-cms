@@ -118,15 +118,16 @@ define(['jquery'], function($) {
                     
                     data: {
                         locale: options.locale,
-                        word: wordsToFetch
+                        word: wordsToFetch,
+                        suggestWords: null
                     }
-                    
+
                 }).done(function(data, textStatus, jqXHR){
 
                     // Data returned will be for example:
                     // /cms/spellCheck?locale=en&word=perfcet&word=sense
                     // {"status":"supported","results":[["perfect"],null]}
-                    
+
                     // Check if the locale provided is supported
                     if (data.status === 'supported') {
 
@@ -134,6 +135,7 @@ define(['jquery'], function($) {
                         $.each(wordsToFetch, function(i, word) {
                             var result;
                             result = data.results[i];
+                            if (result) { result.push({"text": "Add to personal dictionary", "userDictionaryFlag": true}) }
                             results[word] = result;
                             if (options.useCache) {
                                 self.cacheAdd(word, result);
@@ -141,21 +143,21 @@ define(['jquery'], function($) {
                         });
 
                         deferred.resolve(results);
-                        
+
                     } else {
-                        
+
                         // The locale is not supported
                         deferred.reject(data.status || 'unsupported');
                     }
-                    
+
                 }).fail(function(jqXHR, textStatus, errorThrown) {
-                    
+
                     // The ajax call failed for some reason
                     // textStatus will be ("notmodified", "nocontent", "error", "timeout", "abort", or "parsererror")
                     deferred.reject(textStatus);
-                    
+
                 });
-                
+
             } else {
                 // All the words were in the cache so resolve the deferred object immediately
                 deferred.resolve(results);
@@ -165,6 +167,51 @@ define(['jquery'], function($) {
             return deferred.promise();
         },
 
+        addWord: function(word, options) {
+            var deferred;
+
+            self = this;
+
+            options = $.extend({}, {
+                 useCache: true,
+                 locale: self.localeGet()
+             }, options);
+
+             // The deferred object used to return a promise
+             deferred = $.Deferred();
+
+            $.ajax(self.serviceUrl, {
+
+                type: 'POST',
+                dataType: 'json',
+                // For array of words, use multiple parameters like word=apple&word=orange
+                traditional:true,
+                data: {
+                    locale: options.locale,
+                    word: word,
+                    addWord: null
+                }
+
+            }).done(function(data, textStatus, jqXHR) {
+                // Check if the locale provided is supported
+                if (data.status === 'supported') {
+                    if (options.useCache) {
+                        self.cacheAdd(word, null);
+                    }
+                    deferred.resolve('success');
+                } else {
+                    // The locale is not supported
+                    deferred.reject(data.status || 'unsupported');
+                }
+
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+
+                deferred.reject(textStatus);
+
+            });
+
+            return deferred.promise();
+        },
         
         /**
          * Clear the cache.

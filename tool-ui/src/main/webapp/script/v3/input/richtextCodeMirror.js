@@ -5079,8 +5079,31 @@ define([
 
             mark = editor.markText(range.from, range.to, markOptions);
 
-            // Save the spelling suggestions on the mark so we can use later (?)
-            mark.spelling = result;
+            // pass custom hinting function so that user can add word to dictionary 
+            var suggestions = [];
+            for (var i = 0; i < result.length; i++) { 
+                suggestions[i] = {
+                    'text': result[i].userDictionaryFlag ? result[i].text || result[i],
+                    'className': result[i].userDictionaryFlag ? 'spellcheck-add' : 'spellcheck-suggestion',
+                    'hint': function(cm, data, completion) { 
+                        if (completion.className != "rte-hunspell-hint-add") {
+                            cm.replaceRange(completion.text, completion.from || data.from, 
+                                completion.to || data.to, "complete"); 
+                            CodeMirror.signal(data, "pick", completion); 
+                        } else { 
+                            var word = cm.getRange(range.from, range.to);
+                            spellcheckAPI.addWord(word).done(function(status) { 
+                                mark.clear(); 
+                            }).fail(function(status) {  
+
+                            }) ;
+                        } 
+                    } 
+                } 
+            }  
+
+            // Save the spelling suggestions on the mark so we can use later (?) 
+            if (mark) { mark.spelling = suggestions; }
         },
 
 
