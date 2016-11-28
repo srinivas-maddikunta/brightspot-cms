@@ -872,7 +872,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
             self.rte.init(self.$editor);
 
             // Set to read only mode if necessary
-            self.rte.readOnlySet( self.$el.closest('.inputContainer-readOnly').length );
+            self.rte.readOnlySet( self.$el.closest('.inputContainer-readOnly, .objectInputs-readOnly').length );
             
             // Override the rich text editor to tell it how enhancements should be imported from HTML
             self.rte.enhancementFromHTML = function($content, line) {
