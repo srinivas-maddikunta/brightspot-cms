@@ -24,25 +24,6 @@ public abstract class RichTextElement extends Record {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RichTextElement.class);
 
-    public abstract void fromAttributes(Map<String, String> attributes);
-
-    public void fromBody(String body) {
-    }
-
-    public abstract Map<String, String> toAttributes();
-
-    public String toBody() {
-        return null;
-    }
-
-    public boolean shouldCloseOnSave() {
-        return true;
-    }
-
-    public void writePreviewHtml(ToolPageContext page) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
     /**
      * Finds all the concrete RichTextElement types defined in the system and
      * returns a map with tag name and the type.
@@ -72,6 +53,25 @@ public abstract class RichTextElement extends Record {
         });
 
         return tagTypes;
+    }
+
+    public abstract void fromAttributes(Map<String, String> attributes);
+
+    public void fromBody(String body) {
+    }
+
+    public abstract Map<String, String> toAttributes();
+
+    public String toBody() {
+        return null;
+    }
+
+    public boolean shouldCloseOnSave() {
+        return true;
+    }
+
+    public void writePreviewHtml(ToolPageContext page) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Documented
