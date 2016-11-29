@@ -24,11 +24,11 @@ class RichTextViewBuilderStringNode<V> implements RichTextViewBuilderNode<V> {
             return htmlViewFunction.apply(html);
 
         } else {
+
             // Deliberately cast to an incompatible type if the HTML view
             // function is null. See RichTextViewBuilder for more details.
             @SuppressWarnings("unchecked")
             V rawView = (V) RawView.of(html);
-
             return rawView;
         }
     }

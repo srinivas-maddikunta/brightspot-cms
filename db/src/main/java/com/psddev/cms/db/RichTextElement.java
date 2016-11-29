@@ -31,7 +31,6 @@ public abstract class RichTextElement extends Record {
 
         @Override
         protected Map<String, ObjectType> create() throws Exception {
-
             Map<String, ObjectType> tagTypes = new LinkedHashMap<>();
 
             ObjectType.getInstance(RichTextElement.class).findConcreteTypes().forEach(type -> {

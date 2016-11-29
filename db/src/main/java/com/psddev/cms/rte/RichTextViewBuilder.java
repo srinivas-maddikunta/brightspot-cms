@@ -141,11 +141,12 @@ public class RichTextViewBuilder<V> {
      */
     public List<V> build() {
         List<V> views = new ArrayList<>();
-
         Map<String, ObjectType> tagTypes = new HashMap<>(RichTextElement.getConcreteTagTypes());
+
         tagTypes.put(ReferenceRichTextElement.TAG_NAME, ObjectType.getInstance(ReferenceRichTextElement.class));
 
         Document document = Jsoup.parseBodyFragment(richText);
+
         document.outputSettings().prettyPrint(false);
 
         for (RichTextPreprocessor preprocessor : preprocessors) {
@@ -174,18 +175,18 @@ public class RichTextViewBuilder<V> {
         List<RichTextViewBuilderNode<V>> builderNodes = new ArrayList<>();
 
         for (Node sibling : siblings) {
-
             if (sibling instanceof Element) {
                 Element element = (Element) sibling;
                 String tagName = element.tagName();
-
                 ObjectType tagType = tagTypes.get(tagName);
 
                 if (tagType != null && richTextElementViewFunction != null) {
                     RichTextElement rte = (RichTextElement) tagType.createObject(null);
 
-                    rte.fromAttributes(StreamSupport.stream(element.attributes().spliterator(), false)
+                    rte.fromAttributes(StreamSupport
+                            .stream(element.attributes().spliterator(), false)
                             .collect(Collectors.toMap(Attribute::getKey, Attribute::getValue)));
+
                     rte.fromBody(element.html());
 
                     builderNodes.add(new RichTextViewBuilderRichTextElementNode<>(rte, richTextElementViewFunction));
@@ -207,7 +208,6 @@ public class RichTextViewBuilder<V> {
                         // turns out there's an edge case where they aren't,
                         // a RuntimeException will be thrown and we can
                         // re-evaluate from there.
-
                         builderNodes.add(new RichTextViewBuilderStringNode<>(elementHtml.substring(0, firstGtAt + 1), htmlViewFunction));
                         builderNodes.addAll(childRteNodes);
                         builderNodes.add(new RichTextViewBuilderStringNode<>(elementHtml.substring(lastLtAt), htmlViewFunction));
@@ -215,7 +215,6 @@ public class RichTextViewBuilder<V> {
                 }
 
             } else if (sibling instanceof TextNode || sibling instanceof DataNode) {
-
                 if (sibling instanceof TextNode) {
                     builderNodes.add(new RichTextViewBuilderStringNode<>(((TextNode) sibling).text(), htmlViewFunction));
 
@@ -234,7 +233,6 @@ public class RichTextViewBuilder<V> {
         List<RichTextViewBuilderStringNode<V>> adjacentHtmlNodes = new ArrayList<>();
 
         for (RichTextViewBuilderNode<V> childBuilderNode : builderNodes) {
-
             if (childBuilderNode instanceof RichTextViewBuilderStringNode) {
                 adjacentHtmlNodes.add((RichTextViewBuilderStringNode<V>) childBuilderNode);
 
@@ -325,7 +323,6 @@ public class RichTextViewBuilder<V> {
 
     // Converts ReferentialText into an RTE HTML String.
     private static String toRichText(ReferentialText referentialText) {
-
         if (referentialText == null) {
             return null;
         }
@@ -334,9 +331,7 @@ public class RichTextViewBuilder<V> {
         StringBuilder builder = new StringBuilder();
 
         for (Object item : referentialText) {
-
             if (item instanceof Reference) {
-
                 Reference ref = (Reference) item;
                 StringWriter refHtml = new StringWriter();
 

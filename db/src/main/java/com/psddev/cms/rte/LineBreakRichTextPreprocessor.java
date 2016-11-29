@@ -27,7 +27,6 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
     private static final Tag DIV_TAG = Tag.valueOf("div");
 
     private Tag tag;
-
     private Map<String, String> attributes;
 
     public LineBreakRichTextPreprocessor() {
@@ -47,7 +46,6 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
 
     @Override
     public void preprocess(Element body) {
-
         body.select(".cms-textAlign-left, .cms-textAlign-center, .cms-textAlign-right, ol, ul").forEach(element -> {
             Element next = element.nextElementSibling();
 
@@ -65,8 +63,8 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
 
             // Find the closest previous <br> without any intervening content.
             for (Node previousNode = br;
-                 (previousNode = previousNode.previousSibling()) != null;
-                    ) {
+                     (previousNode = previousNode.previousSibling()) != null;) {
+
                 if (previousNode instanceof Element) {
                     Element previousElement = (Element) previousNode;
 
@@ -89,8 +87,8 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
             List<Node> paragraphChildren = new ArrayList<>();
 
             for (Node previous = previousBr;
-                 (previous = previous.previousSibling()) != null;
-                    ) {
+                     (previous = previous.previousSibling()) != null;) {
+
                 if (previous instanceof Element
                         && ((Element) previous).isBlock()) {
                     break;
@@ -174,6 +172,7 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
 
                 } else if (child instanceof Element
                         && BR_TAG.equals(((Element) child).tag())) {
+
                     if (sawBr) {
                         continue DIV;
 
@@ -217,12 +216,13 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
                 .collect(Collectors.toCollection(Elements::new))) {
 
             ObjectType tagType = tagTypes.get(enhancement.tagName());
+
             if (tagType != null) {
-
                 Class<?> tagClass = tagType.getObjectClass();
-                if (tagClass != null) {
 
+                if (tagClass != null) {
                     RichTextElement.Tag rteTag = tagClass.getAnnotation(RichTextElement.Tag.class);
+
                     if (rteTag != null && !rteTag.block()) {
                         continue;
                     }
@@ -236,8 +236,9 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
                 List<Node> beforeChildren = new ArrayList<>();
 
                 for (Node previous = enhancement.previousSibling();
-                     previous != null;
-                     previous = previous.previousSibling()) {
+                         previous != null;
+                         previous = previous.previousSibling()) {
+
                     beforeChildren.add(previous);
                 }
 
@@ -260,8 +261,8 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
         Element nextTag = null;
 
         for (Node nextNode = current;
-             (nextNode = nextNode.nextSibling()) != null;
-                ) {
+                 (nextNode = nextNode.nextSibling()) != null;) {
+
             if (nextNode instanceof Element) {
                 Element nextElement = (Element) nextNode;
 
