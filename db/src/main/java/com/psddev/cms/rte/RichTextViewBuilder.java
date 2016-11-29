@@ -82,6 +82,106 @@ public class RichTextViewBuilder<V> {
         this.text = toRichText(text);
     }
 
+    // Converts ReferentialText into an RTE HTML String.
+    private static String toRichText(ReferentialText text) {
+        if (text == null) {
+            return null;
+        }
+
+        // convert the ReferentialText into a String
+        StringBuilder builder = new StringBuilder();
+
+        for (Object item : text) {
+            if (item instanceof Reference) {
+                Reference ref = (Reference) item;
+                StringWriter refString = new StringWriter();
+                HtmlWriter refHtml = new HtmlWriter(refString);
+
+                try {
+                    refHtml.writeStart(
+                            ReferenceRichTextElement.TAG_NAME,
+                            ReferenceRichTextElement.VALUES_ATTRIBUTE,
+                            ObjectUtils.toJson(ref.getState().getSimpleValues()));
+
+                    refHtml.writeEnd();
+
+                } catch (IOException error) {
+                    throw new IllegalStateException(error);
+                }
+
+                builder.append(refString);
+
+            } else {
+                builder.append(item);
+            }
+        }
+
+        return builder.toString();
+    }
+
+    /**
+     * Converts HTML from the Rich Text Editor into a List of views using the
+     * most commonly used options. If {@code text} is null, an empty list
+     * is returned.
+     * <p>
+     * <b>NOTE:</b> This API deliberately breaks the generics contract of the
+     * returned list such that it may contain instances of
+     * {@link com.psddev.cms.view.RawView RawView}. Thus, explicitly iterating
+     * over the returned list as the type of the generic argument may result in
+     * a ClassCastException. If explicit iteration is required for your
+     * application to function properly, cast the list items to type
+     * {@code Object} and do instanceof checks before casting to the desired
+     * type, or use the more general {@link #RichTextViewBuilder(String)
+     * RichTextViewBuilder} API and supply an {@link #htmlToView(Function)
+     * HTML view function} that conforms to the generic type.
+     *
+     * @param text the RTE HTML format to convert to views.
+     * @param elementToView the handler for converting rich text
+     *        elements into views. The function is passed a RichTextElement and
+     *        is expected to return the resulting view. Never null.
+     * @param <V> the type of views to return.
+     * @return the list of views.
+     */
+    public static <V> List<V> build(String text, Function<RichTextElement, V> elementToView) {
+        if (text != null) {
+            return new RichTextViewBuilder<V>(text)
+                    .addPreprocessor(new EditorialMarkupRichTextPreprocessor())
+                    .addPreprocessor(new LineBreakRichTextPreprocessor())
+                    .elementToView(elementToView)
+                    .build();
+
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Converts ReferentialText into a List of views using the most commonly
+     * used options. If {@code text} is null, an empty list
+     * is returned.
+     * <p>
+     * <b>NOTE:</b> This API deliberately breaks the generics contract of the
+     * returned list such that it may contain instances of
+     * {@link com.psddev.cms.view.RawView RawView}. Thus, explicitly iterating
+     * over the returned list as the type of the generic argument may result in
+     * a ClassCastException. If explicit iteration is required for your
+     * application to function properly, cast the list items to type
+     * {@code Object} and do instanceof checks before casting to the desired
+     * type, or use the more general {@link #RichTextViewBuilder(String)
+     * RichTextViewBuilder} API and supply an {@link #htmlToView(Function)
+     * HTML view function} that conforms to the generic type.
+     *
+     * @param text the ReferentialText to convert to views.
+     * @param elementToView the handler for converting rich text
+     *        elements into views. The function is passed a RichTextElement and
+     *        is expected to return the resulting view. Never null.
+     * @param <V> the type of views to return.
+     * @return the list of views.
+     */
+    public static <V> List<V> build(ReferentialText text, Function<RichTextElement, V> elementToView) {
+        return build(toRichText(text), elementToView);
+    }
+
     /**
      * Sets a handler for converting raw HTML into a view. The function is
      * passed a (possibly unbalanced) HTML fragment and expected to return a
@@ -248,105 +348,5 @@ public class RichTextViewBuilder<V> {
         }
 
         return collapsed;
-    }
-
-    /**
-     * Converts HTML from the Rich Text Editor into a List of views using the
-     * most commonly used options. If {@code text} is null, an empty list
-     * is returned.
-     * <p>
-     * <b>NOTE:</b> This API deliberately breaks the generics contract of the
-     * returned list such that it may contain instances of
-     * {@link com.psddev.cms.view.RawView RawView}. Thus, explicitly iterating
-     * over the returned list as the type of the generic argument may result in
-     * a ClassCastException. If explicit iteration is required for your
-     * application to function properly, cast the list items to type
-     * {@code Object} and do instanceof checks before casting to the desired
-     * type, or use the more general {@link #RichTextViewBuilder(String)
-     * RichTextViewBuilder} API and supply an {@link #htmlToView(Function)
-     * HTML view function} that conforms to the generic type.
-     *
-     * @param text the RTE HTML format to convert to views.
-     * @param elementToView the handler for converting rich text
-     *        elements into views. The function is passed a RichTextElement and
-     *        is expected to return the resulting view. Never null.
-     * @param <V> the type of views to return.
-     * @return the list of views.
-     */
-    public static <V> List<V> build(String text, Function<RichTextElement, V> elementToView) {
-        if (text != null) {
-            return new RichTextViewBuilder<V>(text)
-                    .addPreprocessor(new EditorialMarkupRichTextPreprocessor())
-                    .addPreprocessor(new LineBreakRichTextPreprocessor())
-                    .elementToView(elementToView)
-                    .build();
-
-        } else {
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Converts ReferentialText into a List of views using the most commonly
-     * used options. If {@code text} is null, an empty list
-     * is returned.
-     * <p>
-     * <b>NOTE:</b> This API deliberately breaks the generics contract of the
-     * returned list such that it may contain instances of
-     * {@link com.psddev.cms.view.RawView RawView}. Thus, explicitly iterating
-     * over the returned list as the type of the generic argument may result in
-     * a ClassCastException. If explicit iteration is required for your
-     * application to function properly, cast the list items to type
-     * {@code Object} and do instanceof checks before casting to the desired
-     * type, or use the more general {@link #RichTextViewBuilder(String)
-     * RichTextViewBuilder} API and supply an {@link #htmlToView(Function)
-     * HTML view function} that conforms to the generic type.
-     *
-     * @param text the ReferentialText to convert to views.
-     * @param elementToView the handler for converting rich text
-     *        elements into views. The function is passed a RichTextElement and
-     *        is expected to return the resulting view. Never null.
-     * @param <V> the type of views to return.
-     * @return the list of views.
-     */
-    public static <V> List<V> build(ReferentialText text, Function<RichTextElement, V> elementToView) {
-        return build(toRichText(text), elementToView);
-    }
-
-    // Converts ReferentialText into an RTE HTML String.
-    private static String toRichText(ReferentialText text) {
-        if (text == null) {
-            return null;
-        }
-
-        // convert the ReferentialText into a String
-        StringBuilder builder = new StringBuilder();
-
-        for (Object item : text) {
-            if (item instanceof Reference) {
-                Reference ref = (Reference) item;
-                StringWriter refString = new StringWriter();
-                HtmlWriter refHtml = new HtmlWriter(refString);
-
-                try {
-                    refHtml.writeStart(
-                            ReferenceRichTextElement.TAG_NAME,
-                            ReferenceRichTextElement.VALUES_ATTRIBUTE,
-                            ObjectUtils.toJson(ref.getState().getSimpleValues()));
-
-                    refHtml.writeEnd();
-
-                } catch (IOException error) {
-                    throw new IllegalStateException(error);
-                }
-
-                builder.append(refString);
-
-            } else {
-                builder.append(item);
-            }
-        }
-
-        return builder.toString();
     }
 }
