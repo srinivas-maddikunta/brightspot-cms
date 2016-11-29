@@ -40,7 +40,7 @@ public abstract class RichTextElement extends Record {
                     ObjectType existingType = tagTypes.putIfAbsent(tagName, type);
 
                     if (existingType != null) {
-                        LOGGER.warn("Ignoring RichTextElement [{}] with conflicting tag name [{}] as [{}].",
+                        LOGGER.warn("Ignoring [{}] because its tag name, [{}], conflicts with [{}]",
                                 new Object[] {
                                         type.getInternalName(),
                                         tagName,
@@ -59,10 +59,10 @@ public abstract class RichTextElement extends Record {
     }
 
     /**
-     * Finds all the concrete RichTextElement types defined in the system and
-     * returns a map with tag name and the type.
+     * Returns all concrete types that extend {@link RichTextElement}, keyed
+     * by their {@linkplain Tag#value() tag names}.
      *
-     * @return A Map of RichTextElement tag name to the ObjectType that defined it.
+     * @return Nonnull. Immutable.
      */
     public static Map<String, ObjectType> getConcreteTagTypes() {
         return CONCRETE_TAG_TYPES.get();

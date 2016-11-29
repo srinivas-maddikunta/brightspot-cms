@@ -9,7 +9,7 @@ class ElementRichTextViewNode<V> implements RichTextViewNode<V> {
     private final RichTextElement element;
     private final Function<RichTextElement, V> elementToView;
 
-    ElementRichTextViewNode(RichTextElement element, Function<RichTextElement, V> elementToView) {
+    public ElementRichTextViewNode(RichTextElement element, Function<RichTextElement, V> elementToView) {
         this.element = element;
         this.elementToView = elementToView;
     }

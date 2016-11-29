@@ -3,9 +3,11 @@ package com.psddev.cms.rte;
 import org.jsoup.nodes.Element;
 
 /**
- * Removes rich text editor specific markup that is generally just for internal
- * use and not meant for consumption by external sources. For example, markup
- * produced by the Track Changes feature would be removed.
+ * {@link RichTextPreprocessor} implementation that removes editorial markup
+ * meant for internal use.
+ *
+ * <p>For example, this preprocessor removes all markup produced by the track
+ * changes feature, which are wrapped in {@code <del>} or {@code <ins>}.</p>
  */
 public class EditorialMarkupRichTextPreprocessor implements RichTextPreprocessor {
 

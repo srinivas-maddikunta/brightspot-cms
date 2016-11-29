@@ -9,7 +9,7 @@ class StringRichTextViewNode<V> implements RichTextViewNode<V> {
     private final String html;
     private final Function<String, V> htmlToView;
 
-    StringRichTextViewNode(String html, Function<String, V> htmlToView) {
+    public StringRichTextViewNode(String html, Function<String, V> htmlToView) {
         this.html = html;
         this.htmlToView = htmlToView;
     }
@@ -24,8 +24,9 @@ class StringRichTextViewNode<V> implements RichTextViewNode<V> {
             return htmlToView.apply(html);
         }
 
-        // Deliberately cast to an incompatible type if the HTML view
-        // function is null. See RichTextViewBuilder for more details.
+        // Deliberately cast to an incompatible type if the htmlToView
+        // function is null so that the final output can work automatically
+        // in most cases.
         @SuppressWarnings("unchecked")
         V rawView = (V) RawView.of(html);
         return rawView;

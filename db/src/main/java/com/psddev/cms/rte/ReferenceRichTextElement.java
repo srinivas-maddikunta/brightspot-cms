@@ -11,16 +11,15 @@ import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.ObjectUtils;
 
 /**
- * A rich text element for {@link Reference} objects (also known as RTE
- * "Enhancements"). It does not contain a {@link com.psddev.cms.db.RichTextElement.Tag}
- * annotation and therefore does not show up in the rich text editor by default.
- * Instances of this class are only created at runtime when using the
- * {@link RichTextViewBuilder#RichTextViewBuilder(com.psddev.dari.db.ReferentialText)
- * new RichTextViewBuilder(ReferentialText)} API which converts {@code
- * Reference} objects from a {@link com.psddev.dari.db.ReferentialText} list
- * into {@link ReferenceRichTextElement#TAG_NAME} HTML tags.
+ * {@link RichTextElement} implementation that represents {@link Reference}
+ * objects, also known as RTE enhancements.
  *
- * @see RichTextViewBuilder
+ * <p>Note that this class isn't annotated with
+ * {@link com.psddev.cms.db.RichTextElement.Tag} on purpose to prevent it from
+ * being displayed in the rich text editor UI. Instances of this class are
+ * only created at runtime by {@link RichTextViewBuilder} when using any of its
+ * {@code build} APIs that accept {@link com.psddev.dari.db.ReferentialText} as
+ * a parameter.</p>
  */
 public class ReferenceRichTextElement extends RichTextElement {
 

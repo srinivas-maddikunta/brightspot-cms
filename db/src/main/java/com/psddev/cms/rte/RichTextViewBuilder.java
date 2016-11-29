@@ -29,66 +29,49 @@ import com.psddev.dari.util.HtmlWriter;
 import com.psddev.dari.util.ObjectUtils;
 
 /**
- * <p>A builder of views from rich text Strings for the purpose of rendering
- * content produced in the rich text editor. This class supports both
- * fields of type {@code String} annotated with
- * {@link com.psddev.cms.db.ToolUi.RichText @ToolUi.RichText} as well as fields
- * of type {@link com.psddev.dari.db.ReferentialText ReferentialText}.</p>
+ * Builder that can convert HTML into views.
  *
- * <p>Example Model:</p>
+ * <p>Typical use within a {@link com.psddev.cms.view.ViewModel} implementation
+ * might look like:</p>
  *
  * <blockquote><pre>
- * public class Article extends Content {
- * &nbsp;   &#64;ToolUi.RichText
- * &nbsp;   String body;
- * }
+ *     {@code List<MyRichTextItemView> views = RichTextViewBuilder.build(model.getBody(), rte -> createView(MyRichTextItemView.class, rte);}
  * </pre></blockquote>
- *
- * <p>Typical use from within a {@link com.psddev.cms.view.ViewModel ViewModel} might look like:</p>
- *
- * <blockquote><pre>
- * List&lt;MyRichTextItemView&gt; views = RichTextViewBuilder.build(model.body, rte -> createView(MyRichTextItemView.class, rte);
- * </pre></blockquote>
- *
- * <p>For {@code ViewModel} methods expecting the return of a single object
- * instead of a list, the implementer should wrap the list of views inside of
- * another view that is setup to handle such a list.</p>
  */
 public class RichTextViewBuilder<V> {
 
-    private final String text;
+    private final String html;
     private Function<String, V> htmlToView;
     private Function<RichTextElement, V> elementToView;
     private boolean keepUnboundElements;
     private final List<RichTextPreprocessor> preprocessors = new ArrayList<>();
 
     /**
-     * Creates a new builder for the given rich text.
+     * Creates a new instance that will convert the given {@code html}.
      *
-     * @param text the rich text to be converted to a view.
+     * @param html Nonnull.
      */
-    public RichTextViewBuilder(String text) {
-        Preconditions.checkNotNull(text);
-        this.text = text;
+    public RichTextViewBuilder(String html) {
+        Preconditions.checkNotNull(html);
+        this.html = html;
     }
 
     /**
-     * Creates a new builder for the given {@code ReferentialText}.
+     * Creates a new instance that will convert the given {@code text}.
      *
-     * @param text the ReferentialText to be converted to view(s).
+     * @param text Nonnull.
      */
     public RichTextViewBuilder(ReferentialText text) {
         Preconditions.checkNotNull(text);
-        this.text = toRichText(text);
+        this.html = toHtml(text);
     }
 
-    // Converts ReferentialText into an RTE HTML String.
-    private static String toRichText(ReferentialText text) {
+    // Converts ref text into an HTML string.
+    private static String toHtml(ReferentialText text) {
         if (text == null) {
             return null;
         }
 
-        // convert the ReferentialText into a String
         StringBuilder builder = new StringBuilder();
 
         for (Object item : text) {
@@ -120,31 +103,34 @@ public class RichTextViewBuilder<V> {
     }
 
     /**
-     * Converts HTML from the Rich Text Editor into a List of views using the
-     * most commonly used options. If {@code text} is null, an empty list
-     * is returned.
-     * <p>
-     * <b>NOTE:</b> This API deliberately breaks the generics contract of the
-     * returned list such that it may contain instances of
-     * {@link com.psddev.cms.view.RawView RawView}. Thus, explicitly iterating
-     * over the returned list as the type of the generic argument may result in
-     * a ClassCastException. If explicit iteration is required for your
-     * application to function properly, cast the list items to type
-     * {@code Object} and do instanceof checks before casting to the desired
-     * type, or use the more general {@link #RichTextViewBuilder(String)
-     * RichTextViewBuilder} API and supply an {@link #htmlToView(Function)
-     * HTML view function} that conforms to the generic type.
+     * Converts the given given {@code html} into a list of views using the
+     * given {@code elementToView} function.
      *
-     * @param text the RTE HTML format to convert to views.
-     * @param elementToView the handler for converting rich text
-     *        elements into views. The function is passed a RichTextElement and
-     *        is expected to return the resulting view. Never null.
-     * @param <V> the type of views to return.
-     * @return the list of views.
+     * <p>This method sets the most commonly used options automatically.</p>
+     *
+     * <p>Note that this API deliberately breaks the generics contract of the
+     * returned list, such that it may contain instances of
+     * {@link com.psddev.cms.view.RawView}. Thus, explicitly iterating over
+     * the returned list with the type of the generic argument may result in
+     * a {@link java.lang.ClassCastException}.</p>
+     *
+     * <p>If explicit iteration is required for your application to function
+     * properly, cast the list to {@code List<Object>} and do an
+     * {@code instanceof} check before casting to the desired type, or use the
+     * more general {@link #RichTextViewBuilder(String)} API and call
+     * {@link #htmlToView(Function)} to supply a function that conforms to the
+     * generic type.</p>
+     *
+     * @param <V> The type of views to return.
+     * @param html If {@code null}, returns an empty list.
+     * @param elementToView Nonnull.
+     * @return Nonnull.
      */
-    public static <V> List<V> build(String text, Function<RichTextElement, V> elementToView) {
-        if (text != null) {
-            return new RichTextViewBuilder<V>(text)
+    public static <V> List<V> build(String html, Function<RichTextElement, V> elementToView) {
+        Preconditions.checkNotNull(elementToView);
+
+        if (html != null) {
+            return new RichTextViewBuilder<V>(html)
                     .addPreprocessor(new EditorialMarkupRichTextPreprocessor())
                     .addPreprocessor(new LineBreakRichTextPreprocessor())
                     .elementToView(elementToView)
@@ -156,39 +142,26 @@ public class RichTextViewBuilder<V> {
     }
 
     /**
-     * Converts ReferentialText into a List of views using the most commonly
-     * used options. If {@code text} is null, an empty list
-     * is returned.
-     * <p>
-     * <b>NOTE:</b> This API deliberately breaks the generics contract of the
-     * returned list such that it may contain instances of
-     * {@link com.psddev.cms.view.RawView RawView}. Thus, explicitly iterating
-     * over the returned list as the type of the generic argument may result in
-     * a ClassCastException. If explicit iteration is required for your
-     * application to function properly, cast the list items to type
-     * {@code Object} and do instanceof checks before casting to the desired
-     * type, or use the more general {@link #RichTextViewBuilder(String)
-     * RichTextViewBuilder} API and supply an {@link #htmlToView(Function)
-     * HTML view function} that conforms to the generic type.
+     * Converts the given given {@code text} into a list of views using the
+     * given {@code elementToView} function.
      *
-     * @param text the ReferentialText to convert to views.
-     * @param elementToView the handler for converting rich text
-     *        elements into views. The function is passed a RichTextElement and
-     *        is expected to return the resulting view. Never null.
-     * @param <V> the type of views to return.
-     * @return the list of views.
+     * @param <V> The type of views to return.
+     * @param text If {@code null}, returns an empty list.
+     * @param elementToView Nonnull.
+     * @return Nonnull.
+     * @see #build(String, Function)
      */
     public static <V> List<V> build(ReferentialText text, Function<RichTextElement, V> elementToView) {
-        return build(toRichText(text), elementToView);
+        return build(toHtml(text), elementToView);
     }
 
     /**
-     * Sets a handler for converting raw HTML into a view. The function is
-     * passed a (possibly unbalanced) HTML fragment and expected to return a
-     * view.
+     * Sets the function that's used to convert raw HTML into a view.
      *
-     * @param htmlToView the HTML view function to be applied.
-     * @return this builder.
+     * <p>Note that the raw HTML may be unbalanced.</p>
+     *
+     * @param htmlToView Nullable.
+     * @return Itself.
      */
     public RichTextViewBuilder<V> htmlToView(Function<String, V> htmlToView) {
         this.htmlToView = htmlToView;
@@ -196,12 +169,10 @@ public class RichTextViewBuilder<V> {
     }
 
     /**
-     * Sets a handler for converting rich text elements into views. The function
-     * is passed a RichTextElement and is expected to return the resulting view.
+     * Sets the handler that's used to convert a rich text element into a view.
      *
-     * @param elementToView the rich text element view function
-     *        to be applied.
-     * @return this builder.
+     * @param elementToView Nullable.
+     * @return Itself.
      */
     public RichTextViewBuilder<V> elementToView(Function<RichTextElement, V> elementToView) {
         this.elementToView = elementToView;
@@ -209,12 +180,10 @@ public class RichTextViewBuilder<V> {
     }
 
     /**
-     * Specifies whether rich text element tags should remain in the output
-     * if there is no view handler for them.
+     * Sets whether the rich text element tags should remain in the output
+     * when there aren't any {@link com.psddev.cms.view.ViewBinding}s on them.
      *
-     * @param keepUnboundElements true if the element should remain
-     *        in the DOM if unhandled, false otherwise.
-     * @return this builder.
+     * @return Itself.
      */
     public RichTextViewBuilder<V> keepUnboundElements(boolean keepUnboundElements) {
         this.keepUnboundElements = keepUnboundElements;
@@ -235,9 +204,9 @@ public class RichTextViewBuilder<V> {
     }
 
     /**
-     * Converts the rich text into 1 or many views.
+     * Converts the HTML into a list of views.
      *
-     * @return a list of views.
+     * @return Nonnull.
      */
     public List<V> build() {
         List<V> views = new ArrayList<>();
@@ -245,7 +214,7 @@ public class RichTextViewBuilder<V> {
 
         tagTypes.put(ReferenceRichTextElement.TAG_NAME, ObjectType.getInstance(ReferenceRichTextElement.class));
 
-        Document document = Jsoup.parseBodyFragment(text);
+        Document document = Jsoup.parseBodyFragment(html);
 
         document.outputSettings().prettyPrint(false);
 
@@ -264,13 +233,7 @@ public class RichTextViewBuilder<V> {
 
     // Traverses the siblings all the way down the tree, collapsing balanced
     // blocks of HTML that do NOT contain any rich text elements into a single
-    // HTML String. If a non-rich text element is found and NONE of its
-    // descendants are rich text elements, then it will be collapsed into a
-    // String. If ANY of its descendants DO contain a rich text element then
-    // each parent of the rich text element will remain an Element object and
-    // not be collapsed into a String UNLESS there is no htmlElementWrapperViewFunction
-    // defined in which case the element will be converted into a potentially
-    // unbalanced HTML String.
+    // HTML string.
     private List<RichTextViewNode<V>> toViewNodes(List<Node> siblings, Map<String, ObjectType> tagTypes) {
         List<RichTextViewNode<V>> viewNodes = new ArrayList<>();
 
@@ -301,11 +264,9 @@ public class RichTextViewBuilder<V> {
                         int firstGtAt = html.indexOf('>');
                         int lastLtAt = html.lastIndexOf('<');
 
-                        // deliberately do not validate the index values
-                        // above since they should always be valid. If it
-                        // turns out there's an edge case where they aren't,
-                        // a RuntimeException will be thrown and we can
-                        // re-evaluate from there.
+                        // This deliberately does not validate the index values
+                        // above, since non-self-closing element should always
+                        // have those characters present in the HTML.
                         viewNodes.add(new StringRichTextViewNode<>(html.substring(0, firstGtAt + 1), htmlToView));
                         viewNodes.addAll(childViewNodes);
                         viewNodes.add(new StringRichTextViewNode<>(html.substring(lastLtAt), htmlToView));
@@ -320,7 +281,7 @@ public class RichTextViewBuilder<V> {
             }
         }
 
-        // collapse the nodes as much as possible
+        // Collapse the nodes as much as possible.
         List<RichTextViewNode<V>> collapsed = new ArrayList<>();
         List<StringRichTextViewNode<V>> adjacent = new ArrayList<>();
 

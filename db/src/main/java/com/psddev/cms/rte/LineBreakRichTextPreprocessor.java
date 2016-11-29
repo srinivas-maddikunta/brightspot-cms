@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
@@ -17,9 +18,21 @@ import com.psddev.cms.db.RichTextElement;
 import com.psddev.dari.db.ObjectType;
 
 /**
- * Processes line breaks (stored in the rich text editor as &lt;br&gt; tags) and
- * converts them into paragraphs (&lt;p&gt; tags) or some other block level
- * elements.
+ * {@link RichTextPreprocessor} implementation that converts line breaks into
+ * block level elements.
+ *
+ * <p>By default, this preprocessor tries to wrap a block of text that's
+ * visually surrounded by blank lines into a paragraph. For example, given
+ * either of the following two HTML snippets:</p>
+ *
+ * <ul>
+ *     <li><{@code foo<br><br>bar}</li>
+ *     <li><{@code <div>foo</div><br>bar}</li>
+ * </ul>
+ *
+ * <p>This preprocessor would both convert both into:</p>
+ *
+ * <blockquote><pre>{@code <p>foo</p><p>bar</p>}</pre></blockquote>
  */
 public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
 
@@ -27,21 +40,23 @@ public class LineBreakRichTextPreprocessor implements RichTextPreprocessor {
     private static final Tag DIV_TAG = Tag.valueOf("div");
 
     private Tag tag;
-    private Map<String, String> attributes;
 
-    public LineBreakRichTextPreprocessor() {
-        this("p", null);
-    }
-
-    // TODO: Support additional tags
+    /**
+     * Creates an instance that uses tags with the given {@code tagName} to
+     * wrap the blocks.
+     *
+     * @param tagName Nonnull.
+     */
     private LineBreakRichTextPreprocessor(String tagName) {
-        this(tagName, null);
+        Preconditions.checkNotNull(tagName);
+        this.tag = Tag.valueOf(tagName);
     }
 
-    // TODO: Support additional tags and attributes
-    private LineBreakRichTextPreprocessor(String tagName, Map<String, String> attributes) {
-        this.tag = Tag.valueOf(tagName);
-        this.attributes = attributes;
+    /**
+     * Creates an instance that uses {@code <p>} to wrap the blocks.
+     */
+    public LineBreakRichTextPreprocessor() {
+        this("p");
     }
 
     @Override
