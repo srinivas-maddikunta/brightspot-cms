@@ -11,7 +11,6 @@ public class EditorialMarkupRichTextPreprocessor implements RichTextPreprocessor
 
     @Override
     public void preprocess(Element body) {
-
         body.getElementsByTag("del").remove();
         body.getElementsByTag("ins").unwrap();
         body.getElementsByClass("rte").remove();

@@ -35,12 +35,11 @@ public abstract class RichTextElement extends Record {
         Map<String, ObjectType> tagTypes = new LinkedHashMap<>();
 
         ObjectType.getInstance(RichTextElement.class).findConcreteTypes().forEach(type -> {
-
             String tagName = type.as(ToolUi.class).getRichTextElementTagName();
 
             if (tagName != null && type.getObjectClass() != null) {
-
                 ObjectType existingType = tagTypes.putIfAbsent(tagName, type);
+
                 if (existingType != null) {
                     LOGGER.warn("Ignoring RichTextElement [{}] with conflicting tag name [{}] as [{}].",
                             new Object[] {

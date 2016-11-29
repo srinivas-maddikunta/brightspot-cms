@@ -20,7 +20,6 @@ class RichTextViewBuilderStringNode<V> implements RichTextViewBuilderNode<V> {
 
     @Override
     public V toView() {
-
         if (htmlViewFunction != null) {
             return htmlViewFunction.apply(html);
 

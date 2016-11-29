@@ -67,9 +67,11 @@ public class ReferenceRichTextElement extends RichTextElement {
     @Override
     public Map<String, String> toAttributes() {
         Map<String, String> attributes = new CompactMap<>();
+
         if (reference != null) {
             attributes.put(VALUES_ATTRIBUTE, ObjectUtils.toJson(reference.getState().getSimpleValues()));
         }
+
         return attributes;
     }
 }

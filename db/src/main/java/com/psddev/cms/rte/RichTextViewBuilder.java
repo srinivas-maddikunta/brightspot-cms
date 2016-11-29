@@ -57,13 +57,9 @@ import com.psddev.dari.util.ObjectUtils;
 public class RichTextViewBuilder<V> {
 
     private final String richText;
-
     private Function<String, V> htmlViewFunction;
-
     private Function<RichTextElement, V> richTextElementViewFunction;
-
     private boolean renderUnhandledRichTextElements;
-
     private final List<RichTextPreprocessor> preprocessors = new ArrayList<>();
 
     /**
@@ -144,7 +140,6 @@ public class RichTextViewBuilder<V> {
      * @return a list of views.
      */
     public List<V> build() {
-
         List<V> views = new ArrayList<>();
 
         Map<String, ObjectType> tagTypes = new HashMap<>(RichTextElement.getConcreteTagTypes());
@@ -176,31 +171,26 @@ public class RichTextViewBuilder<V> {
     // defined in which case the element will be converted into a potentially
     // unbalanced HTML String.
     private List<RichTextViewBuilderNode<V>> toBuilderNodes(List<Node> siblings, Map<String, ObjectType> tagTypes) {
-
         List<RichTextViewBuilderNode<V>> builderNodes = new ArrayList<>();
 
         for (Node sibling : siblings) {
 
             if (sibling instanceof Element) {
-
                 Element element = (Element) sibling;
                 String tagName = element.tagName();
 
                 ObjectType tagType = tagTypes.get(tagName);
 
                 if (tagType != null && richTextElementViewFunction != null) {
-
                     RichTextElement rte = (RichTextElement) tagType.createObject(null);
 
                     rte.fromAttributes(StreamSupport.stream(element.attributes().spliterator(), false)
                             .collect(Collectors.toMap(Attribute::getKey, Attribute::getValue)));
-
                     rte.fromBody(element.html());
 
                     builderNodes.add(new RichTextViewBuilderRichTextElementNode<>(rte, richTextElementViewFunction));
 
                 } else if (tagType == null || renderUnhandledRichTextElements) {
-
                     List<RichTextViewBuilderNode<V>> childRteNodes = toBuilderNodes(element.childNodes(), tagTypes);
 
                     String elementHtml = element.outerHtml();
@@ -240,9 +230,7 @@ public class RichTextViewBuilder<V> {
     }
 
     private List<RichTextViewBuilderNode<V>> collapseBuilderNodes(List<RichTextViewBuilderNode<V>> builderNodes) {
-
         List<RichTextViewBuilderNode<V>> collapsedRteNodes = new ArrayList<>();
-
         List<RichTextViewBuilderStringNode<V>> adjacentHtmlNodes = new ArrayList<>();
 
         for (RichTextViewBuilderNode<V> childBuilderNode : builderNodes) {
@@ -302,6 +290,7 @@ public class RichTextViewBuilder<V> {
                     .addPreprocessor(new LineBreakRichTextPreprocessor())
                     .richTextElementViewFunction(richTextElementViewFunction)
                     .build();
+
         } else {
             return Collections.emptyList();
         }
@@ -349,14 +338,15 @@ public class RichTextViewBuilder<V> {
             if (item instanceof Reference) {
 
                 Reference ref = (Reference) item;
-
                 StringWriter refHtml = new StringWriter();
+
                 try {
                     new HtmlWriter(refHtml) { {
                         writeStart(ReferenceRichTextElement.TAG_NAME,
                                 ReferenceRichTextElement.VALUES_ATTRIBUTE, ObjectUtils.toJson(ref.getState().getSimpleValues()));
                         writeEnd();
                     } };
+
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
                 }
