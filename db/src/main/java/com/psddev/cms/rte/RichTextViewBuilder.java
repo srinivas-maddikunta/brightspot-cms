@@ -327,20 +327,22 @@ public class RichTextViewBuilder<V> {
         for (Object item : text) {
             if (item instanceof Reference) {
                 Reference ref = (Reference) item;
-                StringWriter refHtml = new StringWriter();
+                StringWriter refString = new StringWriter();
+                HtmlWriter refHtml = new HtmlWriter(refString);
 
                 try {
-                    new HtmlWriter(refHtml) { {
-                        writeStart(ReferenceRichTextElement.TAG_NAME,
-                                ReferenceRichTextElement.VALUES_ATTRIBUTE, ObjectUtils.toJson(ref.getState().getSimpleValues()));
-                        writeEnd();
-                    } };
+                    refHtml.writeStart(
+                            ReferenceRichTextElement.TAG_NAME,
+                            ReferenceRichTextElement.VALUES_ATTRIBUTE,
+                            ObjectUtils.toJson(ref.getState().getSimpleValues()));
 
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
+                    refHtml.writeEnd();
+
+                } catch (IOException error) {
+                    throw new IllegalStateException(error);
                 }
 
-                builder.append(refHtml);
+                builder.append(refString);
 
             } else {
                 builder.append(item);
