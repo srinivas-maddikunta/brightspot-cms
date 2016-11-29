@@ -212,13 +212,11 @@ public class RichTextViewBuilder<V> {
                     }
                 }
 
-            } else if (sibling instanceof TextNode || sibling instanceof DataNode) {
-                if (sibling instanceof TextNode) {
-                    viewNodes.add(new StringRichTextViewNode<>(((TextNode) sibling).text(), htmlToView));
+            } else if (sibling instanceof TextNode) {
+                viewNodes.add(new StringRichTextViewNode<>(((TextNode) sibling).text(), htmlToView));
 
-                } else {
-                    viewNodes.add(new StringRichTextViewNode<>(((DataNode) sibling).getWholeData(), htmlToView));
-                }
+            } else if (sibling instanceof DataNode) {
+                viewNodes.add(new StringRichTextViewNode<>(((DataNode) sibling).getWholeData(), htmlToView));
             }
         }
 
