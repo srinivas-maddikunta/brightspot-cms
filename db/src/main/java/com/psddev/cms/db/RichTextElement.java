@@ -4,6 +4,8 @@ import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Record;
+import com.psddev.dari.util.CodeUtils;
+import com.psddev.dari.util.Lazy;
 
 import java.io.IOException;
 import java.lang.annotation.Documented;
@@ -11,6 +13,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -24,6 +27,38 @@ public abstract class RichTextElement extends Record {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RichTextElement.class);
 
+    private static final Lazy<Map<String, ObjectType>> CONCRETE_TAG_TYPES = new Lazy<Map<String, ObjectType>>() {
+
+        @Override
+        protected Map<String, ObjectType> create() throws Exception {
+
+            Map<String, ObjectType> tagTypes = new LinkedHashMap<>();
+
+            ObjectType.getInstance(RichTextElement.class).findConcreteTypes().forEach(type -> {
+                String tagName = type.as(ToolUi.class).getRichTextElementTagName();
+
+                if (tagName != null && type.getObjectClass() != null) {
+                    ObjectType existingType = tagTypes.putIfAbsent(tagName, type);
+
+                    if (existingType != null) {
+                        LOGGER.warn("Ignoring RichTextElement [{}] with conflicting tag name [{}] as [{}].",
+                                new Object[] {
+                                        type.getInternalName(),
+                                        tagName,
+                                        existingType.getInternalName()
+                                });
+                    }
+                }
+            });
+
+            return Collections.unmodifiableMap(tagTypes);
+        }
+    };
+
+    static {
+        CodeUtils.addRedefineClassesListener(classes -> CONCRETE_TAG_TYPES.reset());
+    }
+
     /**
      * Finds all the concrete RichTextElement types defined in the system and
      * returns a map with tag name and the type.
@@ -31,27 +66,7 @@ public abstract class RichTextElement extends Record {
      * @return A Map of RichTextElement tag name to the ObjectType that defined it.
      */
     public static Map<String, ObjectType> getConcreteTagTypes() {
-
-        Map<String, ObjectType> tagTypes = new LinkedHashMap<>();
-
-        ObjectType.getInstance(RichTextElement.class).findConcreteTypes().forEach(type -> {
-            String tagName = type.as(ToolUi.class).getRichTextElementTagName();
-
-            if (tagName != null && type.getObjectClass() != null) {
-                ObjectType existingType = tagTypes.putIfAbsent(tagName, type);
-
-                if (existingType != null) {
-                    LOGGER.warn("Ignoring RichTextElement [{}] with conflicting tag name [{}] as [{}].",
-                            new Object[] {
-                                    type.getInternalName(),
-                                    tagName,
-                                    existingType.getInternalName()
-                            });
-                }
-            }
-        });
-
-        return tagTypes;
+        return CONCRETE_TAG_TYPES.get();
     }
 
     public abstract void fromAttributes(Map<String, String> attributes);
