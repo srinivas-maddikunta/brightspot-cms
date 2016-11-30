@@ -152,8 +152,12 @@ public final class ElFunctionUtils {
                     InputStream resourceInput = resourceConnection.getInputStream();
 
                     try {
+                        String contextPath = request != null
+                                ? request.getContextPath()
+                                : "";
+
                         return StringUtils.addQueryParameters(
-                                request.getContextPath() + StringUtils.ensureStart(path, "/"),
+                                contextPath + StringUtils.ensureStart(path, "/"),
                                 "_", resourceConnection.getLastModified());
 
                     } finally {
