@@ -1,3 +1,4 @@
+/* global CONTEXT_PATH define NodeFilter setTimeout window */
 define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
     var PEEK_WIDTH = 99,
@@ -176,7 +177,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
                         $previewWidget.append($container);
 
-                        function resizePreview() {
+                        var resizePreview = function() {
                             var deviceWidth = parseInt($previewForm.find('select.deviceWidthSelect').val(), 10);
                             var scale = ($win.width() - 160) / deviceWidth;
 
@@ -387,7 +388,6 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
             pathSourceX, pathSourceY, pathSourceDirection,
             pathTargetX, pathTargetY, pathTargetDirection,
             sourceOffset,
-            targetOffset,
             isBackReference = false,
             pathSourceControlX,
             pathSourceControlY,
