@@ -314,6 +314,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
         $frame,
         frameOffset,
+        frameWindowScrollTop,
 
         $paths,
         pathsCanvas;
@@ -329,6 +330,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
         $frame = $preview.find('iframe');
         frameOffset = $frame.offset();
+        frameWindowScrollTop = $($frame[0].contentWindow).scrollTop();
 
         $container.addClass('fieldPreview-displaying');
         $container.find('> .inputLabel').css({
@@ -418,7 +420,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                     'height': $target.outerHeight(),
                     'left': frameOffset.left + targetOffset.left,
                     'position': 'absolute',
-                    'top': frameOffset.top + targetOffset.top,
+                    'top': frameOffset.top + targetOffset.top - frameWindowScrollTop,
                     'width': $target.outerWidth()
                 }
             }));
@@ -460,6 +462,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                 pathTargetDirection = -1;
             }
 
+            pathTargetY -= frameWindowScrollTop;
             pathSourceControlX = pathSourceX + pathSourceDirection * 100;
             pathSourceControlY = pathSourceY;
             pathTargetControlX = pathTargetX + pathTargetDirection * 100;
