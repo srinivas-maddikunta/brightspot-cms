@@ -1,10 +1,10 @@
 package com.psddev.cms.rtc;
 
 import com.google.common.collect.ImmutableMap;
-import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.cms.tool.CmsTool;
+import com.psddev.cms.tool.CrossDomainFilter;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.util.AbstractFilter;
@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
  * Filter that handles the real-time communication between the server
  * and the clients.
  */
-public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
+public class RtcFilter extends CrossDomainFilter implements AbstractFilter.Auto {
 
     public static final String PATH = "/_rtc";
 
@@ -101,37 +101,21 @@ public class RtcFilter extends AbstractFilter implements AbstractFilter.Auto {
         }
     }
 
+    // --- CrossDomainFilter Support ---
+
     @Override
-    protected void doRequest(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+    protected void doCrossDomainRequest(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
         if (!request.getServletPath().startsWith(PATH)) {
             chain.doFilter(request, response);
             return;
         }
 
+        // RTC disabled?
         CmsTool cms = Query.from(CmsTool.class).first();
 
-        if (cms != null) {
-
-            // RTC disabled?
-            if (cms.isDisableRtc()) {
-                chain.doFilter(request, response);
-                return;
-            }
-
-            // Set CORS header if cross domain is enabled and origin matches a site url.
-            if (cms.isEnableCrossDomainInlineEditing()) {
-                String origin = request.getHeader("origin");
-
-                if (origin != null) {
-                    if (origin.endsWith("/")) {
-                        origin = origin.substring(0, origin.length() - 1);
-                    }
-
-                    if (Query.from(Site.class).where("urls startsWith ?", origin).hasMoreThan(0)) {
-                        response.setHeader("Access-Control-Allow-Origin", origin);
-                    }
-                }
-            }
+        if (cms != null && cms.isDisableRtc()){
+            chain.doFilter(request, response);
+            return;
         }
 
         // Make sure that the user is available.
