@@ -9,8 +9,15 @@ import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+/**
+ * Sets cross-origin resource sharing (CORS) header for instantiating classes
+ * if cross domain inline editing is enabled and origin matches a site url.
+ */
 public abstract class CrossDomainFilter extends AbstractFilter {
 
+    /**
+     * Continue with {@link AbstractFilter#doRequest}.
+     */
     protected abstract void doCrossDomainRequest(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -20,7 +27,6 @@ public abstract class CrossDomainFilter extends AbstractFilter {
     protected void doRequest(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws Exception {
         CmsTool cms = Application.Static.getInstance(CmsTool.class);
 
-        // Set CORS header if cross domain is enabled and origin matches a site url.
         if (cms.isEnableCrossDomainInlineEditing()) {
             String origin = request.getHeader("origin");
 
