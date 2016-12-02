@@ -113,7 +113,7 @@ public class RtcFilter extends CrossDomainFilter implements AbstractFilter.Auto 
         // RTC disabled?
         CmsTool cms = Query.from(CmsTool.class).first();
 
-        if (cms != null && cms.isDisableRtc()){
+        if (cms != null && cms.isDisableRtc()) {
             chain.doFilter(request, response);
             return;
         }
