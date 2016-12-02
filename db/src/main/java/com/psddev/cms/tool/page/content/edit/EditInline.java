@@ -17,8 +17,8 @@ import java.util.UUID;
 /**
  * Creates inline edit form with applicable fields.
  */
-@RoutingFilter.Path(application = "cms", value = "/content/inlineEdit")
-public class InlineEdit extends PageServlet {
+@RoutingFilter.Path(application = "cms", value = "/content/editInline")
+public class EditInline extends PageServlet {
 
     @Override
     protected String getPermissionId() {
@@ -107,7 +107,7 @@ public class InlineEdit extends PageServlet {
                         page.writeStart("h1", "class", "breadcrumbs"); {
                             page.writeStart("span", "class", "breadcrumbItem icon icon-" + iconName); {
                                 page.writeHtml(page.localize(
-                                        InlineEdit.class,
+                                        EditInline.class,
                                         ImmutableMap.of("label", page.getTypeLabel(object)),
                                         "title.heading"));
                                 page.writeHtml(": ");
@@ -129,7 +129,7 @@ public class InlineEdit extends PageServlet {
                                     "target", "_blank",
                                     "href", page.cmsUrl("/content/edit.jsp", "id", id)); {
 
-                                page.writeHtml(page.localize(InlineEdit.class, "action.fullForm"));
+                                page.writeHtml(page.localize(EditInline.class, "action.fullForm"));
                             }
                             page.writeEnd();
                         }
