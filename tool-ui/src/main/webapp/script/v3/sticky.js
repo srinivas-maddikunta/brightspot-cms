@@ -17,7 +17,7 @@ define([ 'jquery', 'bsp-utils', 'sticky-kit' ], function($, bsp_utils) {
       }
 
       // If we are in an iframe do not make it sticky
-      // This is used for inlineEdit
+      // This is used for editInline
       if (window.parent !== window.top) {
           return;
       }

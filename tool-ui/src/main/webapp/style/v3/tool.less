@@ -318,15 +318,15 @@
   z-index: 0;
 }
 
-// Special case for inlineEdit page within an iframe
-.inlineEdit { // class added to the body element only on the inlineEdit page
+// Special case for editInline page within an iframe
+.editInline { // class added to the body element only on the editInline page
   margin:auto;
   .toolContent {
     padding:0;
     margin:auto;
   }
   // The iframe resizer does not stop expanding when certain popups appear and set height:100%
-  // So we must override that setting in the case of the inlineEdit page
+  // So we must override that setting in the case of the editInline page
   .popup {
       height:auto !important;
   }
