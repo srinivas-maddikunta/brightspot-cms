@@ -307,6 +307,103 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         $('.fieldPreviewPaths[data-name="' + name + '"]').remove();
     });
 
+    function clearArrows($canvas) {
+        var context;
+        context = $canvas[0].getContext('2d');
+        context.clearRect(0, 0, $canvas[0].width, $canvas[0].height);
+
+    }
+
+    function drawArrows($source, $target, $canvas, color) {
+        var arrowSize;
+        var context;
+        var $frame;
+        var frameOffset;
+        var frameWindowScrollTop;
+        var isBackReference;
+        var pathSourceControlX;
+        var pathSourceControlY;
+        var pathSourceDirection;
+        var pathSourceX;
+        var pathSourceY;
+        var pathTargetControlX;
+        var pathTargetControlY;
+        var pathTargetDirection;
+        var pathTargetX;
+        var pathTargetY;
+        var sourceOffset;
+        var targetOffset;
+        var targetWidth;
+
+        context = $canvas[0].getContext('2d');
+
+        $frame = $preview.find('iframe');
+        frameOffset = $frame.offset();
+        frameWindowScrollTop = $($frame[0].contentWindow).scrollTop();
+
+        sourceOffset = $source.offset();
+        targetOffset = $target.offset();
+        targetOffset.left += frameOffset.left;
+        targetOffset.top += frameOffset.top;
+
+        if (sourceOffset.left > targetOffset.left) {
+            targetWidth = $target.outerWidth();
+            pathTargetX = targetOffset.left + targetWidth + 3;
+            pathTargetY = targetOffset.top + $target.outerHeight() / 2;
+            isBackReference = true;
+
+            if (targetOffset.left + targetWidth > sourceOffset.left) {
+                pathSourceX = sourceOffset.left + $source.width();
+                pathSourceY = sourceOffset.top + $source.height() / 2;
+                pathSourceDirection = 1;
+                pathTargetDirection = 1;
+
+            } else {
+                pathSourceX = sourceOffset.left;
+                pathSourceY = sourceOffset.top + $source.height() / 2;
+                pathSourceDirection = -1;
+                pathTargetDirection = 1;
+            }
+
+        } else {
+            pathSourceX = sourceOffset.left + $source.width();
+            pathSourceY = sourceOffset.top + $source.height() / 2;
+            pathTargetX = targetOffset.left - 3;
+            pathTargetY = targetOffset.top + $target.height() / 2;
+            pathSourceDirection = 1;
+            pathTargetDirection = -1;
+        }
+
+        pathTargetY -= frameWindowScrollTop;
+        pathSourceControlX = pathSourceX + pathSourceDirection * 100;
+        pathSourceControlY = pathSourceY;
+        pathTargetControlX = pathTargetX + pathTargetDirection * 100;
+        pathTargetControlY = pathTargetY;
+
+        context.strokeStyle = color;
+        context.fillStyle = color;
+
+        // Reference curve.
+        context.lineWidth = isBackReference ? 0.4 : 1.0;
+        context.beginPath();
+        context.moveTo(pathSourceX, pathSourceY);
+        context.bezierCurveTo(pathSourceControlX, pathSourceControlY, pathTargetControlX, pathTargetControlY, pathTargetX, pathTargetY);
+        context.stroke();
+
+        // Arrow head.
+        arrowSize = pathTargetX > pathTargetControlX ? 5 : -5;
+        if (isBackReference) {
+            arrowSize *= 0.8;
+        }
+        context.beginPath();
+        context.moveTo(pathTargetX, pathTargetY);
+        context.lineTo(pathTargetX - 2 * arrowSize, pathTargetY - arrowSize);
+        context.lineTo(pathTargetX - 2 * arrowSize, pathTargetY + arrowSize);
+        context.closePath();
+        context.fill();
+
+    }
+
     $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-toggle', function(event, $source) {
         var $container = $(this),
         name = $container.attr('data-name'),
@@ -429,66 +526,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                 $source = $container.find('> .inputLabel');
             }
 
-            sourceOffset = $source.offset();
-            targetOffset = $target.offset();
-            targetOffset.left += frameOffset.left;
-            targetOffset.top += frameOffset.top;
-
-            if (sourceOffset.left > targetOffset.left) {
-                var targetWidth = $target.outerWidth();
-                pathTargetX = targetOffset.left + targetWidth + 3;
-                pathTargetY = targetOffset.top + $target.outerHeight() / 2;
-                isBackReference = true;
-
-                if (targetOffset.left + targetWidth > sourceOffset.left) {
-                    pathSourceX = sourceOffset.left + $source.width();
-                    pathSourceY = sourceOffset.top + $source.height() / 2;
-                    pathSourceDirection = 1;
-                    pathTargetDirection = 1;
-
-                } else {
-                    pathSourceX = sourceOffset.left;
-                    pathSourceY = sourceOffset.top + $source.height() / 2;
-                    pathSourceDirection = -1;
-                    pathTargetDirection = 1;
-                }
-
-            } else {
-                pathSourceX = sourceOffset.left + $source.width();
-                pathSourceY = sourceOffset.top + $source.height() / 2;
-                pathTargetX = targetOffset.left - 3;
-                pathTargetY = targetOffset.top + $target.height() / 2;
-                pathSourceDirection = 1;
-                pathTargetDirection = -1;
-            }
-
-            pathTargetY -= frameWindowScrollTop;
-            pathSourceControlX = pathSourceX + pathSourceDirection * 100;
-            pathSourceControlY = pathSourceY;
-            pathTargetControlX = pathTargetX + pathTargetDirection * 100;
-            pathTargetControlY = pathTargetY;
-
-            pathsCanvas.strokeStyle = color;
-            pathsCanvas.fillStyle = color;
-
-            // Reference curve.
-            pathsCanvas.lineWidth = isBackReference ? 0.4 : 1.0;
-            pathsCanvas.beginPath();
-            pathsCanvas.moveTo(pathSourceX, pathSourceY);
-            pathsCanvas.bezierCurveTo(pathSourceControlX, pathSourceControlY, pathTargetControlX, pathTargetControlY, pathTargetX, pathTargetY);
-            pathsCanvas.stroke();
-
-            // Arrow head.
-            var arrowSize = pathTargetX > pathTargetControlX ? 5 : -5;
-            if (isBackReference) {
-                arrowSize *= 0.8;
-            }
-            pathsCanvas.beginPath();
-            pathsCanvas.moveTo(pathTargetX, pathTargetY);
-            pathsCanvas.lineTo(pathTargetX - 2 * arrowSize, pathTargetY - arrowSize);
-            pathsCanvas.lineTo(pathTargetX - 2 * arrowSize, pathTargetY + arrowSize);
-            pathsCanvas.closePath();
-            pathsCanvas.fill();
+            drawArrows($source, $target, $paths, color);
         }
     });
 
