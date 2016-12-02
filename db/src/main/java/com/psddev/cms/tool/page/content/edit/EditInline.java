@@ -83,14 +83,6 @@ public class EditInline extends PageServlet {
                     "src", page.cmsUrl("/script/iframeResizer.contentWindow.js"))
                     .writeEnd();
 
-            page.writeStart("style", "type", "text/css"); {
-                page.writeCss(".toolBroadcast, .toolHeader, .toolBackground, .toolFooter", "display", "none");
-                page.writeCss("body, .toolContent", "background", "transparent");
-                page.writeCss("body", "margin-left", "10px", "margin-right", "10px");
-                page.writeCss(".widget.widget-content", "box-shadow", "none");
-            }
-            page.writeEnd();
-
             page.writeStart("form",
                     "class", "standardForm",
                     "method", "post",
