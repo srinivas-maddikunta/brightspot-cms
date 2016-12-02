@@ -5,6 +5,7 @@ import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.util.TimeZone;
 import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.dari.util.PageContextFilter;
+import com.psddev.dari.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.Instant;
@@ -30,12 +31,16 @@ public final class Localization {
      * Localizes the given {@code key} using the given {@code locale} and
      * {@code context}.
      *
+     * <p>If there's isn't text associated with the given {@code key},
+     * returns the given {@code defaultText}.</p>
+     *
      * @param locale Nullable. Default is {@link Locale#getDefault()}.
      * @param context Nullable.
      * @param key Nonnull.
+     * @param defaultText Nullable.
      * @return Nonnull.
      */
-    public static String text(Locale locale, Object context, String key) {
+    public static String text(Locale locale, Object context, String key, String defaultText) {
         LocalizationContext localizationContext = context instanceof LocalizationContext
                 ? (LocalizationContext) context
                 : new LocalizationContext(context, null);
@@ -74,10 +79,26 @@ public final class Localization {
                 firstTry = false;
                 ObjectTypeResourceBundle.invalidateInstances();
 
-            } else {
+            } else if (StringUtils.isBlank(defaultText)) {
                 return localizationContext.missingText(key);
+
+            } else {
+                return defaultText;
             }
         }
+    }
+
+    /**
+     * Localizes the given {@code key} using the given {@code locale} and
+     * {@code context}.
+     *
+     * @param locale Nullable. Default is {@link Locale#getDefault()}.
+     * @param context Nullable.
+     * @param key Nonnull.
+     * @return Nonnull.
+     */
+    public static String text(Locale locale, Object context, String key) {
+        return text(locale, context, key, null);
     }
 
     /**
@@ -133,14 +154,30 @@ public final class Localization {
      * Localizes the given {@code key} using the current user's preferred
      * locale and the given {@code context}.
      *
+     * <p>If there's isn't text associated with the given {@code key},
+     * returns the given {@code defaultText}.</p>
+     *
+     * @param context Nullable.
+     * @param key Nonnull.
+     * @param defaultText Nullable.
+     * @return Nonnull.
+     */
+    public static String currentUserText(Object context, String key, String defaultText) {
+        ToolUser user = currentUser();
+        Locale locale = user != null ? user.getLocale() : null;
+        return text(locale, context, key, defaultText);
+    }
+
+    /**
+     * Localizes the given {@code key} using the current user's preferred
+     * locale and the given {@code context}.
+     *
      * @param context Nullable.
      * @param key Nonnull.
      * @return Nonnull.
      */
     public static String currentUserText(Object context, String key) {
-        ToolUser user = currentUser();
-        Locale locale = user != null ? user.getLocale() : null;
-        return text(locale, context, key);
+        return currentUserText(context, key, null);
     }
 
     private static ToolUser currentUser() {

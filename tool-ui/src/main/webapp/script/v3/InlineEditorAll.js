@@ -150,6 +150,11 @@ require([ 'bsp-utils', 'jquery', 'iframeResizer' ], function (bsp_utils, $) {
             }
 
             var $controls = $.data(this, 'InlineEditor-$controls');
+
+            if (!$controls) {
+                return;
+            }
+
             var box = {
                 '$controls': $controls,
                 'controlsCss': {

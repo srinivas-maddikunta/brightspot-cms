@@ -40,7 +40,7 @@ define([ 'jquery', 'bsp-utils', 'tabex' ], function($, bsp_utils, tabex) {
         }
 
         processRequests = bsp_utils.throttle(10, function () {
-            for (var j = 0; j < 100; ++ j) {
+            for (var j = 0; j < 1000; ++ j) {
 
                 // Find the oldest request to process first.
                 var oldestKey = null;

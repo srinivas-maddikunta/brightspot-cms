@@ -2349,7 +2349,6 @@ define([
                     }, originalAspect, aspect);
 
                     // Set the cropping for this size group
-                    self.sizesSetGroupBounds(groupName, crop);
                     self.sizesUpdatePreview(groupName);
                 });
 
