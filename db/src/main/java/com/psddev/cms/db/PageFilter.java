@@ -418,7 +418,18 @@ public class PageFilter extends AbstractFilter {
             String externalUrl = Directory.extractExternalUrl(servletPath);
 
             if (externalUrl != null) {
-                response.sendRedirect(externalUrl);
+                if (Directory.Static.findByPath(
+                        Static.getSite(request),
+                        servletPath.endsWith("/")
+                                ? servletPath + "index"
+                                : servletPath) != null) {
+
+                    response.sendRedirect(externalUrl);
+
+                } else {
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                }
+
                 return;
             }
 
