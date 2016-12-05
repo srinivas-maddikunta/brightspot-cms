@@ -305,6 +305,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         var $container = $(this),
         name = $container.attr('data-name');
 
+        delete fieldMaps[name];
         $container.removeClass('fieldPreview-displaying');
         $container.find('> .inputLabel').css({
             'background-color': '',
@@ -549,6 +550,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
     // On the scroll event update the field map outlines and arrows
     $(window).on('scroll previewScroll', $.throttle(20, function(){
+
         $.each(fieldMaps, function(name, data) {
             var $frame;
             var frameOffset;
