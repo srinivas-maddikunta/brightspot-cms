@@ -66,6 +66,22 @@ public class RichTextToolbarAction extends RichTextToolbarButton {
             .inline(true)
             .build();
 
+    public static final RichTextToolbarAction COMMENT_REMOVE = RichTextToolbarAction.builder()
+            .action("cleartext")
+            .text("Remove Comment")
+            .cssClass("rte2-toolbar-comment-remove")
+            .tooltip("Remove Comment")
+            .inline(true)
+            .build();
+
+    public static final RichTextToolbarAction COMMENT_COLLAPSE = RichTextToolbarAction.builder()
+            .action("collapse")
+            .text("Toggle comment collapse")
+            .cssClass("rte2-toolbar-comment-collapse")
+            .tooltip("Toggle comment collapse")
+            .inline(true)
+            .build();
+
     public static final RichTextToolbarAction FULLSCREEN = builder()
             .action("fullscreen")
             .text("Fullscreen")
