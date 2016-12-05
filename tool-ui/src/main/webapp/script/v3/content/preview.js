@@ -412,9 +412,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         $frame,
         frameOffset,
         frameWindowScrollTop,
-
-        $paths,
-        pathsCanvas;
+        $paths;
 
         event.stopPropagation();
 
@@ -460,8 +458,6 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
         $body.append($paths);
 
-        pathsCanvas = $paths[0].getContext('2d');
-
         var PLACEHOLDER_PREFIX = 'BrightspotCmsFieldAccess ';
         var frameDocument = $frame[0].contentDocument;
         var frameCommentWalker = frameDocument.createTreeWalker(frameDocument.body, NodeFilter.SHOW_COMMENT, null, null);
@@ -483,15 +479,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
             var $placeholder = $(frameCommentWalker.currentNode),
             $target,
-            targetOffset,
-            pathSourceX, pathSourceY, pathSourceDirection,
-            pathTargetX, pathTargetY, pathTargetDirection,
-            sourceOffset,
-            isBackReference = false,
-            pathSourceControlX,
-            pathSourceControlY,
-            pathTargetControlX,
-            pathTargetControlY;
+            targetOffset;
 
             if ($placeholder.parent().is('body')) {
                 continue;
