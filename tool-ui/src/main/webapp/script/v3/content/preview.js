@@ -21,6 +21,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
     previewEventsBound,
     hidePreview,
     previewData = window.PREVIEW_DATA || {},
+    fieldMaps = {},
 
     getUniqueColor,
     fieldHue = Math.random(),
@@ -196,7 +197,14 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                     }
 
                     $previewTarget.load(function() {
+
                         $previewWidget.removeClass('widget-loading');
+
+                        // Trigger a custom 'previewScroll' event whenever the iframe scrolls
+                        // so we can update the field maps later
+                        $($previewTarget[0].contentWindow).on('scroll', function(){
+                            $(window).trigger('previewScroll');
+                        });
                     });
 
                     // Really load the preview.
@@ -497,7 +505,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
             targetOffset = $target.offset();
 
-            $body.append($('<span/>', {
+            var $outline = $('<span/>', {
                 'class': 'fieldPreviewTarget',
                 'data-name': name,
                 'css': {
@@ -508,13 +516,24 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
                     'top': frameOffset.top + targetOffset.top - frameWindowScrollTop,
                     'width': $target.outerWidth()
                 }
-            }));
+            }).appendTo('body');
 
             if (!$source) {
                 $source = $container.find('> .inputLabel');
             }
 
             drawArrows($source, $target, $paths, color);
+
+            // Remember this field map so we can redraw later when the scroll position changes
+            var fieldMapData = {
+                $outline: $outline,
+                $source: $source,
+                $target: $target,
+                $paths: $paths,
+                color: color
+            };
+            fieldMaps[name] = fieldMaps[name] || [];
+            fieldMaps[name].push(fieldMapData);
         }
     });
 
@@ -528,4 +547,33 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         }
     });
 
+    // On the scroll event update the field map outlines and arrows
+    $(window).on('scroll previewScroll', $.throttle(20, function(){
+        $.each(fieldMaps, function(name, data) {
+            var $frame;
+            var frameOffset;
+            var frameWindowScrollTop;
+
+            clearArrows(data[0].$paths);
+
+            $frame = $preview.find('iframe');
+            frameOffset = $frame.offset();
+            frameWindowScrollTop = $($frame[0].contentWindow).scrollTop();
+
+            $.each(data, function(i, fieldMap) {
+
+                var targetOffset;
+
+                targetOffset = fieldMap.$target.offset();
+
+                // Update the target outline
+                fieldMap.$outline.css({
+                    'left': frameOffset.left + targetOffset.left,
+                    'top': frameOffset.top + targetOffset.top - frameWindowScrollTop
+                });
+
+                drawArrows(fieldMap.$source, fieldMap.$target, fieldMap.$paths, fieldMap.color);
+            });
+        });
+    }));
 });
