@@ -107,7 +107,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
             // Make the preview expand/collapse when the heading is clicked.
             $previewHeading.click(function() {
-                // $edit.find('.inputContainer').trigger('fieldPreview-disable');
+                $edit.find('.inputContainer').trigger('fieldPreview-disable');
 
                 if ($previewWidget.is('.widget-expanded')) {
                     $('.queryField_frames').show();
@@ -222,7 +222,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
             $previewHeading.click();
         }
 
-        // $edit.find('.inputContainer').trigger('fieldPreview-hide');
+        $edit.find('.inputContainer').trigger('fieldPreview-hide');
         $edit.css({
             'max-width': '',
             'margin-right': ''
