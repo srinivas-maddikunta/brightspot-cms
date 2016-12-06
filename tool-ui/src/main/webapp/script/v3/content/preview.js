@@ -282,6 +282,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
 
         } else if ($toggle) {
             $toggle.remove();
+            $container.removeData('fieldPreview-$toggle');
         }
     });
 
