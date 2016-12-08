@@ -2268,12 +2268,14 @@ public class ToolPageContext extends WebPageContext {
         List<ObjectType> mainTypes = Template.Static.findUsedTypes(getSite());
 
         mainTypes.retainAll(miscTypes);
-
-        mainTypes.addAll(miscTypes.stream()
-                .filter(t -> t.as(ToolUi.class).isMain())
-                .collect(Collectors.toList()));
-
         miscTypes.removeAll(mainTypes);
+
+        List<ObjectType> toolUiMainTypes = miscTypes.stream()
+                .filter(t -> t.as(ToolUi.class).isMain())
+                .collect(Collectors.toList());
+        mainTypes.addAll(toolUiMainTypes);
+        miscTypes.removeAll(toolUiMainTypes);
+
         typeGroups.put(localize(null, "label.mainTypes"), mainTypes);
         typeGroups.put(localize(null, "label.miscTypes"), miscTypes);
 
