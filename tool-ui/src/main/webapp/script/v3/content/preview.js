@@ -550,8 +550,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
     });
 
     // On the scroll event update the field map outlines and arrows
-    $(window).on('scroll previewScroll', $.throttle(20, function(){
-
+    $(window).on('scroll previewScroll', $.throttle(10, function(){
         $.each(fieldMaps, function(name, data) {
             var $frame;
             var frameOffset;
