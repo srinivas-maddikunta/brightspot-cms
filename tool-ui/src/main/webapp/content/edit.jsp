@@ -200,7 +200,6 @@ if (wp.isFormPost() && copy != null && editingState.isNew()) {
         copyState.as(Site.ObjectModification.class).setOwner(site);
     }
 
-    copyState.putAll(editingState.getRawValues());
     copyState.setId(editingState.getId());
     copyState.setStatus(editingState.getStatus());
     state = copyState;
