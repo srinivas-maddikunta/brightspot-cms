@@ -291,7 +291,7 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
         $container = $toggle.closest('.inputContainer');
 
         $container.find('> .inputLabel').trigger('fieldPreview-toggle', [ $toggle ]);
-        $toggle.css('color', $container.is('.fieldPreview-displaying') ? getUniqueColor($container) : '');
+        $toggle.css('background-color', $container.is('.fieldPreview-displaying') ? getUniqueColor($container) : '');
     });
 
     $edit.delegate('.contentForm-main .inputContainer', 'fieldPreview-enable', function() {
@@ -376,8 +376,13 @@ define([ 'jquery', 'bsp-utils' ], function($, bsp_utils) {
             }
 
         } else {
-            pathSourceX = sourceOffset.left + $source.width();
-            pathSourceY = sourceOffset.top + $source.height() / 2;
+            pathSourceX = sourceOffset.left + $source.outerWidth();
+
+            if ($previewWidget.is('.widget-expanded') && pathSourceX > PEEK_WIDTH + 20) {
+                pathSourceX = PEEK_WIDTH + 20;
+            }
+
+            pathSourceY = sourceOffset.top + $source.outerHeight() / 2;
             pathTargetX = targetOffset.left - 3;
             pathTargetY = targetOffset.top + $target.height() / 2;
             pathSourceDirection = 1;
