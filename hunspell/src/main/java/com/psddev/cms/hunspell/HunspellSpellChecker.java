@@ -71,6 +71,7 @@ public class HunspellSpellChecker implements SpellChecker {
                         if (affixInput != null) {
                             try (InputStream dictionaryInput = getClass().getResourceAsStream("/" + name + DICTIONARY_FILE_SUFFIX)) {
                                 if (dictionaryInput != null) {
+                                    // Doesn't work - needs a way to acquire the dictionary
                                     HunspellDictionary dictionary = HunspellDictionary.forName(name);
 
                                     String tmpdir = System.getProperty("java.io.tmpdir");
