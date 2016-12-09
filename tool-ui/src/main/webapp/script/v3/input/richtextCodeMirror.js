@@ -3213,10 +3213,7 @@ define([
                 // added automatically rather than the user typing (so we don't try to adjust the
                 // position of the enhancement - see enhancementNewlineAdjust()
                 lineLength = editor.getLine(lineMax).length;
-                editor.replaceRange('\n', {line:lineMax, ch:lineLength - 1}, undefined, 'brightspotEnhancementMove');
-
-                // Adding the newline seems to move all the enhancements down a line so no need  to move it
-                return;
+                editor.replaceRange('\n', {line:lineMax, ch:lineLength}, undefined, 'brightspotEnhancementMove');
             }
 
             // If the next (or previous) line is blank, then try to move to the line after that (if it is not blank)
