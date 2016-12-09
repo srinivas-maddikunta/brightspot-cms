@@ -75,6 +75,7 @@ require([
   'jquery.toggleable',
   'nv.d3',
 
+  'v3/Dropbox',
   'v3/EditFieldUpdate',
         
   'v3/dashboard',
