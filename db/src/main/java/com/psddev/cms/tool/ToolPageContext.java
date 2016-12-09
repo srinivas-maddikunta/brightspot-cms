@@ -2273,6 +2273,7 @@ public class ToolPageContext extends WebPageContext {
         List<ObjectType> toolUiMainTypes = miscTypes.stream()
                 .filter(t -> t.as(ToolUi.class).isMain())
                 .collect(Collectors.toList());
+
         mainTypes.addAll(toolUiMainTypes);
         miscTypes.removeAll(toolUiMainTypes);
 
