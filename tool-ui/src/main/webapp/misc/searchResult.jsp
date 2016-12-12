@@ -27,6 +27,13 @@ if (wp.requireUser()) {
 
 Search search = new Search(wp);
 
+//for infinite scroll (fullscreen), allow frame name syncing between results and RR
+String frameNameSuffix = wp.param(String.class, Search.FRAME_NAME_SUFFIX_PARAMETER);
+
+if (!StringUtils.isBlank(frameNameSuffix)) {
+    search.setFrameNameSuffix(frameNameSuffix);
+}
+
 if (!wp.param(boolean.class, "widget")) {
     search.writeResultHtml(null);
 

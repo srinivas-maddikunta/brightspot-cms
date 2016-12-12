@@ -101,6 +101,8 @@ public class Search extends Record {
 
     public static final double RELEVANT_SORT_LABEL_BOOST = 10.0;
 
+    public static final String FRAME_NAME_SUFFIX_PARAMETER = "frameSuffix";
+
     private String name;
     private Set<ObjectType> types;
     private ObjectType selectedType;
@@ -422,6 +424,10 @@ public class Search extends Record {
         this.ignoreSite = ignoreSite;
     }
 
+    public void setFrameNameSuffix(String frameNameSuffix) {
+        this.frameNameSuffix = frameNameSuffix;
+    }
+
     /**
      * Creates a unique frame name that starts with the given {@code prefix}.
      *
@@ -434,10 +440,14 @@ public class Search extends Record {
         Preconditions.checkNotNull(prefix);
 
         if (ObjectUtils.isBlank(frameNameSuffix)) {
-            frameNameSuffix = UUID.randomUUID().toString().replace("-", "");
+            frameNameSuffix = generateFrameNameSuffix();
         }
 
         return prefix + "-" + frameNameSuffix;
+    }
+
+    public static String generateFrameNameSuffix() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     public Set<ObjectType> findValidTypes() {
