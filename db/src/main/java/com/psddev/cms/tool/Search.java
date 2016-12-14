@@ -93,6 +93,7 @@ public class Search extends Record {
     public static final String SUGGESTIONS_PARAMETER = "sg";
     public static final String TYPES_PARAMETER = "rt";
     public static final String NEW_ITEM_IDS_PARAMETER = "ni";
+    public static final String FRAME_NAME_SUFFIX_PARAMETER = "fns";
 
     public static final String NEWEST_SORT_LABEL = "Newest";
     public static final String NEWEST_SORT_VALUE = "_newest";
@@ -100,8 +101,6 @@ public class Search extends Record {
     public static final String RELEVANT_SORT_VALUE = "_relevant";
 
     public static final double RELEVANT_SORT_LABEL_BOOST = 10.0;
-
-    public static final String FRAME_NAME_SUFFIX_PARAMETER = "frameSuffix";
 
     private String name;
     private Set<ObjectType> types;
