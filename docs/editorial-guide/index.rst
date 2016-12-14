@@ -7,7 +7,7 @@
 .. toctree::
 
     Editorial Support <self>
-    overview/all
+    intro/index
     dashboard/all
     publishing-tools/all
     publishing-process/all
@@ -29,4 +29,3 @@
     production-guides/all
     two-factor-auth/all
     looking-glass/all
-   
