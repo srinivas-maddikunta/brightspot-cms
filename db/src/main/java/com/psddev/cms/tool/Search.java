@@ -123,8 +123,7 @@ public class Search extends Record {
     private int limit;
     private Set<UUID> newItemIds;
     private boolean ignoreSite;
-
-    private transient String frameNameSuffix;
+    private String frameNameSuffix = generateFrameNameSuffix();
 
     public Search() {
     }
@@ -208,6 +207,7 @@ public class Search extends Record {
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
         setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
         setIgnoreSite(page.param(boolean.class, IGNORE_SITE_PARAMETER));
+        setFrameNameSuffix(page.param(String.class, FRAME_NAME_SUFFIX_PARAMETER));
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.initializeSearch(this, page);
@@ -421,6 +421,10 @@ public class Search extends Record {
 
     public void setIgnoreSite(boolean ignoreSite) {
         this.ignoreSite = ignoreSite;
+    }
+
+    public String getFrameNameSuffix() {
+        return frameNameSuffix;
     }
 
     public void setFrameNameSuffix(String frameNameSuffix) {
