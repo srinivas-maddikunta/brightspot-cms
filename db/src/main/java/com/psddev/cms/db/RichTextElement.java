@@ -1,5 +1,6 @@
 package com.psddev.cms.db;
 
+import com.psddev.cms.rte.ReferenceRichTextElement;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.ObjectType;
@@ -49,6 +50,8 @@ public abstract class RichTextElement extends Record {
                     }
                 }
             });
+
+            tagTypes.put(ReferenceRichTextElement.TAG_NAME, ObjectType.getInstance(ReferenceRichTextElement.class));
 
             return Collections.unmodifiableMap(tagTypes);
         }

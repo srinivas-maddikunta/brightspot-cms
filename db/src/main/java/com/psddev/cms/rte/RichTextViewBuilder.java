@@ -212,8 +212,6 @@ public class RichTextViewBuilder<V> {
         List<V> views = new ArrayList<>();
         Map<String, ObjectType> tagTypes = new HashMap<>(RichTextElement.getConcreteTagTypes());
 
-        tagTypes.put(ReferenceRichTextElement.TAG_NAME, ObjectType.getInstance(ReferenceRichTextElement.class));
-
         Document document = Jsoup.parseBodyFragment(html);
 
         document.outputSettings().prettyPrint(false);
