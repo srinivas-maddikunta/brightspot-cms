@@ -1,181 +1,318 @@
-*********************
+#####################
 Advanced Installation
-*********************
+#####################
 
-To start a Brightspot development project, install the following open-source software required to run Brightspot locally:
+This procedure requires that you manually install and configure the software prerequisites, use Maven to build and package the Brightspot platform into a WAR, and deploy it in the Tomcat application server. 
 
-* `Java 8 JDK <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`_
-* `Maven 3+ <https://maven.apache.org/download.cgi>`_
-* `MySQL 5.6.* <http://dev.mysql.com/downloads/>`_
-* `Solr 4.8.1 <http://lucene.apache.org/solr/downloads.html>`_
-* `Tomcat 8 <https://tomcat.apache.org/download-80.cgi>`_
+**Prerequisites**
 
+Download and install the following software:
+
+- |java_link|
+
+.. |java_link| raw:: html
+
+     <a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html" target="_blank">Java 8 JDK</a>
+
+- |mv_link|
+
+.. |mv_link| raw:: html
+
+     <a href="http://maven.apache.org/download.cgi" target="_blank">Maven 3+</a>
+
+- |sql_link|
+
+.. |sql_link| raw:: html
+
+     <a href="http://dev.mysql.com/downloads/" target="_blank">MySQL 5.6.*</a>
+
+- |solr_link|
+
+.. |solr_link| raw:: html
+
+     <a href="http://lucene.apache.org/solr/downloads.html" target="_blank">Solr 4.8.1</a>
+
+- |tc_link|
+
+.. |tc_link| raw:: html
+
+     <a href="https://tomcat.apache.org/download-80.cgi" target="_blank">Tomcat 8</a>
+
+\
+
+**To set up a development environment:**
+
+1. Create an empty database in :ref:`MySQL <mysql-label>`. 
+
+2. Configure :ref:`Tomcat <tc-label>` to run the Brightspot platform.
+
+3. Install :ref:`Solr <solr-label>` into Tomcat.
+
+4. :ref:`Build <build-label>` a Brightspot project with Maven.
+
+5. :ref:`Start <start-label>` the application server.
+
+.. _mysql-label:
+
+*****
 MySQL
-=====
+*****
 
-Start by `downloading MySQL <http://dev.mysql.com/downloads/>`_. Run it locally and create a blank database. The database name and user authentication information will be added to the Tomcat context.xml file in the next step.
+Run MySQL locally, and create an empty database to be used by the Brightspot platform. You can perform MySql operations from an optional GUI tool such as MySQLWorkbench. Alternatively, you can use the MySQL command-line tool.
 
+You can give the database any name. The following command creates a database called "brightspot":
+
+::
+  
+  CREATE DATABASE brightspot CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+Record the database name; you will specify it in the Tomcat context.xml file.
+
+.. _tc-label: 
+
+******
 Tomcat
-======
+******
 
-`Download Tomcat 8 <https://tomcat.apache.org/download-80.cgi>`_ and configure it to run Brightspot projects (Core zip version). You can use this as a base for future projects. The recommended best practice is to run an instance of Tomcat alongside each Brightspot project. The context.xml file will contain project-specific settings and point to a project specific database. When running multiple projects locally, you can stop Tomcat or use a different port for each project to run them concurrently:
+**Configure Tomcat to run Brightspot projects:**
 
-::
+1. Add MySQL connector.
 
-    workspace/
-    │
-    ├── brightspot-tomcat /  
-    │   
-    ├── brightspot-project /
+   |conn_link| the MySQL Connector JAR file for Tomcat and place it in the Tomcat ``lib`` folder. For example:
 
-Add Solr
-========
+   .. |conn_link| raw:: html
 
-Solr is used as a text matching database in Brightspot projects. It contains the same data that is stored in the SQL database. `Download Solr <http://archive.apache.org/dist/lucene/solr/>`_ and install it in the default Tomcat.
+    <a href="http://dev.mysql.com/downloads/connector/j/" target="_blank">Download</a>
 
-Place the solr.war file in the Tomcat webapps directory:
+   ::
 
-cp Solr/example/webapps/solr.war brightspot-tomcat/webapps
+      cp mysql-connector-java-5.*.jar <TomcatRoot>/lib
 
-Copy the Solr database directory into the Tomcat root directory:
+2. Add a local storage directory.
 
-cp -r Solr/example/solr brightspot-tomcat
+   Brightspot can store uploaded files locally in a ``media`` directory. Create this directory in the Tomcat webapps directory. For example:
 
-Two configuration files found in Solr must be updated with Brightspot specific configurations. The files must be named solrconfig.xml and schema.xml.
+   ::
+      
+       mkdir <TomcatRoot>/webapps/media
 
-`Download the Brightspot Solr Config file <https://github.com/perfectsense/dari/tree/master/etc/solr>`_ and replace brightspot-tomcat/solr/collection1/conf/solrconfig.xml.
+3. Replace the default context.xml file in Tomcat with a new file containing the default Brightspot configurations:
 
-`Download the Brightspot Solr Schema file <https://github.com/perfectsense/dari/tree/master/etc/solr>`_ and replace brightspot-tomcat/solr/collection1/conf/schema.xml.
+   #. In the Tomcat ``conf`` folder, make a copy of the default context.xml file and rename it.
+   
+   #. Create a new context.xml in the Tomcat ``conf`` folder.
+   
+   #. Open the |context_link| and copy the contents.
 
-Edit the solr.xml file, found in solr/solr.xml. Replace the default host post with the tomcat port <int name="hostPort">9480</int>.
+      .. |context_link| raw:: html
 
-The final step in configuring Solr is to copy the logging jar files from solr/example/lib into brightspot-tomcat/lib, e.g. slf4j-api-1.7.6.jar, slf4j-log4j12-1.7.6.jar.
+        <a href="sampleContext.html" target="_blank">sample context.xml file</a>
 
-Add MySQL Connector
-===================
+   #. Paste the contents into the new context.xml file in the Tomcat ``conf`` folder.
 
-`Download <http://dev.mysql.com/downloads/connector/j/>`_ the MySQL Connector jar file for Tomcat and place it in the lib directory:
 
-::
+.. todo:: How best to give user a reference copy of context.xml?
 
-    cp mysql-connector-java-5.*.jar brightspot-tomcat/lib
+    1) In the original documentation, there was an issue going to this public Git site:  <a href="https://gist.githubusercontent.com/kphenix/54ca0f473ef7e034811a/raw/29acee59ecc2e431cd1bfc46a4bcb049c52e1e8d/default-context-2.4.xml" target="_blank">Brightspot context.xml file</a>. (I was told not to use this.)
 
-Add Local Storage Directory
-===========================
+    2) It was suggested that I put a copy of context.xml in the PSD docs repo, but this is a private site: <a href="https://github.com/perfectsense/docs/blob/master/brightspot/developers-guide/pages/Setup/sampleContext.xml" target="_blank">sample context.xml file</a>
 
-Brightspot can store uploaded files locally in a media directory. Create this directory in the Tomcat webapps directory:
+    3) The method currently used is to use a rst-formatted version of context.xml in the source. It is then built into an html version that's accessed on the doc server. 
 
-::
+\
 
-    mkdir brightspot-tomcat/webapps/media
+4. In context.xml, replace the following placeholders:
 
-Replace Context.xml
-===================
+   
+   | ``DATABASE_NAME`` with the name of the empty MySQL database that you previously created.
+   | ``DATABASE_USER`` with the name of the user that created the MySQL database.
+   | ``DATABASE_PASS`` with the password that created the MySQL database.
+   | ``TOMCAT_PATH``  with the path to Tomcat.
+\
+   
+.. note:: The context.xml file referenced in this topic is a basic version of the Brightspot configuration. However, you can expand context.xml for future projects, or use multiple context.xml files for multiple Brightspot projects. The recommended best practice is to run an instance of Tomcat for each Brightspot project. The context.xml file will contain project-specific settings and point to a project specific database. When running multiple projects locally, you can stop Tomcat or use a different port for each project to run them concurrently.
 
-Replace the default context.xml file found in Tomcat with a new file containing the default Brightspot configurations:
+  For additional context.xml settings, see |adv_link|.
 
-`Download the Brightspot context.xml <https://gist.githubusercontent.com/kphenix/54ca0f473ef7e034811a/raw/29acee59ecc2e431cd1bfc46a4bcb049c52e1e8d/default-context-2.4.xml>`_, copy the default context.xml, and replace brightspot-tomcat/conf/context.xml.
+.. |adv_link| raw:: html
 
-Find and replace:
+ <a href="http://documentation.brightspot.com/docs/3.0/advanced-configuration/tomcat" target="_blank">Advanced Configuration</a>
 
-DATABASE_NAME = Find and replace with an empty local MySQL database
+.. _solr-label:
 
-DATABASE_USER = Find and replace with username that created the local database
+****
+Solr
+****
 
-DATABASE_PASS = Find and replace with password that created the local database
+Solr is used as a text matching database in the Brightspot platform. It contains the same data that is stored in the SQL database.
 
-TOMCAT_PATH = Find and replace with path to Tomcat
 
-.. note:: By default, Tomcat runs on port 9480, but this value can be updated in the context.xml and brightspot-tomcat/conf/server.xml
+**Install Solr into Tomcat:**
 
-   The context.xml file provided above is the most basic version. For full configuration options, see the `Advanced Configuration chapter <http://documentation.brightspot.com/docs/3.0/advanced-configuration/tomcat>`_.
+1. Place the solr.war file in the Tomcat ``webapps`` directory, for example:
 
-Add Maven
-=========
+   ::
+    
+    cp <SolrRoot>/example/webapps/solr.war <TomcatRoot>/webapps
 
-Brightspot projects are created using Maven. `Download <http://maven.apache.org/download.cgi>`_ and install Maven.
+2. Copy the Solr database directory into the Tomcat root directory, for example:
 
-Run the following Archetype to create a Brightspot project with defined Brightspot and Dari dependencies in the pom.xml. Run the archetype alongside the configured Tomcat to create the project. The -DgroupId and -DartifactId can be customized.
+   ::
+   
+    cp -r <SolrRoot>/example/solr <TomcatRoot>
 
-::
+3. Replace two Solr configuration files with Brightspot specific configurations.
 
-    mvn archetype:generate -B \
-        -DarchetypeRepository=http://artifactory.psdops.com/public/ \
-        -DarchetypeGroupId=com.psddev \
-        -DarchetypeArtifactId=cms-app-archetype \
-        -DarchetypeVersion=3.2-SNAPSHOT \
-        -DgroupId=com.project \
-        -DartifactId=projectName
+   a) |dl_link| the Brightspot versions of the Solr config file and the Solr schema file.
 
-.. note::
+      .. |dl_link| raw:: html
 
-     Windows users will need to run the Archetype on one line, without breaks (\).
+        <a href="https://github.com/perfectsense/dari/tree/master/etc/solr" target="_blank">Download</a>
 
-Following a successful build, download Brightspot into the project. Navigating into the project alongside the 'pom.xml' and run mvn clean install to generate a target directory and a WAR file.
 
-Copy the generated WAR file from the target directory in the project to the brightspot-tomcat webapps directory and rename it.
+   b) Rename the config file to "solrconfig.xml". Rename the schema file to "schema.xml".
 
-::
+   c) In the ``<TomcatRoot>/solr/collection1/conf`` folder, replace solrconfig.xml and schema.xml with the two Brightspot versions.
 
-    cd brightspot-project/target
-    mv brightspot-1.0.0-SNAPSHOT.war ../../brightspot-tomcat/webapps/ROOT.war
+4. Edit the solr.xml file in the Tomcat ``solr`` folder: 
+
+   Replace the default host post with the Tomcat port ``<int name="hostPort">${jetty.port:9480}</int>``.
+
+   
+5. Copy all of the files in the ``<SolrRoot>/example/lib/ext`` folder into the Tomcat ``lib`` directory, for example:
+
+   ::
+
+     cp <SolrRoot>/example/lib/ext/* <TomcatRoot>/lib
+
+
+.. _build-label:
+
+**************************
+Build a Brightspot Project
+**************************
+
+You build a Brightspot project from a Maven archetype. The target of the Maven build is the Brightspot platform packaged in a WAR file and the Styleguide developer platform.
 
 .. note::
 
     For information about Brightspot releases or upgrading to a new version, see the `Brightspot Releases <http://www.brightspot.com/docs/3.2/updates/about-brightspot-upgrades>`_.
 
-Start Application Server
-========================
+1. Get the starter Brightspot project.
 
-With the ROOT.war file added to the brightspot-tomcat/webapps directory, navigate to the Root directory of Tomcat and start the application server:
+   You can use either Git or Maven to get the project. Use Maven if no Git repository exists.
 
-::
 
-    ./bin/startup.sh or ./bin/startup.bat
+   **To use Git:**
 
-The ROOT.war will deploy. Access Brightspot at http://localhost:9480/cms or localhost:8080
+   a) |clone_link| the brightspot-cms repository on your local drive.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/005b8d3/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F11%2Fe5%2Fb65842834f59a705c16c37686d91%2Fscreen-shot-2014-12-03-at-121734-pmpng.40.55%20AM.png
+      .. |clone_link| raw:: html
 
-Upgrading Brightspot
-====================
+        <a href="https://github.com/perfectsense/brightspot-cms" target="_blank">Clone</a>
 
-To enjoy the features of the most current release of Brightspot, see `Upgrading Brightspot <http://www.brightspot.com/docs/3.2/updates/about-brightspot-upgrades>`_.
+   b) Navigate to the top-level folder of the repository where the pom.xml file resides. This file defines Brightspot and Dari dependencies.
 
-FAQ
-===
+   **To use Maven:**
 
-Default Landing
----------------
+   a) Run the following archetype on the command line:
 
-The default project contains an index.jsp file in the webapp directory. Remove this to replace it with a custom root landing page.
+      ::
 
-Java Heap Size
---------------
+       mvn archetype:generate -B \
+       -DarchetypeRepository=http://artifactory.psdops.com/public/ \
+       -DarchetypeGroupId=com.psddev \
+       -DarchetypeArtifactId=cms-app-archetype \
+       -DarchetypeVersion=<snapshotVer> \
+       -DgroupId=<groupId> \
+       -DartifactId=<artificatId>
 
-Tomcat memory allocation can be configured. If errors appear in the logs regarding Java Heap Size, add the following directly above the # OS specific support config in the Tomcat catalina.sh file, found at $TOMCAT_HOME/bin/catalina.sh.
+      |   Replace:
+      |   *snapshotVer* with the Brightspot build version, for example, ``3.2-SNAPSHOT``.
+      |
+      |   *groupId* with a value that will serve as a Java package name for any Brightspot classes that you might add. Maven will create a source directory structure based on the package name. For example, if you specify ``com.brightspot``, the Brightspot project will include this directory for adding Brightspot classes: ``src/main/java/com/brightspot``.
+      |
+      |   *artificatId* with a project name like ``brightspot``. This will be used for the top-level folder of the Brightspot project.
 
-::
+      .. note:: Windows users must run the archetype on one line without breaks (\\), for example:
+             
+       | ``mvn archetype:generate -B -DarchetypeRepository=http://artifactory.psdops.com/public/ -DarchetypeGroupId=com.psddev -DarchetypeArtifactId=cms-app-archetype -DarchetypeVersion=<snapshotVer> -DgroupId=<groupId> -DartifactId=<artificatId>``
 
-    # ----- Adding more Memory
-    CATALINA_OPTS="-Xmx1024m -XX:MaxPermSize=256M -Djava.awt.headless=true "
+   
+   b) Navigate to the top-level folder of the Maven project where the pom.xml file resides. This file defines Brightspot and Dari dependencies.
 
-Storage
--------
 
-::
+2. Build the Brightspot project with Maven:
 
-    There was an unexpected error!
-    java.lang.ClassNotFoundException: org.jets3t.service.ServiceException
-    java.lang.NoClassDefFoundError: org/jets3t/service/ServiceException
-    com.google.common.util.concurrent.ExecutionError: java.lang.NoClassDefFoundError: org/jets3t/service/ServiceException
+   ::
+   
+     mvn clean package
 
-If you're using Amazon to upload, add the following dependency to the pom.xml file:
 
-::
+   This generates a target directory with the Brightspot platform packaged in a WAR file.
 
-    <dependency>
-        <groupId>net.java.dev.jets3t</groupId>
-        <artifactId>jets3t</artifactId>
-        <version>0.8.0</version>
-    </dependency>
+3. Copy the generated WAR file from the target directory to the Tomcat ``webapps`` directory and rename it as desired. For example:
+
+   ::
+
+     cd brightspot/target
+     cp brightspot-3.2-SNAPSHOT.war ../../<TomcatRoot>/webapps/bsPlatform.war
+
+
+.. _start-label: 
+
+****************************
+Start the Application Server
+****************************
+
+1. Navigate to the Tomcat root folder and start the application server:
+
+   ::
+    
+     ./bin/startup.sh or ./bin/startup.bat
+   
+   Tomcat deploys the Brightspot platform. 
+
+2. | In a web browser, access Brightspot at ``http://localhost:<port>/<contextPath>/cms``, where:
+   | *port* is the port number that you specified in context.xml.
+   | *contextPath* reflects the name of the WAR file, for example: ``http://localhost:8080/bsPlatform/cms``.
+
+\    
+ 
+.. note:: If the name of your WAR file is ROOT.war, then do not specify a context path, for example ``http://localhost:8080/cms``.
+
+
+The Brightspot login page appears. This is the default landing page.
+
+.. image:: images/bs_login.png
+
+3. Follow up the Brightspot deployment with the following actions:
+
+  
+   - If Java heap size errors appear in the Tomcat logs, change the memory allocation in the Tomcat catalina.sh file, found at ``<TomcatRoot>/bin/catalina.sh``. Add the following line directly above the ``# OS specific support`` section:
+
+     ::
+
+       # ----- Adding more Memory
+       CATALINA_OPTS="-Xmx1024m -XX:MaxPermSize=256M -Djava.awt.headless=true"
+
+
+   - Insufficent free space warnings like the following might appear in the Tomcat logs:
+
+     ::
+
+       org.apache.catalina.webresources.Cache.getResource 
+       Unable to add the resource at [/WEB-INF/lib/aws-java-sdk-workspaces.jar] to the cache because there was insufficient free space available after evicting expired cache entries - 
+       consider increasing the maximum size of the cache
+
+   
+     To prevent these warnings, add the following setting to ``<TomcatRoot>/conf/context.xml``.
+
+     ::
+
+      <!-- Set caching allowed -->
+      <Resources cachingAllowed="true" cacheMaxSize="100000" />
+
+
+   - Check for new Brightspot versions with which to upgrade your development enviornment.
+     To get the most current release of Brightspot, see :doc:`../../updates/about`.
