@@ -3,7 +3,6 @@ package com.psddev.cms.view;
 import com.psddev.cms.db.PageFilter;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.State;
-import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PageContextFilter;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
@@ -190,11 +189,9 @@ public interface ViewRenderer {
 
                             String viewOutput = viewOutputSupplier.get().get();
 
-                            return () -> "<!--BrightspotCmsObjectBegin "
-                                    + ObjectUtils.toJson(map)
-                                    + "-->"
+                            return () -> PageFilter.createMarkerHtml("BrightspotCmsObjectBegin", map)
                                     + viewOutput
-                                    + "<!--BrightspotCmsObjectEnd-->";
+                                    + PageFilter.createMarkerHtml("BrightspotCmsObjectEnd", null);
 
                         } finally {
                             PageFilter.Static.popObject(request);
