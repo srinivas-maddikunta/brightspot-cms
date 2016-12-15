@@ -61,12 +61,14 @@ function($) {
           placeholder = $input.attr('placeholder');
 
           if (dynamicPlaceholderText) {
-            $select.html($('<span/>', {
-              'type': 'text',
-              'class': 'objectId-placeholder',
-              'data-dynamic-text': dynamicPlaceholderText,
-              'data-dynamic-field-name': dynamicFieldName
-            }));
+            if ($select.find('> .objectId-placeholder').length === 0) {
+              $select.html($('<span/>', {
+                'type': 'text',
+                'class': 'objectId-placeholder',
+                'data-dynamic-text': dynamicPlaceholderText,
+                'data-dynamic-field-name': dynamicFieldName
+              }));
+            }
           } else if (placeholder) {
             $select.html($('<span/>', {
               'class': 'objectId-placeholder',
