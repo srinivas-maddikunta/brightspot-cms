@@ -190,7 +190,7 @@ public interface ViewRenderer {
                             String viewOutput = viewOutputSupplier.get().get();
 
                             return () -> PageFilter.createMarkerHtml("BrightspotCmsObjectBegin", map)
-                                    + viewOutput
+                                    + (viewOutput != null ? viewOutput : "")
                                     + PageFilter.createMarkerHtml("BrightspotCmsObjectEnd", null);
 
                         } finally {

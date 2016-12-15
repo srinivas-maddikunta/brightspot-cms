@@ -2051,7 +2051,7 @@ public class ToolPageContext extends WebPageContext {
         if (!ObjectUtils.isBlank(dropboxAppKey)) {
             writeStart("script",
                     "type", "text/javascript",
-                    "src", "https://www.dropbox.com/static/api/1/dropins.js",
+                    "src", "https://www.dropbox.com/static/api/2/dropins.js",
                     "id", "dropboxjs",
                     "data-app-key", dropboxAppKey);
             writeEnd();
@@ -2268,12 +2268,15 @@ public class ToolPageContext extends WebPageContext {
         List<ObjectType> mainTypes = Template.Static.findUsedTypes(getSite());
 
         mainTypes.retainAll(miscTypes);
-
-        mainTypes.addAll(miscTypes.stream()
-                .filter(t -> t.as(ToolUi.class).isMain())
-                .collect(Collectors.toList()));
-
         miscTypes.removeAll(mainTypes);
+
+        List<ObjectType> toolUiMainTypes = miscTypes.stream()
+                .filter(t -> t.as(ToolUi.class).isMain())
+                .collect(Collectors.toList());
+
+        mainTypes.addAll(toolUiMainTypes);
+        miscTypes.removeAll(toolUiMainTypes);
+
         typeGroups.put(localize(null, "label.mainTypes"), mainTypes);
         typeGroups.put(localize(null, "label.miscTypes"), miscTypes);
 
@@ -3694,6 +3697,7 @@ public class ToolPageContext extends WebPageContext {
         State state = State.getInstance(object);
         boolean newContent = state.isNew() || !state.isVisible();
         Content.ObjectModification contentData = state.as(Content.ObjectModification.class);
+        Draft draft = getOverlaidDraft(object);
         ToolUser user = getUser();
 
         if (state.isNew()
@@ -3703,13 +3707,12 @@ public class ToolPageContext extends WebPageContext {
             if (getContentFormPublishDate() != null) {
                 setContentFormScheduleDate(object);
 
-            } else {
+            } else if (draft == null) {
                 contentData.setPublishDate(new Date());
                 contentData.setPublishUser(user);
             }
         }
 
-        Draft draft = getOverlaidDraft(object);
         UUID variationId = param(UUID.class, "variationId");
         Site site = getSite();
 
