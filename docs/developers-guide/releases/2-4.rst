@@ -1,30 +1,29 @@
-#################
+*****************
 Release Notes 2.4
-#################
+*****************
 
 Brightspot 2.4 has some exciting new features that are now available. The following release notes outline the newest editorial and developer features that are now available in the 2.4 release of Brightspot.
 
-************
 New Features
-************
+============
 
 Preview by Date
-===============
+---------------
 
 Brightspot has been updated with a new preview by date feature. Open the calendar filter in the normal preview view to choose a date in the past or future. Content will update based on scheduled edits that are occuring.
 
 New Image Editing
-=================
+-----------------
 
 Two new options have been added to the already impressive image editing capabilities in Brightspot. Editors can now blur areas of images, as well as apply sharpening effects.
 
 Search by Status
-================
+----------------
 
 Brightspot now allows editors to search for content by the Published Status. Editors can choose from any of the following: Published, Draft, Archived, or any of your workflow statuses.
 
 Improvements
-============
+------------
 
 When editing content in the Rich Text Editor, editors can now use the track changes feature when they copy/cut/paste content in.
 

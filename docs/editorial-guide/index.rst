@@ -29,3 +29,5 @@
     production-guides/all
     two-factor-auth/all
     looking-glass/all
+    releases/index
+    license/index
