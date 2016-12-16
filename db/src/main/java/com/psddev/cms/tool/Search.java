@@ -93,6 +93,7 @@ public class Search extends Record {
     public static final String SUGGESTIONS_PARAMETER = "sg";
     public static final String TYPES_PARAMETER = "rt";
     public static final String NEW_ITEM_IDS_PARAMETER = "ni";
+    public static final String FRAME_NAME_SUFFIX_PARAMETER = "fns";
 
     public static final String NEWEST_SORT_LABEL = "Newest";
     public static final String NEWEST_SORT_VALUE = "_newest";
@@ -122,8 +123,7 @@ public class Search extends Record {
     private int limit;
     private Set<UUID> newItemIds;
     private boolean ignoreSite;
-
-    private transient String frameNameSuffix;
+    private String frameNameSuffix = generateFrameNameSuffix();
 
     public Search() {
     }
@@ -207,6 +207,7 @@ public class Search extends Record {
         setLimit(page.paramOrDefault(int.class, LIMIT_PARAMETER, 10));
         setNewItemIds(new LinkedHashSet<>(page.params(UUID.class, NEW_ITEM_IDS_PARAMETER)));
         setIgnoreSite(page.param(boolean.class, IGNORE_SITE_PARAMETER));
+        setFrameNameSuffix(page.param(String.class, FRAME_NAME_SUFFIX_PARAMETER));
 
         for (Tool tool : Query.from(Tool.class).selectAll()) {
             tool.initializeSearch(this, page);
@@ -422,6 +423,14 @@ public class Search extends Record {
         this.ignoreSite = ignoreSite;
     }
 
+    public String getFrameNameSuffix() {
+        return frameNameSuffix;
+    }
+
+    public void setFrameNameSuffix(String frameNameSuffix) {
+        this.frameNameSuffix = frameNameSuffix;
+    }
+
     /**
      * Creates a unique frame name that starts with the given {@code prefix}.
      *
@@ -434,10 +443,14 @@ public class Search extends Record {
         Preconditions.checkNotNull(prefix);
 
         if (ObjectUtils.isBlank(frameNameSuffix)) {
-            frameNameSuffix = UUID.randomUUID().toString().replace("-", "");
+            frameNameSuffix = generateFrameNameSuffix();
         }
 
         return prefix + "-" + frameNameSuffix;
+    }
+
+    public static String generateFrameNameSuffix() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     public Set<ObjectType> findValidTypes() {
