@@ -444,7 +444,7 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
         
         // The URL of the update service
         // TODO: this is a temporary value until the actual service can be created
-        url: (window.CONTEXT_PATH || '') + '/content/inlineEdit',
+        url: (window.CONTEXT_PATH || '') + '/content/editInline',
 
         /**
          * Function to call the update service
@@ -464,7 +464,7 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             
             url = (window.CONTEXT_PATH || '');
             url = url.replace(/\/$/, ''); // remove slash at end of line if necessary
-            url += '/content/inlineEdit';
+            url += '/content/editInline';
 
             data = {
                 id:id,
