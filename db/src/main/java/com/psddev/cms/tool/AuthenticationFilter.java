@@ -10,12 +10,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.psddev.cms.db.Preview;
-import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.ForwardingDatabase;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.util.AbstractFilter;
 import com.psddev.dari.util.DebugFilter;
 import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.ObjectUtils;
@@ -24,7 +22,7 @@ import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.UrlBuilder;
 
-public class AuthenticationFilter extends AbstractFilter {
+public class AuthenticationFilter extends CrossDomainFilter {
 
     /**
      * Settings key for tool user session timeout (in milliseconds).
@@ -72,32 +70,14 @@ public class AuthenticationFilter extends AbstractFilter {
     private static final String PREVIEW_COOKIE = "bsp.p";
     private static final String TOOL_USER_COOKIE = "bsp.tu";
 
-    // --- AbstractFilter support ---
+    // --- CrossDomainFilter Support ---
 
     @Override
-    protected void doRequest(
+    protected void doCrossDomainRequest(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain chain)
             throws Exception {
-
-        CmsTool cms = Query.from(CmsTool.class).first();
-
-        // Set CORS headers if cross domain is enabled and origin matches a site url.
-        if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
-            String origin = request.getHeader("origin");
-
-            if (origin != null) {
-                if (origin.endsWith("/")) {
-                    origin = origin.substring(0, origin.length() - 1);
-                }
-
-                if (Query.from(Site.class).where("urls startsWith ?", origin).hasMoreThan(0)) {
-                    response.setHeader("Access-Control-Allow-Origin", origin);
-                    response.setHeader("Access-Control-Allow-Credentials", "true");
-                }
-            }
-        }
 
         if (ObjectUtils.to(boolean.class, request.getParameter("_clearPreview"))) {
             Static.removeCurrentPreview(request, response);
@@ -132,6 +112,11 @@ public class AuthenticationFilter extends AbstractFilter {
                 user.save();
             }
         }
+    }
+
+    @Override
+    protected void setAdditionalCrossDomainHeaders(HttpServletResponse response) {
+        response.setHeader("Access-Control-Allow-Credentials", "true");
     }
 
     /**
