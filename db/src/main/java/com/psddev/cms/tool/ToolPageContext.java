@@ -3472,16 +3472,8 @@ public class ToolPageContext extends WebPageContext {
     public Date getContentFormPublishDate() {
         Date publishDate = param(Date.class, "publishDate");
 
-        if (publishDate != null) {
-            DateTimeZone timeZone = getUserDateTimeZone();
-            publishDate = new Date(DateTimeFormat
-                    .forPattern("yyyy-MM-dd HH:mm:ss")
-                    .withZone(timeZone)
-                    .parseMillis(new DateTime(publishDate).toString("yyyy-MM-dd HH:mm:ss")));
-
-            if (publishDate.before(new Date(new DateTime(timeZone).getMillis()))) {
-                publishDate = null;
-            }
+        if (publishDate != null && publishDate.before(new Date(Database.Static.getDefault().now()))) {
+            publishDate = null;
         }
 
         return publishDate;
