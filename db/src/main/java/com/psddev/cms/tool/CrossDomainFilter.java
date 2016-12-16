@@ -23,6 +23,12 @@ public abstract class CrossDomainFilter extends AbstractFilter {
             HttpServletResponse response,
             FilterChain chain) throws Exception;
 
+    /**
+     * Sets additional CORS headers. Does nothing by default.
+     */
+    protected void setAdditionalCrossDomainHeaders(HttpServletResponse response) {
+    }
+
     @Override
     protected void doRequest(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws Exception {
         CmsTool cms = Application.Static.getInstance(CmsTool.class);
@@ -37,6 +43,7 @@ public abstract class CrossDomainFilter extends AbstractFilter {
 
                 if (Query.from(Site.class).where("urls startsWith ?", origin).hasMoreThan(0)) {
                     response.setHeader("Access-Control-Allow-Origin", origin);
+                    setAdditionalCrossDomainHeaders(response);
                 }
             }
         }
