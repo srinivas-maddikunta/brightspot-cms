@@ -9,6 +9,8 @@ import com.psddev.dari.db.State;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.Task;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
@@ -33,6 +35,7 @@ public class ContentEditBulkSubmission extends Record {
     private Map<String, Object> adds;
     private Map<String, Object> removes;
     private Set<String> clears;
+    private Map<String, ContentEditBulkSubmissionError> errors;
     private long successes;
     private long failures;
 
@@ -123,6 +126,17 @@ public class ContentEditBulkSubmission extends Record {
         this.clears = clears;
     }
 
+    public Map<String, ContentEditBulkSubmissionError> getErrors() {
+        if (errors == null) {
+            errors = new CompactMap<>();
+        }
+        return errors;
+    }
+
+    public void setErrors(Map<String, ContentEditBulkSubmissionError> errors) {
+        this.errors = errors;
+    }
+
     public long getSuccesses() {
         return successes;
     }
@@ -168,6 +182,7 @@ public class ContentEditBulkSubmission extends Record {
                 Map<String, Object> adds = getAdds();
                 Map<String, Object> removes = getRemoves();
                 Set<String> clears = getClears();
+                Map<String, ContentEditBulkSubmissionError> errors = getErrors();
 
                 for (Iterator<?> i = getQuery().iterable(0).iterator(); shouldContinue() && i.hasNext();) {
                     Object item = i.next();
@@ -240,6 +255,23 @@ public class ContentEditBulkSubmission extends Record {
 
                     } catch (Exception error) {
                         setFailures(getFailures() + 1);
+
+                        String key = error.getClass().getSimpleName() + "-" + error.getStackTrace()[0].toString();
+
+                        if (!errors.containsKey(key)) {
+                            ContentEditBulkSubmissionError editBulkSubmissionError = new ContentEditBulkSubmissionError();
+                            editBulkSubmissionError.setErrorLabel(key);
+
+                            StringWriter sw = new StringWriter();
+                            PrintWriter pw = new PrintWriter(sw);
+                            error.printStackTrace(pw);
+                            editBulkSubmissionError.setStackTrace(sw.toString());
+
+                            editBulkSubmissionError.save();
+
+                            errors.put(key, editBulkSubmissionError);
+                            setErrors(errors);
+                        }
                     }
 
                     save();

@@ -27,6 +27,9 @@ public interface Taxon extends Recordable {
         @ToolUi.Hidden
         private Boolean root;
 
+        @ToolUi.Hidden
+        private Boolean childrenEmpty;
+
         private transient boolean selectable = true;
 
         @ToolUi.Hidden
@@ -38,6 +41,14 @@ public interface Taxon extends Recordable {
 
         public void setRoot(Boolean root) {
             this.root = root ? Boolean.TRUE : null;
+        }
+
+        public boolean isChildrenEmpty() {
+            return Boolean.TRUE.equals(childrenEmpty);
+        }
+
+        public void setChildrenEmpty(boolean childrenEmpty) {
+            this.childrenEmpty = childrenEmpty ? Boolean.TRUE : null;
         }
 
         public boolean isSelectable() {
@@ -57,7 +68,10 @@ public interface Taxon extends Recordable {
         }
 
         public void beforeSave() {
-            this.setRoot(this.getOriginalObject().isRoot());
+            Taxon taxon = getOriginalObject();
+
+            setRoot(taxon.isRoot());
+            setChildrenEmpty(taxon.getChildren().isEmpty());
         }
 
     }

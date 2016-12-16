@@ -32,7 +32,9 @@ public class History extends Record {
     @Indexed
     private UUID objectId;
 
+    @Raw
     private Map<String, Object> objectOriginals;
+
     private boolean lockIgnored;
 
     /** Creates a blank instance. */
@@ -148,12 +150,16 @@ public class History extends Record {
         }
 
         if (updateDate != null) {
-            label.append(updateDate);
+            label.append(Localization.currentUserDate(updateDate.getTime(), Localization.DATE_AND_TIME_SKELETON));
         }
 
         if (updateUser != null) {
             label.append(" by ");
             label.append(updateUser.getLabel());
+        }
+
+        if (isLockIgnored()) {
+            label.append(" (Lock Ignored)");
         }
 
         return label.toString();

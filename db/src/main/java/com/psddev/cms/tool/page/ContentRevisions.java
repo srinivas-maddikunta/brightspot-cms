@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.Content;
@@ -15,8 +14,6 @@ import com.psddev.cms.db.Draft;
 import com.psddev.cms.db.History;
 import com.psddev.cms.db.Schedule;
 import com.psddev.cms.db.ToolUi;
-import com.psddev.cms.db.Workflow;
-import com.psddev.cms.db.WorkflowState;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.ToolPageContext;
@@ -24,6 +21,7 @@ import com.psddev.cms.tool.Widget;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
+import com.psddev.dari.util.JspUtils;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PaginatedResult;
 
@@ -114,11 +112,22 @@ public class ContentRevisions extends Widget {
             namedHistories.add(h);
         }
 
-        PaginatedResult<History> historiesResult = Query
-                .from(History.class)
-                .where("name = missing and getObjectIdUpdateDate ^= ?", state.getId().toString())
-                .sortDescending("getObjectIdUpdateDate")
-                .select(0, 10);
+        PaginatedResult<History> historiesResult;
+
+        if (page.getCmsTool().isUseOldHistoryIndex()) {
+            historiesResult = Query
+                    .from(History.class)
+                    .where("name = missing and objectId = ?", state.getId())
+                    .sortDescending("updateDate")
+                    .select(0, 10);
+
+        } else {
+            historiesResult = Query
+                    .from(History.class)
+                    .where("name = missing and getObjectIdUpdateDate ^= ?", state.getId().toString())
+                    .sortDescending("getObjectIdUpdateDate")
+                    .select(0, 10);
+        }
 
         for (History h : historiesResult.getItems()) {
             histories.add(h);
@@ -156,7 +165,7 @@ public class ContentRevisions extends Widget {
 
                         page.writeStart("li",
                                 "class", d.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + d.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", d.getId()));
                             page.writeStart("a", "href", page.objectUrl(null, d));
                                 if (ObjectUtils.isBlank(sn)) {
                                     // TODO: LOCALIZE
@@ -195,7 +204,7 @@ public class ContentRevisions extends Widget {
 
                         page.writeStart("li",
                                 "class", d.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + d.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", d.getId()));
                         page.writeStart("a", "href", page.objectUrl(null, d));
                         // TODO: LOCALIZE
                                 if (!ObjectUtils.isBlank(name)) {
@@ -220,9 +229,9 @@ public class ContentRevisions extends Widget {
                     for (History h : namedHistories) {
                         page.writeStart("li",
                                 "class", h.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + h.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", h.getId()));
                             page.writeStart("a", "href", page.objectUrl(null, h));
-                                page.writeObjectLabel(h);
+                                writeHistoryLabel(page, h);
                             page.writeEnd();
                         page.writeEnd();
                     }
@@ -255,58 +264,32 @@ public class ContentRevisions extends Widget {
 
                 page.writeStart("ul", "class", "links pageThumbnails");
                     for (History h : histories) {
-                        Map<String, Object> originals = h.getObjectOriginals();
-
                         page.writeStart("li",
                                 "class", h.equals(selected) ? "selected" : null,
-                                "data-preview-url", "/_preview?_cms.db.previewId=" + h.getId());
+                                "data-preview-url", JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_cms.db.previewId", h.getId()));
 
                             page.writeStart("a", "href", page.objectUrl(null, h));
-                                //TODO: LOCALIZE
-                                if (ObjectUtils.to(boolean.class, originals.get("cms.content.draft"))) {
-                                    page.writeStart("span", "class", "visibilityLabel");
-                                        page.writeHtml("Initial Draft");
-                                    page.writeEnd();
-                                    page.writeHtml(" ");
-
-                                } else {
-                                    String workflowState = ObjectUtils.to(String.class, originals.get("cms.workflow.currentState"));
-
-                                    if (workflowState != null) {
-                                        Workflow workflow = Query
-                                                .from(Workflow.class)
-                                                .where("contentTypes = ?", h.getState().get("objectType"))
-                                                .first();
-
-                                        if (workflow != null) {
-                                            for (WorkflowState s : workflow.getStates()) {
-                                                if (workflowState.equals(s.getName())) {
-                                                    workflowState = s.getDisplayName();
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        page.writeStart("span", "class", "visibilityLabel");
-                                            page.writeHtml(workflowState);
-                                        page.writeEnd();
-                                        page.writeHtml(" ");
-                                    }
-                                }
-
-                                page.writeHtml(page.formatUserDateTime(h.getUpdateDate()));
-                                page.writeHtml(" by ");
-                                page.writeObjectLabel(h.getUpdateUser());
+                                writeHistoryLabel(page, h);
                             page.writeEnd();
-
-                            if (h.isLockIgnored()) {
-                                page.writeHtml(" (Lock Ignored)");
-                            }
                         page.writeEnd();
                     }
                 page.writeEnd();
             }
         page.writeEnd();
+    }
+
+    private void writeHistoryLabel(ToolPageContext page, History history) throws IOException {
+        Object original = history.getObject();
+        String visibilityLabel = page.createVisibilityLabel(original);
+
+        if (!ObjectUtils.isBlank(visibilityLabel)) {
+            page.writeStart("span", "class", "visibilityLabel");
+            page.writeHtml(visibilityLabel);
+            page.writeEnd();
+            page.writeHtml(" ");
+        }
+
+        page.writeObjectLabel(history);
     }
 
     @Override

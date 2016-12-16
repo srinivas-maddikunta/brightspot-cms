@@ -457,12 +457,10 @@ li.CodeMirror-hint-active {
   font-size: 70%;
 }
 
-// For enhancements, let the enhancement toolbar overflow the codemirror widget,
-// and reset the z-index because it was causing problems with the submenu hover
+// For enhancements, let the enhancement toolbar overflow the codemirror widget.
 .rte2-codemirror {
   .CodeMirror-linewidget {
     overflow: visible;
-    z-index: inherit;
   }
 }
 
@@ -517,10 +515,17 @@ li.CodeMirror-hint-active {
       border-width: 0 0 1px 0;
       padding-top: 5px;
       margin: 0 -40px;
+      top: 0 !important;
 
       &:after {
         display: none;
       }
+    }
+
+    > .rte2-codemirror {
+      margin: 0 auto;
+      max-width: 100%;
+      width: 75em;
     }
 
     .rte2-toolbar {
@@ -536,8 +541,6 @@ li.CodeMirror-hint-active {
       display: block;
       font-size: 16px;
       line-height: 24px;
-      margin: 0 auto;
-      width: 60em;
 
       .CodeMirror-lines {
         padding: 30px 0;
@@ -546,6 +549,39 @@ li.CodeMirror-hint-active {
       pre {
         padding: 0 30px;
       }
+
+      pre[class*=rte2-indent-level-] {
+        padding-left: 240px;
+      }
+      pre.rte2-indent-level-1 {
+        padding-left: 60px;
+      }
+      pre.rte2-indent-level-2 {
+        padding-left: 90px;
+      }
+      pre.rte2-indent-level-3 {
+        padding-left: 120px;
+      }
+      pre.rte2-indent-level-4 {
+        padding-left: 150px;
+      }
+      pre.rte2-indent-level-5 {
+        padding-left: 180px;
+      }
+      pre.rte2-indent-level-6 {
+        padding-left: 210px;
+      }
+    }
+
+    .rte2-enhancement,
+    .rte2-table {
+      padding: 5px 30px (@lineHeight-default + 10px) 30px;
+    }
+
+    .rte2-style-enhancement-left,
+    .rte2-style-enhancement-right {
+      padding-left: 10px;
+      padding-right: 10px;
     }
   }
   
@@ -559,11 +595,17 @@ li.CodeMirror-hint-active {
 
     pre {
       font-family:inherit;
-      counter-reset: brightspot_ol_counter;
+      counter-reset: brightspot_ol_counter brightspot_ol_counter_1 brightspot_ol_counter_2 brightspot_ol_counter_3 brightspot_ol_counter_4;
       padding: 0 6px;
     }
     .rte2-style-ul {
       padding-left: 2em;
+      &.rte2-indent-level-1 { counter-reset: brightspot_ol_counter_1; }
+      &.rte2-indent-level-2 { counter-reset: brightspot_ol_counter_2; }
+      &.rte2-indent-level-3 { counter-reset: brightspot_ol_counter_3; }
+      &.rte2-indent-level-4 { counter-reset: brightspot_ol_counter_4; }
+      &.rte2-indent-level-5 { counter-reset: brightspot_ol_counter_5; }
+      &.rte2-indent-level-6 { counter-reset: brightspot_ol_counter_6; }
     }
     .rte2-style-ul:before {
       content: "\2022";
@@ -572,13 +614,78 @@ li.CodeMirror-hint-active {
     }
     .rte2-style-ol {
       counter-reset: none;
-      counter-increment: brightspot_ol_counter;
+      counter-increment: brightspot_ol_counter_1;
       padding-left: 2em;
     }
-    .rte2-style-ol:before {
-      content: counter(brightspot_ol_counter) ".";
-      margin-left: -1em;
-      padding-right:0.25em;
+    .rte2-style-ol {
+        &:before {
+            content: counter(brightspot_ol_counter_1) ".";
+            margin-left: -1em;
+            padding-right:0.25em;
+        }
+        // Set a default style for anything over the indent levels we support (1-6)
+        &[class*=rte2-indent-level-]:before {
+            content: "#.";
+        }
+    }
+    .rte2-style-ol.rte2-indent-level-1 {
+        counter-increment: brightspot_ol_counter_1;
+        &:before {
+            content: counter(brightspot_ol_counter_1) ".";
+        }
+    }
+    .rte2-style-ol.rte2-indent-level-2 {
+        counter-increment: brightspot_ol_counter_2;
+        &:before {
+            content: counter(brightspot_ol_counter_2) ".";
+        }
+    }
+    .rte2-style-ol.rte2-indent-level-3 {
+        counter-increment: brightspot_ol_counter_3;
+        &:before {
+            content: counter(brightspot_ol_counter_3) ".";
+        }
+    }
+    .rte2-style-ol.rte2-indent-level-4 {
+        counter-increment: brightspot_ol_counter_4;
+        &:before {
+            content: counter(brightspot_ol_counter_4) ".";
+        }
+    }
+    .rte2-style-ol.rte2-indent-level-5 {
+        counter-increment: brightspot_ol_counter_5;
+        &:before {
+            content: counter(brightspot_ol_counter_5) ".";
+        }
+    }
+    .rte2-style-ol.rte2-indent-level-6 {
+        counter-increment: brightspot_ol_counter_6;
+        &:before {
+            content: counter(brightspot_ol_counter_6) ".";
+        }
+    }
+    // Any indent level not specifically set should have this padding
+    *[class*=rte2-indent-level-] {
+        padding-left: 14em;
+        counter-reset: none;
+    }
+    .rte2-indent-level-1 {
+        padding-left: 2em;
+    }
+    .rte2-indent-level-2 {
+        padding-left: 4em;
+    }
+    .rte2-indent-level-3 {
+        padding-left: 6em;
+    }    
+    .rte2-indent-level-4 {
+        padding-left: 8em;
+    }    
+    .rte2-indent-level-5 {
+        padding-left: 10em;
+    }    
+    .rte2-indent-level-6 {
+        padding-left: 12em;
     }
   }
 
@@ -755,7 +862,7 @@ li.CodeMirror-hint-active {
   padding: 3px 6px;
   position: absolute;
   top: 0;
-  z-index: 2;
+  z-index: 5;
 
   &:before {
     border-color: transparent transparent @color-overlay transparent;
@@ -782,8 +889,7 @@ li.CodeMirror-hint-active {
   }
 
   .rte2-dropdown-label,
-  .rte2-dropdown-edit,
-  .rte2-dropdown-clear {
+  a {
     display: table-cell;
   }
 
@@ -795,15 +901,25 @@ li.CodeMirror-hint-active {
     }
   }
 
-  .rte2-dropdown-edit {
+  a:not(:last-of-type) {
     border-right: 1px solid @color-separator;
     margin-right: 5px;
     padding-right: 5px;
   }
 
+  a:not(:first-of-type) {
+    padding-left: 5px;
+  }
+
   .rte2-dropdown-clear {
     color: @color-remove;
-    padding-left: 5px;
+  }
+  
+  .rte2-dropdown-href {
+    max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -823,6 +939,9 @@ li.CodeMirror-hint-active {
 
 .rte2-placeholder-showing .CodeMirror pre {
   color: @color-placeholder;
+  span {
+    color: @color-placeholder !important;
+  }
 }
 
 .rte2-wrapper .CodeMirror {

@@ -7,6 +7,7 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.db.State;
 import com.psddev.dari.db.Trigger;
+import com.psddev.dari.util.ObjectUtils;
 
 import java.util.Collection;
 import java.util.stream.Stream;
@@ -64,6 +65,22 @@ public interface Copyable extends Recordable {
         destinationState.putAll(sourceState.getRawValues());
         destinationState.setId(null);
         destinationState.setStatus(null);
+
+        if (!ObjectUtils.equals(sourceState.getType(), targetType)) {
+            destinationState.setType(sourceState.getType());
+            // Unset all visibility indexes defined by the source ObjectType
+            Stream.concat(
+                destinationState.getIndexes().stream(),
+                destinationState.getDatabase().getEnvironment().getIndexes().stream())
+                .filter(ObjectIndex::isVisibility)
+                .map(ObjectIndex::getFields)
+                .flatMap(Collection::stream)
+                .forEach(destinationState::remove);
+
+            // update dari.visibilities while source ObjectType is set
+            destinationState.getVisibilityAwareTypeId();
+        }
+
         destinationState.setType(targetType);
 
         // Clear existing paths
@@ -74,7 +91,7 @@ public interface Copyable extends Recordable {
             destinationState.as(Directory.ObjectModification.class).clearSitePaths(consumer);
         }
 
-        // Unset all visibility indexes
+        // Unset all visibility indexes defined by the target ObjectType
         Stream.concat(
                 destinationState.getIndexes().stream(),
                 destinationState.getDatabase().getEnvironment().getIndexes().stream())
@@ -82,6 +99,9 @@ public interface Copyable extends Recordable {
                 .map(ObjectIndex::getFields)
                 .flatMap(Collection::stream)
                 .forEach(destinationState::remove);
+
+        // update dari.visibilities while target ObjectType is set
+        destinationState.getVisibilityAwareTypeId();
 
         // Clear publishUser, updateUser, publishDate, and updateDate.
         destinationContent.setPublishUser(null);

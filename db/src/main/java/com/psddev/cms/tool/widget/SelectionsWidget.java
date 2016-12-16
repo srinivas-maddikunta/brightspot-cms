@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
+import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.SearchResultSelection;
@@ -18,6 +19,7 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 
+@ToolUi.DisplayName("Collections Widget")
 public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResultSelection> {
 
     private static final String TOOL_ENTITY_TYPE_PARAMETER = "toolEntityType";
@@ -31,7 +33,7 @@ public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResult
     @Override
     public Query<SearchResultSelection> getQuery(ToolPageContext page) {
 
-        Query<SearchResultSelection> query = Query.from(SearchResultSelection.class);
+        Query<SearchResultSelection> query = Query.from(SearchResultSelection.class).where("name != missing");
 
         ToolEntityType entityType = page.pageParam(ToolEntityType.class, TOOL_ENTITY_TYPE_PARAMETER, ToolEntityType.ANYONE);
 

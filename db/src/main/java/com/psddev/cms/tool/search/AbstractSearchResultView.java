@@ -222,24 +222,27 @@ public abstract class AbstractSearchResultView implements SearchResultView {
             page.writeStart("ul", "class", "pagination");
                 if (result.hasPrevious()) {
                     page.writeStart("li", "class", "previous");
-                        page.writeStart("a", "href", page.url("", Search.OFFSET_PARAMETER, result.getPreviousOffset()));
+                        page.writeStart("a", "href", page.url("",
+                                Search.FRAME_NAME_SUFFIX_PARAMETER, search.getFrameNameSuffix(),
+                                Search.OFFSET_PARAMETER, result.getPreviousOffset()));
                             page.writeHtml(page.localize(ImmutableMap.of("count", result.getLimit()), "pagination.previousCount"));
                         page.writeEnd();
                     page.writeEnd();
                 }
 
-                // TODO: LOCALIZE
                 page.writeStart("li");
-                    page.writeHtml(result.getFirstItemIndex());
-                    page.writeHtml(" to ");
-                    page.writeHtml(result.getLastItemIndex());
-                    page.writeHtml(" of ");
-                    page.writeStart("strong").writeHtml(result.getCount()).writeEnd();
+                    page.writeHtml(page.localize(getClass(), ImmutableMap.of(
+                            "firstItemIndex", result.getFirstItemIndex(),
+                            "lastItemIndex", result.getLastItemIndex(),
+                            "count", result.getCount()
+                    ), "pagination.display"));
                 page.writeEnd();
 
                 if (result.hasNext()) {
                     page.writeStart("li", "class", "next");
-                        page.writeStart("a", "href", page.url("", Search.OFFSET_PARAMETER, result.getNextOffset()));
+                        page.writeStart("a", "href", page.url("",
+                                Search.FRAME_NAME_SUFFIX_PARAMETER, search.getFrameNameSuffix(),
+                                Search.OFFSET_PARAMETER, result.getNextOffset()));
                             page.writeHtml(page.localize(ImmutableMap.of("count", result.getLimit()), "pagination.nextCount"));
                         page.writeEnd();
                     page.writeEnd();

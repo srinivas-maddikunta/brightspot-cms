@@ -1,13 +1,15 @@
 package com.psddev.cms.db;
 
 import com.psddev.dari.db.Modification;
+import com.psddev.dari.db.ObjectField;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
+import com.psddev.dari.db.VisibilityLabel;
 
 import java.util.UUID;
 
 @BulkUploadDraft.FieldInternalNamePrefix("cms.bulkUpload.")
-public class BulkUploadDraft extends Modification<Object> {
+public class BulkUploadDraft extends Modification<Object> implements VisibilityLabel {
 
     @Indexed
     private UUID uploadId;
@@ -40,6 +42,16 @@ public class BulkUploadDraft extends Modification<Object> {
 
     public void setRunAfterSave(boolean runAfterSave) {
         this.runAfterSave = runAfterSave;
+    }
+
+    @Override
+    public String createVisibilityLabel(ObjectField field) {
+        if ("cms.bulkUpload.containerId".equals(field.getInternalName())) {
+            return Localization.currentUserText(getClass(), "displayName");
+
+        } else {
+            return null;
+        }
     }
 
     @Override

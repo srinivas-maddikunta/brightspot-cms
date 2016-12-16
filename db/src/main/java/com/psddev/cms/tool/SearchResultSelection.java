@@ -12,8 +12,10 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Record;
 
+@ToolUi.DisplayName("Collection")
 public class SearchResultSelection extends Record {
 
+    @Indexed
     private String name;
 
     @Indexed
