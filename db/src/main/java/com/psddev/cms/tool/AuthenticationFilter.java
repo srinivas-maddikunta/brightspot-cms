@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.psddev.cms.db.Preview;
 import com.psddev.cms.db.ToolUser;
+import com.psddev.dari.db.Application;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.ForwardingDatabase;
 import com.psddev.dari.db.Query;
@@ -206,7 +207,7 @@ public class AuthenticationFilter extends CrossDomainFilter {
             }
 
             // Add inline editing csrf cookie if cross domain is enabled.
-            CmsTool cms = Query.from(CmsTool.class).first();
+            CmsTool cms = Application.Static.getInstance(CmsTool.class);
 
             if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
                 String csrfCookieValue = request.getParameter("csrf");
