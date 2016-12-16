@@ -491,9 +491,9 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
     var OBJECT_END_PREFIX = 'BrightspotCmsObjectEnd';
     var FIELD_PREFIX = 'BrightspotCmsFieldAccess ';
     var parentCommentWalker = $parentDocument[0].createTreeWalker($parentBody[0], NodeFilter.SHOW_COMMENT, null, null);
-    
+
     while (parentCommentWalker.nextNode()) {
-        
+
         var comment = parentCommentWalker.currentNode;
         var commentValue = comment.nodeValue;
         var objectData = '';
@@ -504,27 +504,27 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             mainObjectData = $.parseJSON(commentValue.substring(MAIN_OBJECT_PREFIX.length));
 
         } else if (commentValue.indexOf(OBJECT_BEGIN_PREFIX) === 0) {
-            
+
             // Object begin comment looks like this:
             // <!--BrightspotCmsObjectBegin {"typeLabel":"Story","id":"00000157-affa-dfd2-a15f-efffd89a0000","label":"Testing Headline"}-->
-            
+
             // Get the JSON data part of the comment but leave it as a string
             objectData = commentValue.substring(OBJECT_BEGIN_PREFIX.length);
-            
+
             // Get the next element after the comment
             $objectElement = $(comment.nextElementSibling);
-            
+
             // Save the object data in an attribue on the object element
             $objectElement.attr('data-brightspot-cms-object', objectData);
-                        
+
         } else if (commentValue.indexOf(OBJECT_END_PREFIX) === 0) {
             // Object end comment looks like this:
             // <!--BrightspotCmsObjectEnd-->
-            
+
         } else if (commentValue.indexOf(FIELD_PREFIX) === 0) {
             // Field comment looks like this:
             // <!--BrightspotCmsFieldAccess {"id":"00000157-affa-dfd2-a15f-efffd89a0000","name":"paths"}-->
-            
+
             // Get the JSON data from the comment
             fieldData = $.parseJSON(commentValue.substring(FIELD_PREFIX.length));
 
@@ -553,12 +553,12 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
         }
 
         ids.push(id);
-        
+
         $outline = $('<div/>', {
             'class': 'InlineEditorOutline'
         });
 
-        href = window.CONTEXT_PATH + '/content/inlineEdit?id=' + objectData.id;
+        href = window.CONTEXT_PATH + '/content/editInline?id=' + objectData.id;
         if (objectFields[id]) {
             
             $.each(objectFields[id], function(fieldName, fieldData){
@@ -580,7 +580,7 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
                 }
             });
         }
-        
+
         $edit = $('<a/>', {
             'class': 'icon icon-action-edit',
             'href': href,
@@ -641,6 +641,11 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             }
 
             var $controls = $.data(this, 'InlineEditor-$controls');
+
+            if (!$controls) {
+                return;
+            }
+
             var box = {
                 '$controls': $controls,
                 'controlsCss': {
@@ -692,8 +697,8 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
     positionControls();
     setInterval(positionControls, 1000 / 60);
     $parent.scroll(positionControls);
-    
-    
+
+
     /**
      * Controler for the inline iframe-based editor.
      * @example
@@ -732,10 +737,10 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
         open: function() {
             var self;
             self = this;
-            
+
             // Create a container for the iframe editor
             self.$container = $('<div/>', {'class':'iframeEdit-container'});
-            
+
             // Create a close button
             self.$closeButton = $('<button>', {
                 'type': 'button',
@@ -745,19 +750,19 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
                 event.preventDefault();
                 self.close();
             }).appendTo(self.$container);
-            
+
             // Create a loading message
             self.$loadingMsg = $('<div>', {
                 'class': 'iframeEdit-loading',
                 html: '<span>Loading...</span>'
             }).appendTo(self.$container);
-            
+
             // Create the iframe and add a class when it has loaded
             self.$iframe = $('<iframe/>', {
                 'class': 'iframeEdit-iframe',
                 'src': self.options.url,
                 'load': function(event) {
-                    
+
                     /*
                     // Alternative way to determine if the iframe has been published:
                     // just assume that the content has been updated if the iframe loads a second page.
@@ -768,16 +773,16 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
                         return;
                     }
                     */
-                   
+
                     self.$container.addClass('loaded');
                 }
             }).appendTo(self.$container);
-            
+
             self.$container.appendTo('body');
 
             // Move the iframe just below the link that launched it
             self.position();
-            
+
             // Listen for a postMessage event that tells us the data was updated in the CMS
             self.listenerOpen();
 
@@ -802,10 +807,10 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
         listenerOpen: function() {
             var self;
             self = this;
-            
+
             // Prevent multiple listeners from running
             self.listenerClose();
-            
+
             $(window).on('message', function(event) {
                 var data;
 
@@ -815,16 +820,16 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
                 // if (event.origin !== "http://example.com:8080") {
                 //     return;
                 // }
-                 
+
                 // Get the data that was sent in the message
                 data = event.originalEvent.data;
-                
+
                 // Pass the data to our update handler
                 self.listenerHandleMessage(data);
             });
         },
-        
-        
+
+
         /**
          * Remove the update event listener.
          */
@@ -848,8 +853,8 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
                 self.reload();
             }
         },
-        
-        
+
+
         /**
          * Example of how to post the update message.
          * This would normally be done on the CMS edit page after the form has posted and updated
@@ -857,11 +862,11 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
          */
         listenerSendMessage: function() {
             var w;
-            
+
             // Since we're in an iframe, get the parent window (or do nothing)
             w = window.parent;
             if (w) {
-            
+
                 // Send a message to the parent window.
                 // We're using '*' as the targetOrigin because security is not an issue for this message.
                 w.postMessage('brightspot-updated', '*');
@@ -878,14 +883,14 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             var $el;
             var pos;
             self = this;
-            
+
             // Get the position element
             if (!self.options.positionElement) { return; }
             $el = $(self.options.positionElement);
             if (!$el.length) {
                 return;
             }
-            
+
             pos = $el.offset();
             self.$container.css('top', pos.top)
         },
@@ -900,8 +905,8 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             self.$container.remove();
             self.listenerClose();
         },
-        
-        
+
+
         /**
          * Reload the page. We'll do this after the user publishes a change
          * in the iframe editor.
@@ -914,18 +919,18 @@ require([ 'bsp-utils', 'js.cookie', 'jquery', 'iframeResizer' ], function (bsp_u
             }
         }
     };
-    
+
     // Intercept edit links so when they are clicked we use iframe editor instead of going to the url
     $('body').on('click', 'a.icon-action-edit', function(event) {
         var editor;
         var link;
-        
+
         // Do not follow the link since we will open an iframe instead
         event.preventDefault();
-        
+
         // Get the link that was clicked
         link = this;
-        
+
         // Create the iframeEditor
         editor = Object.create(iframeEditor);
         editor.init({

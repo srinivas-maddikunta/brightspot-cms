@@ -564,7 +564,7 @@ public class Search extends Record {
                     draftPredicate = CompoundPredicate.combine(
                             PredicateParser.AND_OPERATOR,
                             draftPredicate,
-                            PredicateParser.Static.parse("com.psddev.cms.db.Draft/objectType = ?", selectedType));
+                            PredicateParser.Static.parse("com.psddev.cms.db.Draft/objectType = ?", selectedType.findConcreteTypes()));
                 }
 
                 visibilitiesPredicate = CompoundPredicate.combine(

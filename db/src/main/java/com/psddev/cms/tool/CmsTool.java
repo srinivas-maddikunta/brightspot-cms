@@ -176,6 +176,9 @@ public class CmsTool extends Tool {
     private boolean alwaysGeneratePermalinks;
 
     @ToolUi.Tab("Debug")
+    private boolean disableEditFieldUpdateCache;
+
+    @ToolUi.Tab("Debug")
     private List<DariSetting> dariSettings;
 
     @Deprecated
@@ -801,6 +804,14 @@ public class CmsTool extends Tool {
 
     public void setAlwaysGeneratePermalinks(boolean alwaysGeneratePermalinks) {
         this.alwaysGeneratePermalinks = alwaysGeneratePermalinks;
+    }
+
+    public boolean isDisableEditFieldUpdateCache() {
+        return disableEditFieldUpdateCache;
+    }
+
+    public void setDisableEditFieldUpdateCache(boolean disableEditFieldUpdateCache) {
+        this.disableEditFieldUpdateCache = disableEditFieldUpdateCache;
     }
 
     public List<DariSetting> getDariSettings() {

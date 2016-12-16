@@ -27,6 +27,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.base.Preconditions;
+import com.psddev.cms.tool.CrossDomainFilter;
+import com.psddev.cms.view.ViewTemplateLoader;
+import com.psddev.dari.util.CompactMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.psddev.cms.tool.AuthenticationFilter;
@@ -57,7 +61,6 @@ import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Record;
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.db.State;
-import com.psddev.dari.util.AbstractFilter;
 import com.psddev.dari.util.Converter;
 import com.psddev.dari.util.ErrorUtils;
 import com.psddev.dari.util.HtmlWriter;
@@ -72,7 +75,7 @@ import com.psddev.dari.util.StorageItemFilter;
 import com.psddev.dari.util.StringUtils;
 import com.psddev.dari.util.TypeDefinition;
 
-public class PageFilter extends AbstractFilter {
+public class PageFilter extends CrossDomainFilter {
 
     /** @deprecated No replacement. */
     @Deprecated
@@ -103,6 +106,7 @@ public class PageFilter extends AbstractFilter {
     private static final String PATH_MATCHES_ATTRIBUTE = ATTRIBUTE_PREFIX + ".matches";
     private static final String PREVIEW_ATTRIBUTE = ".preview";
     private static final String PERSISTENT_PREVIEW_ATTRIBUTE = ".persistentPreview";
+    private static final String VIEW_TEMPLATE_LOADER_ATTRIBUTE = ATTRIBUTE_PREFIX + ".viewTemplateLoader";
 
     public static final String ABORTED_ATTRIBUTE = ATTRIBUTE_PREFIX + ".aborted";
     public static final String CURRENT_SECTION_ATTRIBUTE = ATTRIBUTE_PREFIX + ".currentSection";
@@ -233,6 +237,39 @@ public class PageFilter extends AbstractFilter {
         return substitutions;
     }
 
+    /**
+     * Returns the view template loader associated with the given
+     * {@code request}, creating one if necessary.
+     *
+     * @param request Nonnull.
+     * @return Nonnull.
+     */
+    public static ViewTemplateLoader getViewTemplateLoader(HttpServletRequest request) {
+        Preconditions.checkNotNull(request);
+
+        ViewTemplateLoader loader = (ViewTemplateLoader) request.getAttribute(VIEW_TEMPLATE_LOADER_ATTRIBUTE);
+
+        if (loader == null) {
+            loader = new ServletViewTemplateLoader(request.getServletContext());
+            setViewTemplateLoader(request, loader);
+        }
+
+        return loader;
+    }
+
+    /**
+     * Sets the view template loader to be used within the given
+     * {@code request}.
+     *
+     * @param request Nonnull.
+     * @param loader Nullable.
+     */
+    public static void setViewTemplateLoader(HttpServletRequest request, ViewTemplateLoader loader) {
+        Preconditions.checkNotNull(request);
+
+        request.setAttribute(VIEW_TEMPLATE_LOADER_ATTRIBUTE, loader);
+    }
+
     // --- AbstractFilter support ---
 
     @Override
@@ -292,7 +329,7 @@ public class PageFilter extends AbstractFilter {
         request.removeAttribute(PROFILE_CHECKED_ATTRIBUTE);
         request.removeAttribute(SITE_CHECKED_ATTRIBUTE);
 
-        doRequest(request, response, chain);
+        doCrossDomainRequest(request, response, chain);
     }
 
     @Override
@@ -315,8 +352,10 @@ public class PageFilter extends AbstractFilter {
         }
     }
 
+    // --- CrossDomainFilter Support ---
+
     @Override
-    protected void doRequest(
+    protected void doCrossDomainRequest(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain chain)
@@ -367,23 +406,6 @@ public class PageFilter extends AbstractFilter {
 
         ToolUser user = AuthenticationFilter.Static.getInsecureToolUser(request);
         request.setAttribute("toolUser", user);
-
-        CmsTool cms = Query.from(CmsTool.class).first();
-
-        // Set CORS header if cross domain is enabled and origin matches a site url.
-        if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
-            String origin = request.getHeader("origin");
-
-            if (origin != null) {
-                if (origin.endsWith("/")) {
-                    origin = origin.substring(0, origin.length() - 1);
-                }
-
-                if (Query.from(Site.class).where("urls startsWith ?", origin).hasMoreThan(0)) {
-                    response.setHeader("Access-Control-Allow-Origin", origin);
-                }
-            }
-        }
 
         VaryingDatabase varying = new VaryingDatabase();
         varying.setDelegate(Database.Static.getDefault());
@@ -585,6 +607,8 @@ public class PageFilter extends AbstractFilter {
                         }
                     }
 
+                    CmsTool cms = Query.from(CmsTool.class).first();
+
                     if (user == null || (cms != null && cms.isDisableInvisibleContentPreview())) {
                         if (Settings.isProduction()) {
                             chain.doFilter(request, response);
@@ -780,23 +804,6 @@ public class PageFilter extends AbstractFilter {
 
             endPage(request, response, writer, page);
 
-            if (Static.isInlineEditingAllContents(request)) {
-                LazyWriterResponse lazyResponse = (LazyWriterResponse) response;
-                Map<String, String> map = new HashMap<String, String>();
-                State state = State.getInstance(mainObject);
-                StringBuilder marker = new StringBuilder();
-
-                map.put("id", state.getId().toString());
-                map.put("label", state.getLabel());
-                map.put("typeLabel", state.getType().getLabel());
-
-                marker.append("<!--BrightspotCmsMainObject ");
-                marker.append(ObjectUtils.toJson(map));
-                marker.append("-->");
-
-                lazyResponse.getLazyWriter().writeLazily(marker.toString());
-            }
-
         } finally {
             Database.Static.restoreDefault();
 
@@ -830,6 +837,14 @@ public class PageFilter extends AbstractFilter {
                 State mainState = State.getInstance(mainObject);
 
                 page.setDelegate(writer instanceof HtmlWriter ? (HtmlWriter) writer : new HtmlWriter(writer));
+
+                Map<String, String> markerMap = new CompactMap<>();
+
+                markerMap.put("id", mainState.getId().toString());
+                markerMap.put("label", mainState.getLabel());
+                markerMap.put("typeLabel", mainState.getType().getLabel());
+
+                page.write("<!--BrightspotCmsMainObject " + ObjectUtils.toJson(markerMap) + "-->");
                 page.writeStart("iframe",
                         "class", "BrightspotCmsInlineEditor",
                         "id", "bsp-inlineEditorContents",
@@ -848,11 +863,11 @@ public class PageFilter extends AbstractFilter {
                                 "width", "100%",
                                 "z-index", 1000000));
                 page.writeEnd();
-            }
-        }
 
-        if (response instanceof LazyWriterResponse) {
-            ((LazyWriterResponse) response).getLazyWriter().writePending();
+                if (response instanceof LazyWriterResponse) {
+                    ((LazyWriterResponse) response).getLazyWriter().writePending();
+                }
+            }
         }
     }
 
@@ -1171,7 +1186,7 @@ public class PageFilter extends AbstractFilter {
             if (renderer != null) {
 
                 try {
-                    ViewOutput result = renderer.render(viewModel, new ServletViewTemplateLoader(request.getServletContext()));
+                    ViewOutput result = renderer.render(viewModel, getViewTemplateLoader(request));
                     output = result.get();
 
                 } catch (RuntimeException e) {
@@ -1360,7 +1375,7 @@ public class PageFilter extends AbstractFilter {
         }
 
         if (renderer != null) {
-            ViewOutput result = renderer.render(view, new ServletViewTemplateLoader(request.getServletContext()));
+            ViewOutput result = renderer.render(view, getViewTemplateLoader(request));
             String output = result.get();
 
             if (output != null) {

@@ -200,7 +200,6 @@ if (wp.isFormPost() && copy != null && editingState.isNew()) {
         copyState.as(Site.ObjectModification.class).setOwner(site);
     }
 
-    copyState.putAll(editingState.getRawValues());
     copyState.setId(editingState.getId());
     copyState.setStatus(editingState.getStatus());
     state = copyState;
@@ -896,7 +895,16 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
 
                                     if (!transitionNames.isEmpty()) {
                                         wp.writeStart("div", "class", "widget-publishingWorkflow");
-                                            WorkflowLog newLog = new WorkflowLog();
+                                            WorkflowLog newLog = editingState.as(Workflow.Data.class).getCurrentLog();
+
+                                            if (newLog == null) {
+                                                newLog = new WorkflowLog();
+                                                newLog.getState().setId(wp.param(UUID.class, "workflowLogId"));
+                                            }
+
+                                            if (wp.isFormPost()) {
+                                                wp.updateUsingParameters(newLog);
+                                            }
 
                                             if (log != null) {
                                                 for (ObjectField field : ObjectType.getInstance(WorkflowLog.class).getFields()) {

@@ -1,5 +1,6 @@
 package com.psddev.cms.tool.page.content;
 
+import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Draft;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
@@ -14,6 +15,7 @@ import com.psddev.dari.util.ObjectUtils;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -141,6 +143,19 @@ public class Edit {
 
         if (wip == null) {
             return;
+        }
+
+        Date wipCreate = wip.getCreateDate();
+        Date wipUpdate = wip.getUpdateDate();
+        Date contentUpdate = State.getInstance(content).as(Content.ObjectModification.class).getUpdateDate();
+
+        if (wipCreate != null && wipUpdate != null && contentUpdate != null) {
+            long contentTime = contentUpdate.getTime();
+
+            if (wipCreate.getTime() < contentTime && contentTime <= wipUpdate.getTime()) {
+                wip.delete();
+                return;
+            }
         }
 
         Map<String, Map<String, Object>> differences = wip.getDifferences();

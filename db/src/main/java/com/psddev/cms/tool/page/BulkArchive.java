@@ -284,7 +284,7 @@ public class BulkArchive extends PageServlet {
                 SearchResultSelection queriedSelection = (SearchResultSelection) Query.fromAll().where("_id = ?", selectionId).first();
 
                 if (queriedSelection == null) {
-                    throw new IllegalArgumentException("No SearchResultSelection exists for id " + selectionId);
+                    throw new IllegalArgumentException("No Collection/SearchResultSelection exists for id " + selectionId);
                 }
 
                 setSelection(queriedSelection);
