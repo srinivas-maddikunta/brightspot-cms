@@ -1,6 +1,7 @@
 package com.psddev.cms.tool.page.content.field;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -22,11 +23,13 @@ import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.TestToolPageContext;
 import com.psddev.cms.tool.ToolPageContext;
-import com.psddev.cms.tool.page.StorageItemField;
+import com.psddev.dari.db.Database;
 import com.psddev.dari.db.ObjectField;
+import com.psddev.dari.h2.H2Database;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.Settings;
 import com.psddev.dari.util.StorageItem;
+import com.zaxxer.hikari.HikariDataSource;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -50,6 +53,7 @@ public class FileFieldTest {
     public static class PostRequestTest {
 
         private static final String STORAGE_NAME = "test";
+        private static final String DATABASE_NAME = "test";
 
         TestState state;
         TestStorageItem storageItem;
@@ -76,6 +80,15 @@ public class FileFieldTest {
             when(request.getAttribute(eq("isFormPost"))).thenReturn(true);
             when(request.getAttribute("object")).thenReturn(state);
 
+
+            Settings.setOverride(Database.DEFAULT_DATABASE_SETTING, DATABASE_NAME);
+
+            HikariDataSource dataSource = new HikariDataSource();
+            dataSource.setJdbcUrl("jdbc:h2:mem:test" + UUID.randomUUID().toString().replaceAll("-", "") + ";DB_CLOSE_DELAY=-1");
+
+            Settings.setOverride(Database.SETTING_PREFIX + "/" + DATABASE_NAME + "/class", H2Database.class.getName());
+            Settings.setOverride(Database.SETTING_PREFIX + "/" + DATABASE_NAME + "/" + H2Database.DATA_SOURCE_SUB_SETTING, dataSource);
+            Settings.setOverride(Database.SETTING_PREFIX + "/" + DATABASE_NAME + "/" + H2Database.INDEX_SPATIAL_SUB_SETTING, Boolean.TRUE);
 
             Settings.setOverride(StorageItem.DEFAULT_STORAGE_SETTING, STORAGE_NAME);
             Settings.setOverride(StorageItem.SETTING_PREFIX + "/" + STORAGE_NAME, ImmutableMap.of(
