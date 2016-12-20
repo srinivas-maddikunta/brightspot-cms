@@ -18,7 +18,7 @@ You can rename past published revisions, allowing you to provide a more descript
    In the following example, two past published revisions are renamed.
 
 
-   .. image:: ./images/pubrevisionswidget5.png
+   .. image:: images/pubrevisionswidget5.png
     :width: 322px
     :height: 458px
 
