@@ -155,7 +155,7 @@ public class SelectionsWidget extends AbstractPaginatedResultWidget<SearchResult
 
     @Override
     public String getLabel() {
-        return "Collections Widget";
+        return getState().getType().getDisplayName();
     }
 
     private enum ToolEntityType {
