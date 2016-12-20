@@ -9,6 +9,7 @@ Content Modeling
 .. include:: inheritance.rst
 
 .. toctree::
+    :hidden:
 
     fields
     data-validation
