@@ -207,9 +207,7 @@ public class AuthenticationFilter extends CrossDomainFilter {
             }
 
             // Add inline editing csrf cookie if cross domain is enabled.
-            CmsTool cms = Application.Static.getInstance(CmsTool.class);
-
-            if (cms != null && cms.isEnableCrossDomainInlineEditing()) {
+            if (Application.Static.getInstance(CmsTool.class).isEnableCrossDomainInlineEditing()) {
                 String csrfCookieValue = request.getParameter("csrf");
 
                 if (csrfCookieValue != null) {
