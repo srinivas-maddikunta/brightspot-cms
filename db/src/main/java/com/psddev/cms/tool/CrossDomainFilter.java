@@ -25,9 +25,7 @@ public abstract class CrossDomainFilter extends AbstractFilter {
 
     @Override
     protected void doRequest(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws Exception {
-        CmsTool cms = Application.Static.getInstance(CmsTool.class);
-
-        if (cms.isEnableCrossDomainInlineEditing()) {
+        if (Application.Static.getInstance(CmsTool.class).isEnableCrossDomainInlineEditing()) {
             String origin = request.getHeader("origin");
 
             if (origin != null) {
