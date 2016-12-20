@@ -1745,17 +1745,15 @@ public class ToolPageContext extends WebPageContext {
             tool.writeHeaderAfterStyles(this);
         }
 
-        String scriptPrefix = getCmsTool().isUseNonMinifiedJavaScript() ? "/script/" : "/script.min/";
-
         if (getCmsTool().isUseNonMinifiedCss()) {
-            writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "less-dev.js"));
+            writeStart("script", "type", "text/javascript", "src", cmsResource("/script/less-dev.js"));
             writeEnd();
 
             writeStart("script", "type", "text/javascript");
                 writeHtml("window.less.relativeUrls = true;");
             writeEnd();
 
-            writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "less.js"));
+            writeStart("script", "type", "text/javascript", "src", cmsResource("/script/less.js"));
             writeEnd();
         }
 
@@ -1986,6 +1984,8 @@ public class ToolPageContext extends WebPageContext {
                 richTextElement.put("context", context);
             }
         }
+
+        String scriptPrefix = getCmsTool().isUseNonMinifiedJavaScript() ? "/script/" : "/script.min/";
 
         writeStart("script", "type", "text/javascript");
             write("var ROOT_PATH = '", getRequest().getContextPath(), "';");
