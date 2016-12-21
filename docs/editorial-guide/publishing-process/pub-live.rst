@@ -13,7 +13,7 @@ A published version, live or past, cannot be moved back to draft status. Publish
 
 The Revision widget lists the current live version. Under a section labeled **Past**, the Revisions widget lists past revisions that were previously published to a live site. It also lists any initial draft or workflow versions, which reflect an intermediate version of the content prior to publishing. 
 
-.. image:: images/pubrevisionswidget4.png
+.. image:: images/pubRevisionsWidget4.png
       :width: 250px
       :height: 407px
 
@@ -35,7 +35,7 @@ A revision scheduled for publication is a scheduled published event, and such ev
 2. On the Publish widget, click **Publish**.
 
 
-   .. image:: images/pubpublishwidget3.png
+   .. image:: images/pubpublishWidget3.png
       :width: 310px
       :height: 272px
 
@@ -48,7 +48,7 @@ A revision scheduled for publication is a scheduled published event, and such ev
 
 3. Select a date and time for the content to be published to the site and click **Set**.
 
-   .. image:: images/pubscheduleaction.png
+   .. image:: images/pubScheduleAction.png
       :width: 297px
       :height: 355px
 
@@ -59,7 +59,7 @@ A revision scheduled for publication is a scheduled published event, and such ev
    The Publish widget reflects that the version is scheduled for publication.
 
 
-   .. image:: images/pubscheduledscreen.png
+   .. image:: images/pubScheduledScreen.png
       :width: 244px
       :height: 272px
 
