@@ -1,9 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
-
 .. This fixes the sizes of the two image maps. Without it, the images are resized, breaking the area coordinates.
 .. raw:: html
 
