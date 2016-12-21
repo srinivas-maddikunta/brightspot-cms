@@ -18,7 +18,7 @@ The content type of interest must be listed on the Common Content widget on the 
 
 1. From the Common Content widget, click the content type for which you want to create a new instance.
 
-   .. image:: ./images/pubCommon.png
+   .. image:: images/pubCommon.png
 
    The Content Edit page appears, containing the Publish widget.
 
