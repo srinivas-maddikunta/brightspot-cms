@@ -1,8 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
 ================================
 Using Workflows
 ================================
@@ -12,7 +7,7 @@ With the Workflow tool, you can attach a custom workflow approval process to any
 As a content item is routed through a workflow, a separate draft version is created for each workflow state (for example, submitted, rejected, resubmitted).  With each completed step in the workflow, the status of the workflow is recorded in the Revisions widget.
 
 
-.. image:: images/pubrevisionswidget3.png
+.. image:: images/pubRevisionsWidget3.png
       :width: 324px
       :height: 446px
 
@@ -31,7 +26,7 @@ A workflow can be a simple process, such as contributors submitting content for 
 In the following example, clicking the **Submit for Approval** button sends the workflow to users defined in a role called "Editorial Group". Note that only workflow options appear on the Publish widget. This indicates that the user launching the workflow does not have the right to publish content of the type associated with the workflow. 
 
 
-.. image:: images/pubpublishwidget.png
+.. image:: images/pubPublishWidget.png
       :width: 326px
       :height: 263px
 
@@ -42,7 +37,7 @@ In the following example, clicking the **Submit for Approval** button sends the 
 
 In the following example, the editorial user could send the workflow back to the initiating user by clicking the **Send Back for Edits** button. Note that the **Publish** tab appears on the widget, indicating that the editorial user has the publication right for the content type associated with the workflow. At this state in the workflow, the editorial user could, alternatively, publish the content. 
 
-.. image:: images/pubpublishwidget2.png
+.. image:: images/pubPublishWidget2.png
       :width: 325px
       :height: 391px
 

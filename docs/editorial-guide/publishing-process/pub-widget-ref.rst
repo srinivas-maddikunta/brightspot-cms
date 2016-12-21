@@ -1,9 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
-
 .. This fixes the sizes of the two image maps. Without it, the images are resized, breaking the area coordinates.
 .. raw:: html
 
@@ -111,8 +105,8 @@ Workflow Tab  Publish Tab
 ============= ============
 |image1|      |image2|
 ============= ============
-.. |image1| image:: images/state1_wftab.png 
-.. |image2| image:: images/state1_pubtab.png
+.. |image1| image:: images/state1_wfTab.png 
+.. |image2| image:: images/state1_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -159,8 +153,8 @@ Workflow Tab  Publish Tab
 ============= ============
 |image3|      |image4|
 ============= ============
-.. |image3| image:: images/state2_wftab.png 
-.. |image4| image:: images/state2_pubtab.png
+.. |image3| image:: images/state2_wfTab.png 
+.. |image4| image:: images/state2_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -213,8 +207,8 @@ Workflow Tab  Publish Tab
 ============= ============
 |image5|      |image6|
 ============= ============
-.. |image5| image:: images/state3_wftab.png 
-.. |image6| image:: images/state3_pubtab.png
+.. |image5| image:: images/state3_wfTab.png 
+.. |image6| image:: images/state3_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -272,7 +266,7 @@ Workflow Tab  Publish Tab
 ============= ============
 n/a           |image7|
 ============= ============
-.. |image7| image:: images/state4_pubtab.png
+.. |image7| image:: images/state4_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -320,8 +314,8 @@ Workflow Tab  Publish Tab
 ============= ============
 |image8|      |image9|
 ============= ============
-.. |image8| image:: images/state4a_wftab.png
-.. |image9| image:: images/state4a_pubtab.png
+.. |image8| image:: images/state4a_wfTab.png
+.. |image9| image:: images/state4a_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -427,8 +421,8 @@ Workflow Tab  Publish Tab
 ============= ============
 |image11|      |image12|
 ============= ============
-.. |image11| image:: images/state6_wftab.png 
-.. |image12| image:: images/state6_pubtab.png
+.. |image11| image:: images/state6_wfTab.png 
+.. |image12| image:: images/state6_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -484,8 +478,8 @@ Workflow Tab  Publish Tab
 ============= ============
 |image13|      |image14|
 ============= ============
-.. |image13| image:: images/state7_wftab.png 
-.. |image14| image:: images/state7_pubtab.png
+.. |image13| image:: images/state7_wfTab.png 
+.. |image14| image:: images/state7_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -547,7 +541,7 @@ Workflow Tab  Publish Tab
 ============= ============
 n/a           |image15|
 ============= ============
-.. |image15| image:: images/state8_pubtab.png
+.. |image15| image:: images/state8_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -651,7 +645,7 @@ Workflow Tab  Publish Tab
 ============= ============
 n/a           |image18|
 ============= ============
-.. |image18| image:: images/state9_pubtab.png
+.. |image18| image:: images/state9_pubTab.png
 
 ====================================     ============================   ================================
 Link                                     Actions                        New State

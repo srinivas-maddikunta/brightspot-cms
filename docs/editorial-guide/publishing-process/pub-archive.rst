@@ -1,8 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
 ================================
 Deleting or Archiving Content
 ================================
@@ -23,7 +18,7 @@ As an alternative to deleting a content item permanently, you can archive it. Av
    The live version is removed from the web site. You can restore the live version, making it again available on the web site, or you can irretrievably delete all versions of the content item from the Brightspot database.
 
 
-   .. image:: images/pubarchived.png
+   .. image:: images/pubArchived.png
       :width: 320px
       :height: 200px
 
