@@ -20,6 +20,7 @@ import java.util.Map;
 import javax.servlet.ServletException;
 
 import com.psddev.cms.tool.CmsTool;
+import com.psddev.cms.view.CmsEmbedView;
 import com.psddev.dari.db.Application;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -442,7 +443,8 @@ public class ContentTools extends PageServlet {
                             if (type != null) {
                                 if (!ObjectUtils.isBlank(type.as(Renderer.TypeModification.class).getEmbedPath())
                                         || ViewCreator.findCreatorClass(object, null, PageFilter.EMBED_VIEW_TYPE, null) != null
-                                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, object) != null) {
+                                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, object) != null
+                                        || ViewModel.findViewModelClass(CmsEmbedView.class, null, object) != null) {
 
                                     Site site = page.getSite();
                                     String permalink;

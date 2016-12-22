@@ -12,6 +12,7 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 import com.psddev.cms.db.PageFilter;
+import com.psddev.cms.view.CmsEmbedView;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.util.JspUtils;
@@ -491,7 +492,8 @@ public class SearchResultRenderer {
                 if (previewWidth > 0
                         && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
                         || ViewCreator.findCreatorClass(item, null, PageFilter.EMBED_VIEW_TYPE, null) != null
-                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, item) != null)) {
+                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, item) != null
+                        || ViewModel.findViewModelClass(CmsEmbedView.class, null, item) != null)) {
                     permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", itemState.getId());
                     embedWidth = previewWidth;
                 }
