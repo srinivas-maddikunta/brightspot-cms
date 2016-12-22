@@ -6,8 +6,10 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +53,7 @@ public abstract class ViewModel<M> {
      */
     protected final <T, V> V createView(Class<V> viewClass, T model) {
 
-        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClass(viewClass, null, model);
+        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClass(viewClass, null, model, true);
         if (viewModelClass != null) {
 
             ViewModel<? super T> viewModel = viewModelCreator.createViewModel(viewModelClass, model, viewResponse);
@@ -79,7 +81,7 @@ public abstract class ViewModel<M> {
      */
     protected final <T> Object createView(String viewType, T model) {
 
-        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClass(null, viewType, model);
+        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClass(null, viewType, model, true);
         if (viewModelClass != null) {
 
             return viewModelCreator.createViewModel(viewModelClass, model, viewResponse);
@@ -96,7 +98,7 @@ public abstract class ViewModel<M> {
         @Override
         public final <M, VM extends ViewModel<? super M>> VM createViewModel(Class<VM> viewModelClass, M model, ViewResponse viewResponse) {
 
-            if (findViewModelClass(viewModelClass, null, model) != null) {
+            if (findViewModelClass(viewModelClass, null, model, true) != null) {
 
                 VM viewModel = TypeDefinition.getInstance(viewModelClass).newInstance();
 
@@ -142,6 +144,10 @@ public abstract class ViewModel<M> {
      * @return the view model class that matches the bounds of the arguments.
      */
     public static <M, V> Class<? extends ViewModel<? super M>> findViewModelClass(Class<V> viewClass, String viewType, M model) {
+        return findViewModelClass(viewClass, viewType, model, false);
+    }
+
+    private static <M, V> Class<? extends ViewModel<? super M>> findViewModelClass(Class<V> viewClass, String viewType, M model, boolean logFailure) {
 
         if (model == null) {
             return null;
@@ -237,6 +243,12 @@ public abstract class ViewModel<M> {
                             });
                 }
             }
+        }
+
+        if (logFailure) {
+            LOGGER.warn("Could not find view model class for model of type [{}] and view of type [{}].",
+                    modelClass.getName(),
+                    Stream.of(viewClass != null ? viewClass.getName() : null, viewType).filter(Objects::nonNull).collect(Collectors.joining(" and")));
         }
 
         return null;
