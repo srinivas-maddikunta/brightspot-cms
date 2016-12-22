@@ -37,6 +37,9 @@ import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.RemoteWidgetFilter;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.view.AbstractViewCreator;
+import com.psddev.cms.view.CmsEmbedView;
+import com.psddev.cms.view.CmsPageView;
+import com.psddev.cms.view.CmsPreviewView;
 import com.psddev.cms.view.JsonViewRenderer;
 import com.psddev.cms.view.PageViewClass;
 import com.psddev.cms.view.ViewBinding;
@@ -1115,26 +1118,35 @@ public class PageFilter extends AbstractFilter {
 
         String viewType = Static.getViewType(request);
 
+        List<String> viewTypes = new ArrayList<>();
+
         if (!ObjectUtils.isBlank(viewType)) {
             viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
+            viewTypes.add(viewType);
 
             if (viewModelClass == null) {
-                LOGGER.warn("Could not find view model for object of type ["
-                        + object.getClass().getName()
-                        + "] and view of type ["
-                        + viewType
-                        + "]!");
+
+                if (EMBED_VIEW_TYPE.equals(viewType)) {
+                    viewModelClass = ViewModel.findViewModelClass(CmsEmbedView.class, null, object);
+                    viewTypes.add(CmsEmbedView.class.getName());
+                }
+
             } else {
                 selectedViewType = viewType;
             }
 
         } else {
-            List<String> viewTypes = new ArrayList<>();
 
             // Try to create a view for the PREVIEW_VIEW_TYPE...
             if (Static.isPreview(request)) {
-                viewModelClass = ViewModel.findViewModelClass(null, PREVIEW_VIEW_TYPE, object);
-                viewTypes.add(PREVIEW_VIEW_TYPE);
+
+                viewModelClass = ViewModel.findViewModelClass(CmsPreviewView.class, null, object);
+                viewTypes.add(CmsPreviewView.class.getName());
+
+                if (viewModelClass == null) {
+                    viewModelClass = ViewModel.findViewModelClass(null, PREVIEW_VIEW_TYPE, object);
+                    viewTypes.add(PREVIEW_VIEW_TYPE);
+                }
 
                 if (viewModelClass != null) {
                     selectedViewType = PREVIEW_VIEW_TYPE;
@@ -1143,22 +1155,28 @@ public class PageFilter extends AbstractFilter {
 
             // ...but still always fallback to PAGE_VIEW_TYPE if no preview found.
             if (viewModelClass == null) {
-                viewModelClass = ViewModel.findViewModelClass(null, PAGE_VIEW_TYPE, object);
-                viewTypes.add(PAGE_VIEW_TYPE);
+
+                viewModelClass = ViewModel.findViewModelClass(CmsPageView.class, null, object);
+                viewTypes.add(CmsPageView.class.getName());
+
+                if (viewModelClass == null) {
+                    viewModelClass = ViewModel.findViewModelClass(null, PAGE_VIEW_TYPE, object);
+                    viewTypes.add(PAGE_VIEW_TYPE);
+                }
 
                 if (viewModelClass != null) {
                     selectedViewType = PAGE_VIEW_TYPE;
                 }
             }
+        }
 
-            if (viewModelClass == null) {
-                if (object.getClass().isAnnotationPresent(ViewBinding.class)) {
-                    LOGGER.warn("Could not find view model for object of type ["
-                            + object.getClass().getName()
-                            + "] and view of type ["
-                            + StringUtils.join(viewTypes, ", or ")
-                            + "]!");
-                }
+        if (viewModelClass == null) {
+            if (object.getClass().isAnnotationPresent(ViewBinding.class)) {
+                LOGGER.warn("Could not find view model for object of type ["
+                        + object.getClass().getName()
+                        + "] and view of type ["
+                        + StringUtils.join(viewTypes, ", or ")
+                        + "]!");
             }
         }
 
