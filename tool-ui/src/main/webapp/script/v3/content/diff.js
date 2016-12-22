@@ -1,4 +1,4 @@
-define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
+define([ 'jquery', 'bsp-utils', 'diff', 'v3/RecalculateDimensions' ], function($, bsp_utils, JsDiff, RecalculateDimensions) {
   bsp_utils.onDomInsert(document, '.contentDiff', {
     'insert': function(container) {
       var $container = $(container);
@@ -40,13 +40,14 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
         var $both = $left.add($right);
 
         $both.find('.inputContainer').css('height', '');
+        RecalculateDimensions.trigger($container);
       });
 
       $container.bind('contentDiff-sideBySide', function() {
         $container.removeClass('contentDiff-edit').addClass('contentDiff-sideBySide');
         $tabs.find('li').removeClass('state-selected');
         $tabSideBySide.addClass('state-selected');
-        $container.resize();
+        RecalculateDimensions.trigger($container);
       });
 
       var equalizeHeights = $.throttle(100, function() {
@@ -74,7 +75,7 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
         var $leftInput = $(this);
         var $rightInput = $right.find('> .objectInputs > .inputContainer[data-field="' + $leftInput.attr('data-field') + '"]');
 
-        if (getValues($leftInput) === getValues($rightInput)) {
+        if ($rightInput.length === 0 || getValues($leftInput) === getValues($rightInput)) {
           $leftInput.addClass('contentDiffSame');
           $rightInput.addClass('contentDiffSame');
         }
@@ -83,6 +84,11 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
       $left.find('> .objectInputs > .inputContainer > .inputSmall > textarea').each(function() {
         var $leftText = $(this);
         var $rightText = $right.find('> .objectInputs > .inputContainer[data-field="' + $leftText.closest('.inputContainer').attr('data-field') + '"] textarea');
+        
+        if ($rightText.length === 0) {
+          return;
+        }
+        
         var left = $leftText.val().replace(new RegExp('[\\r\\n]', 'g'), ' ').replace(new RegExp('<br[^>]*\/?>', 'ig'), '\n');
         var right = $rightText.val().replace(new RegExp('[\\r\\n]', 'g'), ' ').replace(new RegExp('<br[^>]*\/?>', 'ig'), '\n');
         var rich = $leftText.is('.richtext');
@@ -108,7 +114,7 @@ define([ 'jquery', 'bsp-utils', 'diff' ], function($, bsp_utils, JsDiff) {
           right = preprocess(right, rightEnhancements);
         }
 
-        var diffs = JsDiff.diffWords(left, right);
+        var diffs = JsDiff.diffWordsWithSpace(left, right);
         var $leftCopy = $('<div/>', { 'class': 'contentDiffCopy' });
         var $rightCopy = $('<div/>', { 'class': 'contentDiffCopy' });
 

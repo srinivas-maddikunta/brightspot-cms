@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.psddev.cms.db.PageFilter;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
+import com.psddev.dari.util.JspUtils;
 import org.joda.time.DateTime;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Renderer;
@@ -92,29 +93,35 @@ public class SearchResultRenderer {
                 && page.getSite() == null
                 && Query.from(Site.class).hasMoreThan(0);
 
+        Exception queryError = null;
+
         if (selectedType != null) {
             this.sortField = selectedType.getFieldGlobally(search.getSort());
             this.showTypeLabel = selectedType.as(ToolUi.class).findDisplayTypes().size() != 1;
 
             if (ObjectType.getInstance(ObjectType.class).equals(selectedType)) {
                 List<ObjectType> types = new ArrayList<ObjectType>();
-                Predicate predicate = search.toQuery(page.getSite()).getPredicate();
 
-                for (ObjectType t : Database.Static.getDefault().getEnvironment().getTypes()) {
-                    if (t.is(predicate)) {
-                        types.add(t);
+                try {
+                    Predicate predicate = search.toQuery(page.getSite()).getPredicate();
+
+                    for (ObjectType t : Database.Static.getDefault().getEnvironment().getTypes()) {
+                        if (t.is(predicate)) {
+                            types.add(t);
+                        }
                     }
-                }
 
-                result = new PaginatedResult<ObjectType>(search.getOffset(), search.getLimit(), types);
+                    result = new PaginatedResult<ObjectType>(search.getOffset(), search.getLimit(), types);
+
+                } catch (IllegalArgumentException | Query.NoFieldException error) {
+                    queryError = error;
+                }
             }
 
         } else {
             this.sortField = Database.Static.getDefault().getEnvironment().getField(search.getSort());
             this.showTypeLabel = search.findValidTypes().size() != 1;
         }
-
-        Exception queryError = null;
 
         if (result == null) {
             try {
@@ -485,7 +492,7 @@ public class SearchResultRenderer {
                         && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
                         || ViewCreator.findCreatorClass(item, null, PageFilter.EMBED_VIEW_TYPE, null) != null
                         || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, item) != null)) {
-                    permalink = "/_preview?_embed=true&_cms.db.previewId=" + itemState.getId();
+                    permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", itemState.getId());
                     embedWidth = previewWidth;
                 }
             }

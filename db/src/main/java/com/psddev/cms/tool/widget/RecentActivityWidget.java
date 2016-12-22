@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
+import com.psddev.dari.db.Database;
+import com.psddev.dari.util.JspUtils;
 import org.joda.time.DateTime;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,9 +28,7 @@ import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.db.ObjectType;
-import com.psddev.dari.db.Predicate;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.QueryFilter;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
 import com.psddev.dari.util.PaginatedResult;
@@ -69,7 +69,9 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
             result = null;
 
         } else {
-            Query<?> contentQuery = (itemType != null ? Query.fromType(itemType) : Query.fromGroup(Content.SEARCHABLE_GROUP))
+            Query<?> contentQuery = (itemType != null && !visibilities.contains("d")
+                    ? Query.fromType(itemType)
+                    : Query.fromGroup(Content.SEARCHABLE_GROUP))
                     .where(page.siteItemsSearchPredicate())
                     .and(Content.UPDATE_DATE_FIELD + " != missing")
                     .sortDescending(Content.UPDATE_DATE_FIELD);
@@ -91,14 +93,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                     break;
             }
 
-            Predicate visibilitiesPredicate = Search.getVisibilitiesPredicate(itemType, visibilities, null, false);
-            QueryFilter<Object> visibilitiesFilter = null;
-
-            if (visibilitiesPredicate != null) {
-                contentQuery.and(visibilitiesPredicate);
-            } else {
-                visibilitiesFilter = item -> State.getInstance(item).isVisible();
-            }
+            contentQuery.and(Search.getVisibilitiesPredicate(itemType, visibilities, null, false));
 
             if (itemType == null) {
                 contentQuery.and(page.userTypesPredicate());
@@ -106,7 +101,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
 
             QueryRestriction.updateQueryUsingAll(contentQuery, page);
 
-            result = contentQuery.and("_any matches *").selectFiltered(offset, limit, visibilitiesFilter);
+            result = contentQuery.and("_any matches *").select(offset, limit);
         }
 
         page.writeStart("div", "class", "widget");
@@ -124,12 +119,13 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                         "action", page.url(null));
 
                     page.writeTypeSelect(
-                            ObjectType.getInstance(Content.class).as(ToolUi.class).findDisplayTypes()
-                                    .stream()
+                            Database.Static.getDefault().getEnvironment().getTypesByGroup(Content.SEARCHABLE_GROUP).stream()
+                                    .flatMap(t -> t.as(ToolUi.class).findDisplayTypes().stream())
+                                    .distinct()
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,
-                            page.localize(RecentActivityWidget.class, "label.anyTypes"),
+                            page.localize(RecentActivityWidget.class, "label.allTypes"),
                             "data-bsp-autosubmit", "",
                             "name", "itemType",
                             "data-searchable", "true");
@@ -301,7 +297,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                                         && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
                                         || ViewCreator.findCreatorClass(content, null, PageFilter.EMBED_VIEW_TYPE, null) != null
                                         || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, content) != null)) {
-                                    permalink = "/_preview?_embed=true&_cms.db.previewId=" + contentState.getId();
+                                    permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", contentState.getId());
                                     embedWidth = previewWidth;
                                 }
                             }
@@ -334,6 +330,16 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                             page.writeStart("td");
                                 page.writeObjectLabel(updateUser);
                             page.writeEnd();
+
+                            if (page.getCmsTool().isEnableViewers()) {
+                                page.writeStart("td");
+                                    page.writeStart("div", "class", "EditFieldUpdateViewers", "data-rtc-content-id", contentState.getId().toString()); {
+                                        page.writeStart("div", "data-rtc-edit-field-update-viewers", "");
+                                        page.writeEnd();
+                                    } page.writeEnd();
+                                page.writeEnd();
+                            }
+
                         page.writeEnd();
                     }
 

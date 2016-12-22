@@ -123,14 +123,8 @@ if (JspWidget.isUpdating(wp)) {
         }
 
     } else {
-        if (!Directory.PathsMode.MANUAL.equals(dirData.getPathsMode())) {
-            dirData.setPathsMode(Directory.PathsMode.MANUAL);
-            dirData.setAutomaticRawPaths(null);
-
-            for (Directory.Path path : State.getInstance(varied).as(Directory.ObjectModification.class).createPaths(site)) {
-                dirData.addPath(path.getSite(), path.getPath(), path.getType());
-            }
-        }
+        dirData.setPathsMode(Directory.PathsMode.MANUAL);
+        dirData.setAutomaticRawPaths(null);
     }
 
     return;
@@ -179,6 +173,7 @@ if (!paths.isEmpty()) {
         for (Directory.Path path : paths) {
             Site pathSite = path.getSite();
             String pathPath = path.getPath();
+            String pathDisplay = ObjectUtils.firstNonNull(Directory.extractExternalUrl(pathPath), pathPath);
             String href = pathSite != null ? pathSite.getPrimaryUrl() + pathPath : pathPath;
 
             while (href.endsWith("*")) {
@@ -192,7 +187,7 @@ if (!paths.isEmpty()) {
                 wp.writeStart("li", "class", "widget-urlsItem");
                     wp.writeStart("div", "class", "widget-urlsItemLabel");
                         wp.writeStart("a", "href", href, "target", "_blank");
-                            wp.writeHtml(pathPath);
+                            wp.writeHtml(pathDisplay);
                         wp.writeEnd();
                     wp.writeEnd();
 
@@ -221,7 +216,7 @@ if (!paths.isEmpty()) {
 
                 wp.writeStart("div", "class", "widget-urlsItemLabel");
                     wp.writeStart("a", "href", href, "target", "_blank");
-                        wp.writeHtml(pathPath);
+                        wp.writeHtml(pathDisplay);
                     wp.writeEnd();
 
                     wp.writeStart("label",

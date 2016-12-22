@@ -9,6 +9,7 @@
 .searchResult-items {
   flex: 1 1 auto;
   margin-right: (@-actions-padding - 1px);
+  width: calc(100% - 259px);
 }
 
 .searchResult-views {
@@ -69,6 +70,9 @@
   margin-top: 10px;
   width: 100%;
   overflow-x: hidden;
+  &.fixedScrollableArea {
+      overflow-x: auto;
+  }
 }
 
 .searchResultList > .frame {
@@ -583,10 +587,6 @@
   position: fixed;
   right: 20px;
   top: 90px;
-
-  .searchFilters {
-    margin-bottom: 0;
-  }
 }
 
 

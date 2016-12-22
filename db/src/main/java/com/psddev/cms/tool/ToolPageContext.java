@@ -9,14 +9,12 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,14 +23,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.MissingResourceException;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,27 +39,31 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
+import com.google.common.base.Preconditions;
+import com.psddev.cms.db.ElFunctionUtils;
+import com.psddev.cms.db.Localization;
+import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
 import com.psddev.cms.db.WorkInProgress;
+import com.psddev.cms.rte.RichTextToolbar;
+import com.psddev.cms.rte.RichTextToolbarItem;
 import com.psddev.cms.tool.page.content.Edit;
+import com.psddev.cms.view.ClassResourceViewTemplateLoader;
+import com.psddev.cms.view.ViewModelCreator;
+import com.psddev.cms.view.ViewOutput;
+import com.psddev.cms.view.ViewRenderer;
+import com.psddev.cms.view.ViewResponse;
+import com.psddev.cms.view.servlet.ServletViewModelCreator;
 import com.psddev.dari.db.Modification;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.methods.RequestBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
-import com.ibm.icu.text.MessageFormat;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.ContentField;
 import com.psddev.cms.db.ContentType;
@@ -108,15 +107,12 @@ import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Predicate;
 import com.psddev.dari.db.PredicateParser;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.Recordable;
 import com.psddev.dari.db.Singleton;
 import com.psddev.dari.db.State;
 import com.psddev.dari.db.StateStatus;
 import com.psddev.dari.db.ValidationException;
-import com.psddev.dari.util.CascadingMap;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.CodeUtils;
-import com.psddev.dari.util.CollectionUtils;
 import com.psddev.dari.util.CompactMap;
 import com.psddev.dari.util.DebugFilter;
 import com.psddev.dari.util.DependencyResolver;
@@ -289,307 +285,12 @@ public class ToolPageContext extends WebPageContext {
     }
 
     public String localize(Object context, Map<String, Object> contextOverrides, String key) throws IOException {
-        String baseName = null;
-
-        if (context instanceof ObjectField) {
-            context = ((ObjectField) context).getParentType();
-        }
-
-        State state = null;
-
-        if (context != null) {
-            if (context instanceof String) {
-                baseName = (String) context;
-
-            } else if (context instanceof ObjectType) {
-                baseName = ((ObjectType) context).getInternalName();
-
-            } else if (context instanceof Class) {
-                ObjectType type = ObjectType.getInstance((Class<?>) context);
-
-                if (type != null) {
-                    baseName = type.getInternalName();
-
-                } else {
-                    baseName = ((Class<?>) context).getName();
-                }
-
-            } else if (context instanceof Recordable) {
-                state = ((Recordable) context).getState();
-                ObjectType type = state.getType();
-
-                if (type != null) {
-                    baseName = type.getInternalName();
-                }
-
-            } else {
-                baseName = context.getClass().getName();
-            }
-        }
-
-        Locale defaultLocale = Locale.getDefault();
-        Locale userLocale = MoreObjects.firstNonNull(getUser() != null ? getUser().getLocale() : null, defaultLocale);
-        boolean firstTry = true;
-
-        while (true) {
-            String localized = createLocalizedString(userLocale, userLocale, baseName, key, state, contextOverrides);
-
-            if (localized == null && !defaultLocale.equals(userLocale)) {
-                localized = createLocalizedString(defaultLocale, userLocale, baseName, key, state, contextOverrides);
-            }
-
-            if (localized == null) {
-                Locale usLocale = Locale.US;
-                String usLanguage = usLocale.getLanguage();
-
-                if (!usLanguage.equals(defaultLocale.getLanguage())
-                        && !usLanguage.equals(userLocale.getLanguage())) {
-
-                    localized = createLocalizedString(usLocale, userLocale, baseName, key, state, contextOverrides);
-                }
-            }
-
-            if (localized == null) {
-                if (firstTry) {
-                    firstTry = false;
-
-                    ObjectTypeResourceBundle.invalidateInstances();
-
-                } else {
-                    return "{" + baseName + "/" + key + "}";
-                }
-
-            } else {
-                return localized;
-            }
-        }
-    }
-
-    private String createLocalizedString(
-            Locale source,
-            Locale target,
-            String baseName,
-            String key,
-            State state,
-            Map<String, Object> contextOverrides)
-            throws IOException {
-
-        CascadingMap<String, Object> arguments = new CascadingMap<>();
-        List<Map<String, Object>> argumentsSources = arguments.getSources();
-
-        if (contextOverrides != null) {
-            argumentsSources.add(contextOverrides);
-        }
-
-        String pattern = null;
-
-        if (baseName != null) {
-            ResourceBundle baseOverride = findBundle(baseName + "Override", source);
-            ResourceBundle baseDefault = findBundle(baseName + "Default", source);
-
-            if (baseOverride != null) {
-                argumentsSources.add(createBundleMap(baseOverride));
-
-                pattern = findBundleString(baseOverride, key);
-            }
-
-            if (baseDefault != null) {
-                argumentsSources.add(createBundleMap(baseDefault));
-
-                if (pattern == null) {
-                    pattern = findBundleString(baseDefault, key);
-                }
-            }
-        }
-
-        if (state != null) {
-            argumentsSources.add(state);
-        }
-
-        if (pattern == null) {
-            ResourceBundle fallbackOverride = findBundle("FallbackOverride", source);
-
-            if (fallbackOverride != null) {
-                pattern = findBundleString(fallbackOverride, key);
-            }
-
-            if (pattern == null) {
-                ResourceBundle fallbackDefault = findBundle("FallbackDefault", source);
-
-                if (fallbackDefault != null) {
-                    pattern = findBundleString(fallbackDefault, key);
-                }
-            }
-        }
-
-        ObjectType type = ObjectType.getInstance(baseName);
-        ObjectTypeResourceBundle bundle = ObjectTypeResourceBundle.getInstance(type);
-
-        argumentsSources.add(bundle.getMap());
-
-        if (pattern == null && Locale.getDefault().equals(source)) {
-            pattern = findBundleString(bundle, key);
-        }
-
-        if (pattern == null) {
-            return null;
-
-        } else if (source.equals(target)) {
-            return new MessageFormat(pattern, target).format(arguments);
-
-        } else {
-            String googleServerApiKey = getCmsTool().getGoogleServerApiKey();
-
-            if (ObjectUtils.isBlank(googleServerApiKey)) {
-                return new MessageFormat(pattern, source).format(arguments);
-            }
-
-            // Already translated?
-            UUID translationsId = MachineTranslations.createId(baseName, target);
-            State translations = State.getInstance(Query
-                    .from(MachineTranslations.class)
-                    .where("_id = ?", translationsId)
-                    .first());
-
-            if (translations != null) {
-                String translation = (String) translations.get(key);
-
-                if (translation != null) {
-                    return new MessageFormat(translation, target).format(arguments);
-                }
-            }
-
-            // Convert named arguments to be numbered to prevent the names
-            // from being translated.
-            MessageFormat numberedFormat = new MessageFormat(pattern, target);
-            Map<String, String> numberedToNamed = null;
-
-            if (numberedFormat.usesNamedArguments()) {
-
-                // e.g. Hi, {name} -> Hi, {0}
-                Map<String, Object> numberedArgumentByName = new CompactMap<>();
-                int index = 0;
-
-                for (String name : numberedFormat.getArgumentNames()) {
-                    numberedArgumentByName.put(name, "{" + index + "}");
-                    numberedFormat.setFormatByArgumentName(name, null);
-
-                    ++ index;
-                }
-
-                // Use the numbered pattern to create a regex that can find
-                // the named arguments from the original pattern.
-                String numberedPattern = numberedFormat.format(numberedArgumentByName);
-                Matcher numberedArgumentMatcher = Pattern.compile("\\{\\d+\\}").matcher(numberedPattern);
-                StringBuilder namedArgumentPattern = new StringBuilder();
-                List<String> numberedArguments = new ArrayList<>();
-                int lastEnd = 0;
-
-                while (numberedArgumentMatcher.find()) {
-                    namedArgumentPattern.append(Pattern.quote(numberedPattern.substring(lastEnd, numberedArgumentMatcher.start())));
-                    namedArgumentPattern.append("(\\{.+?\\})");
-                    numberedArguments.add(numberedArgumentMatcher.group(0));
-
-                    lastEnd = numberedArgumentMatcher.end();
-                }
-
-                namedArgumentPattern.append(Pattern.quote(numberedPattern.substring(lastEnd)));
-
-                // Map all numbered argument to the named ones.
-                // e.g. {0} = {name}
-                Matcher namedArgumentMatcher = Pattern.compile(namedArgumentPattern.toString()).matcher(pattern);
-                pattern = numberedPattern;
-
-                if (namedArgumentMatcher.matches()) {
-                    numberedToNamed = new CompactMap<>();
-
-                    for (int i = 1; i <= namedArgumentMatcher.groupCount(); ++ i) {
-                        numberedToNamed.put(numberedArguments.get(i - 1), namedArgumentMatcher.group(1));
-                    }
-
-                } else {
-                    throw new IllegalArgumentException();
-                }
-            }
-
-            try (CloseableHttpClient client = HttpClients.createDefault()) {
-                HttpUriRequest request = RequestBuilder.get()
-                        .setUri("https://www.googleapis.com/language/translate/v2")
-                        .addParameter("format", "text")
-                        .addParameter("key", googleServerApiKey)
-                        .addParameter("q", pattern)
-                        .addParameter("source", source.getLanguage())
-                        .addParameter("target", target.getLanguage())
-                        .build();
-
-                try (CloseableHttpResponse response = client.execute(request)) {
-                    String responseText = EntityUtils.toString(response.getEntity());
-                    String translation = (String) CollectionUtils.getByPath(ObjectUtils.fromJson(responseText), "data/translations/0/translatedText");
-
-                    // Restore named arguments.
-                    if (numberedToNamed != null) {
-                        for (Map.Entry<String, String> entry : numberedToNamed.entrySet()) {
-                            translation = translation.replace(entry.getKey(), entry.getValue());
-                        }
-                    }
-
-                    final String finalTranslation = translation;
-                    Thread saveTranslations = new Thread() {
-
-                        @Override
-                        public void run() {
-                            com.psddev.dari.db.State translations = new MachineTranslations().getState();
-
-                            translations.setId(translationsId);
-                            translations.putAtomically(key, finalTranslation);
-                            translations.save();
-                        }
-                    };
-
-                    saveTranslations.start();
-
-                    return new MessageFormat(translation, target).format(arguments);
-                }
-            }
-        }
-    }
-
-    private ResourceBundle findBundle(String baseName, Locale locale) {
-        try {
-            return ResourceBundle.getBundle(
-                    baseName,
-                    locale,
-                    ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_DEFAULT));
-
-        } catch (MissingResourceException error) {
-            return null;
-        }
-    }
-
-    private Map<String, Object> createBundleMap(ResourceBundle bundle) {
-        Map<String, Object> map = new CompactMap<>();
-
-        for (Enumeration<String> keys = bundle.getKeys(); keys.hasMoreElements();) {
-            String key = keys.nextElement();
-
-            map.put(key, findBundleString(bundle, key));
-        }
-
-        return map;
-    }
-
-    private String findBundleString(ResourceBundle bundle, String key) {
-        try {
-            String pattern = bundle.getString(key);
-
-            if (bundle instanceof ObjectTypeResourceBundle) {
-                return pattern;
-            } else {
-                return new String(pattern.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-            }
-        } catch (MissingResourceException error) {
-            return null;
-        }
+        ToolUser user = getUser();
+
+        return Localization.text(
+                user != null ? user.getLocale() : null,
+                new LocalizationContext(context, contextOverrides),
+                key);
     }
 
     public String localize(Object context, String key) throws IOException {
@@ -1462,7 +1163,7 @@ public class ToolPageContext extends WebPageContext {
 
         if (object == null) {
             html.writeStart("em");
-            html.writeHtml("N/A");
+            html.writeHtml(localize(null, "label.notAvailable"));
             html.writeEnd();
 
         } else {
@@ -1476,7 +1177,9 @@ public class ToolPageContext extends WebPageContext {
             }
 
             State state = State.getInstance(object);
-            String label = state.getLabel();
+            String label = object instanceof ObjectType
+                    ? localize(object, "displayName")
+                    : state.getLabel();
 
             if (ObjectUtils.to(UUID.class, label) != null) {
                 html.writeStart("em");
@@ -1542,7 +1245,7 @@ public class ToolPageContext extends WebPageContext {
      */
     public void writeTypeObjectLabel(Object object) throws IOException {
         if (object == null) {
-            writeHtml("N/A");
+            writeHtml(localize(null, "label.notAvailable"));
 
         } else {
             State state = State.getInstance(object);
@@ -1630,9 +1333,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTimeWith(Object dateTime, String format) throws IOException {
-        return dateTime != null
-                ? toUserDateTime(dateTime).toString(format)
-                : "N/A";
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                format);
     }
 
     /**
@@ -1642,11 +1345,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDateTime(Object dateTime) throws IOException {
-        return formatUserDateTimeWith(
-                dateTime,
-                new DateTime(dateTime).getYear() == new DateTime().getYear()
-                        ? "EEE MMM dd hh:mm aa"
-                        : "EEE MMM dd yyyy hh:mm aa");
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                Localization.DATE_AND_TIME_SKELETON);
     }
 
     /**
@@ -1657,11 +1358,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserDate(Object dateTime) throws IOException {
-        return formatUserDateTimeWith(
-                dateTime,
-                new DateTime(dateTime).getYear() == new DateTime().getYear()
-                        ? "EEE MMM dd"
-                        : "EEE MMM dd yyyy");
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                Localization.DATE_ONLY_SKELETON);
     }
 
     /**
@@ -1672,7 +1371,9 @@ public class ToolPageContext extends WebPageContext {
      * @return Never {@code null}.
      */
     public String formatUserTime(Object dateTime) throws IOException {
-        return formatUserDateTimeWith(dateTime, "hh:mm aa");
+        return Localization.currentUserDate(
+                new DateTime(dateTime).getMillis(),
+                Localization.TIME_ONLY_SKELETON);
     }
 
     /**
@@ -1714,6 +1415,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", site != null ? site.getCmsCssClass() : null,
                 "data-user-id", user != null ? user.getId() : null,
                 "data-user-label", user != null ? user.getLabel() : null,
+                "data-time-zone", getUserDateTimeZone().getID(),
                 "lang", MoreObjects.firstNonNull(user != null ? user.getLocale() : null, Locale.getDefault()).toLanguageTag());
             writeStart("head");
                 writeStart("title");
@@ -1734,6 +1436,10 @@ public class ToolPageContext extends WebPageContext {
                 writeElement("meta", "name", "robots", "content", "noindex");
                 writeElement("meta", "name", "viewport", "content", "width=device-width, initial-scale=1");
                 writeStylesAndScripts();
+
+                for (Class<? extends ToolPageHead> headClass : ClassFinder.findConcreteClasses(ToolPageHead.class)) {
+                    TypeDefinition.getInstance(headClass).newInstance().writeHtml(this);
+                }
             writeEnd();
 
             Schedule currentSchedule = getUser() != null ? getUser().getCurrentSchedule() : null;
@@ -2032,30 +1738,22 @@ public class ToolPageContext extends WebPageContext {
             writeElement("link", "rel", "stylesheet/less", "type", "text/less", "href", cmsResource("/style/" + theme + ".less"));
 
         } else {
-            writeElement("link", "rel", "stylesheet", "type", "text/css", "href", cmsResource("/style/" + theme + ".min.css"));
+            writeElement("link", "rel", "stylesheet", "type", "text/css", "href", ElFunctionUtils.resource(toolPath(CmsTool.class, "/style/" + theme + ".min.css")));
         }
 
         for (Tool tool : tools) {
             tool.writeHeaderAfterStyles(this);
         }
 
-        String scriptPrefix = getCmsTool().isUseNonMinifiedJavaScript() ? "/script/" : "/script.min/";
-
         if (getCmsTool().isUseNonMinifiedCss()) {
-            writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "less-dev.js"));
+            writeStart("script", "type", "text/javascript", "src", cmsResource("/script/less-dev.js"));
             writeEnd();
 
             writeStart("script", "type", "text/javascript");
                 writeHtml("window.less.relativeUrls = true;");
             writeEnd();
 
-            writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "husl.js"));
-            writeEnd();
-
-            writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "husl-less.js"));
-            writeEnd();
-
-            writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "less.js"));
+            writeStart("script", "type", "text/javascript", "src", cmsResource("/script/less.js"));
             writeEnd();
         }
 
@@ -2108,6 +1806,23 @@ public class ToolPageContext extends WebPageContext {
             commonTimeMap.put("minute", commonTime.getMinute());
             commonTimes.add(commonTimeMap);
         }
+
+        Map<String, List<Map<String, Object>>> richTextToolbars = ClassFinder.findConcreteClasses(RichTextToolbar.class).stream()
+                .collect(Collectors.toMap(
+                        Class::getName,
+                        c -> {
+                            RichTextToolbar toolbar = TypeDefinition.getInstance(c).newInstance();
+                            List<RichTextToolbarItem> items = toolbar.getItems();
+
+                            if (items != null) {
+                                return items.stream()
+                                        .map(RichTextToolbarItem::toMap)
+                                        .collect(Collectors.toList());
+
+                            } else {
+                                return Collections.emptyList();
+                            }
+                        }));
 
         List<Map<String, Object>> richTextElements = new ArrayList<>();
 
@@ -2270,7 +1985,10 @@ public class ToolPageContext extends WebPageContext {
             }
         }
 
+        String scriptPrefix = getCmsTool().isUseNonMinifiedJavaScript() ? "/script/" : "/script.min/";
+
         writeStart("script", "type", "text/javascript");
+            write("var ROOT_PATH = '", getRequest().getContextPath(), "';");
             write("var CONTEXT_PATH = '", cmsUrl("/"), "';");
             write("var UPLOAD_PATH = ", "'" + getRequest().getContextPath() + StringUtils.ensureStart(Settings.getOrDefault(String.class, "dari/upload/path", "/_dari/upload"), "/"), "';");
             write("var CSS_CLASS_GROUPS = ", ObjectUtils.toJson(cssClassGroups), ";");
@@ -2279,28 +1997,30 @@ public class ToolPageContext extends WebPageContext {
             write("var RTE_ENABLE_ANNOTATIONS = ", getCmsTool().isEnableAnnotations(), ';');
             write("var DISABLE_TOOL_CHECKS = ", getCmsTool().isDisableToolChecks(), ';');
             write("var COMMON_TIMES = ", ObjectUtils.toJson(commonTimes), ';');
+            write("var RICH_TEXT_TOOLBARS = ", ObjectUtils.toJson(richTextToolbars), ';');
             write("var RICH_TEXT_ELEMENTS = ", ObjectUtils.toJson(richTextElements), ';');
             write("var ENABLE_PADDED_CROPS = ", getCmsTool().isEnablePaddedCrop(), ';');
             write("var DISABLE_CODE_MIRROR_RICH_TEXT_EDITOR = ",
                     getCmsTool().isDisableCodeMirrorRichTextEditor()
                             || (getUser() != null && getUser().isDisableCodeMirrorRichTextEditor()), ';');
             write("var DISABLE_RTC = ", getCmsTool().isDisableRtc(), ';');
+            write("var DISABLE_EDIT_FIELD_UPDATE_CACHE = ", getCmsTool().isDisableEditFieldUpdateCache(), ';');
             write("var DISABLE_AJAX_SAVES = ", getCmsTool().isDisableAjaxSaves(), ';');
         writeEnd();
 
         writeStart("script", "type", "text/javascript", "src", "//www.google.com/jsapi");
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "jquery.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "jquery.extra.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "jquery.extra.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "handsontable.full.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "handsontable.full.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "d3.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "d3.js")));
         writeEnd();
 
         writeStart("script", "type", "text/javascript");
@@ -2311,10 +2031,12 @@ public class ToolPageContext extends WebPageContext {
             writeRaw(";");
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + "require.js"));
+        writeStart("script", "type", "text/javascript", "src", ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + "require.js")));
         writeEnd();
 
-        writeStart("script", "type", "text/javascript", "src", cmsResource(scriptPrefix + theme + ".js"));
+        writeStart("script", "type", "text/javascript", "src", cms.isUseNonMinifiedJavaScript()
+                ? cmsResource(scriptPrefix + theme + ".js")
+                : ElFunctionUtils.resource(toolPath(CmsTool.class, scriptPrefix + theme + ".js")));
         writeEnd();
 
         String dropboxAppKey = getCmsTool().getDropboxApplicationKey();
@@ -2322,7 +2044,7 @@ public class ToolPageContext extends WebPageContext {
         if (!ObjectUtils.isBlank(dropboxAppKey)) {
             writeStart("script",
                     "type", "text/javascript",
-                    "src", "https://www.dropbox.com/static/api/1/dropins.js",
+                    "src", "https://www.dropbox.com/static/api/2/dropins.js",
                     "id", "dropboxjs",
                     "data-app-key", dropboxAppKey);
             writeEnd();
@@ -2539,14 +2261,17 @@ public class ToolPageContext extends WebPageContext {
         List<ObjectType> mainTypes = Template.Static.findUsedTypes(getSite());
 
         mainTypes.retainAll(miscTypes);
-
-        mainTypes.addAll(miscTypes.stream()
-                .filter(t -> t.as(ToolUi.class).isMain())
-                .collect(Collectors.toList()));
-
         miscTypes.removeAll(mainTypes);
-        typeGroups.put("Main Content Types", mainTypes);
-        typeGroups.put("Misc Content Types", miscTypes);
+
+        List<ObjectType> toolUiMainTypes = miscTypes.stream()
+                .filter(t -> t.as(ToolUi.class).isMain())
+                .collect(Collectors.toList());
+
+        mainTypes.addAll(toolUiMainTypes);
+        miscTypes.removeAll(toolUiMainTypes);
+
+        typeGroups.put(localize(null, "label.mainTypes"), mainTypes);
+        typeGroups.put(localize(null, "label.miscTypes"), miscTypes);
 
         for (Iterator<List<ObjectType>> i = typeGroups.values().iterator(); i.hasNext();) {
             List<ObjectType> typeGroup = i.next();
@@ -2585,7 +2310,7 @@ public class ToolPageContext extends WebPageContext {
         String previousLabel = null;
 
         for (ObjectType type : types) {
-            String label = Static.getObjectLabel(type);
+            String label = localize(type, "displayName");
 
             writeStart("option",
                     "selected", selectedTypes.contains(type) ? "selected" : null,
@@ -2742,6 +2467,7 @@ public class ToolPageContext extends WebPageContext {
         Map<String, String> statuses = new HashMap<String, String>();
 
         statuses.put("p", "Published");
+        statuses.put("d", localize(type, "visibility.draft"));
 
         boolean hasWorkflow = false;
 
@@ -3054,11 +2780,24 @@ public class ToolPageContext extends WebPageContext {
                 layoutPlaceholdersJson = ObjectUtils.toJson(jsons);
             }
 
+            StringBuilder cssClass = new StringBuilder("objectInputs");
+
+            if ((type != null && type.as(ToolUi.class).isReadOnly())
+                    || !ContentEditable.shouldContentBeEditable(state)) {
+                cssClass.append(" objectInputs-readOnly");
+            }
+
+            if (type != null) {
+                String customCssClass = type.as(ToolUi.class).getCssClass();
+
+                if (!StringUtils.isBlank(customCssClass)) {
+                    cssClass.append(' ');
+                    cssClass.append(customCssClass);
+                }
+            }
+
             writeStart("div",
-                    "class", "objectInputs"
-                            + (type.as(ToolUi.class).isReadOnly()
-                            || !ContentEditable.shouldContentBeEditable(state)
-                            ? " objectInputs-readOnly" : ""),
+                    "class", cssClass,
                     "lang", type != null ? type.as(ToolUi.class).getLanguageTag() : null,
                     "data-type", type != null ? type.getInternalName() : null,
                     "data-id", state.getId(),
@@ -3129,9 +2868,14 @@ public class ToolPageContext extends WebPageContext {
                     fields.removeIf(f -> f.getInternalName().equals("dari.singleton.key"));
 
                     // Do not display fields with @ToolUi.CollectionItemWeight, @ToolUi.CollectionItemToggle, or @ToolUiCollectionItemProgress
-                    fields.removeIf(f -> f.as(ToolUi.class).isCollectionItemToggle()
-                            || f.as(ToolUi.class).isCollectionItemWeight()
-                            || f.as(ToolUi.class).isCollectionItemProgress());
+                    fields.removeIf(f -> {
+                        ToolUi ui = f.as(ToolUi.class);
+
+                        return ui.isCollectionItemToggle()
+                                || ui.isCollectionItemWeight()
+                                || ui.isCollectionItemWeightMarker()
+                                || ui.isCollectionItemProgress();
+                    });
 
                     DependencyResolver<ObjectField> resolver = new DependencyResolver<>();
                     Map<String, ObjectField> fieldByName = fields.stream()
@@ -3193,6 +2937,15 @@ public class ToolPageContext extends WebPageContext {
                         if (draftCheck) {
                             request.setAttribute("firstDraft", null);
                             request.setAttribute("finalDraft", null);
+                        }
+                    }
+
+                    for (Class<? extends Tab> t : ClassFinder.findConcreteClasses(Tab.class)) {
+                        Tab tab = TypeDefinition.getInstance(t).newInstance();
+                        if (tab.shouldDisplay(object)) {
+                            writeStart("div", "class", "Tab", "data-tab", tab.getDisplayName(), "data-tab-class", t.getName());
+                            tab.writeHtml(this, object);
+                            writeEnd();
                         }
                     }
                 }
@@ -3272,7 +3025,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", "standardForm",
                 "method", "post",
                 "enctype", "multipart/form-data",
-                "action", url("", "id", state.getId()),
+                "action", url("", "typeId", state.getTypeId(), "id", state.getId()),
                 "autocomplete", "off",
                 "data-type", type != null ? type.getInternalName() : null);
             boolean trash = writeTrashMessage(object);
@@ -3312,6 +3065,117 @@ public class ToolPageContext extends WebPageContext {
                 writeEnd();
             }
         writeEnd();
+    }
+
+    /**
+     * Given an object of type {@code T} write the HTML for the given {@code viewType}.
+     *
+     * @param object to render using the given {@code viewType}.
+     * @param viewType type from {@link com.psddev.cms.view.ViewBinding} to render the object.
+     *
+     * @throws IOException
+     */
+    public void writeViewHtml(Object object, String viewType) throws IOException {
+        Preconditions.checkNotNull(object);
+
+        Class<? extends ViewModel> viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
+
+        Preconditions.checkNotNull(viewModelClass, String.format(
+                        "Could not find view model for object of type [%s] and view of type [%s]",
+                        object.getClass().getName(), viewType));
+
+        writeViewHtml(object, viewModelClass);
+    }
+
+    /**
+     * Writes the HTML for the view of the object using the given {@code viewModelClass}
+     *
+     * @param object
+     *        Can't be {@code null.
+     *
+     * @param viewModelClass
+     *        Can't be {@code null}.
+     *
+     * @throws IOException
+     */
+
+    public void writeViewHtml(Object object, Class<? extends ViewModel> viewModelClass) throws IOException {
+        Preconditions.checkNotNull(object);
+
+        ViewResponse viewResponse = new ViewResponse();
+        ViewModelCreator viewModelCreator = new ServletViewModelCreator(getRequest());
+
+        ViewModel<?> viewModel = null;
+        try {
+            viewModel = viewModelCreator.createViewModel(viewModelClass, object, viewResponse);
+        } catch (RuntimeException e) {
+            ViewResponse vr = ViewResponse.findInExceptionChain(e);
+            if (vr != null) {
+                viewResponse = vr;
+            } else {
+                throw e;
+            }
+        }
+
+        Preconditions.checkNotNull(viewModel, String.format(
+                "Failed to create a view model of type [%s] for object of type [%s] and view of class [%s]!",
+                viewModelClass.getName(), object.getClass().getName(), viewModelClass.getClass().getName()));
+
+        ViewRenderer renderer = Preconditions.checkNotNull(ViewRenderer.createRenderer(viewModel), String.format(
+                "Could not create view renderer for view of type [%s]",
+                viewModel.getClass().getName()));
+
+        String output = null;
+
+        try {
+            ViewOutput result = renderer.render(viewModel, new ClassResourceViewTemplateLoader(object.getClass()));
+            output = result.get();
+        } catch (RuntimeException e) {
+            ViewResponse vr = ViewResponse.findInExceptionChain(e);
+            if (vr != null) {
+                viewResponse = vr;
+            } else {
+                throw e;
+            }
+        }
+
+        ToolPageContext.updateViewResponse(getRequest(), (HttpServletResponse) JspUtils.getHeaderResponse(getRequest(), getResponse()), viewResponse);
+
+        if (output != null) {
+            write(output);
+        }
+    }
+
+    // Duplicated from PageFilter, should probably live somewhere reusable
+    // Copies the information on the ViewResponse to the actual http servlet response.
+    private static void updateViewResponse(HttpServletRequest request, HttpServletResponse response, ViewResponse viewResponse) {
+
+        Integer status = viewResponse.getStatus();
+        if (status != null) {
+            response.setStatus(status);
+        }
+
+        for (Map.Entry<String, List<String>> entry : viewResponse.getHeaders().entrySet()) {
+
+            String name = entry.getKey();
+            List<String> values = entry.getValue();
+
+            for (String value : values) {
+                response.addHeader(name, value);
+            }
+        }
+
+        viewResponse.getCookies().forEach(response::addCookie);
+        viewResponse.getSignedCookies().forEach(cookie -> JspUtils.setSignedCookie(response, cookie));
+
+        String redirectUrl = viewResponse.getRedirectUri();
+        if (redirectUrl != null) {
+            try {
+                JspUtils.redirect(request, response, redirectUrl);
+            } catch (IOException e) {
+                // ignore
+            }
+        }
     }
 
     /**
@@ -3382,7 +3246,7 @@ public class ToolPageContext extends WebPageContext {
                 "class", "queryRestrictions",
                 "data-bsp-autosubmit", "",
                 "method", "post",
-                "action", url(""));
+                "action", url("", Search.OFFSET_PARAMETER, null));
 
             qr.writeHtml(this);
         writeEnd();
@@ -3488,7 +3352,13 @@ public class ToolPageContext extends WebPageContext {
         }
 
         try {
-            if (param(UUID.class, "draftId") != null) {
+            Overlay overlay = Edit.getOverlay(object);
+
+            if (overlay != null) {
+                overlay.getState().delete();
+                redirectOnSave("");
+
+            } else if (param(UUID.class, "draftId") != null) {
                 Draft draft = getOverlaidDraft(object);
 
                 if (draft != null) {
@@ -3549,10 +3419,24 @@ public class ToolPageContext extends WebPageContext {
             Draft draft = getOverlaidDraft(object);
 
             if (draft != null) {
+                Map<String, Object> diffs = draft.getDifferences().get(state.getId().toString());
+
+                if (diffs != null) {
+                    diffs.remove("cms.content.scheduleDate");
+                }
+
                 Schedule schedule = draft.getSchedule();
 
                 if (schedule != null
                         && ObjectUtils.isBlank(schedule.getName())) {
+
+                    if (draft.isNewContent()) {
+                        draft.delete();
+
+                    } else {
+                        draft.save();
+                    }
+
                     schedule.delete();
 
                 } else {
@@ -3581,16 +3465,8 @@ public class ToolPageContext extends WebPageContext {
     public Date getContentFormPublishDate() {
         Date publishDate = param(Date.class, "publishDate");
 
-        if (publishDate != null) {
-            DateTimeZone timeZone = getUserDateTimeZone();
-            publishDate = new Date(DateTimeFormat
-                    .forPattern("yyyy-MM-dd HH:mm:ss")
-                    .withZone(timeZone)
-                    .parseMillis(new DateTime(publishDate).toString("yyyy-MM-dd HH:mm:ss")));
-
-            if (publishDate.before(new Date(new DateTime(timeZone).getMillis()))) {
-                publishDate = null;
-            }
+        if (publishDate != null && publishDate.before(new Date(Database.Static.getDefault().now()))) {
+            publishDate = null;
         }
 
         return publishDate;
@@ -3617,6 +3493,18 @@ public class ToolPageContext extends WebPageContext {
     @SuppressWarnings("unchecked")
     private Map<String, Object> findOldValuesInForm(State state) {
         return (Map<String, Object>) ObjectUtils.fromJson(param(String.class, state.getId() + "/oldValues"));
+    }
+
+    private void updateCurrentWorkflowLog(State state) throws IOException, ServletException {
+        UUID workflowLogId = param(UUID.class, "workflowLogId");
+
+        if (workflowLogId != null) {
+            WorkflowLog log = new WorkflowLog();
+
+            log.getState().setId(workflowLogId);
+            updateUsingParameters(log);
+            state.as(Workflow.Data.class).setCurrentLog(log);
+        }
     }
 
     /**
@@ -3656,6 +3544,8 @@ public class ToolPageContext extends WebPageContext {
                 state.as(Content.ObjectModification.class).setDraft(true);
             }
 
+            updateCurrentWorkflowLog(state);
+
             Map<String, Map<String, Object>> differences = Draft.findDifferences(
                     state.getDatabase().getEnvironment(),
                     findOldValuesInForm(state),
@@ -3687,6 +3577,7 @@ public class ToolPageContext extends WebPageContext {
 
             draft.update(findOldValuesInForm(state), object);
             publish(draft);
+            deleteWorksInProgress(object);
 
             if (param(String.class, "action-draftAndReturn") != null) {
                 getResponse().sendRedirect(cmsUrl("/"));
@@ -3735,6 +3626,8 @@ public class ToolPageContext extends WebPageContext {
                     && site.getDefaultVariation() != null) {
                 state.as(Variation.Data.class).setInitialVariation(site.getDefaultVariation());
             }
+
+            updateCurrentWorkflowLog(state);
 
             if (state.isNew()) {
                 state.as(Content.ObjectModification.class).setDraft(true);
@@ -3789,6 +3682,7 @@ public class ToolPageContext extends WebPageContext {
         State state = State.getInstance(object);
         boolean newContent = state.isNew() || !state.isVisible();
         Content.ObjectModification contentData = state.as(Content.ObjectModification.class);
+        Draft draft = getOverlaidDraft(object);
         ToolUser user = getUser();
 
         if (state.isNew()
@@ -3798,19 +3692,17 @@ public class ToolPageContext extends WebPageContext {
             if (getContentFormPublishDate() != null) {
                 setContentFormScheduleDate(object);
 
-            } else {
+            } else if (draft == null) {
                 contentData.setPublishDate(new Date());
                 contentData.setPublishUser(user);
             }
         }
 
-        Draft draft = getOverlaidDraft(object);
         UUID variationId = param(UUID.class, "variationId");
         Site site = getSite();
 
         try {
             state.beginWrites();
-            state.as(Workflow.Data.class).changeState(null, user, (WorkflowLog) null);
 
             if (variationId == null
                     || (site != null
@@ -3860,6 +3752,11 @@ public class ToolPageContext extends WebPageContext {
                 object = original;
                 state = State.getInstance(object);
             }
+
+            Workflow.Data workflowData = state.as(Workflow.Data.class);
+
+            workflowData.changeState(null, user, (WorkflowLog) null);
+            workflowData.setCurrentLog(null);
 
             Schedule schedule = user.getCurrentSchedule();
             Date publishDate = null;
@@ -3946,6 +3843,14 @@ public class ToolPageContext extends WebPageContext {
                     contentData.setPublishUser(null);
                 }
 
+                Overlay overlay = Edit.getOverlay(object);
+
+                if (overlay != null) {
+                    state.putAtomically("cms.content.overlaid", Boolean.TRUE);
+                    state.save();
+                    deleteWorksInProgress(object);
+                }
+
                 Map<String, Map<String, Object>> differences;
 
                 if (draft != null) {
@@ -3965,15 +3870,9 @@ public class ToolPageContext extends WebPageContext {
                             state.getSimpleValues());
                 }
 
-                Overlay overlay = Edit.getOverlay(object);
-
                 if (overlay != null) {
                     overlay.setDifferences(differences);
                     publish(overlay);
-
-                    state.putAtomically("cms.content.overlaid", Boolean.TRUE);
-                    state.save();
-                    deleteWorksInProgress(object);
 
                 } else {
                     publishDifferences(object, differences);

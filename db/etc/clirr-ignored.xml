@@ -14,6 +14,18 @@
     </difference>
 
     <difference>
+        <className>com/psddev/cms/db/ToolUi$RichText</className>
+        <differenceType>7012</differenceType>
+        <method>java.lang.Class toolbar()</method>
+    </difference>
+
+    <difference>
+        <className>com/psddev/cms/tool/SearchResultAction</className>
+        <differenceType>7012</differenceType>
+        <method>java.lang.String getGroup()</method>
+    </difference>
+
+    <difference>
         <className>com/psddev/cms/tool/SearchResultAction</className>
         <differenceType>7012</differenceType>
         <method>int getPosition()</method>
@@ -45,6 +57,12 @@
     </difference>
 
     <difference>
+        <className>com/psddev/cms/db/ToolUi$CollectionItemWeight</className>
+        <differenceType>7012</differenceType>
+        <method>boolean calculated()</method>
+    </difference>
+
+    <difference>
         <className>com/psddev/cms/db/ToolUi$Placeholder</className>
         <differenceType>7012</differenceType>
         <method>boolean clearOnChange()</method>
@@ -54,6 +72,12 @@
         <className>com/psddev/cms/db/ToolUi$RichText</className>
         <differenceType>7012</differenceType>
         <method>boolean inline()</method>
+    </difference>
+
+    <difference>
+        <className>com/psddev/cms/rtc/RtcState</className>
+        <differenceType>7012</differenceType>
+        <method>java.lang.Iterable close(java.util.Map, java.util.UUID)</method>
     </difference>
 
 </differences>

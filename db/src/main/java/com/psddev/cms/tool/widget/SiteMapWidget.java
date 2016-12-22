@@ -153,7 +153,7 @@ public class SiteMapWidget extends DashboardWidget {
                                     .filter(page.createTypeDisplayPredicate(ImmutableSet.of("read")))
                                     .collect(Collectors.toList()),
                             itemType,
-                            page.localize(null, "label.anyTypes"),
+                            page.localize(null, "label.allTypes"),
                             "name", "itemType",
                             "data-bsp-autosubmit", "",
                             "data-searchable", "true");
