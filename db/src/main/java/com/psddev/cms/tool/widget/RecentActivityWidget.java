@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
 
-import com.psddev.cms.view.CmsEmbedView;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.util.JspUtils;
 import org.joda.time.DateTime;
@@ -16,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
-import com.psddev.cms.db.PageFilter;
 import com.psddev.cms.db.Renderer;
 import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUi;
@@ -26,8 +24,6 @@ import com.psddev.cms.tool.DefaultDashboardWidget;
 import com.psddev.cms.tool.QueryRestriction;
 import com.psddev.cms.tool.Search;
 import com.psddev.cms.tool.ToolPageContext;
-import com.psddev.cms.view.ViewCreator;
-import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.State;
@@ -294,11 +290,7 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
                                 Renderer.TypeModification rendererData = contentStateType.as(Renderer.TypeModification.class);
                                 int previewWidth = rendererData.getEmbedPreviewWidth();
 
-                                if (previewWidth > 0
-                                        && (!ObjectUtils.isBlank(rendererData.getEmbedPath())
-                                        || ViewCreator.findCreatorClass(content, null, PageFilter.EMBED_VIEW_TYPE, null) != null
-                                        || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, content) != null
-                                        || ViewModel.findViewModelClass(CmsEmbedView.class, null, content) != null)) {
+                                if (previewWidth > 0 && page.isEmbeddable(content)) {
                                     permalink = JspUtils.getAbsolutePath(page.getRequest(), "/_preview", "_embed", "true", "_cms.db.previewId", contentState.getId());
                                     embedWidth = previewWidth;
                                 }

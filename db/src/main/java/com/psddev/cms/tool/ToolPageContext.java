@@ -50,6 +50,7 @@ import com.psddev.cms.rte.RichTextToolbar;
 import com.psddev.cms.rte.RichTextToolbarItem;
 import com.psddev.cms.tool.page.content.Edit;
 import com.psddev.cms.view.ClassResourceViewTemplateLoader;
+import com.psddev.cms.view.CmsEmbedView;
 import com.psddev.cms.view.ViewModelCreator;
 import com.psddev.cms.view.ViewOutput;
 import com.psddev.cms.view.ViewRenderer;
@@ -343,6 +344,27 @@ public class ToolPageContext extends WebPageContext {
         }
 
         return false;
+    }
+
+    /**
+     * Returns {@code true} is the given {@code object} is embeddable.
+     *
+     * @param object If {@code null}, always returns {@code false}.
+     */
+    public boolean isEmbeddable(Object object) {
+
+        if (object == null) {
+            return false;
+        }
+
+        State state = State.getInstance(object);
+        ObjectType type = state.getType();
+        Renderer.TypeModification rendererData = type.as(Renderer.TypeModification.class);
+
+        return !ObjectUtils.isBlank(rendererData.getEmbedPath())
+                || ViewCreator.findCreatorClass(object, null, PageFilter.EMBED_VIEW_TYPE, null) != null
+                || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, object) != null
+                || ViewModel.findViewModelClass(CmsEmbedView.class, null, object) != null;
     }
 
     /**
