@@ -205,7 +205,7 @@ public abstract class ViewModel<M> {
 
             if (!modelToViewModelClassMap.isEmpty()) {
 
-                Set<Class<?>> nearestModelClasses = ViewUtils.getNearestSuperClassesInSet(model.getClass(), modelToViewModelClassMap.keySet());
+                Set<Class<?>> nearestModelClasses = ViewUtils.getNearestSuperClassesInSet(modelClass, modelToViewModelClassMap.keySet());
                 if (nearestModelClasses.size() == 1) {
 
                     List<Class<? extends ViewModel>> viewModelClasses = modelToViewModelClassMap.get(nearestModelClasses.iterator().next());
@@ -218,7 +218,7 @@ public abstract class ViewModel<M> {
                         LOGGER.warn("Found [{}] conflicting view model bindings for model type [{}] and view type [{}]: [{}]",
                                 new Object[] {
                                         viewModelClasses.size(),
-                                        model.getClass(),
+                                        modelClass,
                                         viewClass != null ? viewClass.getName() : null,
                                         viewModelClasses.stream().map(Class::getName).collect(Collectors.joining(", "))
                                 });
@@ -231,7 +231,7 @@ public abstract class ViewModel<M> {
                     LOGGER.warn("Found [{}] conflicting view model bindings for model type [{}] and view type [{}]: [{}]",
                             new Object[] {
                                     conflictingViewModelClasses.size(),
-                                    model.getClass().getName(),
+                                    modelClass.getName(),
                                     viewClass != null ? viewClass.getName() : null,
                                     conflictingViewModelClasses.stream().map(Class::getName).collect(Collectors.joining(", "))
                             });
