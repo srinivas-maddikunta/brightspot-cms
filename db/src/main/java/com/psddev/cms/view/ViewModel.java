@@ -7,13 +7,21 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.psddev.dari.util.CodeUtils;
 import com.psddev.dari.util.TypeDefinition;
 
 /**
@@ -24,6 +32,34 @@ import com.psddev.dari.util.TypeDefinition;
 public abstract class ViewModel<M> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ViewModel.class);
+
+    private static final LoadingCache<Class<?>, LoadingCache<Object, Optional<Class<?>>>> VIEW_BINDINGS = CacheBuilder.newBuilder()
+            .weakKeys()
+            .build(new CacheLoader<Class<?>, LoadingCache<Object, Optional<Class<?>>>>() {
+
+                @Override
+                @ParametersAreNonnullByDefault
+                public LoadingCache<Object, Optional<Class<?>>> load(Class<?> modelClass) {
+                    return CacheBuilder.newBuilder()
+                            .weakKeys()
+                            .build(new CacheLoader<Object, Optional<Class<?>>>() {
+
+                                @Override
+                                @ParametersAreNonnullByDefault
+                                public Optional<Class<?>> load(final Object viewTypeObject) {
+
+                                    Class<?> viewClass = viewTypeObject instanceof Class ? (Class<?>) viewTypeObject : null;
+                                    String viewType = viewTypeObject instanceof String ? (String) viewTypeObject : null;
+
+                                    return Optional.ofNullable(findViewModelClassCacheHelper(viewClass, viewType, modelClass));
+                                }
+                            });
+                }
+            });
+
+    static {
+        CodeUtils.addRedefineClassesListener(classes -> VIEW_BINDINGS.invalidateAll());
+    }
 
     private ViewModelCreator viewModelCreator;
 
@@ -53,7 +89,7 @@ public abstract class ViewModel<M> {
      */
     protected final <T, V> V createView(Class<V> viewClass, T model) {
 
-        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClass(viewClass, null, model, true);
+        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClassHelper(viewClass, null, model, true);
         if (viewModelClass != null) {
 
             ViewModel<? super T> viewModel = viewModelCreator.createViewModel(viewModelClass, model, viewResponse);
@@ -81,7 +117,7 @@ public abstract class ViewModel<M> {
      */
     protected final <T> Object createView(String viewType, T model) {
 
-        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClass(null, viewType, model, true);
+        Class<? extends ViewModel<? super T>> viewModelClass = findViewModelClassHelper(null, viewType, model, true);
         if (viewModelClass != null) {
 
             return viewModelCreator.createViewModel(viewModelClass, model, viewResponse);
@@ -98,7 +134,7 @@ public abstract class ViewModel<M> {
         @Override
         public final <M, VM extends ViewModel<? super M>> VM createViewModel(Class<VM> viewModelClass, M model, ViewResponse viewResponse) {
 
-            if (findViewModelClass(viewModelClass, null, model, true) != null) {
+            if (findViewModelClassHelper(viewModelClass, null, model, false) != null) {
 
                 VM viewModel = TypeDefinition.getInstance(viewModelClass).newInstance();
 
@@ -132,28 +168,93 @@ public abstract class ViewModel<M> {
     }
 
     /**
-     * Finds an appropriate ViewModel class based on the given view class, view
-     * view type, and model. If more than one class is found, the result is
-     * ambiguous and null is returned.
+     * Finds an appropriate ViewModel class based on the given view class, and
+     * model. If more than one class is found, the result is ambiguous and null
+     * is returned.
      *
      * @param viewClass the desired compatible class of the returned view model.
-     * @param viewType the desired view type that is bound to the returned view model.
      * @param model the model used to look up available view model classes, that is also compatible with the returned view model class.
      * @param <M> the model type
      * @param <V> the view type
      * @return the view model class that matches the bounds of the arguments.
      */
-    public static <M, V> Class<? extends ViewModel<? super M>> findViewModelClass(Class<V> viewClass, String viewType, M model) {
-        return findViewModelClass(viewClass, viewType, model, false);
+    public static <M, V> Class<? extends ViewModel<? super M>> findViewModelClass(Class<V> viewClass, M model) {
+        return findViewModelClassHelper(viewClass, null, model, false);
     }
 
-    private static <M, V> Class<? extends ViewModel<? super M>> findViewModelClass(Class<V> viewClass, String viewType, M model, boolean logFailure) {
+    /**
+     * Finds an appropriate ViewModel class based on the given view type, and
+     * model. If more than one class is found, the result is ambiguous and null
+     * is returned.
+     *
+     * @param viewType the desired view type that is bound to the returned view model.
+     * @param model the model used to look up available view model classes, that is also compatible with the returned view model class.
+     * @param <M> the model type
+     * @return the view model class that matches the bounds of the arguments.
+     */
+    public static <M> Class<? extends ViewModel<? super M>> findViewModelClass(String viewType, M model) {
+        return findViewModelClassHelper(null, viewType, model, false);
+    }
+
+    private static <M, V> Class<? extends ViewModel<? super M>> findViewModelClassHelper(Class<V> viewClass, String viewType, M model, boolean logFailure) {
 
         if (model == null) {
             return null;
         }
 
-        Class<?> modelClass = model.getClass();
+        Class<? extends ViewModel<? super M>> viewModelClass = findViewModelClassHelper(viewClass, viewType, model);
+
+        if (viewModelClass == null && logFailure) {
+            String message = String.format("Could not find ViewModel class for model of type [%s] and view of type [%s].",
+                    model.getClass().getName(),
+                    Stream.of(viewClass != null ? viewClass.getName() : null, viewType).filter(Objects::nonNull).collect(Collectors.joining(" and")));
+
+            LOGGER.warn(message, new IllegalArgumentException());
+        }
+
+        return viewModelClass;
+    }
+
+    private static <M, V> Class<? extends ViewModel<? super M>> findViewModelClassHelper(Class<V> viewClass, String viewType, M model) {
+
+        if (model == null) {
+            return null;
+        }
+
+        try {
+            LoadingCache<Object, Optional<Class<?>>> viewTypes = VIEW_BINDINGS.get(model.getClass());
+
+            if (viewTypes != null) {
+                Object viewTypeObject = null;
+
+                if (viewClass != null) {
+                    viewTypeObject = viewClass;
+
+                } else if (viewType != null) {
+                    viewTypeObject = viewType;
+                }
+
+                if (viewTypeObject != null) {
+                    Optional<Class<?>> viewModelClass = viewTypes.get(viewTypeObject);
+
+                    if (viewModelClass.isPresent()) {
+                        return (Class<? extends ViewModel<? super M>>) viewModelClass.get();
+                    }
+                }
+            }
+
+        } catch (ExecutionException e) {
+            // ignore
+        }
+
+        return null;
+    }
+
+    private static Class<? extends ViewModel<?>> findViewModelClassCacheHelper(Class<?> viewClass, String viewType, Class<?> modelClass) {
+
+        if (modelClass == null) {
+            return null;
+        }
 
         // if it's a view model class, with no type specified, then just verify that the model types match.
         if (viewClass != null && viewType == null
@@ -164,7 +265,7 @@ public abstract class ViewModel<M> {
             if (declaredModelClass != null && declaredModelClass.isAssignableFrom(modelClass)) {
 
                 @SuppressWarnings("unchecked")
-                Class<? extends ViewModel<? super M>> viewModelClass = (Class<? extends ViewModel<? super M>>) viewClass;
+                Class<? extends ViewModel<?>> viewModelClass = (Class<? extends ViewModel<?>>) viewClass;
 
                 return viewModelClass;
 
@@ -217,7 +318,7 @@ public abstract class ViewModel<M> {
                     List<Class<? extends ViewModel>> viewModelClasses = modelToViewModelClassMap.get(nearestModelClasses.iterator().next());
                     if (viewModelClasses.size() == 1) {
                         @SuppressWarnings("unchecked")
-                        Class<? extends ViewModel<? super M>> viewModelClass = (Class<? extends ViewModel<? super M>>) (Object) viewModelClasses.get(0);
+                        Class<? extends ViewModel<?>> viewModelClass = (Class<? extends ViewModel<?>>) viewModelClasses.get(0);
 
                         return viewModelClass;
                     } else {
@@ -245,12 +346,14 @@ public abstract class ViewModel<M> {
             }
         }
 
-        if (logFailure) {
-            LOGGER.warn("Could not find view model class for model of type [{}] and view of type [{}].",
-                    modelClass.getName(),
-                    Stream.of(viewClass != null ? viewClass.getName() : null, viewType).filter(Objects::nonNull).collect(Collectors.joining(" and")));
-        }
-
         return null;
+    }
+
+    /**
+     * @deprecated Use {@link #findViewModelClass(Class, Object)} or {@link #findViewModelClass(String, Object)} instead.
+     */
+    @Deprecated
+    public static <M, V> Class<? extends ViewModel<? super M>> findViewModelClass(Class<V> viewClass, String viewType, M model) {
+        return findViewModelClassHelper(viewClass, viewType, model, false);
     }
 }

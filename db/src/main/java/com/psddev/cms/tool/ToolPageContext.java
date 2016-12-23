@@ -338,10 +338,10 @@ public class ToolPageContext extends WebPageContext {
                 if ((pageViewClass != null && ViewCreator.findCreatorClass(object, pageViewClass.value(), null, null) != null)
                         || ViewCreator.findCreatorClass(object, null, PageFilter.PAGE_VIEW_TYPE, null) != null
                         || ViewCreator.findCreatorClass(object, null, PageFilter.PREVIEW_VIEW_TYPE, null) != null
-                        || ViewModel.findViewModelClass(null, PageFilter.PAGE_VIEW_TYPE, object) != null
-                        || ViewModel.findViewModelClass(null, PageFilter.PREVIEW_VIEW_TYPE, object) != null
-                        || ViewModel.findViewModelClass(CmsPageView.class, null, object) != null
-                        || ViewModel.findViewModelClass(CmsPreviewView.class, null, object) != null) {
+                        || ViewModel.findViewModelClass(PageFilter.PAGE_VIEW_TYPE, object) != null
+                        || ViewModel.findViewModelClass(PageFilter.PREVIEW_VIEW_TYPE, object) != null
+                        || ViewModel.findViewModelClass(CmsPageView.class, object) != null
+                        || ViewModel.findViewModelClass(CmsPreviewView.class, object) != null) {
                     return true;
                 }
             }
@@ -367,8 +367,8 @@ public class ToolPageContext extends WebPageContext {
 
         return !ObjectUtils.isBlank(rendererData.getEmbedPath())
                 || ViewCreator.findCreatorClass(object, null, PageFilter.EMBED_VIEW_TYPE, null) != null
-                || ViewModel.findViewModelClass(null, PageFilter.EMBED_VIEW_TYPE, object) != null
-                || ViewModel.findViewModelClass(CmsEmbedView.class, null, object) != null;
+                || ViewModel.findViewModelClass(PageFilter.EMBED_VIEW_TYPE, object) != null
+                || ViewModel.findViewModelClass(CmsEmbedView.class, object) != null;
     }
 
     /**

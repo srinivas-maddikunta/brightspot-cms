@@ -1121,13 +1121,13 @@ public class PageFilter extends AbstractFilter {
         List<String> viewTypes = new ArrayList<>();
 
         if (!ObjectUtils.isBlank(viewType)) {
-            viewModelClass = ViewModel.findViewModelClass(null, viewType, object);
+            viewModelClass = ViewModel.findViewModelClass(viewType, object);
             viewTypes.add(viewType);
 
             if (viewModelClass == null) {
 
                 if (EMBED_VIEW_TYPE.equals(viewType)) {
-                    viewModelClass = ViewModel.findViewModelClass(CmsEmbedView.class, null, object);
+                    viewModelClass = ViewModel.findViewModelClass(CmsEmbedView.class, object);
                     viewTypes.add(CmsEmbedView.class.getName());
                 }
 
@@ -1140,11 +1140,11 @@ public class PageFilter extends AbstractFilter {
             // Try to create a view for the PREVIEW_VIEW_TYPE...
             if (Static.isPreview(request)) {
 
-                viewModelClass = ViewModel.findViewModelClass(CmsPreviewView.class, null, object);
+                viewModelClass = ViewModel.findViewModelClass(CmsPreviewView.class, object);
                 viewTypes.add(CmsPreviewView.class.getName());
 
                 if (viewModelClass == null) {
-                    viewModelClass = ViewModel.findViewModelClass(null, PREVIEW_VIEW_TYPE, object);
+                    viewModelClass = ViewModel.findViewModelClass(PREVIEW_VIEW_TYPE, object);
                     viewTypes.add(PREVIEW_VIEW_TYPE);
                 }
 
@@ -1156,11 +1156,11 @@ public class PageFilter extends AbstractFilter {
             // ...but still always fallback to PAGE_VIEW_TYPE if no preview found.
             if (viewModelClass == null) {
 
-                viewModelClass = ViewModel.findViewModelClass(CmsPageView.class, null, object);
+                viewModelClass = ViewModel.findViewModelClass(CmsPageView.class, object);
                 viewTypes.add(CmsPageView.class.getName());
 
                 if (viewModelClass == null) {
-                    viewModelClass = ViewModel.findViewModelClass(null, PAGE_VIEW_TYPE, object);
+                    viewModelClass = ViewModel.findViewModelClass(PAGE_VIEW_TYPE, object);
                     viewTypes.add(PAGE_VIEW_TYPE);
                 }
 
