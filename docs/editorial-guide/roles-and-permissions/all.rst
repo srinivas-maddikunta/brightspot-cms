@@ -1,10 +1,12 @@
-Roles and Permissions
-=====================
+Roles, Users, and Permissions
+=============================
 
-Define users and roles to control access to features and functions in Brightspot.
+Brightspot limits access to certain features based on a user's role. The following sections describe how to design roles, create new users, and assign roles to those users. 
 
-.. include:: users.rst
 .. include:: roles.rst
+.. include:: users.rst
+
+
 
 
 

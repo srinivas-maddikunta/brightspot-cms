@@ -1,62 +1,129 @@
-Users Widget
-------------
+.. |emDash| raw:: html
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/e3/b6/91e271334af58f291ed2a09e0f77/screen-shot-2016-04-12-at-11.34.35%20AM.jpg
+   &#8212;
 
-The Users widget lists existing users. Click a user to edit their information and options. Use the Search box to find a specific user. Click New Tool User to create a new user.
 
 Creating New Users
 ------------------
 
-Create a new user by clicking New User on the left side of the Admin > Users & Roles page.
+**To create a user:**
 
-Main
-~~~~
+#. From the system menu, select **Admin > Users & Roles**. The Users and Roles widgets appear on the left side of the page (`example <users_roles_widgets_>`_).
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/62580d1/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F81%2Fdf%2F0d75929740568f017080940adc0e%2F30-new-tool-userpng.0-new-tool-user.png
+#. In the Users widget, click **New Tool User**. The New Tool User widget appears.
 
-**Role:** Set the role for the new user. This field will initially be set to the default role provided in Admin > Settings > Defaults. If left blank, the user will have access to everything.
+#. In the **Main** tab, and using the following table as a reference, make selections for the new user. Yellow shading appears for those fields whose selections you change.
 
-**Name:** Give the user a name that will appear on content created or edited by the user.
+#. In the **Dashboard** tab, make selections to configure the user's dashboard.
 
-**Email:** The user's email address can be used for notifications. If no username is provided, the email address will be the username.
+#. In the **Advanced** tab, make selections for security settings.
 
-**Username:** The name with which the user will log in.
+#. Click **Save**.
 
-**Password:** Choose "Keep Same" to leave the user's password alone, or choose "Change" to manually set a new password for the user.
 
-**Avatar:** Set an avatar for the user. You can choose "None," for no avatar, "Ne* w Upload," to upload a new avatar into Brightspot, or "New URL," to link to an avatar elsewhere on the internet.
 
-**Locale:** Set the location and language for the user.
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Field                               |Description                                                                                                                                                                                                                                     |
++====================================+================================================================================================================================================================================================================================================+
+|**Main tab**                                                                                                                                                                                                                                                                         |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Role                                |User's role. If blank, user access to all features. For an explanation of roles, see `Creating New Roles`_.                                                                                                                                     |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Name                                |Name that appears on content created or edited by the user.                                                                                                                                                                                     |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Email                               |User's email address. If blank, Brightspot applies the user's username.                                                                                                                                                                         |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Username                            |Name with which user logs in to Brightspot.                                                                                                                                                                                                     |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Password                            |User's password.                                                                                                                                                                                                                                |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Change\ |emdash|\ Displays fields for adding or changing a user's password.                                                                                                                                                                     |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Keep Same\ |emdash|\ Retains current password. If you are creating a new user and select this option, the user will not be able to log in.                                                                                                      |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Avatar                              |User's avatar.                                                                                                                                                                                                                                  |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |None\ |emdash|\ No avatar associated with the user.                                                                                                                                                                                             |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |New Upload\ |emdash|\ Displays a field for uploading an avatar.                                                                                                                                                                                 |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |New URL\ |emdash|\ Displays a field for entering an avatar's URL.                                                                                                                                                                               |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Dropbox\ |emdash|\ Displays a field for selecting an avatar from your Dropbox account.                                                                                                                                                          |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Locale                              |User's location and language.                                                                                                                                                                                                                   |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Time Zone                           |User's time zone.                                                                                                                                                                                                                               |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Phone Number                        |User's phone number for receiving text messages.                                                                                                                                                                                                |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Notify Via                          |Method by which user receives messages.                                                                                                                                                                                                         |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Email\ |emdash|\ User receives notifications at the address in the Email field.                                                                                                                                                                 |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Text Message\ |emdash|\ User receives text messages at the number in the Phone Number field.                                                                                                                                                    |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Inline Editing                      |Setting for content that user can edit.                                                                                                                                                                                                         |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |All Contents\ |emdash|\ User can edit all content appearing with an item, including related content. For example, if you are running a story about lions, and there is a related story about jungles, the user can edit the story about jungles.|
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Only Main Content\ |emdash|\ User can edit content appearing with an item, excluding related content.                                                                                                                                           |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Disabled\ |emdash|\ User cannot edit any content.                                                                                                                                                                                               |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Change Password on Log In           |Forces users to enter a new password upon next login. Use this feature if you manually changed the user's password, or if you created a new user.                                                                                               |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|**Dashboard tab**                                                                                                                                                                                                                                                                    |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Dashboard                           |Settings for user's dashboard.                                                                                                                                                                                                                  |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |None\ |emdash|\ User sees the role-wide default dashboard.                                                                                                                                                                                      |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |One Off\ |emdash|\ User can create a customized dashboard. For details, see :doc:`Working with One-off Dashboards </cms/editorial-guide/dashboard/dash-oneoff>`.                                                                                |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Shared\ |emdash|\ User has access to shared dashboards. For details, see :doc:`Working with Shared Dashboards </cms/editorial-guide/dashboard/dash-shared>`.                                                                                    |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |For more information about dashboards, see :doc:`Dashboard </cms/editorial-guide/dashboard/all>`.                                                                                                                                               |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Edit Existing Contents              |Lists existing content the new user can edit. Click **Add Item**, and search for the required items. For more information about searching for items, see :doc:`Search </cms/editorial-guide/search/all>`.                                       |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|**Advanced tab**                                                                                                                                                                                                                                                                     |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Two Factor Authentication Required  |Setting for two-factor authentication to log in to Brightspot.                                                                                                                                                                                  |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Default\ |emdash|\ Setting is same as the user's role.                                                                                                                                                                                          |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Required\ |emdash|\ Two-factor authentication is required for this user.                                                                                                                                                                        |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |Not Required\ |emdash|\ Two-factor authentication is not required for this user.                                                                                                                                                                |
+|                                    |                                                                                                                                                                                                                                                |
+|                                    |For more information, see :doc:`Two Factor Authentication <../two-factor-auth/all>`.                                                                                                                                                            |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Return To Dashboard On Save         |If marked, user automatically returns to dashboard after saving changes to content.                                                                                                                                                             |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Return to Dashboard On Workflow     |If marked, user automatically returns to dashboard after adding content to a workflow.                                                                                                                                                          |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Disable Navigate Away Alert         |If marked, user does not receive an alert when leaving the Content Edit page.                                                                                                                                                                   |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Disable Code Mirror Rich Text Editor|If marked, user uses legacy Rich Text Editor instead of the newer Code Mirror-based editor.                                                                                                                                                     |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Disable Work In Progress            |Disables the work-in-progress feature. This feature maintains live backups of work if your Brightspot session unexpectedly ends.                                                                                                                |
++------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-**Time Zone:** Set the time zone for the user.
+Editing Users
+-------------
 
-**Phone Number:** The provided phone number can be used for text notifications.
+**To edit a user:**
 
-**Notify Via:** Choose whether notifications should be delivered via the user's email or texted to the user's phone number.
+#. From the system menu, select **Admin > Users & Roles**. The Users and Roles widgets appear on the left side of the page (`example <users_roles_widgets_>`_).
 
-**Inline Editing:** Control whether the user can use inline editing on all contents, only main content, or disable inline editing altogether. A search box in the Users & Roles section is provided to help you track and manage your users.
+#. In the Users widget, click in the **Search** field, and start typing the user's name. Brightspot lists matching users.
 
-**Change Password On Log In?:** Force the user to choose a new password. If you've assigned the new user a temporary password, you can provide the user with the insecure temporary password but require them to choose a new, secure password on first login.
+#. Click the user you want to edit.
 
-Dashboard
-~~~~~~~~~
+#. In the **Main**, **Dashboard**, and **Advanced** tabs, and using the above table, update the user's settings as required. 
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/fb/77/c022a4ac4c79a5a3706e87791747/screen-shot-2016-04-12-at-11.09.25%20AM.jpg
+#. Click **Save**.
 
-Set and edit the default Dashboard for the new user. See the `Dashboard chapter <http://www.brightspot.com/docs/3.2/editorial-support/dashboard#building-a-custom-dashboard>`_ for more information about designing a custom dashboard.
 
-Advanced
-~~~~~~~~
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/79/8d/89fc08894cb5ab080fb032ba488e/screen-shot-2016-04-12-at-11.09.50%20AM.jpg
-
-**Two Factor Authentication Required?:** Control whether or not the user is required to use Two Factor Authentication or not. For more information, see :doc:`../two-factor-auth/all`.
-
-**Return to Dashboard on Save?:** Check to make the user to return to the Dashboard automatically after saving content.
-
-**Return to Dashboard on Workflow?:** Check to make the user return to the Dashboard automatically after adding content to a Workflow.
-
-**Disable Navigate Away Alert?:** Check to prevent the user from receiving an alert pop-up when leaving the Content Edit page.
-
-**Disable Code Mirror Rich Text Editor?:** Check to force the user to use the legacy Rich Text Editor instead of the current Code Mirror-based version.
