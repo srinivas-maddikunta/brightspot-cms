@@ -41,7 +41,6 @@ public abstract class ViewModel<M> {
                 @ParametersAreNonnullByDefault
                 public LoadingCache<Object, Optional<Class<?>>> load(Class<?> modelClass) {
                     return CacheBuilder.newBuilder()
-                            .weakKeys()
                             .build(new CacheLoader<Object, Optional<Class<?>>>() {
 
                                 @Override
