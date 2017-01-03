@@ -1,8 +1,3 @@
-.. |emDash| raw:: html
-
-   &#8212;
-
-
 Creating New Users
 ------------------
 
