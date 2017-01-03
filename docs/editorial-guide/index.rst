@@ -14,7 +14,6 @@
     image-editing/all
     search/all
     locking/all
-    tables/all
     seo/all
     bulk-editing/all
     versioning/all
