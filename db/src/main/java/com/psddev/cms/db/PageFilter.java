@@ -129,8 +129,23 @@ public class PageFilter extends AbstractFilter {
 
     public static final String MAIN_OBJECT_RENDERER_CONTEXT = "_main";
     public static final String EMBED_OBJECT_RENDERER_CONTEXT = "_embed";
+
+    /**
+     * @deprecated Use {@linkplain CmsPageView} instead.
+     */
+    @Deprecated
     public static final String PAGE_VIEW_TYPE = "cms.page";
+
+    /**
+     * @deprecated Use {@linkplain CmsPreviewView} instead.
+     */
+    @Deprecated
     public static final String PREVIEW_VIEW_TYPE = "cms.preview";
+
+    /**
+     * @deprecated Use {@linkplain CmsEmbedView} instead.
+     */
+    @Deprecated
     public static final String EMBED_VIEW_TYPE = "cms.embed";
 
     public static final String VIEW_TYPE_PARAMETER = "_viewType";
