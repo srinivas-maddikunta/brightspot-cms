@@ -154,10 +154,6 @@ try {
             wp.write(" inputContainer-expanded");
         }
 
-        if (ui.isUnlabeled()) {
-            wp.write(" inputContainer-unlabeled");
-        }
-
         String cssClass = ui.getCssClass();
 
         if (!ObjectUtils.isBlank(cssClass)) {
