@@ -78,7 +78,7 @@ class ViewMap implements Map<String, Object> {
                 .stream()
                 // grab the list of bean property descriptors
                 .map(ViewMap::getBeanPropertyDescriptors)
-                // flatten the descriptors across all the interfaces
+                // flatten the descriptors across all the classes
                 .flatMap(Collection::stream)
                 // exclude the getClass() method
                 .filter((prop) -> !"class".equals(prop.getName()))
@@ -280,15 +280,13 @@ class ViewMap implements Map<String, Object> {
         }
     }
 
-    // Gets a list of all the interface classes that are implemented by the view
-    // objects and are annotated with @ViewInterface.
+    // Gets a list of all the classes that are implemented by the view objects
+    // and are annotated with @ViewInterface.
     private static List<Class<?>> getViewClasses(Object view) {
 
         // find all the classes that could contain annotations
         return ViewUtils.getAnnotatableClasses(view.getClass())
                 .stream()
-                // only look at interfaces
-                .filter(Class::isInterface)
                 // that are annotated with @ViewInterface
                 .filter(klass -> klass.isAnnotationPresent(ViewInterface.class))
                 // add to list
