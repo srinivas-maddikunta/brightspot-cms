@@ -20,7 +20,6 @@
     workstreams/all
     workflows/all
     roles-and-permissions/all
-    contributor-controls/all
     user-settings/all
     site-settings/all
     content-type-settings/all
