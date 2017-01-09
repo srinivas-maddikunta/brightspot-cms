@@ -1,9 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
-
 ==========================================
 Publishing Process
 ==========================================
@@ -24,15 +18,15 @@ Workflow Tab  Publish Tab
 ============= ============
 |image1|      |image2|
 ============= ============
-.. |image1| image:: ./images/state1_wftab.png 
-.. |image2| image:: ./images/state1_pubtab.png
+.. |image1| image:: images/state1_wfTab.png 
+.. |image2| image:: images/state1_pubTab.png
 
 When you create a new content item and save it as a draft, that initial draft is a single revision of the content; that is, it is an independent version object that is stored in the database. If another user creates a second draft of the content item, then a second revision of the content is created, and a second version object is stored in the database. If the user publishes the second revision, the content state of that revision changes from draft to published. 
 
 No saved content is ever lost.  All of the revisions of a content item provide an historical record of the content, and are listed in the Revisions widget, which is displayed in the Content Edit pane below the Publish widget.
 
 
-.. image:: ./images/pubIntro_revision.png
+.. image:: images/pubIntro_revision.png
 
 
 | **See also:**

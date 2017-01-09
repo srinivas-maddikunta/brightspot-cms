@@ -15,14 +15,14 @@ A named schedule is an object with a trigger publication date. When a named sche
 
    The **Trigger Date** is the date when all events associated with this schedule are published.
  
-   .. image:: ./images/pubnewschedule.png
+   .. image:: images/pubNewSchedule.png
       :width: 348px
       :height: 221px
 
 
    Saving the new schedule immediately puts the Dashboard into event-scheduling mode, as indicated by the message bar at the top of the Dashboard.
 
-   .. image:: ./images/pubmessagebar.png
+   .. image:: images/pubMessageBar.png
       :width: 658px
       :height: 60px
 
@@ -34,7 +34,7 @@ A named schedule is an object with a trigger publication date. When a named sche
 
    You are prompted to select a schedule.
 
-   .. image:: ./images/pubschedules.png
+   .. image:: images/pubSchedules.png
       :width: 350px
       :height: 132px
 
@@ -62,7 +62,7 @@ A named schedule is an object with a trigger publication date. When a named sche
 
    The Scheduled Event widget reflects all of the events scheduled for publication for the named schedule.
 
-   .. image:: ./images/pubscheduledevents.png
+   .. image:: images/pubScheduledEvents.png
       :width: 389px
       :height: 452px
 

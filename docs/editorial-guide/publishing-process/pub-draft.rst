@@ -1,8 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
 ================================
 Saving Draft Content
 ================================
@@ -23,7 +18,7 @@ You can create drafts from new content that has not yet been published, or from 
 
 1. Use the Publish widget to save new content in an initial draft.
 
-   .. image:: ./images/pubwftab.png
+   .. image:: images/pubwfTab.png
       :width: 310px
       :height: 290px
 
@@ -36,7 +31,7 @@ You can create drafts from new content that has not yet been published, or from 
 
    With new, unpublished content, the Content Editor provides a side-by-side comparison between the initial draft and any additional draft that is currently selected (not shown). Additionally, the Publish widget provides the option of merging the content of an additional draft with the content of the initial draft.
 
-   .. image:: ./images/pubrevisionswidget.png
+   .. image:: images/pubRevisionsWidget.png
     :width: 706px
     :height: 521px
 
@@ -50,13 +45,13 @@ You can create drafts from new content that has not yet been published, or from 
    **Publish widget:**
 
    a. Modify the live version.
-\
+
    b. In the Publish widget, click **Save Draft**.
 
    **Revisions widget:**
 
-   a. | In the Revisions widget, click **New Draft** and name the draft.
-      | The new draft is created with the content of the live version.
+   a. In the Revisions widget, click **New Draft** and name the draft.
+      The new draft is created with the content of the live version.
 
    b. Modify the draft.
 
@@ -64,7 +59,7 @@ You can create drafts from new content that has not yet been published, or from 
 
 The following example indicates that two post-publication drafts have been created, one with the Publish widget and the other with the Revisions widget. 
 
-.. image:: ./images/pubrevisionswidget2.png
+.. image:: images/pubRevisionsWidget2.png
      :width: 427px
      :height: 465px
 

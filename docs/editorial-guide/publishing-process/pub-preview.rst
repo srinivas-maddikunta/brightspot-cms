@@ -1,8 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
 ================================
 Previewing Content
 ================================
@@ -13,7 +8,7 @@ For content types associated with a view, the Preview feature shows you how your
 
 In the Content Edit page, click the **Preview** link in the Publish widget. The **Preview** window appears.
 
-.. image:: ./images/pubpreview.png
+.. image:: images/PubPreview.png
       :width: 721px
       :height: 455px
 
@@ -32,7 +27,7 @@ You can perform the following actions with the **Preview** window controls:
 
   As show in the following example, several content items of type Story can be selected in the View Picker. The currently published version of the Story content item is reflected in the previewed page.
 
-  .. image:: ./images/pubviewpicker.png
+  .. image:: images/pubViewPicker.png
       :width: 509px
       :height: 200px
 

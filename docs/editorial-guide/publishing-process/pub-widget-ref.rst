@@ -1,9 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
-
 .. This fixes the sizes of the two image maps. Without it, the images are resized, breaking the area coordinates.
 .. raw:: html
 
@@ -49,7 +43,7 @@ The first diagram shows the pre-publication content states, starting with creati
        <area alt="" title="" href="#state6" shape="rect" coords="490,315,625,415 />
      </map>
 .. Do rst reference so the Sphinx build copies it to output directory. Give it 0 width/height so it does not appear twice on the page.
-.. image:: ./images/prepubdiagram.png
+.. image:: images/prepubdiagram.png
     :width: 0px
     :height: 0px
 
@@ -70,7 +64,7 @@ The second diagram shows the post-publication content states, in which published
        <area alt="" title="" href="#state8" shape="rect" coords="325,325,435,390" />
        <area alt="" title="" href="#state9" shape="rect" coords="30,300,165,340" />
        <area alt="" title="" href="#state5" shape="rect" coords="500,130,720,200" />
-.. image:: ./images/postpubdiagram.png
+.. image:: images/postpubdiagram.png
     :width: 0px
     :height: 0px
 
@@ -104,7 +98,6 @@ The following Brightspot content states determine the Publish Widget UI function
 
 | *Current Context*: New content, not yet saved or moved into a workflow (WF).
 
-| *Brightspot Notes*: 
 
 
 ============= ============
@@ -112,8 +105,8 @@ Workflow Tab  Publish Tab
 ============= ============
 |image1|      |image2|
 ============= ============
-.. |image1| image:: ./images/state1_wftab.png 
-.. |image2| image:: ./images/state1_pubtab.png
+.. |image1| image:: images/state1_wfTab.png 
+.. |image2| image:: images/state1_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -154,15 +147,14 @@ For new, unsaved content, the Revision widget is not rendered in the Content Edi
 
 | *Previous Context*: :ref:`state1`
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 |image3|      |image4|
 ============= ============
-.. |image3| image:: ./images/state2_wftab.png 
-.. |image4| image:: ./images/state2_pubtab.png
+.. |image3| image:: images/state2_wfTab.png 
+.. |image4| image:: images/state2_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -195,7 +187,7 @@ Delete Permanently                       | > Prompts for confirmation   (irrecov
 
 For initial draft state, the Revision widget is similar to the following:
 
-.. image:: ./images/state2_revision.png
+.. image:: images/state2_revision.png
    :width: 310px
    :height: 290px
 
@@ -209,15 +201,14 @@ For initial draft state, the Revision widget is similar to the following:
 
 | *Previous Context*: :ref:`state1` or  :ref:`state2` or  :ref:`state4a`
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 |image5|      |image6|
 ============= ============
-.. |image5| image:: ./images/state3_wftab.png 
-.. |image6| image:: ./images/state3_pubtab.png
+.. |image5| image:: images/state3_wfTab.png 
+.. |image6| image:: images/state3_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -254,9 +245,9 @@ Submitted             Rejected           Resubmitted
 ===================== ================== ===================
 |image30|             |image31|                  |image32|
 ===================== ================== ===================
-.. |image30| image:: ./images/state3_revision1.png
-.. |image31| image:: ./images/state3_revision2.png
-.. |image32| image:: ./images/state3_revision3.png
+.. |image30| image:: images/state3_revision1.png
+.. |image31| image:: images/state3_revision2.png
+.. |image32| image:: images/state3_revision3.png
 
 
 
@@ -269,14 +260,13 @@ Submitted             Rejected           Resubmitted
 
 | *Previous Context*: :ref:`state1` or  :ref:`state2` or :ref:`state3` or :ref:`state4a`
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 n/a           |image7|
 ============= ============
-.. |image7| image:: ./images/state4_pubtab.png
+.. |image7| image:: images/state4_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -305,7 +295,7 @@ Delete Permanently                       | > Prompts for confirmation   (irrecov
 
 For new scheduled content, the Revision widget is similar to the following:
 
-.. image:: ./images/state4_revision.png
+.. image:: images/state4_revision.png
 
 
 
@@ -318,15 +308,14 @@ For new scheduled content, the Revision widget is similar to the following:
 
 | *Previous Context*: :ref:`state4`
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 |image8|      |image9|
 ============= ============
-.. |image8| image:: ./images/state4a_wftab.png
-.. |image9| image:: ./images/state4a_pubtab.png
+.. |image8| image:: images/state4a_wfTab.png
+.. |image9| image:: images/state4a_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -361,7 +350,7 @@ Delete Permanently                       | > Prompts for confirmation   (irrecov
 
 For previously scheduled content that was unscheduled from publication, the Revision widget is similar to the following:
 
-.. image:: ./images/state4a_revision.png
+.. image:: images/state4a_revision.png
 
 
 
@@ -374,14 +363,13 @@ For previously scheduled content that was unscheduled from publication, the Revi
 
 | *Previous Context*: :ref:`state1` or :ref:`state2` or :ref:`state3` or :ref:`state4` or :ref:`state6` or :ref:`state7`    
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 n/a           |image10|
 ============= ============
-.. |image10| image:: ./images/state5_pubTab.png
+.. |image10| image:: images/state5_pubTab.png
 
 
 .. Use escape character to prevent tables from running together.
@@ -414,7 +402,7 @@ Archive                                  > Removes live content,        :ref:`st
 
 For published content that has transitioned through various draft states, the Revision widget is similar to the following:
 
-.. image:: ./images/state5_revision.png
+.. image:: images/state5_revision.png
 
 
 .. corresponds with state2
@@ -427,15 +415,14 @@ For published content that has transitioned through various draft states, the Re
 
 | *Previous Context*:  :ref:`state5`
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 |image11|      |image12|
 ============= ============
-.. |image11| image:: ./images/state6_wftab.png 
-.. |image12| image:: ./images/state6_pubtab.png
+.. |image11| image:: images/state6_wfTab.png 
+.. |image12| image:: images/state6_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -471,7 +458,7 @@ Delete Draft                             | > Prompts for confirmation   (irrecov
 
 For published content that is updated, the Revision widget is similar to the following:
 
-.. image:: ./images/state6_revision.png
+.. image:: images/state6_revision.png
 
 
 
@@ -485,15 +472,14 @@ For published content that is updated, the Revision widget is similar to the fol
 
 | *Previous Context*:  :ref:`state6`
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 |image13|      |image14|
 ============= ============
-.. |image13| image:: ./images/state7_wftab.png 
-.. |image14| image:: ./images/state7_pubtab.png
+.. |image13| image:: images/state7_wfTab.png 
+.. |image14| image:: images/state7_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -534,9 +520,9 @@ Submitted             Rejected           Resubmitted
 ===================== ================== ===================
 |image60|             |image61|          |image62|
 ===================== ================== ===================
-.. |image60| image:: ./images/state7_revision1.png
-.. |image61| image:: ./images/state7_revision2.png
-.. |image62| image:: ./images/state7_revision3.png
+.. |image60| image:: images/state7_revision1.png
+.. |image61| image:: images/state7_revision2.png
+.. |image62| image:: images/state7_revision3.png
 
 
 
@@ -549,14 +535,13 @@ Submitted             Rejected           Resubmitted
 
 | *Previous Context*:  :ref:`state5` or :ref:`state6` or :ref:`state7`    
 
-| *Brightspot Notes*: 
 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 n/a           |image15|
 ============= ============
-.. |image15| image:: ./images/state8_pubtab.png
+.. |image15| image:: images/state8_pubTab.png
 
 .. Use escape character to prevent tables from running together.
 
@@ -588,7 +573,7 @@ Delete Draft                             | > Prompts for confirmation   (irrecov
 
 For updated content that is scheduled for republication, the Revision widget is similar to the following:
 
-.. image:: ./images/state8_revision.png
+.. image:: images/state8_revision.png
 
 
 
@@ -655,13 +640,12 @@ For updated content that is scheduled for republication, the Revision widget is 
 
 | *Previous Context*: :ref:`state5`
 
-| *Brightspot Notes*: 
 ============= ============
 Workflow Tab  Publish Tab
 ============= ============
 n/a           |image18|
 ============= ============
-.. |image18| image:: ./images/state9_pubtab.png
+.. |image18| image:: images/state9_pubTab.png
 
 ====================================     ============================   ================================
 Link                                     Actions                        New State
@@ -683,4 +667,4 @@ Preview                                  | > Shows content as it        (preview
 
 For live content that is archived, the Revision widget is similar to the following:
 
-.. image:: ./images/state9_revision.png
+.. image:: images/state9_revision.png

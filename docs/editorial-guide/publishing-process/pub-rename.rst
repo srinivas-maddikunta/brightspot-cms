@@ -1,8 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red}</style>
-
-
 ================================
 Renaming Revisions
 ================================
@@ -18,7 +13,7 @@ You can rename past published revisions, allowing you to provide a more descript
    In the following example, two past published revisions are renamed.
 
 
-   .. image:: ./images/pubrevisionswidget5.png
+   .. image:: images/pubRevisionsWidget5.png
     :width: 322px
     :height: 458px
 
