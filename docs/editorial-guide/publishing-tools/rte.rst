@@ -185,12 +185,6 @@ Add Marker
 
 Add to denote breaks in a body of text like truncation, a "Read More" link, or a page break.
 
-Add Table
-^^^^^^^^^
-
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/53/b8/1faef2a0443ead98db0a75115860/screen-shot-2016-04-06-at-2.56.52%20PM.jpg
-
-Creates an editable table in the text field. For more information, please see the `Tables chapter <http://www.brightspot.com/docs/3.2/editorial-support/tables>`_.
 
 Change Tracking
 ~~~~~~~~~~~~~~~
