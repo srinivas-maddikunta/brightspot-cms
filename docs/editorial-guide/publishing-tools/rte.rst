@@ -118,6 +118,54 @@ Right Align Text
 
 Align text to the right.
 
+
+
+Tables
+~~~~~~
+
+Brightspot 3.2 adds tables to the Rich Text Editor, providing better control for laying out your content.
+
+
+Adding Tables
+^^^^^^^^^^^^^
+
+You can add tables to your content in three general ways:
+
+Create a table directly in the Rich Text Editor: Click the "Table" button in the Rich Text Editor toolbar. The default table is one row high and two columns wide.
+
+.. image:: http://d3qqon7jsl4v2v.cloudfront.net/e7/13/61f879034622ab9b86c4ebaf8184/brightspot-3.2%20Adding%20a%20Table.gif
+
+\
+
+* Copy and paste a table: The Rich Text Editor will accept tables copied from most sources, including Microsoft Excel, Google Sheets, Apple Numbers, and rendered HTML tables.
+* Create an HTML table: Write your table in raw HTML in the Rich Text Editor, select your code, and click the "Raw HTML" button, or write it in HTML mode.
+
+Editing Tables
+^^^^^^^^^^^^^^
+
+Three buttons in the top left corner of the table allow you to change the location of the table in your content. From left to right, the buttons move the table toward the top of your content, toward the bottom of your content, and remove it from your content entirely.
+
+.. image:: http://d3qqon7jsl4v2v.cloudfront.net/e0/49/13df98ad4bbbbbd06b8bda3f848d/screen-shot-2016-02-16-at-1.38.49%20PM.jpg
+
+To edit the contents of the table, click an empty cell and choose from the following options:
+
+.. image:: http://d3qqon7jsl4v2v.cloudfront.net/86/c9/74ada36b49b6bbd32485be442d58/screen-shot-2016-04-21-at-3.05.52%20PM.jpg
+
+\
+
+* Edit: Change the content of a cell.
+* Insert row above: Create a new row above the currently selected cell. The new row will have the same number of columns as the current row.
+* Insert row below: Create a new row below the currently selected cell. The new row will have the same number of columns as the current row.
+* Insert column on the left: Create a new column to the left of the currently selected cell. The new column will have the same number of rows as the current column.
+* Insert column on the right: Create a new column to the right of the currently selected cell. The new column will have the same number of rows as the current column.
+* Remove row: Deletes the row containing the selected cell from the table. All content in the row will be lost.
+* Remove column: Deletes the column containing the selected cell from the table. All content in the column will be lost.
+* Clear Cells: Removes the contents of the current cell from the table.
+* Undo: Reverts the last change made to the table.
+* Redo: Recommits the last change made to the table.
+
+All features of the Brightspot Rich Text Editor are available in tables, including links, enhancements, text formatting, and change tracking.
+
 Additions
 ~~~~~~~~~
 
@@ -137,12 +185,6 @@ Add Marker
 
 Add to denote breaks in a body of text like truncation, a "Read More" link, or a page break.
 
-Add Table
-^^^^^^^^^
-
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/53/b8/1faef2a0443ead98db0a75115860/screen-shot-2016-04-06-at-2.56.52%20PM.jpg
-
-Creates an editable table in the text field. For more information, please see the `Tables chapter <http://www.brightspot.com/docs/3.2/editorial-support/tables>`_.
 
 Change Tracking
 ~~~~~~~~~~~~~~~
