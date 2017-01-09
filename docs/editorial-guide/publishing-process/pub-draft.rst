@@ -45,13 +45,13 @@ You can create drafts from new content that has not yet been published, or from 
    **Publish widget:**
 
    a. Modify the live version.
-\
+
    b. In the Publish widget, click **Save Draft**.
 
    **Revisions widget:**
 
-   a. | In the Revisions widget, click **New Draft** and name the draft.
-      | The new draft is created with the content of the live version.
+   a. In the Revisions widget, click **New Draft** and name the draft.
+      The new draft is created with the content of the live version.
 
    b. Modify the draft.
 
