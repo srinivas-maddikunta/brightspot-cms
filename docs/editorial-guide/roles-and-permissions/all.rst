@@ -1,10 +1,17 @@
-Roles and Permissions
-=====================
+.. |emDash| raw:: html
 
-Define users and roles to control access to features and functions in Brightspot.
+   &#8212;
 
-.. include:: users.rst
+Roles, Users, and Permissions
+=============================
+
+Brightspot uses permissions to limit access to certain features based on a user's role. The following sections describe permissions, how to design roles, create new users, and assign roles to those users. 
+
+.. include:: understanding_permissions.rst
 .. include:: roles.rst
+.. include:: users.rst
+
+
 
 
 
