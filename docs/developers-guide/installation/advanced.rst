@@ -227,9 +227,9 @@ You build a Brightspot project from a Maven archetype. The target of the Maven b
       |   Replace:
       |   *snapshotVer* with the Brightspot build version, for example, ``3.2-SNAPSHOT``.
       |
-      |   *groupId* with a value that will serve as a Java package name for any Brightspot classes that you might add. Maven will create a source directory structure based on the package name. For example, if you specify ``com.brightspot``, the Brightspot project will include this directory for adding Brightspot classes: ``src/main/java/com/brightspot``.
+      |   *groupId* with a value that will serve as a Java package name for any Brightspot classes that you might add. Maven will create a source directory structure based on the package name. For example, if you specify ``com.bsp``, the Brightspot project will include this directory for adding Brightspot classes: ``src/main/java/com/bsp``.
       |
-      |   *artifactId* with a project name like ``brightspot``. This will be used for the top-level folder of the Brightspot project.
+      |   *artifactId* with a project name like ``bsp``. This will be used for the top-level folder of the Brightspot project.
 
       .. note:: Windows users must run the archetype on one line without breaks (\\), for example:
              
@@ -252,8 +252,8 @@ You build a Brightspot project from a Maven archetype. The target of the Maven b
 
    ::
 
-     cd brightspot/target
-     cp brightspot-3.2-SNAPSHOT.war <TomcatRoot>/webapps/bsPlatform.war
+     cd bsp/target
+     cp bsp-1.0-SNAPSHOT.war <TomcatRoot>/webapps/ROOT.war
 
 
 .. _start-label: 
@@ -270,13 +270,11 @@ Start the Application Server
    
    Tomcat deploys the Brightspot platform. 
 
-2. | In a web browser, access Brightspot at ``http://localhost:<port>/<contextPath>/cms``, where:
-   | *port* is the port number that you specified in context.xml.
-   | *contextPath* reflects the name of the WAR file, for example: ``http://localhost:8080/bsPlatform/cms``.
+2. | In a web browser, access Brightspot at ``http://localhost:<port>/cms``, where *port* is the port number that you specified in context.xml.
 
 \    
  
-.. note:: If the name of your WAR file is ROOT.war, then do not specify a context path, for example ``http://localhost:8080/cms``.
+.. note:: If the name of your WAR file is not ROOT.war, then specify a context path, for example ``http://localhost:8080/my-bsp-application/cms``.
 
 
 The Brightspot login page appears. This is the default landing page.
@@ -312,4 +310,4 @@ The Brightspot login page appears. This is the default landing page.
 
 
    - Check for new Brightspot versions with which to upgrade your development enviornment.
-     To get the most current release of Brightspot, see :doc:`../../updates/about`.
+     To get the most current release of Brightspot, see :doc:`../releases/index`.
