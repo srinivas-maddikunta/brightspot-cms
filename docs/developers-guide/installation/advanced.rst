@@ -2,9 +2,11 @@
 Advanced Installation
 #####################
 
-This procedure requires that you manually install and configure the software prerequisites, use Maven to build and package the Brightspot platform into a WAR, and deploy it in the Tomcat application server. 
+This procedure requires that you manually install and configure the software prerequisites, use Maven to build and package the Brightspot platform into a WAR, and deploy it in the Tomcat application server. Plan on 30 to 45 minutes to complete this installation.
 
-**Prerequisites**
+******************
+Prerequisites
+******************
 
 Download and install the following software:
 
@@ -24,13 +26,13 @@ Download and install the following software:
 
 .. |sql_link| raw:: html
 
-     <a href="http://dev.mysql.com/downloads/" target="_blank">MySQL 5.6.*</a>
+     <a href="http://dev.mysql.com/downloads/mysql/5.6.html#downloads" target="_blank">MySQL 5.6.*</a>
 
 - |solr_link|
 
 .. |solr_link| raw:: html
 
-     <a href="http://lucene.apache.org/solr/downloads.html" target="_blank">Solr 4.8.1</a>
+     <a href="http://archive.apache.org/dist/lucene/solr/4.8.1/" target="_blank">Solr 4.8.1</a>
 
 - |tc_link|
 
@@ -94,13 +96,15 @@ Tomcat
 
    ::
       
-       mkdir <TomcatRoot>/webapps/media
+       mkdir -p <TomcatRoot>/webapps/media
 
 3. Replace the default context.xml file in Tomcat with a new file containing the default Brightspot configurations:
 
-   #. In the Tomcat ``conf`` folder, make a copy of the default context.xml file and rename it.
+   #. Locate context.xml in Tomcat (typically in the ``conf`` folder).
+
+   #. Make a copy of the default context.xml file and rename it.
    
-   #. Create a new context.xml in the Tomcat ``conf`` folder.
+   #. Create a new context.xml.
    
    #. Open the |context_link| and copy the contents.
 
@@ -110,14 +114,6 @@ Tomcat
 
    #. Paste the contents into the new context.xml file in the Tomcat ``conf`` folder.
 
-
-.. todo:: How best to give user a reference copy of context.xml?
-
-    1) In the original documentation, there was an issue going to this public Git site:  <a href="https://gist.githubusercontent.com/kphenix/54ca0f473ef7e034811a/raw/29acee59ecc2e431cd1bfc46a4bcb049c52e1e8d/default-context-2.4.xml" target="_blank">Brightspot context.xml file</a>. (I was told not to use this.)
-
-    2) It was suggested that I put a copy of context.xml in the PSD docs repo, but this is a private site: <a href="https://github.com/perfectsense/docs/blob/master/brightspot/developers-guide/pages/Setup/sampleContext.xml" target="_blank">sample context.xml file</a>
-
-    3) The method currently used is to use a rst-formatted version of context.xml in the source. It is then built into an html version that's accessed on the doc server. 
 
 \
 
@@ -161,20 +157,21 @@ Solr is used as a text matching database in the Brightspot platform. It contains
    
     cp -r <SolrRoot>/example/solr <TomcatRoot>
 
-3. Replace two Solr configuration files with Brightspot specific configurations.
+3. In the ``<TomcatRoot>/solr/collection1/conf`` folder, replace two Solr configuration files with Brightspot specific configurations.
 
-   a) |dl_link| the Brightspot versions of the Solr config file and the Solr schema file.
+   a) Back up the original Solr configuration files, "schema.xml" and "solrconfig.xml".
+
+   b) |dl_link| the Brightspot versions of the Solr config file and the Solr schema file.
 
       .. |dl_link| raw:: html
 
         <a href="https://github.com/perfectsense/dari/tree/master/etc/solr" target="_blank">Download</a>
 
 
-   b) Rename the config file to "solrconfig.xml". Rename the schema file to "schema.xml".
+   c) Rename the config file to "solrconfig.xml". Rename the schema file to "schema.xml".
 
-   c) In the ``<TomcatRoot>/solr/collection1/conf`` folder, replace solrconfig.xml and schema.xml with the two Brightspot versions.
-
-4. Edit the solr.xml file in the Tomcat ``solr`` folder: 
+   
+4. Edit the solr.xml file in the ``<TomcatRoot>/solr`` folder: 
 
    Replace the default host post with the Tomcat port ``<int name="hostPort">${jetty.port:9480}</int>``.
 
@@ -225,18 +222,18 @@ You build a Brightspot project from a Maven archetype. The target of the Maven b
        -DarchetypeArtifactId=cms-app-archetype \
        -DarchetypeVersion=<snapshotVer> \
        -DgroupId=<groupId> \
-       -DartifactId=<artificatId>
+       -DartifactId=<artifactId>
 
       |   Replace:
       |   *snapshotVer* with the Brightspot build version, for example, ``3.2-SNAPSHOT``.
       |
       |   *groupId* with a value that will serve as a Java package name for any Brightspot classes that you might add. Maven will create a source directory structure based on the package name. For example, if you specify ``com.brightspot``, the Brightspot project will include this directory for adding Brightspot classes: ``src/main/java/com/brightspot``.
       |
-      |   *artificatId* with a project name like ``brightspot``. This will be used for the top-level folder of the Brightspot project.
+      |   *artifactId* with a project name like ``brightspot``. This will be used for the top-level folder of the Brightspot project.
 
       .. note:: Windows users must run the archetype on one line without breaks (\\), for example:
              
-       | ``mvn archetype:generate -B -DarchetypeRepository=http://artifactory.psdops.com/public/ -DarchetypeGroupId=com.psddev -DarchetypeArtifactId=cms-app-archetype -DarchetypeVersion=<snapshotVer> -DgroupId=<groupId> -DartifactId=<artificatId>``
+       | ``mvn archetype:generate -B -DarchetypeRepository=http://artifactory.psdops.com/public/ -DarchetypeGroupId=com.psddev -DarchetypeArtifactId=cms-app-archetype -DarchetypeVersion=<snapshotVer> -DgroupId=<groupId> -DartifactId=<artifactId>``
 
    
    b) Navigate to the top-level folder of the Maven project where the pom.xml file resides. This file defines Brightspot and Dari dependencies.
@@ -256,7 +253,7 @@ You build a Brightspot project from a Maven archetype. The target of the Maven b
    ::
 
      cd brightspot/target
-     cp brightspot-3.2-SNAPSHOT.war ../../<TomcatRoot>/webapps/bsPlatform.war
+     cp brightspot-3.2-SNAPSHOT.war <TomcatRoot>/webapps/bsPlatform.war
 
 
 .. _start-label: 
