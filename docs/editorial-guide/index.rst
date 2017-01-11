@@ -14,14 +14,12 @@
     image-editing/all
     search/all
     locking/all
-    tables/all
     seo/all
     bulk-editing/all
     versioning/all
     workstreams/all
     workflows/all
     roles-and-permissions/all
-    contributor-controls/all
     user-settings/all
     site-settings/all
     content-type-settings/all

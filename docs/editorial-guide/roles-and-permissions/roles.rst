@@ -1,28 +1,65 @@
 Creating New Roles
 ------------------
 
-Roles allow you to limit user access to specific features and areas of Brightspot. The Roles widget is directly underneath the Users widget on the left side of the Users & Roles page.
+Each role has an associated list of permissions to access certain features within Brightspot. For example, administrators typically have access to all sites, tabs, areas, and widgets. Contributors and editors typically have access only to those sites, areas, and controls associated with the content they provide. (For more information about permissions, see `Understanding Permissions and Controls`_.)
 
-Roles Widget
-------------
+**To create a role:**
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/4d/94/cc563b0943eca67021bfbb336a2f/screen-shot-2016-04-12-at-11.33.49%20AM.jpg
+1. From the system menu, select **Admin > Users & Roles**. The Users and Roles widgets appear on the left side of the page.
 
-The Roles widget lists existing roles. Click a role to edit the role's options and permissions. Click New Tool Role to create a new role.
+.. _users_roles_widgets:
 
-Main
-~~~~
+Users and Roles Widgets
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/7f/60/fd77f8fe4e86beadba28c9ac4d94/screen-shot-2016-04-12-at-10.58.09%20AM.jpg
+.. image:: images/users-roles-widget.png
 
-**Name:** The name of the new role.
+2. In the Roles widget, click **New Tool Role**. The New Tool Role widget appears.
 
-**Permissions:** Restrict the actions and features available to the new role. For each category below, the role can be granted access to "all," "some," or "none" of the actions and features. Choosing "some" will allow you to select from a list of relevant options.
+3. In the **Main** tab, and using the following table as a reference, make selections for those features to which the role has access. Yellow shading appears for those fields whose selections you change.
 
-* Sites: Control the Sites available to the role. This applies to Multi-Site implementations.
-* Areas: Control the areas of the Brightspot UI that the role can access.
-* Widgets: Control the widgets available to the role. Users will still be able to customize their Dashboards, but they won't be able to add widgets forbidden to their role.
-* UI: Control the UI features available to the role.
-* Tabs: Control the tabs available to the role.
-* Types: Control the content types available for the role to create or edit.
+4. In the **Dashboard** tab, make selections to configure the role's dashboard.
 
+5. In the **Advanced** tab, make selections for security settings.
+
+6. Click **Save**.
+
+
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Field                             |Description                                                                                                                                                                                               |
++==================================+==========================================================================================================================================================================================================+
+|**Main tab**                                                                                                                                                                                                                                 |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Name                              |Name of role.                                                                                                                                                                                             |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Permissions                       |Role's permissions associated with a variety of controls. Select all, none, or some for each feature. For an explanation of these controls, see `Understanding Permissions and Controls`_.                |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|**Dashboard tab**                                                                                                                                                                                                                            |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Dashboard                         |Settings for role's dashboard.                                                                                                                                                                            |
+|                                  |                                                                                                                                                                                                          |
+|                                  |None\ |emdash|\ Role sees the system-wide default dashboard.                                                                                                                                              |
+|                                  |                                                                                                                                                                                                          |
+|                                  |One Off\ |emdash|\ Role can create a customized dashboard. For details, see :doc:`Working with One-off Dashboards </cms/editorial-guide/dashboard/dash-oneoff>`.                                          |
+|                                  |                                                                                                                                                                                                          |
+|                                  |Shared\ |emdash|\ Role has access to shared dashboards. For details, see :doc:`Working with Shared Dashboards </cms/editorial-guide/dashboard/dash-shared>`.                                              |
+|                                  |                                                                                                                                                                                                          |
+|                                  |For more information about dashboards, see :doc:`Dashboard </cms/editorial-guide/dashboard/all>`.                                                                                                         |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Common Content Settings           |Appearance of common content widget for all users with this role.                                                                                                                                         |
+|                                  |                                                                                                                                                                                                          |
+|                                  |None\ |emdash|\ Role sees the system-wide common-content widget.                                                                                                                                          |
+|                                  |                                                                                                                                                                                                          |
+|                                  |Set\ |emdash|\ Designs the appearance of the role's common content widget. For details, see :doc:`Common Content <../dashboard/common-content>`.                                                          |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|**Advanced tab**                                                                                                                                                                                                                             |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|Two-factor authentication required|Setting for two-factor authentication to log in to Brightspot.                                                                                                                                            |
+|                                  |                                                                                                                                                                                                          |
+|                                  |Default\ |emdash|\ Setting is the default as set by the administrator.                                                                                                                                    |
+|                                  |                                                                                                                                                                                                          |
+|                                  |Required\ |emdash|\ Two-factor authentication is required for all users with this role.                                                                                                                   |
+|                                  |                                                                                                                                                                                                          |
+|                                  |Not Required\ |emdash|\ Two-factor authentication is not required for all users with this role.                                                                                                           |
+|                                  |                                                                                                                                                                                                          |
+|                                  |For more information, see :doc:`Two Factor Authentication <../two-factor-auth/all>`.                                                                                                                      |
++----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
