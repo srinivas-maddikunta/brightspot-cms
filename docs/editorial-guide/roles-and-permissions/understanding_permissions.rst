@@ -1,5 +1,3 @@
-.. include:: ../substitutions.rst
-
 Understanding Permissions and Controls
 --------------------------------------
 

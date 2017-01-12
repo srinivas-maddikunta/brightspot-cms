@@ -1,5 +1,3 @@
-.. include:: ../substitutions.rst
-
 Creating New Users
 ------------------
 
