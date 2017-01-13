@@ -2426,6 +2426,15 @@ public class ToolPageContext extends WebPageContext {
                 typeIds.setLength(typeIds.length() - 1);
             }
 
+            boolean canEdit = true;
+
+            if (value != null) {
+                ObjectType type = state.getType();
+                canEdit = hasPermission("type/" + type.getId() + "/write")
+                    && !type.as(ToolUi.class).isReadOnly()
+                    && ContentEditable.shouldContentBeEditable(state);
+            }
+
             writeElement("input",
                     "type", "text",
                     "class", "objectId",
@@ -2441,6 +2450,7 @@ public class ToolPageContext extends WebPageContext {
                     "data-suggestions", ui.isEffectivelySuggestions(),
                     "data-typeIds", typeIds,
                     "data-visibility", value != null ? state.getVisibilityLabel() : null,
+                    "data-read-only", !canEdit,
                     "value", value != null ? state.getId() : null,
                     "placeholder", placeholder,
                     attributes);
