@@ -12,6 +12,7 @@ com.psddev.cms.db.GuidePage,
 com.psddev.cms.db.History,
 com.psddev.cms.db.Page,
 com.psddev.cms.db.PageFilter,
+com.psddev.cms.db.PermissionAssignable,
 com.psddev.cms.db.Renderer,
 com.psddev.cms.db.Schedule,
 com.psddev.cms.db.Site,
@@ -76,9 +77,26 @@ if (selected == null) {
 }
 
 State state = State.getInstance(selected);
+ToolUser user = wp.getUser();
 Site site = wp.getSite();
 
 if (selected != null) {
+    if (!PermissionAssignable.Static.isObjectAccessible(user, selected)) {
+        wp.writeHeader();
+            wp.writeStart("div", "class", "message message-warning");
+                wp.writeHtml(wp.localize(
+                        "com.psddev.cms.tool.page.content.Edit",
+                        ImmutableMap.of(
+                                "typeLabel", wp.getTypeLabel(selected),
+                                "objectLabel", wp.getObjectLabel(selected),
+                                "userName", user.getName()
+                        ),
+                        "message.notAccessibleByUser"));
+            wp.writeEnd();
+        wp.writeFooter();
+        return;
+    }
+
     if (!(site == null || Site.Static.isObjectAccessible(site, selected))) {
         wp.writeHeader();
         wp.writeStart("div", "class", "message message-warning");
@@ -168,6 +186,21 @@ if (workStream != null) {
 // Only permit copy if the copy source object is accessible to the current Site
 Object copy = Query.findById(Object.class, wp.uuidParam("copyId"));
 if (copy != null) {
+    if (!PermissionAssignable.Static.isObjectAccessible(user, copy)) {
+        wp.writeHeader();
+            wp.writeStart("div", "class", "message message-warning");
+                wp.writeHtml(wp.localize(
+                        "com.psddev.cms.tool.page.content.Edit",
+                        ImmutableMap.of(
+                                "typeLabel", wp.getTypeLabel(selected),
+                                "objectLabel", wp.getObjectLabel(selected),
+                                "userName", user.getName()
+                        ),
+                        "message.notAccessibleByUser"));
+            wp.writeEnd();
+        wp.writeFooter();
+        return;
+    }
 
     if (site != null && !Site.Static.isObjectAccessible(site, copy)) {
         wp.writeHeader();
@@ -239,7 +272,6 @@ if (!wp.isFormPost() && copy != null && editingState.isNew()) {
 History history = wp.getOverlaidHistory(editing);
 Draft draft = wp.getOverlaidDraft(editing);
 Set<ObjectType> compatibleTypes = ToolUi.getCompatibleTypes(State.getInstance(editing).getType());
-ToolUser user = wp.getUser();
 ContentLock contentLock = null;
 boolean lockedOut = false;
 boolean editAnyway = wp.param(boolean.class, "editAnyway");
