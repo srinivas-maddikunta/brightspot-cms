@@ -74,7 +74,7 @@ public class CmsTool extends Tool {
     private List<CommonTime> commonTimes;
 
     @ToolUi.Tab("Defaults")
-    @DisplayName("Two Factor Authentication Required?")
+    @DisplayName("Two-Factor Authentication Required?")
     private boolean tfaRequired;
 
     @DisplayName("Default Dashboard")
