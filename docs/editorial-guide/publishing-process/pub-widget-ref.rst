@@ -69,8 +69,6 @@ The second diagram shows the post-publication content states, in which published
     :height: 0px
 
 
-.. _tc-label: 
-
 -------------------------
 Publish Widget UI States
 -------------------------
@@ -105,6 +103,7 @@ Workflow Tab  Publish Tab
 ============= ============
 |image1|      |image2|
 ============= ============
+
 .. |image1| image:: images/state1_wfTab.png 
 .. |image2| image:: images/state1_pubTab.png
 
@@ -153,6 +152,7 @@ Workflow Tab  Publish Tab
 ============= ============
 |image3|      |image4|
 ============= ============
+
 .. |image3| image:: images/state2_wfTab.png 
 .. |image4| image:: images/state2_pubTab.png
 
@@ -207,6 +207,7 @@ Workflow Tab  Publish Tab
 ============= ============
 |image5|      |image6|
 ============= ============
+
 .. |image5| image:: images/state3_wfTab.png 
 .. |image6| image:: images/state3_pubTab.png
 
@@ -245,6 +246,7 @@ Submitted             Rejected           Resubmitted
 ===================== ================== ===================
 |image30|             |image31|                  |image32|
 ===================== ================== ===================
+
 .. |image30| image:: images/state3_revision1.png
 .. |image31| image:: images/state3_revision2.png
 .. |image32| image:: images/state3_revision3.png
@@ -266,6 +268,7 @@ Workflow Tab  Publish Tab
 ============= ============
 n/a           |image7|
 ============= ============
+
 .. |image7| image:: images/state4_pubTab.png
 
 .. Use escape character to prevent tables from running together.
@@ -314,6 +317,7 @@ Workflow Tab  Publish Tab
 ============= ============
 |image8|      |image9|
 ============= ============
+
 .. |image8| image:: images/state4a_wfTab.png
 .. |image9| image:: images/state4a_pubTab.png
 
@@ -369,6 +373,7 @@ Workflow Tab  Publish Tab
 ============= ============
 n/a           |image10|
 ============= ============
+
 .. |image10| image:: images/state5_pubTab.png
 
 
@@ -421,6 +426,7 @@ Workflow Tab  Publish Tab
 ============= ============
 |image11|      |image12|
 ============= ============
+
 .. |image11| image:: images/state6_wfTab.png 
 .. |image12| image:: images/state6_pubTab.png
 
@@ -478,6 +484,7 @@ Workflow Tab  Publish Tab
 ============= ============
 |image13|      |image14|
 ============= ============
+
 .. |image13| image:: images/state7_wfTab.png 
 .. |image14| image:: images/state7_pubTab.png
 
@@ -520,6 +527,7 @@ Submitted             Rejected           Resubmitted
 ===================== ================== ===================
 |image60|             |image61|          |image62|
 ===================== ================== ===================
+
 .. |image60| image:: images/state7_revision1.png
 .. |image61| image:: images/state7_revision2.png
 .. |image62| image:: images/state7_revision3.png
@@ -541,6 +549,7 @@ Workflow Tab  Publish Tab
 ============= ============
 n/a           |image15|
 ============= ============
+
 .. |image15| image:: images/state8_pubTab.png
 
 .. Use escape character to prevent tables from running together.
@@ -592,7 +601,7 @@ For updated content that is scheduled for republication, the Revision widget is 
 .. ============= ============
 .. Workflow Tab  Publish Tab
 .. ============= ============
-.. |image16|      |image17|
+.. TBD      | TBD
 .. ============= ============
 
 .. Use escape character to prevent tables from running together.
@@ -645,6 +654,7 @@ Workflow Tab  Publish Tab
 ============= ============
 n/a           |image18|
 ============= ============
+
 .. |image18| image:: images/state9_pubTab.png
 
 ====================================     ============================   ================================
