@@ -3,7 +3,7 @@ Creating New Users
 
 **To create a user:**
 
-#. From the system menu, select **Admin > Users & Roles**. The Users and Roles widgets appear on the left side of the page (`example <users_roles_widgets_>`_).
+#. From the system menu, select **Admin > Users & Roles**. The Users and Roles widgets appear on the left side of the page (:ref:`example <users_roles_widgets>`).
 
 #. In the Users widget, click **New Tool User**. The New Tool User widget appears.
 
@@ -22,7 +22,7 @@ Creating New Users
 +====================================+================================================================================================================================================================================================================================================+
 |**Main tab**                                                                                                                                                                                                                                                                         |
 +------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|Role                                |User's role. If blank, user has access to all features. For an explanation of roles, see `Creating New Roles`_.                                                                                                                                 |
+|Role                                |User's role. If blank, user has access to all features. For an explanation of roles, see :ref:`creating_new_roles`.                                                                                                                             |
 +------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |Name                                |Name that appears on content created or edited by the user.                                                                                                                                                                                     |
 +------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -110,7 +110,7 @@ Editing Users
 
 **To edit a user:**
 
-#. From the system menu, select **Admin > Users & Roles**. The Users and Roles widgets appear on the left side of the page (`example <users_roles_widgets_>`_).
+#. From the system menu, select **Admin > Users & Roles**. The Users and Roles widgets appear on the left side of the page (:ref:`example <users_roles_widgets>`).
 
 #. In the Users widget, click in the **Search** field, and start typing the user's name. Brightspot lists matching users.
 

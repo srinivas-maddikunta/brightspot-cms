@@ -1,3 +1,5 @@
+.. _understanding_permissions_and_controls:
+
 Understanding Permissions and Controls
 --------------------------------------
 

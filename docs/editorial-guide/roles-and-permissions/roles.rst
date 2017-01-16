@@ -1,7 +1,9 @@
+.. _creating_new_roles:
+
 Creating New Roles
 ------------------
 
-Each role has an associated list of permissions to access certain features within Brightspot. For example, administrators typically have access to all sites, tabs, areas, and widgets. Contributors and editors typically have access only to those sites, areas, and controls associated with the content they provide. (For more information about permissions, see `Understanding Permissions and Controls`_.)
+Each role has an associated list of permissions to access certain features within Brightspot. For example, administrators typically have access to all sites, tabs, areas, and widgets. Contributors and editors typically have access only to those sites, areas, and controls associated with the content they provide. (For more information about permissions, see :ref:`understanding_permissions_and_controls`.)
 
 **To create a role:**
 
@@ -31,7 +33,7 @@ Users and Roles Widgets
 +----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |Name                              |Name of role.                                                                                                                                                                                             |
 +----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|Permissions                       |Role's permissions associated with a variety of controls. Select all, none, or some for each feature. For an explanation of these controls, see `Understanding Permissions and Controls`_.                |
+|Permissions                       |Role's permissions associated with a variety of controls. Select all, none, or some for each feature. For an explanation of these controls, see :ref:`understanding_permissions_and_controls`.            |
 +----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |**Dashboard tab**                                                                                                                                                                                                                            |
 +----------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
