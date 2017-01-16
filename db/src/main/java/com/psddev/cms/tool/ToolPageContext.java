@@ -3660,7 +3660,8 @@ public class ToolPageContext extends WebPageContext {
                     getResponse().sendRedirect(url("",
                             "editAnyway", null,
                             ToolPageContext.DRAFT_ID_PARAMETER, draft.getId(),
-                            ToolPageContext.HISTORY_ID_PARAMETER, null));
+                            ToolPageContext.HISTORY_ID_PARAMETER, null,
+                            "_frame", param(boolean.class, "_frame") ? Boolean.TRUE : null));
                 }
             }
 
