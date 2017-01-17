@@ -151,15 +151,15 @@ public class ToolPageContext extends WebPageContext {
     public static final String VARIATION_ID_PARAMETER = "variationId";
     public static final String RETURN_URL_PARAMETER = "returnUrl";
 
-    private static final String WORKFLOW_ACTION_PARAMETER = "action-workflow";
-    private static final String NEW_DRAFT_ACTION_PARAMETER = "action-newDraft";
-    private static final String DRAFT_ACTION_PARAMETER = "action-draft";
-    private static final String MERGE_ACTION_PARAMETER = "action-merge";
-    private static final String PUBLISH_ACTION_PARAMETER = "action-publish";
-    private static final String DELETE_ACTION_PARAMETER = "action-delete";
-    private static final String RESTORE_ACTION_PARAMETER = "action-restore";
-    private static final String SAVE_ACTION_PARAMETER = "action-save";
-    private static final String UNSCHEDULE_ACTION_PARAMETER = "action-unschedule";
+    public static final String WORKFLOW_ACTION_PARAMETER = "action-workflow";
+    public static final String NEW_DRAFT_ACTION_PARAMETER = "action-newDraft";
+    public static final String DRAFT_ACTION_PARAMETER = "action-draft";
+    public static final String MERGE_ACTION_PARAMETER = "action-merge";
+    public static final String PUBLISH_ACTION_PARAMETER = "action-publish";
+    public static final String DELETE_ACTION_PARAMETER = "action-delete";
+    public static final String RESTORE_ACTION_PARAMETER = "action-restore";
+    public static final String SAVE_ACTION_PARAMETER = "action-save";
+    public static final String UNSCHEDULE_ACTION_PARAMETER = "action-unschedule";
 
     private static final String ATTRIBUTE_PREFIX = ToolPageContext.class.getName() + ".";
     private static final String ERRORS_ATTRIBUTE = ATTRIBUTE_PREFIX + "errors";
