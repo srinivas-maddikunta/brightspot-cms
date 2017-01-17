@@ -210,7 +210,7 @@ class ViewMap implements Map<String, Object> {
      */
     private Object convertValue(String key, Object value) {
 
-        if (value instanceof String) {
+        if (value instanceof CharSequence) {
             return value;
 
         } else if (value instanceof Boolean) {
