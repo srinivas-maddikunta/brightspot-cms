@@ -677,6 +677,10 @@ public class ToolPageContext extends WebPageContext {
         return url(path, parameters);
     }
 
+    public String objectEditUrl(Object object) {
+        return objectUrl("/content/edit.jsp", object);
+    }
+
     public String originalUrl(String path, Object object, Object... parameters) {
         return url(path, pushToArray(parameters,
                 OBJECT_ID_PARAMETER, State.getInstance(object).getId(),
