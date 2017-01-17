@@ -391,7 +391,17 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                 %></h1>
 
                 <div class="widgetControls">
-                    <a class="icon icon-action-edit widgetControlsEditInFull" target="_blank" href="<%= wp.url("") %>">
+                    <a class="icon icon-action-edit widgetControlsEditInFull" target="_blank" href="<%= wp.url("",
+                                                                                                        ToolPageContext.DELETE_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.DRAFT_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.PUBLISH_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.RESTORE_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.SAVE_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.DRAFT_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.MERGE_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.RESTORE_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.WORKFLOW_ACTION_PARAMETER, null,
+                                                                                                        ToolPageContext.UNSCHEDULE_ACTION_PARAMETER, null) %>">
                         <%= wp.h(wp.localize("com.psddev.cms.tool.page.content.Edit", "action.editFull"))%>
                     </a>
                     <% if (wp.getCmsTool().isEnableAbTesting()) { %>
