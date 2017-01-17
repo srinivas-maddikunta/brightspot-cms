@@ -9,7 +9,8 @@ import com.psddev.dari.util.TypeDefinition;
 import java.util.stream.Collectors;
 
 /**
- * Dictates the {@link ToolUser} permissions around this object.
+ * Enables defining logic around whether or not this a {@link ToolUser} can
+ * access this object.
  */
 public interface PermissionAssignable {
 

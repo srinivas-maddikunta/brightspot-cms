@@ -138,6 +138,7 @@ for (Workflow w : Query.from(Workflow.class).selectAll()) {
 
 wp.writeStart("div", "class", "inputSmall permissions");
 
+    // Only expose entity permissions if it is warranted.
     if (ClassFinder.findConcreteClasses(PermissionAssignable.class).size() > 0) {
         wp.writeStart("div", "class", "permissionsSection");
             writeParent(wp, permissions, "Entities", "entity");

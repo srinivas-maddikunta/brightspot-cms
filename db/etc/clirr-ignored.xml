@@ -2,6 +2,12 @@
 <differences>
 
     <difference>
+        <className>com/psddev/cms/db/ToolEntity</className>
+        <differenceType>7012</differenceType>
+        <method>java.lang.String getPermissionId()</method>
+    </difference>
+
+    <difference>
         <className>com/psddev/cms/db/ToolUi$DropDown</className>
         <differenceType>7012</differenceType>
         <method>boolean sortDescending()</method>
