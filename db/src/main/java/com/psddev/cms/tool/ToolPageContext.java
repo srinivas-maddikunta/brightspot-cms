@@ -157,6 +157,7 @@ public class ToolPageContext extends WebPageContext {
     public static final String MERGE_ACTION_PARAMETER = "action-merge";
     public static final String PUBLISH_ACTION_PARAMETER = "action-publish";
     public static final String DELETE_ACTION_PARAMETER = "action-delete";
+    public static final String TRASH_ACTION_PARAMETER = "action-trash";
     public static final String RESTORE_ACTION_PARAMETER = "action-restore";
     public static final String SAVE_ACTION_PARAMETER = "action-save";
     public static final String UNSCHEDULE_ACTION_PARAMETER = "action-unschedule";
@@ -4017,7 +4018,7 @@ public class ToolPageContext extends WebPageContext {
      */
     public boolean tryTrash(Object object) {
         if (!isFormPost()
-                || param(String.class, "action-trash") == null) {
+                || param(String.class, TRASH_ACTION_PARAMETER) == null) {
             return false;
         }
 
