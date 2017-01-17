@@ -11,6 +11,10 @@ import java.util.stream.Collectors;
 /**
  * Enables defining logic around whether or not this a {@link ToolUser} can
  * access this object.
+ *
+ * <p>An implementation of this interface will warrant {@link ToolEntity}
+ * permission configurations via {@link ToolRole} similar to sites, widgets,
+ * etc.</p>
  */
 public interface PermissionAssignable {
 
