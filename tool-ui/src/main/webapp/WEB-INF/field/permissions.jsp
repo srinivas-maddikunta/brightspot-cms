@@ -1,8 +1,10 @@
 <%@ page session="false" import="
 
 com.psddev.cms.db.Content,
+com.psddev.cms.db.PermissionAssignable,
 com.psddev.cms.db.Site,
 com.psddev.cms.db.Template,
+com.psddev.cms.db.ToolEntity,
 com.psddev.cms.db.ToolRole,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.db.ToolUser,
@@ -21,6 +23,7 @@ com.psddev.dari.db.ObjectField,
 com.psddev.dari.db.ObjectType,
 com.psddev.dari.db.Query,
 com.psddev.dari.db.State,
+com.psddev.dari.util.ClassFinder,
 com.psddev.dari.util.ObjectUtils,
 com.psddev.dari.util.SparseSet,
 
@@ -34,6 +37,7 @@ java.util.LinkedHashMap,
 java.util.List,
 java.util.Map,
 java.util.Set,
+java.util.stream.Collectors,
 java.util.TreeSet,
 java.util.stream.Stream
 " %>
@@ -133,6 +137,21 @@ for (Workflow w : Query.from(Workflow.class).selectAll()) {
 }
 
 wp.writeStart("div", "class", "inputSmall permissions");
+
+    if (ClassFinder.findConcreteClasses(PermissionAssignable.class).size() > 0) {
+        wp.writeStart("div", "class", "permissionsSection");
+            writeParent(wp, permissions, "Entities", "entity");
+
+            wp.writeStart("ul");
+                for (ToolEntity entity : Query.from(ToolEntity.class).selectAll().stream().collect(Collectors.toSet())) {
+                    wp.writeStart("li");
+                        writeChild(wp, permissions, entity, entity.getPermissionId());
+                    wp.writeEnd();
+                }
+            wp.writeEnd();
+        wp.writeEnd();
+    }
+
     wp.writeStart("div", "class", "permissionsSection");
         writeParent(wp, permissions, "Sites", "site");
 
