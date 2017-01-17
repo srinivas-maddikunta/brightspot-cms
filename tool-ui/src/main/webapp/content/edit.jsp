@@ -300,7 +300,7 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
     <form class="contentForm contentLock"
             method="post"
             enctype="multipart/form-data"
-            action="<%= wp.objectEditUrl(selected) %>"
+            action="<%= wp.objectEditUrl(selected, "_frame", wp.param(boolean.class, "_frame") ? true : null) %>"
             autocomplete="off"
             <% if (!wp.getCmsTool().isDisableFieldLocking()) { %>
             data-rtc-content-id="<%= draft != null ? draft.getId() : editingState.getId() %>"
