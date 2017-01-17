@@ -47,7 +47,7 @@ if (wp.tryStandardUpdate(selected)) {
                 </li>
                 <% for (Template template : wp.
                         queryFrom(Template.class).
-                        where(wp.siteItemsPredicate()).
+                        where(wp.itemsPredicate()).
                         sortAscending("name").
                         select()) { %>
                     <li<%= template.equals(selected) ? " class=\"selected\"" : "" %>>
@@ -66,7 +66,7 @@ if (wp.tryStandardUpdate(selected)) {
                 <% for (Section section : Query.
                         from(Section.class).
                         where("isShareable = true").
-                        and(wp.siteItemsPredicate()).
+                        and(wp.itemsPredicate()).
                         selectAll()) { %>
                     <li<%= section.equals(selected) ? " class=\"selected\"" : "" %>>
                         <a href="<%= wp.objectUrl(null, section) %>"><%= wp.objectLabel(section) %></a>

@@ -30,6 +30,7 @@ import com.psddev.cms.db.Content;
 import com.psddev.cms.db.Directory;
 import com.psddev.cms.db.Draft;
 import com.psddev.cms.db.Localization;
+import com.psddev.cms.db.PermissionAssignable;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolEntity;
 import com.psddev.cms.db.ToolRole;
@@ -1062,6 +1063,14 @@ public class Search extends Record {
                         }
                     }
                 }
+            }
+        }
+
+        if (page != null) {
+            ToolUser user = page.getUser();
+
+            if (user != null) {
+                query.and(PermissionAssignable.Static.itemsPredicate(user));
             }
         }
 

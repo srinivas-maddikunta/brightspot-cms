@@ -84,7 +84,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                 List<String> selectedContentIds = page.params(String.class, user.getId().toString() + "/toolUserCreateNewSettings.editExistingContents");
                 if (!ObjectUtils.isBlank(selectedContentIds)) {
                     Set<Content> selectedContents = new HashSet<>(
-                            Query.from(Content.class).where("_id = ?", selectedContentIds).and(page.siteItemsPredicate()).selectAll());
+                            Query.from(Content.class).where("_id = ?", selectedContentIds).and(page.itemsPredicate()).selectAll());
 
                     if (!selectedContents.equals(defaultContents)) {
                         oldUserContents.removeIf(content -> page.getSite() == null || (page.getSite() != null && Site.Static.isObjectAccessible(page.getSite(), content)));
@@ -117,7 +117,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
         } else {
             for (com.psddev.cms.db.Template template : Query
                     .from(com.psddev.cms.db.Template.class)
-                    .where(page.siteItemsPredicate())
+                    .where(page.itemsPredicate())
                     .sortAscending("name")
                     .selectAll()) {
 

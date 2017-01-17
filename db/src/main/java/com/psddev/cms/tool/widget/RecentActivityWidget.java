@@ -72,7 +72,8 @@ public class RecentActivityWidget extends DefaultDashboardWidget {
             Query<?> contentQuery = (itemType != null && !visibilities.contains("d")
                     ? Query.fromType(itemType)
                     : Query.fromGroup(Content.SEARCHABLE_GROUP))
-                    .where(page.siteItemsSearchPredicate())
+                    .where(page.userItemsPredicate())
+                    .and(page.siteItemsSearchPredicate())
                     .and(Content.UPDATE_DATE_FIELD + " != missing")
                     .sortDescending(Content.UPDATE_DATE_FIELD);
 

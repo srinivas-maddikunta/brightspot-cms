@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
+import com.psddev.cms.tool.AuthenticationFilter;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.ObjectFieldComparator;
 import com.psddev.dari.db.ObjectType;
@@ -13,6 +15,7 @@ import com.psddev.dari.db.PredicateParser;
 import com.psddev.dari.db.Query;
 import com.psddev.dari.db.Recordable;
 import com.psddev.dari.util.ObjectUtils;
+import com.psddev.dari.util.PageContextFilter;
 
 public interface Taxon extends Recordable {
 
@@ -91,6 +94,10 @@ public interface Taxon extends Recordable {
 
         public static <T extends Taxon> List<T> getRoots(Class<T> taxonClass, Site site, Predicate predicate) {
             Query<T> query = Query.from(taxonClass).where("cms.taxon.root = true");
+
+            Optional.ofNullable(PageContextFilter.Static.getRequestOrNull())
+                    .ifPresent(request -> Optional.ofNullable(AuthenticationFilter.Static.getUser(request))
+                            .ifPresent(user ->  query.and(PermissionAssignable.Static.itemsPredicate(user))));
 
             if (site != null) {
                 query.and(site.itemsPredicate());

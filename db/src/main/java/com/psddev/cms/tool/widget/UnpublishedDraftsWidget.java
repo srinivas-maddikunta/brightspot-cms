@@ -119,7 +119,7 @@ public class UnpublishedDraftsWidget extends DefaultDashboardWidget {
         PaginatedResult<?> drafts = draftsQuery
                 .and("* matches *")
                 .and(Content.UPDATE_DATE_FIELD + " != missing")
-                .and(page.siteItemsPredicate())
+                .and(page.itemsPredicate())
                 .sortDescending(Content.UPDATE_DATE_FIELD)
                 .selectFiltered(page.param(long.class, "offset"), limit, queryFilter);
 

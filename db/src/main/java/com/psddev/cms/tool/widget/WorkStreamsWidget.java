@@ -205,7 +205,7 @@ public class WorkStreamsWidget extends DefaultDashboardWidget {
 
     private PaginatedResult<WorkStream> getResults(ToolPageContext page) {
 
-        Query<WorkStream> query = Query.from(WorkStream.class).where(page.siteItemsPredicate());
+        Query<WorkStream> query = Query.from(WorkStream.class).where(page.itemsPredicate());
 
         ToolEntityType entityType = page.pageParam(ToolEntityType.class, TOOL_ENTITY_TYPE_PARAMETER, ToolEntityType.ANYONE);
 

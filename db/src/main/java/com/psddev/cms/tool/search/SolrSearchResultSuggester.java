@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.psddev.cms.db.PermissionAssignable;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.CommonParams;
 import org.slf4j.Logger;
@@ -84,8 +85,8 @@ public class SolrSearchResultSuggester implements SearchResultSuggester {
             Float score = SolrDatabase.Static.getNormalizedScore(item);
 
             if (score != null && score > 0.7) {
-                if (site != null
-                        && !PredicateParser.Static.evaluate(item, site.itemsPredicate())) {
+                if (!PermissionAssignable.Static.isObjectAccessible(page.getUser(), item)
+                        || (site != null && !PredicateParser.Static.evaluate(item, site.itemsPredicate()))) {
                     continue;
                 }
 
@@ -112,8 +113,9 @@ public class SolrSearchResultSuggester implements SearchResultSuggester {
             Float score = SolrDatabase.Static.getNormalizedScore(item);
 
             if (score > 0.7) {
-                if (site != null
-                        && !PredicateParser.Static.evaluate(item, site.itemsPredicate())) {
+                if (!PermissionAssignable.Static.isObjectAccessible(page.getUser(), item)
+                        || (site != null
+                        && !PredicateParser.Static.evaluate(item, site.itemsPredicate()))) {
                     continue;
                 }
 
