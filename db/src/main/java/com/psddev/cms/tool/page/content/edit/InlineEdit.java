@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Creates inline edit form with applicable fields.
+ * Servlet that creates inline edit form with applicable fields.
  */
 @RoutingFilter.Path(application = "cms", value = "/content/inlineEdit")
 public class InlineEdit extends PageServlet {
@@ -42,7 +42,7 @@ public class InlineEdit extends PageServlet {
                 page.publish(object);
                 error = Boolean.FALSE;
 
-            } catch (Exception e) {
+            } catch (Exception exc) {
                 error = Boolean.TRUE;
             }
         }
