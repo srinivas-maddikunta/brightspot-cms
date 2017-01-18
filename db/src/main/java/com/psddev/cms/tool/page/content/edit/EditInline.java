@@ -46,7 +46,7 @@ public class EditInline extends PageServlet {
                 page.writeEnd();
                 return;
 
-            } catch (Exception e) {
+            } catch (Exception exc) {
                 error = true;
             }
         }
