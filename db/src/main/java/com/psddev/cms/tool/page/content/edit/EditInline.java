@@ -55,8 +55,8 @@ public class EditInline extends PageServlet {
                         page.publish(object);
                         response.setStatus(HttpServletResponse.SC_OK);
 
-                    } catch (Exception e) {
-                        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+                    } catch (Exception exc) {
+                        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, exc.getMessage());
                     }
                 }
 
@@ -73,7 +73,7 @@ public class EditInline extends PageServlet {
                     page.writeEnd();
                     return;
 
-                } catch (Exception e) {
+                } catch (Exception exc) {
                     error = true;
                 }
             }
