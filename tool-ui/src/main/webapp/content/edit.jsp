@@ -89,8 +89,7 @@ if (selected != null) {
                         ImmutableMap.of(
                                 "typeLabel", wp.getTypeLabel(selected),
                                 "objectLabel", wp.getObjectLabel(selected),
-                                "userName", user.getName()
-                        ),
+                                "userName", user.getName()),
                         "message.notAccessibleByUser"));
             wp.writeEnd();
         wp.writeFooter();
@@ -194,8 +193,7 @@ if (copy != null) {
                         ImmutableMap.of(
                                 "typeLabel", wp.getTypeLabel(selected),
                                 "objectLabel", wp.getObjectLabel(selected),
-                                "userName", user.getName()
-                        ),
+                                "userName", user.getName()),
                         "message.notAccessibleByUser"));
             wp.writeEnd();
         wp.writeFooter();
