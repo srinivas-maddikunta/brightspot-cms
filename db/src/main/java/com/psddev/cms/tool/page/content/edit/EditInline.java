@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Creates inline edit form with applicable fields.
+ * Servlet that creates inline edit form with applicable fields.
  */
 @RoutingFilter.Path(application = "cms", value = "/content/editInline")
 public class EditInline extends PageServlet {
