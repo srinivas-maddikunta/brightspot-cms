@@ -766,7 +766,7 @@ public class ToolUi extends Modification<Object> {
         try {
             SmsProvider.Static.getDefault();
 
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException error) {
             return false;
         }
 
