@@ -524,7 +524,7 @@ public class Search extends Record {
             addSorts(sorts, selectedType);
             addSorts(sorts, Database.Static.getDefault().getEnvironment());
 
-        } catch (IOException e) {
+        } catch (IOException error) {
             // Ignore.
         }
 
