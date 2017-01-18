@@ -10,8 +10,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * Sets cross-origin resource sharing (CORS) header for instantiating classes
- * if cross domain inline editing is enabled and origin matches a site url.
+ * Filter that sets cross-origin resource sharing (CORS) header for
+ * instantiating classes if cross domain inline editing is enabled and origin
+ * matches a site url.
  */
 public abstract class CrossDomainFilter extends AbstractFilter {
 
