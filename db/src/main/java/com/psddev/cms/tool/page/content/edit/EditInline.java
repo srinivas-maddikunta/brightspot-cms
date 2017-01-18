@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Provides inline edit capability for an object as well as a simple text field
- * of an object.
+ * Servlet that provides inline edit capability for an object as well as a
+ * simple text field of an object.
  */
 @RoutingFilter.Path(application = "cms", value = "/content/editInline")
 public class EditInline extends PageServlet {
