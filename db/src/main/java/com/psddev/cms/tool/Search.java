@@ -367,37 +367,30 @@ public class Search extends Record {
         this.fieldFilters = fieldFilters;
     }
 
-    /** Returns the sort including any sort operator suffix. */
     public String getSort() {
         return sort;
     }
 
-    /** Sets the sort including any sort operator suffix. */
     public void setSort(String sort) {
         this.sort = sort;
     }
 
-    /** Returns the effective sort excluding any sort operator suffix. */
     public String getEffectiveSort() {
         return effectiveSort;
     }
 
-    /** Sets the effective sort excluding any sort operator suffix. */
     public void setEffectiveSort(String effectiveSort) {
         this.effectiveSort = effectiveSort;
     }
 
-    /** Returns the sort operator. */
     public String getSortOperator() {
         return sortOperator;
     }
 
-    /** Sets the sort operator. */
     public void setSortOperator(String sortOperator) {
         this.sortOperator = sortOperator;
     }
 
-    /** Sets the sort as well as the effective sort. */
     public void setSorts(String sort) {
         setSort(sort);
         setEffectiveSort(sort);
@@ -554,9 +547,7 @@ public class Search extends Record {
         return sorts;
     }
 
-    /*
-     * Adds and localizes sorts.
-     */
+    // Adds and localizes sorts.
     private void addSorts(Map<String, String> sorts, ObjectStruct struct) throws IOException {
         if (struct != null) {
             for (ObjectField field : ObjectStruct.Static.findIndexedFields(struct)) {
@@ -564,9 +555,7 @@ public class Search extends Record {
 
                 if (ui.isEffectivelySortable()) {
                     String internalName = field.getInternalName();
-                    Map<String, Object> label = ImmutableMap.of("label",
-                            Localization.currentUserText(field, "field." + internalName));
-
+                    Map<String, Object> label = ImmutableMap.of("label", Localization.currentUserText(field, "field." + internalName));
                     Set<String> sortOperators = ui.getSortOperators();
 
                     // Natural sort order if there are no sort operators OR if neither
@@ -575,18 +564,19 @@ public class Search extends Record {
                             || (!sortOperators.contains(Sorter.ASCENDING_OPERATOR)
                             && !sortOperators.contains(Sorter.DESCENDING_OPERATOR))) {
 
-                        sorts.put(internalName, page.localize(
-                                AbstractSearchResultView.class, label, "option.sort"));
+                        sorts.put(internalName, page.localize(AbstractSearchResultView.class, label, "option.sort"));
 
                     } else {
 
                         if (sortOperators.contains(Sorter.ASCENDING_OPERATOR)) {
-                            sorts.put(internalName + ASCENDING_SORT_VALUE_SUFFIX,
+                            sorts.put(
+                                    internalName + ASCENDING_SORT_VALUE_SUFFIX,
                                     page.localize(AbstractSearchResultView.class, label, "option.sortAscending"));
                         }
 
                         if (sortOperators.contains(Sorter.DESCENDING_OPERATOR)) {
-                            sorts.put(internalName + DESCENDING_SORT_VALUE_SUFFIX,
+                            sorts.put(
+                                    internalName + DESCENDING_SORT_VALUE_SUFFIX,
                                     page.localize(AbstractSearchResultView.class, label, "option.sortDescending"));
                         }
                     }
