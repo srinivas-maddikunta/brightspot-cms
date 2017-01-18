@@ -5,7 +5,7 @@ Permalinks are the links external readers use to access a published web page. Br
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/permalinks/Step1.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/permalinks/Step1.snippet
    :language: java
    :emphasize-lines: 4,6,10,13,37-40
    :linenos:

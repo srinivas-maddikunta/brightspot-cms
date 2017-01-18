@@ -71,7 +71,7 @@ In this step you declare a Java class for articles.
 #. In an IDE or text editor, create the file Article.java and enter the following text:
 
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step1.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step1.snippet
    :language: java
    :linenos:
 
@@ -90,7 +90,7 @@ In the MVVM pattern the model includes business logic. In this step, you impleme
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step2.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step2.snippet
    :language: java
    :linenos:
    :emphasize-lines: 7-24
@@ -115,7 +115,7 @@ In addition to business logic, the MVVM model also specifies data validation. In
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step3.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step3.snippet
    :language: java
    :linenos:
    :emphasize-lines: 4,8
@@ -135,7 +135,7 @@ A rich-text editor (RTE) provides controls for formatting at the character and p
 
 #. Returning to the IDE, update the file Article.java with the following:
  
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step4.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step4.snippet
    :language: java
    :linenos:
    :emphasize-lines: 4,12

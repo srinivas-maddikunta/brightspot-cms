@@ -27,13 +27,13 @@ By convention, views are in directories parallel to their models. In this step, 
 #. Change to the new directory ``content/article/``.
 #. Create the file Article.hbs and enter the following text:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step1.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step1.snippet
    :language: html
    :linenos:
  
 5. In the same directory, create a new file Article.json and enter the following text:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step2.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step2.snippet
    :language: json
    :linenos:
  
@@ -56,15 +56,15 @@ The default view you created in the previous step includes standard boilerplate 
 
 #. Returning to the IDE, update the file Article.hbs with the following:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step3.snippet
-   :language: json
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step3.snippet
+   :language: html
    :emphasize-lines: 2,4,6,8,10,12
    :linenos:
  
 
 2. Returning to the IDE, update the file Article.json with the following:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step4.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step4.snippet
    :language: json
    :emphasize-lines: 3,4
    :linenos:
@@ -82,7 +82,7 @@ Brightspot's JSON files include a helper you can use to randomize the boilerplat
 
 #. Returning to the IDE, update the file Article.json with the following:
 
-.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step5.snippet
+.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step5.snippet
    :language: json
    :emphasize-lines: 3,4
    :linenos:
