@@ -18,6 +18,6 @@ You’ll need the following software to complete this tutorial.
 - Java IDE (recommended) or text editor.
 - Git client (command line version can be used).
 - Node.js, version 6.9.1 or higher, available from `<https://nodejs.org/>`_.
-- Gulp. Your can install gulp through npm by running the following at a command line: ``npm install --global gulp-cli``.
-- Yarn, version 0.16.1 or later. Your can install yarn through npm by running the following at a command line: ``npm install --global yarn``.
+- Gulp. You can install gulp through npm by running the following at a command line: ``npm install --global gulp-cli``.
+- Yarn, version 0.16.1 or later. You can install yarn through npm by running the following at a command line: ``npm install --global yarn``.
 - Ports 3000 and 9480 on your local machine are open for servers.

@@ -70,16 +70,10 @@ In this step you declare a Java class for articles.
 #. Change to the new directory ``content/article/``.
 #. In an IDE or text editor, create the file Article.java and enter the following text:
 
-.. code-block:: java
 
-    package content.article;
-
-    import com.psddev.cms.db.Content;
-
-    public class Article extends Content {
-
-    }
-
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step1.snippet
+   :language: java
+   :linenos:
 
 5. Refresh the web page running at localhost:9480.
 #. In the dashboard's banner, click in the search field, and in the panel that opens click **New** to create a new article. The article model appears.
@@ -96,35 +90,10 @@ In the MVVM pattern the model includes business logic. In this step, you impleme
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. code-block:: java
-
-   package content.article;
-
-   import com.psddev.cms.db.Content;
-
-   public class Article extends Content {
-
-      private String headline;
-      private String body;
-
-      public String getHeadline() {
-         return headline;
-      }
-
-      public void setHeadline(String headline) {
-         this.headline = headline;
-      }
-
-      public String getBody() {
-         return body;
-      }
-
-      public void setBody(String body) {
-         this.body = body;
-      }
-
-   }
-
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step2.snippet
+   :language: java
+   :linenos:
+   :emphasize-lines: 7-24
 
 2. Refresh the web page running at localhost:9480. A note appears in the right-hand side of the banner to install the reloader. 
 
@@ -136,7 +105,7 @@ In the MVVM pattern the model includes business logic. In this step, you impleme
 
 .. image:: images/two_new_fields.png
 
-In the previous listing, the properties ``headline`` and ``body`` indicate your article has headline and body fields, and the setter and getter methods save and display the current values of those fields in the model.
+In the previous listing, the properties ``headline`` and ``body`` in lines 7\ |endash|\ 8 indicate your article has headline and body fields, and the setter and getter methods in lines 10\ |endash|\ 24 save and display the current values of those fields in the model.
 
 
 Step 3: Making a Field Required
@@ -146,43 +115,18 @@ In addition to business logic, the MVVM model also specifies data validation. In
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. code-block:: java
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step3.snippet
+   :language: java
+   :linenos:
+   :emphasize-lines: 4,8
 
-   package content.article;
-
-   import com.psddev.cms.db.Content;
-   import com.psddev.dari.db.Recordable;
-
-   public class Article extends Content {
-
-      @Recordable.Required
-      private String headline;
-
-      private String body;
-
-      public String getHeadline() {
-         return headline;
-      }
-
-      public void setHeadline(String headline) {
-         this.headline = headline;
-      }
-
-      public String getBody() {
-         return body;
-      }
-
-      public void setBody(String body) {
-         this.body = body;
-      }
-   }
 
 2. Refresh the web page running at localhost:9489. The headline field now includes a hint that the field is required.
 
 .. image:: images/required.png
 
 
-In the previous listing, the annotation ``@Recordable.Required`` specifies that the headline field is required. Brightspot has many @Recordable annotations for implementing data validation. For details, see `Interface Recordable <http://www.dariframework.org/javadocs/com/psddev/dari/db/Recordable.html>`_.
+In the previous listing, the annotation ``@Recordable.Required`` in line 8 specifies that the headline field is required. Brightspot has many @Recordable annotations for implementing data validation. For details, see `Interface Recordable <http://www.dariframework.org/javadocs/com/psddev/dari/db/Recordable.html>`_.
 
 Step 4: Adding a Rich-Text Editor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -191,46 +135,18 @@ A rich-text editor (RTE) provides controls for formatting at the character and p
 
 #. Returning to the IDE, update the file Article.java with the following:
  
-.. code-block:: java
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/model/Step4.snippet
+   :language: java
+   :linenos:
+   :emphasize-lines: 4,12
 
-   package content.article;
-
-   import com.psddev.cms.db.Content;
-   import com.psddev.cms.db.ToolUi;
-   import com.psddev.dari.db.Recordable;
-
-   public class Article extends Content {
-
-      @Recordable.Required
-      private String headline;
-
-      @ToolUi.RichText
-      private String body;
-
-      public String getHeadline() {
-         return headline;
-      }
-
-      public void setHeadline(String headline) {
-         this.headline = headline;
-      }
-
-      public String getBody() {
-         return body;
-      }
-
-      public void setBody(String body) {
-         this.body = body;
-      }
-
-   }
 
 2. Refresh the web page running at localhost:9480. The body field is now cast as an RTE.
 
 .. image:: images/rich_text_editor.png
 
 
-In the previous listing, the annotation ``@ToolUi.RichText`` specifies that the body field is cast as an RTE . Brightspot has many @ToolUI annotations for casting data-entry fields. For details, see `Class ToolUi <https://artifactory.psdops.com/psddev-releases/com/psddev/cms/3.2.6504-ad4fbd/cms-3.2.6504-ad4fbd-javadoc.jar!/com/psddev/cms/db/ToolUi.html>`_.
+In the previous listing, the annotation ``@ToolUi.RichText`` in line 12 specifies that the body field is cast as an RTE. Brightspot has many @ToolUi annotations for casting data-entry fields. For details, see `Class ToolUi <https://artifactory.psdops.com/psddev-releases/com/psddev/cms/3.2.6504-ad4fbd/cms-3.2.6504-ad4fbd-javadoc.jar!/com/psddev/cms/db/ToolUi.html>`_.
 
 
 Step 5: Composing an Article

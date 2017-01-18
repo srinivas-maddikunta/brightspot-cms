@@ -5,8 +5,8 @@ An article's view represents how an article appears on the screen. This typicall
 
 Brightspot maintains views inside a styleguide.
 
-Step 1: Open Blank Styleguide
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 1: Opening a Blank Styleguide
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this step, you run and open the blank styleguide.
 
@@ -17,8 +17,8 @@ In this step, you run and open the blank styleguide.
 
 .. image:: images/styleguide_blank.png
 
-Step 2: Add Article View to Styleguide
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 2: Adding an Article View to the Styleguide
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By convention, views are in directories parallel to their models. In this step, you create a view for your article model in the appropriate directory.
 
@@ -27,26 +27,16 @@ By convention, views are in directories parallel to their models. In this step, 
 #. Change to the new directory ``content/article/``.
 #. Create the file Article.hbs and enter the following text:
 
-.. code-block:: html
-
-   <div class="Article">
-      <h1 class="Article-headline">
-         Headline Text
-      </h1>
-    
-      <div class="Article-body">
-         Body Paragraphs
-      </div>
-   </div>
-
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step1.snippet
+   :language: html
+   :linenos:
+ 
 5. In the same directory, create a new file Article.json and enter the following text:
 
-.. code-block:: html
-
-   {
-      "_template": "Article.hbs"
-   }
-
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step2.snippet
+   :language: json
+   :linenos:
+ 
 
 6. Refresh the web page running at localhost:3000/_styleguide/index.html. An entry for the article appears. (If you do not see an entry for the article, in the terminal press Ctrl-C to stop the server and then rerun ``gulp styleguide``.)
 
@@ -55,64 +45,50 @@ By convention, views are in directories parallel to their models. In this step, 
 7. Click **Article**. The style guide displays boilerplate text for the heading and body.
 
 .. image:: images/styleguide_default_boilerplate.png
+
+
+In the previous handlebars listing, lines 3 and 7 specify the boilerplate text appearing in the headline and body; in the previous JSON listing, line 2 specifies the handlebars file your view will use.
  
-Step 3: Modify a View's Boilerplate Text
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 3: Modifying a View's Boilerplate Text
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The default view you created in the previous step includes standard boilerplate text. You can use helpers to modify the boilerplate text and give authors a better idea of an article's final appearance.
 
-#. In the text editor, return to the file Article.hbs and enter the following text:
+#. Returning to the IDE, update the file Article.hbs with the following:
 
-.. code-block:: html
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step3.snippet
+   :language: json
+   :emphasize-lines: 2,4,6,8,10,12
+   :linenos:
+ 
 
-   <div class="Article">
-      {{#with headline}}
-         <h1 class="Article-headline">
-            {{this}}
-         </h1>
-      {{/with}}
+2. Returning to the IDE, update the file Article.json with the following:
 
-      {{#with body}}
-         <div class="Article-body">
-            {{this}}
-         </div>
-      {{/with}}
-   </div>
-
-
-2. In the text editor, return to the file Article.json and enter the following text:
-
-.. code-block:: json
-
-   {
-      "_template": "Article.hbs",
-      "headline": "Headline Text",
-      "body": "lorem ipsum"
-   }
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step4.snippet
+   :language: json
+   :emphasize-lines: 3,4
+   :linenos:
 
 3. Refresh the web page running at localhost:3000/_styleguide/index.html and click **Article**. The new boilerplate text appears.
 
 .. image:: images/styleguide_custom_boilerplate.png
 
-For more information about the helpers available in a view's JSON and handlebars files, see `Brightspot Base <http://docs.brightspot.com.s3-website-us-east-1.amazonaws.com/base/all.html>`_ and  `Handlebars <http://handlebarsjs.com/>`_.
+In the previous handlebars listing, the ``{{#with}}`` helper specifies which JSON property to use when generating boilerplate text; in the previous JSON listing, lines 3\ |endash|\ 4 specify the value of the boilerplate text for the headline and body. For more information about handlebars helpers and associated JSON properties, see `Brightspot Base <http://docs.brightspot.com.s3-website-us-east-1.amazonaws.com/base/all.html>`_ and  `Handlebars <http://handlebarsjs.com/>`_.
 
-Step 4: Randomize a View's Boilerplate Text
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 4: Randomizing a View's Boilerplate Text
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Brightspot's JSON files include a helper you can use to randomize the boilerplate text.
 
 #. Returning to the IDE, update the file Article.json with the following:
 
-.. code-block:: json
-
-   {
-      "_template": "Article.hbs",
-      "headline": "{{words(10)}}",
-      "body": "{{paragraphs([2,3])}}"
-   }
+.. literalinclude:: ../../../_tutorial/snippet/tutorial/article/view/Step5.snippet
+   :language: json
+   :emphasize-lines: 3,4
+   :linenos:
 
 2. Refresh localhost:3000/_styleguide/index.html and click **Article**. The boilerplate text is now randomized.
 
 .. image:: images/styleguide_randomized_boilerplate.png
 
-For more information about the helpers available in a view's JSON file, see `Brightspot Base <http://docs.brightspot.com.s3-website-us-east-1.amazonaws.com/base/all.html>`_.
+In the previous listing, the helpers in lines 3\ |endash|\ 4 generate random text. For more information about the helpers available in a view's JSON file, see `Brightspot Base <http://docs.brightspot.com.s3-website-us-east-1.amazonaws.com/base/all.html>`_.
