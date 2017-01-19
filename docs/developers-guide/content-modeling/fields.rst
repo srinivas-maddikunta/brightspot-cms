@@ -42,8 +42,8 @@ You can place annotations on Text Fields. For example:
         @Required
         private String requiredExample;
     }
-    
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/898c21e/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F02%2Fd7%2F9387e77f4869a9b8922cb59c7605%2Fscreen-shot-2014-11-11-at-20612-pmpng.28.28%20PM.png
+
+.. image:: images/annotations-on-fields.svg
 
 Rich Text Editor
 ~~~~~~~~~~~~~~~~
@@ -60,7 +60,7 @@ To implement a Rich Text field, add private ReferentialText to an Object:
         private ReferentialText body;
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/a6ec7f3/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Ff5%2Fb9%2Ff0f2947847ec8faf382342666117%2Fscreen-shot-2014-11-11-at-20942-pmpng.4%20-%20RichText%20Field.png
+.. image:: images/rte-annotation.png
 
 Object Field
 ~~~~~~~~~~~~
@@ -114,7 +114,8 @@ To implement the Date widget as a field, add private Date to the Object.
         private Date dateWidget;
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/e138686/2147483647/resize/380x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Fe2%2F53%2F0a60b75d465dbc91c08e6dad825b%2Fscreen-shot-2014-11-11-at-44122-pmpng.4%20-%20Date%20Widget.png
+
+.. image:: images/date-widget.png
 
 Boolean Field
 ~~~~~~~~~~~~~
@@ -129,6 +130,8 @@ Add a Boolean field to an Object to create a checkbox that will enable a feature
         private String caption;
         private boolean autoplay;
     }
+
+.. image:: images/boolean-widget.png
 
 
 Enum Field
@@ -150,8 +153,7 @@ To add an enum, add public enum to the Object and specify the choices that shoul
         } 
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/5529102/2147483647/resize/380x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F34%2F51%2F3f53fa0547f39b0718a952826366%2Fenum-field.4%20-%20Enum.png
-
+.. image:: images/enum-widget.png
 
 List Fields
 ~~~~~~~~~~~
@@ -160,7 +162,7 @@ List fields allow you to create a list that pulls from existing content within B
 
 Once you've created a list of items, you can drag the items on the list to re-order them.
 
-This field can be implemented into an Object by adding private List<Author> authors
+This field can be implemented into an Object by adding private List<Author> authors.
 
 .. code-block:: java
 
@@ -170,7 +172,7 @@ This field can be implemented into an Object by adding private List<Author> auth
         private List<Author> authors; 
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/4ca2a6e/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F08%2F06%2F9feb1745466081025b0fa8922dfb%2Fscreen-shot-2014-11-12-at-121942-pmpng.4%20-%20List%20Field.png
+.. image:: images/list-widget.png
 
 Set Fields
 ~~~~~~~~~~
@@ -201,6 +203,8 @@ Storage Items allow files to be uploaded and stored in the default storage mecha
         private StorageItem image;
     }
 
+.. image:: images/storage-widget.png
+
 
 Locations/Regions
 ~~~~~~~~~~~~~~~~~
@@ -218,11 +222,11 @@ You can add a location or region to your content by adding a Location field to y
 
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/4c103f7/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Ff0%2Fa8%2F60b49aac4acfb4b3f26de68e2549%2Fbrightspot-24-map-fieldpng.4%20-%20Map%20Field.png
+.. image:: images/location-widget.png
 
 In the example provided above, a Location Field is added to a Store Promotion page and you can identify a specific region for your promotion.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/e364b9d/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F55%2F42%2F9e33a4c344df98fa538a090e6ae1%2Fscreen-shot-2014-12-03-at-35431-pmpng.54.31%20PM.png
+.. image:: images/region-widget.png
 
 Markdown Editor
 ~~~~~~~~~~~~~~~
@@ -239,6 +243,7 @@ You can use a Markdown editor instead of Rich Text, if needed.
         // Getters and Setters
     }
 
+.. image:: images/markdown-widget.png
 
 Media List
 ~~~~~~~~~~
