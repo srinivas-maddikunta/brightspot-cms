@@ -4809,6 +4809,9 @@ define([
             // valid HTML.
             html = self.limitHTML($el[0]);
 
+            // Detect any URLs in the html and turn them into links
+            html = self.detectUrls(html);
+
             return html;
         },
 
@@ -7572,6 +7575,7 @@ define([
             var enhancements;
             var el;
             var history;
+            var markToOpen;
             var self;
             var val;
 
@@ -8006,9 +8010,19 @@ define([
             $.each(annotations, function(i, annotation) {
 
                 var annotationRange;
+                var mark;
+                var openMark;
                 var styleObj;
 
                 styleObj = annotation.styleObj;
+
+                // Check if this mark was a pasted in link, so the mark should be edited after it is added
+                if (annotation.attributes && annotation.attributes['data-rte2-open']) {
+                    // Remove the attribute so it doesn't appear in the final output
+                    delete annotation.attributes['data-rte2-open'];
+                    // Set a flag so we know to open the mark after it is created.
+                    openMark = true;
+                }
 
                 // Adjust the position of the annotation based on the range where we're inserting the text
                 if (range.from.line !== 0 || range.from.ch !== 0) {
@@ -8054,7 +8068,14 @@ define([
                         }
 
                     } else {
-                        self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false, attributes:annotation.attributes});
+
+                        mark = self.inlineSetStyle(styleObj, annotation, {addToHistory:false, triggerChange:false, attributes:annotation.attributes});
+
+                        // If this mark was a pasted-in link that should be opened save the mark.
+                        // But only open the first mark that is found.
+                        if (openMark && !markToOpen) {
+                            markToOpen = mark;
+                        }
                     }
                 } else if (annotation.indent) {
                     // Special case for extra lines within a list item,
@@ -8072,6 +8093,12 @@ define([
 
             editor.setHistory(history);
             self.triggerChange();
+
+            // If user pasted in a url and it was converted to a link,
+            // open the edit form for that link.
+            if (markToOpen) {
+                self.onClickDoMark(null, markToOpen);
+            }
 
         }, // fromHTML()
 
@@ -8181,6 +8208,95 @@ define([
             } // if (matchArray)
 
             return matchStyleObj;
+        },
+
+
+        /**
+         * Detect any URLs in pasted content and change them into links.
+         * @param  {String} html
+         * @return {String}
+         */
+        detectUrls: function(html) {
+
+            var el;
+            var expression;
+            var match;
+            var node;
+            var nodeLink;
+            var re;
+            var self;
+            var text;
+            var walker;
+            var $wrapper;
+
+            self = this;
+
+            // Convert HTML into a DOM element so we can parse it using the browser node functions
+            el = self.htmlParse(html);
+
+            expression = 'https?://(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)';
+            re = new RegExp(expression);
+
+            // Loop through all the text nodes
+            walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            while(walker.nextNode()) {
+
+                node = walker.currentNode;
+                text = node.nodeValue;
+
+                // Make sure this text node is not already within another link?
+                if ($(node).closest('a').length) {
+                    continue;
+                }
+
+                // Check to see if the text contains a URL.
+                // Note the text might contain multiple separate URLs so we need to find them all.
+                while ((match = re.exec(text)) !== null) {
+
+                    // Split the text node if the url is not at the start
+                    // For example: "This is a http://example.com link"
+                    // We end up with "http://example.com link"
+                    if (match.index > 0) {
+
+                        nodeLink = node.splitText(match.index);
+
+                        // Move the tree walker to the next node (which was just created) to avoid processing multiple times
+                        walker.nextNode();
+                        node = walker.currentNode;
+
+                    } else {
+                        nodeLink = node;
+                    }
+
+                    // Split the text node if the url is not at the end
+                    // For example: "http://example.com link"
+                    // We end up with "http://example.com"
+                    if (match[0].length + match.index < text.length) {
+
+                        nodeLink.splitText(match[0].length);
+
+                        // Move the tree walker to the next node (which was just created) to avoid processing multiple times
+                        walker.nextNode();
+                        node = walker.currentNode;
+
+                        // Since we modified the text by splitting the text nodes and so forth,
+                        // update the text so we won't find the same URL twice
+                        text = walker.currentNode.nodeValue;
+                    }
+
+                    // Wrap the text node in a link element
+                    // Also add the data-rte2-open attribute to the element, which will be stripped off later,
+                    // and causes the editor to open the edit form for this element.
+                    $wrapper = $('<a/>', {
+                        href: match[0],
+                        'data-rte2-open': true
+                    });
+
+                    $(nodeLink).wrap( $wrapper );
+                }
+            }
+
+            return $(el).html();
         },
 
 
