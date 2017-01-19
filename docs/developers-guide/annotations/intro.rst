@@ -31,4 +31,4 @@ Brightspot uses annotations within the Java class to provide control over data i
 
 You can see a list of all annotations and which specific annotations are applied to your content by clicking on the  icon in the top right corner of the publishing widget, opening up a drop-down menu with two tabs: For Editors and For Developers. The developers tab lists present and possible annotations and other information relevant to the raw data of the content type. Click on any annotation link to see the JavaDoc.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/d1/df/c907cb5c4452995d927295c7dec6/screen-shot-2016-03-30-at-2.00.19%20PM.jpg
+.. image:: images/developers-tab.jpg
