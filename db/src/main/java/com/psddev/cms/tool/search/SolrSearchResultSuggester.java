@@ -9,12 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.psddev.cms.db.PermissionAssignable;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.CommonParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolUi;
 import com.psddev.cms.tool.PageWriter;
 import com.psddev.cms.tool.Search;
@@ -79,14 +77,11 @@ public class SolrSearchResultSuggester implements SearchResultSuggester {
             filter.append(" || ");
         }
 
-        Site site = page.getUser().getCurrentSite();
-
         for (Object item : findSimilar(object, filter, 10)) {
             Float score = SolrDatabase.Static.getNormalizedScore(item);
 
             if (score != null && score > 0.7) {
-                if (!PermissionAssignable.Static.isObjectAccessible(page.getUser(), item)
-                        || (site != null && !PredicateParser.Static.evaluate(item, site.itemsPredicate()))) {
+                if (!PredicateParser.Static.evaluate(item, page.itemsPredicate())) {
                     continue;
                 }
 
@@ -113,9 +108,7 @@ public class SolrSearchResultSuggester implements SearchResultSuggester {
             Float score = SolrDatabase.Static.getNormalizedScore(item);
 
             if (score > 0.7) {
-                if (!PermissionAssignable.Static.isObjectAccessible(page.getUser(), item)
-                        || (site != null
-                        && !PredicateParser.Static.evaluate(item, site.itemsPredicate()))) {
+                if (!PredicateParser.Static.evaluate(item, page.itemsPredicate())) {
                     continue;
                 }
 

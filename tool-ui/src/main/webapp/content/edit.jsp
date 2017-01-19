@@ -12,13 +12,13 @@ com.psddev.cms.db.GuidePage,
 com.psddev.cms.db.History,
 com.psddev.cms.db.Page,
 com.psddev.cms.db.PageFilter,
-com.psddev.cms.db.PermissionAssignable,
 com.psddev.cms.db.Renderer,
 com.psddev.cms.db.Schedule,
 com.psddev.cms.db.Site,
 com.psddev.cms.db.Template,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.db.ToolUser,
+com.psddev.cms.db.UserPermissionsProvider,
 com.psddev.cms.db.Variation,
 com.psddev.cms.db.Workflow,
 com.psddev.cms.db.WorkflowLog,
@@ -81,7 +81,7 @@ ToolUser user = wp.getUser();
 Site site = wp.getSite();
 
 if (selected != null) {
-    if (!PermissionAssignable.Static.isObjectAccessible(user, selected)) {
+    if (!UserPermissionsProvider.Static.isObjectAccessible(user, selected)) {
         wp.writeHeader();
             wp.writeStart("div", "class", "message message-warning");
                 wp.writeHtml(wp.localize(
@@ -185,7 +185,7 @@ if (workStream != null) {
 // Only permit copy if the copy source object is accessible to the current Site
 Object copy = Query.findById(Object.class, wp.uuidParam("copyId"));
 if (copy != null) {
-    if (!PermissionAssignable.Static.isObjectAccessible(user, copy)) {
+    if (!UserPermissionsProvider.Static.isObjectAccessible(user, copy)) {
         wp.writeHeader();
             wp.writeStart("div", "class", "message message-warning");
                 wp.writeHtml(wp.localize(

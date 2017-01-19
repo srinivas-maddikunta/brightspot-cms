@@ -45,7 +45,7 @@ import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
 import com.psddev.cms.db.Overlay;
 import com.psddev.cms.db.OverlayProvider;
-import com.psddev.cms.db.PermissionAssignable;
+import com.psddev.cms.db.UserPermissionsProvider;
 import com.psddev.cms.db.WorkInProgress;
 import com.psddev.cms.rte.RichTextToolbar;
 import com.psddev.cms.rte.RichTextToolbarItem;
@@ -1003,10 +1003,10 @@ public class ToolPageContext extends WebPageContext {
     }
 
     /**
-     * @see PermissionAssignable.Static#itemsPredicate(ToolUser)
+     * @see UserPermissionsProvider.Static#allItemsPredicate(ToolUser)
      */
     public Predicate userItemsPredicate() {
-        return PermissionAssignable.Static.itemsPredicate(getUser());
+        return UserPermissionsProvider.Static.allItemsPredicate(getUser());
     }
 
     public Predicate siteItemsPredicate() {

@@ -1,7 +1,6 @@
 package com.psddev.cms.db;
 
 import com.psddev.dari.db.Recordable;
-import com.psddev.dari.db.State;
 
 public interface ToolEntity extends Recordable {
 
@@ -11,13 +10,4 @@ public interface ToolEntity extends Recordable {
      * @return Never {@code null}.
      */
     public Iterable<? extends ToolUser> getUsers();
-
-    /**
-     * Returns the permission id for this entity.
-     *
-     * @return Nonnull.
-     */
-    default String getPermissionId() {
-        return "entity/" + State.getInstance(this).getId();
-    }
 }

@@ -226,7 +226,7 @@ public class SearchQueryBuilder extends Record {
 
         Optional.ofNullable(PageContextFilter.Static.getRequestOrNull())
                 .ifPresent(request -> Optional.ofNullable(AuthenticationFilter.Static.getUser(request))
-                        .ifPresent(user ->  query.and(PermissionAssignable.Static.itemsPredicate(user))));
+                        .ifPresent(user ->  query.and(UserPermissionsProvider.Static.allItemsPredicate(user))));
 
         if (site != null) {
             query.and(site.itemsPredicate());

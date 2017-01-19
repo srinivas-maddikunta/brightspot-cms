@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.UUID;
 
 import com.psddev.cms.db.Localization;
-import com.psddev.cms.db.PermissionAssignable;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.Taxon;
 import com.psddev.cms.tool.Search;
@@ -94,8 +93,7 @@ public class TaxonomySearchResultView extends AbstractSearchResultView {
                 for (Iterator<? extends Taxon> i = items.iterator(); i.hasNext();) {
                     Taxon taxon = i.next();
 
-                    if (!PermissionAssignable.Static.isObjectAccessible(page.getUser(), taxon)
-                            || !PredicateParser.Static.evaluate(taxon, site.itemsPredicate())) {
+                    if (!PredicateParser.Static.evaluate(taxon, page.itemsPredicate())) {
                         i.remove();
                     }
                 }

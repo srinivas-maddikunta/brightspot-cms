@@ -12,7 +12,6 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 import com.psddev.cms.db.PageFilter;
-import com.psddev.cms.db.PermissionAssignable;
 import com.psddev.cms.view.ViewCreator;
 import com.psddev.cms.view.ViewModel;
 import com.psddev.dari.util.JspUtils;
@@ -205,8 +204,7 @@ public class SearchResultRenderer {
                     Collection<Taxon> siteTaxons = new ArrayList<Taxon>();
 
                     for (Taxon taxon : taxonResults) {
-                        if (PermissionAssignable.Static.isObjectAccessible(page.getUser(), taxon)
-                                && PredicateParser.Static.evaluate(taxon, site.itemsPredicate())) {
+                        if (PredicateParser.Static.evaluate(taxon, page.itemsPredicate())) {
                             siteTaxons.add(taxon);
                         }
                     }

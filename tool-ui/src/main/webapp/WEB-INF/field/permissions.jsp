@@ -1,13 +1,12 @@
 <%@ page session="false" import="
 
 com.psddev.cms.db.Content,
-com.psddev.cms.db.PermissionAssignable,
 com.psddev.cms.db.Site,
 com.psddev.cms.db.Template,
-com.psddev.cms.db.ToolEntity,
 com.psddev.cms.db.ToolRole,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.db.ToolUser,
+com.psddev.cms.db.UserPermissionsProvider,
 com.psddev.cms.db.Workflow,
 com.psddev.cms.db.WorkflowState,
 com.psddev.cms.db.WorkflowTransition,
@@ -26,6 +25,7 @@ com.psddev.dari.db.State,
 com.psddev.dari.util.ClassFinder,
 com.psddev.dari.util.ObjectUtils,
 com.psddev.dari.util.SparseSet,
+com.psddev.dari.util.TypeDefinition,
 
 java.io.IOException,
 java.util.ArrayList,
@@ -137,22 +137,6 @@ for (Workflow w : Query.from(Workflow.class).selectAll()) {
 }
 
 wp.writeStart("div", "class", "inputSmall permissions");
-
-    // Only expose entity permissions if it is warranted.
-    if (ClassFinder.findConcreteClasses(PermissionAssignable.class).size() > 0) {
-        wp.writeStart("div", "class", "permissionsSection");
-            writeParent(wp, permissions, "Entities", "entity");
-
-            wp.writeStart("ul");
-                for (ToolEntity entity : Query.from(ToolEntity.class).selectAll().stream().collect(Collectors.toSet())) {
-                    wp.writeStart("li");
-                        writeChild(wp, permissions, entity, entity.getPermissionId());
-                    wp.writeEnd();
-                }
-            wp.writeEnd();
-        wp.writeEnd();
-    }
-
     wp.writeStart("div", "class", "permissionsSection");
         writeParent(wp, permissions, "Sites", "site");
 
@@ -283,6 +267,13 @@ wp.writeStart("div", "class", "inputSmall permissions");
                 }
             wp.writeEnd();
         wp.writeEnd();
+    }
+
+    for (UserPermissionsProvider provider : ClassFinder.findConcreteClasses(UserPermissionsProvider.class).stream()
+            .map(clazz -> TypeDefinition.getInstance(clazz).newInstance())
+            .collect(Collectors.toList())) {
+
+        provider.writeAdditionalRolePermissions(wp, permissions);
     }
 
     wp.writeStart("div", "class", "permissionsType");
