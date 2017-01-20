@@ -6,7 +6,6 @@ com.psddev.cms.db.Template,
 com.psddev.cms.db.ToolRole,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.db.ToolUser,
-com.psddev.cms.db.UserPermissionsProvider,
 com.psddev.cms.db.Workflow,
 com.psddev.cms.db.WorkflowState,
 com.psddev.cms.db.WorkflowTransition,
@@ -22,10 +21,8 @@ com.psddev.dari.db.ObjectField,
 com.psddev.dari.db.ObjectType,
 com.psddev.dari.db.Query,
 com.psddev.dari.db.State,
-com.psddev.dari.util.ClassFinder,
 com.psddev.dari.util.ObjectUtils,
 com.psddev.dari.util.SparseSet,
-com.psddev.dari.util.TypeDefinition,
 
 java.io.IOException,
 java.util.ArrayList,
@@ -37,7 +34,6 @@ java.util.LinkedHashMap,
 java.util.List,
 java.util.Map,
 java.util.Set,
-java.util.stream.Collectors,
 java.util.TreeSet,
 java.util.stream.Stream
 " %>
@@ -267,13 +263,6 @@ wp.writeStart("div", "class", "inputSmall permissions");
                 }
             wp.writeEnd();
         wp.writeEnd();
-    }
-
-    for (UserPermissionsProvider provider : ClassFinder.findConcreteClasses(UserPermissionsProvider.class).stream()
-            .map(clazz -> TypeDefinition.getInstance(clazz).newInstance())
-            .collect(Collectors.toList())) {
-
-        provider.writeAdditionalRolePermissions(wp, permissions);
     }
 
     wp.writeStart("div", "class", "permissionsType");

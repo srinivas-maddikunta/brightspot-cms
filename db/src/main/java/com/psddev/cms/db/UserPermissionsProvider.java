@@ -1,14 +1,11 @@
 package com.psddev.cms.db;
 
-import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.CompoundPredicate;
 import com.psddev.dari.db.Predicate;
 import com.psddev.dari.db.PredicateParser;
 import com.psddev.dari.util.ClassFinder;
-import com.psddev.dari.util.SparseSet;
 import com.psddev.dari.util.TypeDefinition;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -26,15 +23,6 @@ public interface UserPermissionsProvider {
      * @return Nullable.
      */
     Predicate itemsPredicate(ToolUser user);
-
-    /**
-     * Writes additional {@link ToolRole} permissions.
-     *
-     * @param page Nonnull.
-     * @param permissions Nonnull.
-     * @throws IOException if unable to write to the provided {@code page}.
-     */
-    void writeAdditionalRolePermissions(ToolPageContext page, SparseSet permissions) throws IOException;
 
     /**
      * Static utility methods.
