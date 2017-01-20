@@ -8220,11 +8220,9 @@ define([
         detectUrls: function(html) {
 
             var el;
-            var expression;
-            var match;
+            var expressions;
             var node;
             var nodeLink;
-            var re;
             var self;
             var text;
             var walker;
@@ -8235,8 +8233,26 @@ define([
             // Convert HTML into a DOM element so we can parse it using the browser node functions
             el = self.htmlParse(html);
 
-            expression = 'https?://(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)';
-            re = new RegExp(expression);
+            // Get a list of the URL expressions that we should search, from the styles that have been defined.
+            // Each style can have an array of urlPatterns that can be matched.
+            expressions = [];
+            $.each(self.styles, function(styleKey, styleObj) {
+                if (styleObj.urlPatterns) {
+                    $.each(styleObj.urlPatterns, function(i, expression){
+                        expressions.push({
+                            element: styleObj.element,
+                            re: new RegExp(expression)
+                        });
+                    });
+                }
+            });
+
+            // Match anything that looks like a URL and make it a link.
+            // Since this is the last expression it will only match when no other matches were found
+            expressions.push({
+                element: 'a',
+                re: new RegExp('https?://(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)')
+            });
 
             // Loop through all the text nodes
             walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -8250,51 +8266,61 @@ define([
                     continue;
                 }
 
-                // Check to see if the text contains a URL.
-                // Note the text might contain multiple separate URLs so we need to find them all.
-                while ((match = re.exec(text)) !== null) {
+                $.each(expressions, function(i, expression) {
 
-                    // Split the text node if the url is not at the start
-                    // For example: "This is a http://example.com link"
-                    // We end up with "http://example.com link"
-                    if (match.index > 0) {
+                    var el;
+                    var match;
+                    var re;
 
-                        nodeLink = node.splitText(match.index);
+                    re = expression.re;
+                    el = expression.element;
 
-                        // Move the tree walker to the next node (which was just created) to avoid processing multiple times
-                        walker.nextNode();
-                        node = walker.currentNode;
+                    // Check to see if the text contains a URL.
+                    // Note the text might contain multiple separate URLs so we need to find them all.
+                    while ((match = re.exec(text)) !== null) {
 
-                    } else {
-                        nodeLink = node;
-                    }
+                        // Split the text node if the url is not at the start
+                        // For example: "This is a http://example.com link"
+                        // We end up with "http://example.com link"
+                        if (match.index > 0) {
 
-                    // Split the text node if the url is not at the end
-                    // For example: "http://example.com link"
-                    // We end up with "http://example.com"
-                    if (match[0].length + match.index < text.length) {
+                            nodeLink = node.splitText(match.index);
 
-                        nodeLink.splitText(match[0].length);
+                            // Move the tree walker to the next node (which was just created) to avoid processing multiple times
+                            walker.nextNode();
+                            node = walker.currentNode;
 
-                        // Move the tree walker to the next node (which was just created) to avoid processing multiple times
-                        walker.nextNode();
-                        node = walker.currentNode;
+                        } else {
+                            nodeLink = node;
+                        }
 
-                        // Since we modified the text by splitting the text nodes and so forth,
-                        // update the text so we won't find the same URL twice
-                        text = walker.currentNode.nodeValue;
-                    }
+                        // Split the text node if the url is not at the end
+                        // For example: "http://example.com link"
+                        // We end up with "http://example.com"
+                        if (match[0].length + match.index < text.length) {
 
-                    // Wrap the text node in a link element
-                    // Also add the data-rte2-open attribute to the element, which will be stripped off later,
-                    // and causes the editor to open the edit form for this element.
-                    $wrapper = $('<a/>', {
-                        href: match[0],
-                        'data-rte2-open': true
-                    });
+                            nodeLink.splitText(match[0].length);
 
-                    $(nodeLink).wrap( $wrapper );
-                }
+                            // Move the tree walker to the next node (which was just created) to avoid processing multiple times
+                            walker.nextNode();
+                            node = walker.currentNode;
+
+                            // Since we modified the text by splitting the text nodes and so forth,
+                            // update the text so we won't find the same URL twice
+                            text = walker.currentNode.nodeValue;
+                        }
+
+                        // Wrap the text node in a link element
+                        // Also add the data-rte2-open attribute to the element, which will be stripped off later,
+                        // and causes the editor to open the edit form for this element.
+                        $wrapper = $('<' + el + '/>', {
+                            href: match[0],
+                            'data-rte2-open': true
+                        });
+
+                        $(nodeLink).wrap( $wrapper );
+                    } // while match
+                }); // each expressions
             }
 
             return $(el).html();
