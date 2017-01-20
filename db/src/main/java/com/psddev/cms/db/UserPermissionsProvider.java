@@ -6,6 +6,7 @@ import com.psddev.dari.db.PredicateParser;
 import com.psddev.dari.util.ClassFinder;
 import com.psddev.dari.util.TypeDefinition;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -43,13 +44,13 @@ public interface UserPermissionsProvider {
                 return null;
             }
 
-            return new CompoundPredicate(
-                    PredicateParser.OR_OPERATOR,
-                    ClassFinder.findConcreteClasses(UserPermissionsProvider.class).stream()
-                            .map(clazz -> TypeDefinition.getInstance(clazz).newInstance())
-                            .map(object -> object.itemsPredicate(user))
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList()));
+            List<Predicate> predicates = ClassFinder.findConcreteClasses(UserPermissionsProvider.class).stream()
+                    .map(clazz -> TypeDefinition.getInstance(clazz).newInstance())
+                    .map(object -> object.itemsPredicate(user))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            return predicates.isEmpty() ? null : new CompoundPredicate(PredicateParser.OR_OPERATOR, predicates);
         }
 
         /**
