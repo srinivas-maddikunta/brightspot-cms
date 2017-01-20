@@ -34,4 +34,4 @@ Create an object that renders a visual error page. Add the URL that matches the 
         // Getters and Setters
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/a10d006/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Faf%2F3f%2Ffd7beb6a42e09c7b8ee941ba64ab%2Fscreen-shot-2014-11-14-at-24703-pmpng.24.35.png
+.. image:: images/error-page.png

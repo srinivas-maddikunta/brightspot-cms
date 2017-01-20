@@ -76,15 +76,15 @@ You can structure and reference Content Types in each other and create a data mo
 
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/d8606bf/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F04%2Fa7%2F0c8ef353479f9ee4e64d3c07dc71%2Fscreen-shot-2014-12-03-at-124425-pmpng.44.25%20PM.png
+.. image:: images/new-myclass.png
 
 You can access the created Content Types using the Dari Developer Tools by navigating to http://localhost:8080/_debug/db-schema. Select a created Content Type to view a schema of the relationships and properties in the class:
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/b6b9a3f/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F39%2Fd5%2F7e2ca5504d3abdf7195433e3e53b%2Fscreen-shot-2014-11-07-at-125639-pmpng.56.39%20PM.png
+.. image:: images/myclass-schema.png
 
-You can use the Query Tool to view the data stored in the database. Select ObjectType to view all Content Types, or select a specific Content Type to view all instances of it. Click on an individual instance to show the JSON stored in the database for the object.
+You can use the Query Tool at http://localhost:9480/_debug/query to view the data stored in the database. Select ``Object Type`` to view all Content Types, or select a specific Content Type to view all its instances. Click on an individual instance to show the JSON stored in the database for the object.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/19a195c/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Fc1%2Fe4%2F2298fb4f406090ba2d2212498f0e%2Fscreen-shot-2014-11-07-at-10537-pmpng.05.37%20PM.png
+.. image:: images/dari-database-query.png 
 
 All fields in a class that extends Content or Record are persisted to the database when the object is saved.
 

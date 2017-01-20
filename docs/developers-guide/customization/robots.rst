@@ -8,11 +8,11 @@ RAW HTML
 
 In Brightspot, you can use a Raw HTML to create a robots.txt file in the CMS. Create a new RawHTML object, and add disallows:
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/robots-text-1.png
+.. image:: images/robots-disallow.png
 
 In the advanced tab, create a new header called Content-Type with the value text/plain.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/robots-text-2.png
+.. image:: images/robots-header.png
 
 In the URL widget on the right, add robots.txt as the URL for the object and it will be accessed and rendered when robots.txt is accessed.
 

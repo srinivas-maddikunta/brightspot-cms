@@ -198,14 +198,14 @@ Construct the query to generate the sitemap.
                     // Start new site map
                     StringBuilder siteMap = new StringBuilder();
                     siteMap.append("<!--?xml version=\"1.0\" encoding=\"UTF-8\"?-->");
-                    siteMap.append("<urlset xmlns="\"http://www.sitemaps.org/schemas/sitemap/0.9\"">");
+                    siteMap.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\");
                     siteMapList.add(siteMap);
                     currentPageIndex++;
                 }
 
                 siteMapList.get(currentPageIndex).append(getContentNode(content));
                 currentPageItemCount++;
-                if (currentPageItemCount &gt;= MAX_ITEMS_PER_SITEMAP) {
+                if (currentPageItemCount >= MAX_ITEMS_PER_SITEMAP) {
                     currentPageItemCount = 0;
                 }
             }
@@ -215,7 +215,7 @@ Construct the query to generate the sitemap.
             }
 
             // Save site map files
-            for (int siteMapIndex = 0; siteMapIndex &lt; siteMapList.size(); siteMapIndex++) {
+            for (int siteMapIndex = 0; siteMapIndex < siteMapList.size(); siteMapIndex++) {
                 String siteMapName = "sitemap-" + siteMapIndex + ".xml";
                 Text siteMapText = Query.findUnique(Text.class, "name", siteMapName);
                 if (siteMapText == null) {
@@ -229,8 +229,8 @@ Construct the query to generate the sitemap.
             // Build site map index
             StringBuilder mainSiteMap = new StringBuilder();
             mainSiteMap.append("<!--?xml version=\"1.0\" encoding=\"UTF-8\"?-->");
-            mainSiteMap.append("<sitemapindex xmlns="\"http://www.sitemaps.org/schemas/sitemap/0.9\"">");
-            for (int siteMapIndex = 0; siteMapIndex &lt; siteMapList.size(); siteMapIndex++) {
+            mainSiteMap.append("<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+            for (int siteMapIndex = 0; siteMapIndex < siteMapList.size(); siteMapIndex++) {
                 mainSiteMap.append(getSiteMapNode(siteMapIndex));
             }
             mainSiteMap.append("</sitemapindex>");

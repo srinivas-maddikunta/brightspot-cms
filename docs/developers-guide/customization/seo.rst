@@ -25,4 +25,4 @@ An example implementation would be to test to see if an SEO Title has been added
 
 The SEO Widget in the CMS provides additional robots.txt tools to hide and noindex your content.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/41f133b/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F01%2Fc3%2F9175be304543987457315920f603%2F24-seo-widgetpng.4-SEO%20Widget.png
+.. image:: images/seo-tab.png

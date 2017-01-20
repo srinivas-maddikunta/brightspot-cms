@@ -1,22 +1,22 @@
-Code Playground
----------------
+Code Editor
+-----------
 
-The Code Tool provides a playground that leverages the on-the-fly code compiling from Dari. Here, you can see instant results for the Java code in your browser. 
+The Code Editor, available at http://localhost:9480/_debug/code, provides a playground for on-the-fly code compiling from Dari. Here, you can see instant results for the Java code in your browser. 
 
 You can run queries against your project data. For example, returning an Author object where all fields, `getters`, and `setters` are outlined.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/code_tool_return.png
+.. image:: images/code_tool_return.png
 
 
-For an example of a query, here is a Blog Post where the Author's first name is John.
+Below is an example of a query of authors with internal name = shakespeare-william.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/code_tool_return_query.png
+.. image:: images/code-return-query.png
 
 You can also access and edit existing objects from a project. When running locally, any changes saved will be made to the source.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/code_tool_modify_objects.png
+.. image:: images/code-update.png
 
 Select the New Class option in the drop-down to create an entirely new object. The example below shows the creation of a new Category object.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/code_tool_create_objects.png
+.. image:: images/new-code.png
 

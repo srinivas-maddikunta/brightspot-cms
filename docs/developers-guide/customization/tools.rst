@@ -4,7 +4,7 @@ Tools
 Built-In Tools
 ~~~~~~~~~~~~~~
 
-Brightspot provides a comprehensive set of built-in tools that can be customized to best meet your needs. These tools include Editorial Workflows, MultiSite functionality, User Profiles, Custom Widgets, and Custom Brightspot Navigation.
+Brightspot provides a comprehensive set of built-in tools for customizing a site to best meet your needs. These tools include Editorial Workflows, MultiSite functionality, User Profiles, Custom Widgets, and Custom Brightspot Navigation.
 
 Profile Defaults
 ~~~~~~~~~~~~~~~~
@@ -19,7 +19,7 @@ In this example, a default category will be provided for each user. When they cr
 
 .. code-block:: java
 
-    public class ToolUserDefaults extends Modification<Tooluser> {
+    public class ToolUserDefaults extends Modification<ToolUser> {
 
         @ToolUi.Note("Choose your default Category")
         private Category category;
@@ -145,9 +145,7 @@ Adding Navigation
 
 To add a new Tab to the navigation in Brightspot, add an Area. The Area can be placed in an existing class that extends Tool. You can add Dropdown items, each with an associated path. The items will appear in alphabetical order.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/adding-custom-tabs.png
-
-\
+.. image:: images/adding-custom-tabs.png
 
 .. code-block:: java
 
