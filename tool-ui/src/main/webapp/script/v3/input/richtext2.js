@@ -4825,6 +4825,8 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     if (!styleObj || !styleObj.previewable) {
                         return;
                     }
+
+                    var typeId = styleObj.enhancementType;
                     
                     if (mark.rtePreviewKey !== newPreviewKey) {
                         mark.rtePreviewKey = newPreviewKey;
@@ -4834,7 +4836,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                             url: CONTEXT_PATH + '/content/rte-preview',
 
                             data: {
-                                className: className,
+                                typeId: typeId,
                                 attributes: attributesJson
                             },
 
