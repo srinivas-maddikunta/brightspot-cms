@@ -4701,6 +4701,7 @@ define([
                     // and CodeMirror handles the paste operation.
 
                     value = self.htmlEncode(valueText).replace(/[\n\r]/g, '<br/>');
+                    value = self.detectUrls(value);
                 }
             }
 
