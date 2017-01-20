@@ -29,6 +29,8 @@ public abstract class ViewModel<M> {
 
     protected M model;
 
+    protected Boolean shouldCreate;
+
     /**
      * Called during creation of this view model. The object is fully initialized
      * at this point so it is safe to utilize full functionality.
@@ -104,10 +106,15 @@ public abstract class ViewModel<M> {
                 ((ViewModel<? super M>) viewModel).viewResponse = viewResponse;
 
                 viewModel.model = model;
+                viewModel.shouldCreate = Boolean.TRUE;
 
                 beforeViewModelOnCreate(viewModel);
 
                 viewModel.onCreate(viewResponse);
+
+                if (Boolean.FALSE.equals(viewModel.shouldCreate)) {
+                    return null;
+                }
 
                 return viewModel;
             }
