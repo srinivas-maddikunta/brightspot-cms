@@ -26,7 +26,7 @@ public class RichTextElementPreview extends PageServlet {
     protected void doService(ToolPageContext page) throws IOException, ServletException {
         String typeId = page.param(String.class, "typeId");
 
-        Class<?> rteClass = ObjectType.getInstance(UUID.fromString(typeId)).getObjectClass();
+        Class<?> rteClass = ObjectUtils.to(UUID.class, typeId).getClass();
         RichTextElement rte = (RichTextElement) TypeDefinition.getInstance(rteClass).newInstance();
 
         rte.fromAttributes((Map<String, String>) ObjectUtils.fromJson(page.param(String.class, "attributes")));
