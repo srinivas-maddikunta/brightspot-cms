@@ -15,7 +15,7 @@ In this step, you run and open the blank styleguide.
 #. Run ``gulp styleguide``. A server starts.
 #. In your web browser, open http://localhost:3000/_styleguide/index.html. An empty styleguide appears.
 
-.. image:: images/styleguide_blank.png
+.. image:: article/images/styleguide-blank.png
 
 Step 2: Adding an Article View to the Styleguide
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -40,11 +40,11 @@ By convention, views are in directories parallel to their models. In this step, 
 
 6. Refresh the web page running at localhost:3000/_styleguide/index.html. An entry for the article appears. (If you do not see an entry for the article, in the terminal press Ctrl-C to stop the server and then rerun ``gulp styleguide``.)
 
-.. image:: images/styleguide_article_entry.png
+.. image:: article/images/styleguide-article.png
 
 7. Click **Article**. The style guide displays boilerplate text for the heading and body.
 
-.. image:: images/styleguide_default_boilerplate.png
+.. image:: article/images/styleguide-default.png
 
 
 In the previous handlebars listing, lines 3 and 7 specify the boilerplate text appearing in the headline and body; in the previous JSON listing, line 2 specifies the handlebars file your view will use.
@@ -71,7 +71,7 @@ The default view you created in the previous step includes standard boilerplate 
 
 3. Refresh the web page running at localhost:3000/_styleguide/index.html and click **Article**. The new boilerplate text appears.
 
-.. image:: images/styleguide_custom_boilerplate.png
+.. image:: article/images/styleguide-custom.png
 
 In the previous handlebars listing, the ``{{#with}}`` helper specifies which JSON property to use when generating boilerplate text; in the previous JSON listing, lines 3\ |endash|\ 4 specify the value of the boilerplate text for the headline and body. For more information about handlebars helpers and associated JSON properties, see `Brightspot Base <http://docs.brightspot.com.s3-website-us-east-1.amazonaws.com/base/all.html>`_ and  `Handlebars <http://handlebarsjs.com/>`_.
 
@@ -89,6 +89,6 @@ Brightspot's JSON files include a helper you can use to randomize the boilerplat
 
 2. Refresh localhost:3000/_styleguide/index.html and click **Article**. The boilerplate text is now randomized.
 
-.. image:: images/styleguide_randomized_boilerplate.png
+.. image:: article/images/styleguide-randomized.png
 
 In the previous listing, the helpers in lines 3\ |endash|\ 4 generate random text. For more information about the helpers available in a view's JSON file, see `Brightspot Base <http://docs.brightspot.com.s3-website-us-east-1.amazonaws.com/base/all.html>`_.

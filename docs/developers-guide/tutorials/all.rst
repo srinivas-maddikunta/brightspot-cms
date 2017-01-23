@@ -1,10 +1,10 @@
 Tutorials
 =========
 
-.. include:: getting_started.rst
-.. include:: developing_article_model.rst
-.. include:: developing_article_view.rst
-.. include:: developing_article_view_model.rst 
-.. include:: automatically_creating_permalinks.rst 
-.. include:: summary.rst
+.. include:: getting-started/all.rst
+.. include:: article/develop-model.rst
+.. include:: article/develop-view.rst
+.. include:: article/develop-view-model.rst 
+.. include:: article/permalinks.rst 
+.. include:: summary/all.rst
 

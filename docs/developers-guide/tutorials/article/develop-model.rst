@@ -3,7 +3,7 @@ Developing a Model, View, and View Model for an Article
 
 In this tutorial, you'll deploy a small Brightspot news site for exposing extra-terrestrial affairs. The site will include a model for articles, a view for articles, and a view model that binds the model to the view. The following diagram summarizes the progression of this tutorial.
 
-.. image:: images/progression.png
+.. image:: article/images/progression.png
 
 Time Required
 ~~~~~~~~~~~~~
@@ -32,11 +32,11 @@ Download and Run the Brightspot Tutorial Project
 #. Type ``./run.sh`` (Linux, OS X) or ``run.cmd`` (Windows).
 #. The installation script requires about three minutes to download components, compile, and display at \http://localhost:9480/cms/logIn.jsp. A form for entering a username and password appears.
 
-.. image:: images/login.png
+.. image:: article/images/login.png
 
 8. Enter your username and password. The dashboard appears. 
 
-.. image:: images/dashboard.png
+.. image:: article/images/dashboard.png
 
 
 Project Structure Conventions
@@ -52,7 +52,7 @@ As you work through the tutorial, place source files in the following folders of
 
 The following diagram illustrates the structure conventions.
 
-.. image:: images/directory_structure.png
+.. image:: article/images/directory-structure.png
 
 Creating an Article Model
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,7 +78,7 @@ In this step you declare a Java class for articles.
 5. Refresh the web page running at localhost:9480.
 #. In the dashboard's banner, click in the search field, and in the panel that opens click **New** to create a new article. The article model appears.
 
-.. image:: images/new_article.svg
+.. image:: article/images/new-article.svg
 
 
 The model appearing in the browser has no data-entry fields. You'll add those in the next step.
@@ -98,12 +98,12 @@ In the MVVM pattern the model includes business logic. In this step, you impleme
 2. Refresh the web page running at localhost:9480. A note appears in the right-hand side of the banner to install the reloader. 
 
 
-.. image:: images/reloader.png
+.. image:: article/images/reloader.png
 
 
 3. Click the link to install the reloader. The model reloads and now has two fields.
 
-.. image:: images/two_new_fields.png
+.. image:: article/images/new-fields.png
 
 In the previous listing, the properties ``headline`` and ``body`` in lines 7\ |endash|\ 8 indicate your article has headline and body fields, and the setter and getter methods in lines 10\ |endash|\ 24 save and display the current values of those fields in the model.
 
@@ -123,13 +123,13 @@ In addition to business logic, the MVVM model also specifies data validation. In
 
 2. Refresh the web page running at localhost:9489. The headline field now includes a hint that the field is required.
 
-.. image:: images/required.png
+.. image:: article/images/required.png
 
 
 In the previous listing, the annotation ``@Recordable.Required`` in line 8 specifies that the headline field is required. Brightspot has many @Recordable annotations for implementing data validation. For details, see `Interface Recordable <http://www.dariframework.org/javadocs/com/psddev/dari/db/Recordable.html>`_.
 
 Step 4: Adding a Rich-Text Editor
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A rich-text editor (RTE) provides controls for formatting at the character and paragraph level. In this step, you recast the body field to include an RTE.
 
@@ -143,7 +143,7 @@ A rich-text editor (RTE) provides controls for formatting at the character and p
 
 2. Refresh the web page running at localhost:9480. The body field is now cast as an RTE.
 
-.. image:: images/rich_text_editor.png
+.. image:: article/images/rte-editor.png
 
 
 In the previous listing, the annotation ``@ToolUi.RichText`` in line 12 specifies that the body field is cast as an RTE. Brightspot has many @ToolUi annotations for casting data-entry fields. For details, see `Class ToolUi <https://artifactory.psdops.com/psddev-releases/com/psddev/cms/3.2.6504-ad4fbd/cms-3.2.6504-ad4fbd-javadoc.jar!/com/psddev/cms/db/ToolUi.html>`_.
@@ -158,5 +158,5 @@ Now that you have a model, it's time for you to write an article announcing the 
 #. In the Body field, enter the article's body.
 #. Click **Save Draft**.
 
-.. image:: images/populated_article.png
+.. image:: article/images/blog-article.png
 
