@@ -24,9 +24,9 @@ public class RichTextElementPreview extends PageServlet {
     @Override
     @SuppressWarnings("unchecked")
     protected void doService(ToolPageContext page) throws IOException, ServletException {
-        String typeId = page.param(String.class, "typeId");
+        UUID typeId = page.param(UUID.class, "typeId");
 
-        Class<?> rteClass = ObjectUtils.to(UUID.class, typeId).getClass();
+        Class<?> rteClass = ObjectType.getInstance(typeId).getObjectClass();
         RichTextElement rte = (RichTextElement) TypeDefinition.getInstance(rteClass).newInstance();
 
         rte.fromAttributes((Map<String, String>) ObjectUtils.fromJson(page.param(String.class, "attributes")));
