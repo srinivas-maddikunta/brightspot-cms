@@ -7428,15 +7428,13 @@ define([
             });
 
             // Bubble sort the marks for each character based on the context
-            $.each(spansByChar, function() {
+            $.each(spansByChar, function(spanIndex, spans) {
 
                 var compare;
-                var spans;
                 var swapped;
                 var temp;
 
-                spans = this;
-                if (spans.length > 1) {
+                if (spans && spans.length > 1) {
                     do {
                         swapped = false;
                         for (var i=0; i < spans.length-1; i++) {
