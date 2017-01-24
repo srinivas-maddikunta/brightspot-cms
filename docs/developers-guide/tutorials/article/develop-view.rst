@@ -11,7 +11,7 @@ Step 1: Opening a Blank Styleguide
 In this step, you run and open the blank styleguide.
 
 #. Ensure port 3000 on your local machine is open.
-#. Open a new command window and change to ``brightspot-tutorial/``.
+#. Open a new command window and change the current directory to ``brightspot-tutorial/``.
 #. Run ``gulp styleguide``. A server starts.
 #. In your web browser, open http://localhost:3000/_styleguide/index.html. An empty styleguide appears.
 
@@ -22,18 +22,18 @@ Step 2: Adding an Article View to the Styleguide
 
 By convention, views are in directories parallel to their models. In this step, you create a view for your article model in the appropriate directory.
 
-#. Open a new command window and change to ``brightspot-tutorial/styleguide/``.
+#. Open a new command window and change the current directory to ``brightspot-tutorial/styleguide/``.
 #. Create a directory content/ and a subdirectory article/: ``mkdir -p content/article/``.
-#. Change to the new directory ``content/article/``.
+#. Change the current directory to the new directory ``content/article/``.
 #. Create the file Article.hbs and enter the following text:
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step1.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step1.snippet
    :language: html
    :linenos:
  
 5. In the same directory, create a new file Article.json and enter the following text:
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step2.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step2.snippet
    :language: json
    :linenos:
  
@@ -56,7 +56,7 @@ The default view you created in the previous step includes standard boilerplate 
 
 #. Returning to the IDE, update the file Article.hbs with the following:
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step3.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step3.snippet
    :language: html
    :emphasize-lines: 2,4,6,8,10,12
    :linenos:
@@ -64,7 +64,7 @@ The default view you created in the previous step includes standard boilerplate 
 
 2. Returning to the IDE, update the file Article.json with the following:
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step4.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step4.snippet
    :language: json
    :emphasize-lines: 3,4
    :linenos:
@@ -82,7 +82,7 @@ Brightspot's JSON files include a helper you can use to randomize the boilerplat
 
 #. Returning to the IDE, update the file Article.json with the following:
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/view/Step5.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step5.snippet
    :language: json
    :emphasize-lines: 3,4
    :linenos:

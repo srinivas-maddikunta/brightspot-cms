@@ -1,5 +1,5 @@
-Developing a Model, View, and View Model for an Article
--------------------------------------------------------
+Developing an Article
+---------------------
 
 In this tutorial, you'll deploy a small Brightspot news site for exposing extra-terrestrial affairs. The site will include a model for articles, a view for articles, and a view model that binds the model to the view. The following diagram summarizes the progression of this tutorial.
 
@@ -28,7 +28,7 @@ Download and Run the Brightspot Tutorial Project
 #. Open a terminal, and change to a directory where you want to install the Brightspot project.
 #. At the command line type ``git clone -b init https://github.com/perfectsense/brightspot-tutorial``.
 #. If you are using an IDE, import the Brightspot project starting from the directory ``brightspot-tutorial/``.
-#. Change to ``brightspot-tutorial/``.
+#. Change the current directory to ``brightspot-tutorial/``.
 #. Type ``./run.sh`` (Linux, OS X) or ``run.cmd`` (Windows).
 #. The installation script requires about three minutes to download components, compile, and display at \http://localhost:9480/cms/logIn.jsp. A form for entering a username and password appears.
 
@@ -42,17 +42,41 @@ Download and Run the Brightspot Tutorial Project
 Project Structure Conventions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As you work through the tutorial, place source files in the following folders of your Brightspot project:
- 
-- Java source\ |emdash|\ ``brightspot-tutorial/src/main/java/content/``. All related files for a component reside in the same package. For example, for an Article component, you place Article.java (the model source) and ArticleViewModel.java (the view model source) in the ``brightspot-tutorial/src/main/java/content/article/`` folder.
- 
-- View source\ |emdash|\ ``brightspot-tutorial/styleguide/content/``. For example, for an Article component, you place Article.hbs (the Handlebar template) and Article.json (the JSON file) in the ``brightspot-tutorial/styleguide/content/article/`` folder.
+Brightspot projects are comprised of two components:
 
-- After you complete your view source, you rebuild the Brightspot project to automatically generate the view model Java interface. Auto-generated source files reside in ``brightspot-tutorial/target/generated-sources/styleguide/``. For example, for an Article component, an ArticleView.java interface file will be generated into ``brightspot-tutorial/target/generated-sources/styleguide/content/article/``.
+Back-end code\ |emdash|\ These are the model and view-model files coded in Java. These files are stored in the directory src/main/java/.
+Front-end code\ |emdash|\  These are the view files coded in JSON and handlebars. These files are stored in the directory styleguide/.
 
-The following diagram illustrates the structure conventions.
+In addition, Brightspot automatically generates files for each content type in parallel directories under target/generated-sources/.
 
-.. image:: article/images/directory-structure.png
+There are MVVM files for each type of content. A best practice is to create subdirectories for each type of content under the content/folder. Referring to the following diagram, source and generated files for an article are under the various content/article/ subdirectories.
+
+
+.. code-block:: none
+<root>
+   ├── src
+   │   └── main
+   │       └── java
+   │           ├── content
+   │           │   └── article
+   │           │       ├── Article.java
+   │           │       └── ArticleViewModel.java
+   │           └── internal
+   │      
+   ├── styleguide
+   │   └── content
+   │       └── article
+   │           ├── Article.hbs
+   │           └── Article.json
+   │      
+   └── target
+       └── generated-sources
+           ├── annotations
+           └── styleguide
+               └── styleguide
+                   └── content
+                       └── article
+                           └── ArticleView.java
 
 Creating an Article Model
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,13 +89,13 @@ Step 1: Declaring the Article Class
 
 In this step you declare a Java class for articles.
 
-#. Open a new terminal, and change to ``brightspot-tutorial/src/main/java/``.
+#. Open a new terminal, and change the current directory to ``brightspot-tutorial/src/main/java/``.
 #. Create a directory content/ and a subdirectory article/: ``mkdir -p content/article/``.
-#. Change to the new directory ``content/article/``.
+#. Change the current directory to ``content/article/``.
 #. In an IDE or text editor, create the file Article.java and enter the following text:
 
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step1.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step1.snippet
    :language: java
    :linenos:
 
@@ -90,7 +114,7 @@ In the MVVM pattern the model includes business logic. In this step, you impleme
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step2.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step2.snippet
    :language: java
    :linenos:
    :emphasize-lines: 7-24
@@ -115,7 +139,7 @@ In addition to business logic, the MVVM model also specifies data validation. In
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step3.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step3.snippet
    :language: java
    :linenos:
    :emphasize-lines: 4,8
@@ -135,7 +159,7 @@ A rich-text editor (RTE) provides controls for formatting at the character and p
 
 #. Returning to the IDE, update the file Article.java with the following:
  
-.. literalinclude:: ../../../tutorial/snippet/tutorial/article/model/Step4.snippet
+.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step4.snippet
    :language: java
    :linenos:
    :emphasize-lines: 4,12
