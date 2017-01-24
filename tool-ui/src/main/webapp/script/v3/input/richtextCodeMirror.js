@@ -2238,7 +2238,7 @@ define([
             if (mark.rteReadOnly) {
                 this.codeMirror.markText(
                         { line: range.from.line, ch: 0 },
-                        { line: range.to.line + 1, ch: 0 },
+                        { line: range.to.line, ch: null }, // null = end of line
                         {
                             atomic: true,
                             clearWhenEmpty: true,

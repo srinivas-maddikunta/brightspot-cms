@@ -1584,6 +1584,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                 event.preventDefault();
 
                 var initialBody = styleObj.initialBody;
+                var prev;
 
                 if (initialBody) {
 
@@ -1591,7 +1592,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                     if (styleObj.line) {
                         var cm = rte.codeMirror;
                         var curr = cm.getCursor('from').line;
-                        var prev = curr - 1;
+                        prev = curr - 1;
 
                         if (prev < 0 || cm.getLine(prev) !== '') {
                             cm.replaceRange('\n', { line: curr, ch: 0 }, { line: curr, ch: 0 });
@@ -1610,7 +1611,7 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                         // marks.
                         if (styleObj.line) {
                             var from = mark.find().from.line;
-                            var prev = from - 1;
+                            prev = from - 1;
 
                             if (prev < 0 || cm.getLine(prev) !== '') {
                                 cm.replaceRange('\n', { line: from, ch: 0 }, { line: from, ch: 0 });
@@ -1622,6 +1623,9 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                                 cm.replaceRange('\n', { line: next, ch: 0 }, { line: next, ch: 0 });
                             }
                         }
+
+                        // Set a flag so if the mark is not updated in the popup it can be deleted later
+                        mark.rteMarkInit = true;
 
                         self.inlineEnhancementHandleClick(event, mark);
                     }
@@ -3614,7 +3618,6 @@ define(['jquery', 'v3/input/richtextCodeMirror', 'v3/input/tableEditor', 'v3/plu
                              if (styleObj.readOnly || styleObj.void) {
                                  if (mark.type !== 'range') {
                                     pos = mark.find();
-                                    // Delete below after the mark is cleared
                                     self.rte.codeMirror.replaceRange('', {line:pos.from.line, ch:pos.from.ch}, {line:pos.to.line, ch:pos.to.ch}, 'brightspotMark');
                                 }
                              }
