@@ -23,7 +23,8 @@ Manual URLs
 
 You can add, remove, or edit manual URLs to one-off pages like a Homepage or Contact Us page.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/f9070bc/2147483647/thumbnail/300x90/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Fb6%2F71%2F369972534d06a43e393eb66b85a4%2Fscreen-shot-2014-12-06-at-111944-ampng.19.44%20AM.png
+.. image:: images/manual-url.png
+
 
 Dynamic URLs
 ~~~~~~~~~~~~

@@ -37,7 +37,8 @@ Provide Brightspot with your email or username and password and you'll be regist
 
 Once logged in, open the global Search tool by clicking into the search box on the Dashboard view. The new Article Content Type will be available in the Types drop-down.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/136bf96/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F97%2F2a%2Fdd867c814075b243e5086a50b334%2Fscreen-shot-2014-12-03-at-122227-pmpng.22.27%20PM.png
+.. image:: images/open-search.png
+
 
 Select the Article Content Type and click New to open a blank new article in the content edit view.
 
@@ -67,7 +68,8 @@ Save the class and refresh the browser. The new fields will be added to the Arti
 
     A prompt to install a Reloader application may appear in the top right of the browser. This is the Dari on-the-fly Java code reloader installed in the webapps directory of Tomcat. It reloads changes on-the-fly for Java code, eliminating the need to redeploy the Java application for every change. If refreshing does not prompt the reloader, add ?_reload=true to the end of the URL or stop the project, rebuild, and redeploy.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/0e04f69/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F89%2F65%2F95c6291b47eca92b2d0e3e99a4df%2Fscreen-shot-2014-12-03-at-122312-pmpng.23.12%20PM.png
+.. image:: images/new-article.png
+
 
 Add annotations to the fields to control validation, add user interface elements and notes, and index content for querying.
 

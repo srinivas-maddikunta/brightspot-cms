@@ -5,7 +5,8 @@ The `db-bootstrap` tool provides a quick Beta way to grab data from Brightspot p
 
 By default, Brightspot allows certain content packages to be downloaded as a `txt` JSON file.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/9c454a6/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F39%2Ffa%2F3f3e8ab84251bad321bbfb1ec280%2Fdari-db-bootstrap.53.40%20AM.png
+.. image:: images/db-bootstrap.png
+
 
 **_init**: The full database. It is downloaded as a `.txt` file which can be uploaded using the import tool on the right side of the `db-bootstrap` tool.
 

@@ -7,11 +7,13 @@ The Looking Glass enhances the content preview feature across multiple windows, 
 
 The **Looking Glass** link is located under the **Profile** link at the top right side of the CMS window.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/6b90999/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F7f%2F4a%2Fabfbeb41481c94b778bc40dc00cd%2F30-looking-glasspng.0-looking-glass.png
+.. image:: images/lg-widget.png
+
 
 The link opens a new window. Open the Looking Glass on a mobile device by scanning the QR code in the pop-up, which opens the window on any mobile phone or tablet.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/e62224a/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F29%2Fca%2F655a29a64e1a8007cdf401127146%2Fscreen-shot-2014-11-20-at-42706-pmpng.27.06%20PM.png
+.. image:: images/lg-rendered.png
+
 
 The preview window shows the front end view of the content you're viewing or editing in the CMS.
 

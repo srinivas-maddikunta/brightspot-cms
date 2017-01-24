@@ -3,7 +3,8 @@ Draft
 
 Draft content has been stored in Brightspot, but is not yet live on the front end of your site. Saved draft content will not be lost if you navigate away from the Content Edit pane or close the browser tab, but unsaved edits to the draft will be lost. All drafts will be listed in the Unpublished Drafts widget.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/c4/12/f8765c74447c8d938d9d8f21fa2c/brightspot-3.2%20Draft.jpg
+.. image:: images/draft.jpg
+
 
 **Publish:** When you've completed your Draft and you're ready to make it live, click Publish. The content goes live immediately.
 

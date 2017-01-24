@@ -12,7 +12,8 @@ The order of preference goes from least personal to most personal. For example, 
 
 When you're ready to create a new Dashboard, click the drop-down menu next to "Dashboard" and select "Set:". Add as many columns as you need with the "Add Dashboard Column" button. Click the grey arrow next to a column to change the width of the column or add Widgets. To return to the default Dashboard, return "Set:" to "None".
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/98/50/8de5061c4b06b21582ec3fa17e51/screen-shot-2016-01-28-at-1.36.06%20PM.jpg
+.. image:: images/new-content.jpg
+
 
 Dashboard Column widths are entered as relative ratios or precentages. For example, in a three-column Dashboard, assigning each column a width of "1" will produce the same result as a width of "33": each column will occupy a third of the screen. Similarly, in a two column Dashboard, assigning the left column a width of "1" and the right column a width of "2" will yield the same results as "33" and "66", respectively. By default, or if the Width is left blank, columns will divide the available space equally.
 

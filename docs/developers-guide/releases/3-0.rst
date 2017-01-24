@@ -37,7 +37,8 @@ Search Results Carousel
 
 A new carousel has been implemented to show the results of a search. Each result is represented by a slide in the carousel. By shifting slides, you can open a result in the content editor without losing the list of search results.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/ba6b897/2147483647/thumbnail/400x293/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Fac%2F8d%2Fb3bc441e45f38cbfdbf683164125%2Fsearch-results-carousel.png
+.. image:: images/search-results-carousel.png
+
 
 Developers can allow the preview image used in the carousel to be customizable.
 

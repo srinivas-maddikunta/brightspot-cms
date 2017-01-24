@@ -3,7 +3,8 @@ Published
 
 Published content is complete and available on the front end of your site. Published content will not be lost if you navigate away from the Content Edit pane or close the browser tab, but unsaved edits will be lost. Once published, content cannot be moved back to draft status.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/fc/f1/2d3ca62a437399b47f72cf1adaf8/brightspot-3.2%20Published.jpg
+.. image:: images/published.jpg
+
 
 **Publish:** To make an immediate edit to published content, make your changes and then click the Publish button again. The live version of the content will be updated to reflect your changes. To see previous versions of your content, go to the Revisions widget.
 

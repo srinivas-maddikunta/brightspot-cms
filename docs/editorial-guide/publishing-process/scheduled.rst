@@ -3,7 +3,8 @@ Scheduled
 
 New content, drafts, and published content can be scheduled to publish at a future date or time. For more details, please see the Scheduling chapter.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/8b/7d/0805143245ae8ed714e81e60423e/brightspot-3.2%20Scheduled.jpg
+.. image:: images/scheduled.jpg
+
 
 **Reschedule:** Change the time that your scheduled content will publish by choosing a new time and clicking Reschedule.
 

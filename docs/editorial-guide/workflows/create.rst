@@ -1,7 +1,8 @@
 Creating Workflows
 ------------------
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/6160e7c/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F86%2Fb5%2F0d027b7f447a9c51456e0f47a502%2F30-new-workflowpng.0-new-workflow.png
+.. image:: images/create.png
+
 
 To create a new Workflow, go to the Admin tab and select Workflows. You can create a new Workflow, name it, and select the content types that should appear in the Workflow. When progress is made on the project, update the Workflow by adding statuses and transitions to track the project's development.
 

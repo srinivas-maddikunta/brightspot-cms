@@ -7,4 +7,5 @@ Brightspot supports the use of web maps and locations. The field contains a map,
 * Click the circle icon, then click on the map and drag to create a radius, in miles or kilometers, around a point.
 * Click the plus and minus icons to zoom in or out as needed. Edit designated areas on the map by clicking on the edit icon to the left of the map, which highlights regions for modification. Delete an area by selecting the trash icon and clicking on the area to be deleted.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/5a/bd/775b13d04511a0dc7c84cd63cfa7/brightspot-3.1%20Geofencing.gif
+.. image:: images/geofence.gif
+

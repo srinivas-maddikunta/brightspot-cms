@@ -3,12 +3,14 @@ Production Guides
 
 Production Guides drive the direction and substance of your content and provide rules and guidelines to help the editorial staff. You can add a guide that offers production values, rules, and tips to each page, module, or content type. To create a Production Guide, go to **Admin -> Production Guides** and choose **New Guide** for one of the three types: Overall, Template/Page, or Content Type.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/ca/cf/b0d5213d4d80a15bc55f621d26f1/screen-shot-2016-04-15-at-11.15.14%20AM.jpg
+.. image:: images/pg-widget.jpg
+
 
 Overall Guides
 --------------
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/25/d8/ca7439564d0b8bb3fc48b01e463a/screen-shot-2016-04-15-at-11.24.35%20AM.jpg
+.. image:: images/view-guides.jpg
+
 
 Overall Guides are the broadest possible guides in Brightspot. To view your Overall Guides, click **Productions Guides** in the main menu.
 
@@ -17,7 +19,8 @@ Creating an Overall Guide
 
 To create an Overall Guide, click **New Guide** under "Overall Guides" in the Production Guides widget.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/1b/e2/bad40b964b87885c0aed822eb5ac/screen-shot-2016-04-15-at-11.15.33%20AM.jpg
+.. image:: images/new-guide.jpg
+
 
 Title: The name of the guide.
 
@@ -32,7 +35,8 @@ Overview: Add introductory or explanatory text to the beginning of your guide.
 Template/Page Guides
 ~~~~~~~~~~~~~~~~~~~~
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/eb/df/e19e23c747a992052f003397035e/screen-shot-2016-04-15-at-11.24.57%20AM.jpg
+.. image:: images/template-guide.jpg
+
 
 Temple/Page Guides describe how a specific Content Type should be created. To view a Template/Page Guide, click **? PG** at the top of the Content Edit pane.
 
@@ -41,7 +45,8 @@ Creating a Template/Page Guide
 
 To create an Overall Guide, click **New Guide** under "Template/Page Guides" in the Production Guides widget.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/36/1d/19d1a2614d0f9262723d5b7f2388/screen-shot-2016-04-15-at-11.15.46%20AM.jpg
+.. image:: images/new-page-guide.jpg
+
 
 Name: The name of the guide.
 
@@ -58,7 +63,8 @@ Section Descriptions: Click **Add Section Guides** to choose a section to docume
 Content Type Guides
 -------------------
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/28/3f/59d832e843b2b4b8542303d28e62/screen-shot-2016-04-15-at-11.25.14%20AM.jpg
+.. image:: images/cont-type-guide.jpg
+
 
 
 
@@ -67,7 +73,8 @@ Content Type Guides provide editors with quick guidance as they work. From the P
 Creating a Content Type Guide
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/c9/ba/52f6b3654ca7881bd5f0ce26cb20/screen-shot-2016-04-15-at-11.16.16%20AM.jpg
+.. image:: images/new-guide-type.jpg
+
 
 To create an Overall Guide, click **New Guide** under "Content Type Guides" in the Production Guides widget.
 

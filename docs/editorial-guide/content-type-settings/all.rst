@@ -8,7 +8,8 @@ Renaming Content Types
 
 To rename a content type, select the content type from the list on the left side of the page, and change the Display Name field to update the name. In the example below, the Article content type has been renamed Blog Post.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/5ca1628/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F6a%2Fde%2F9acaa36a4b1f8046577b13a860c7%2F30-content-typespng.0-content-types.png
+.. image:: images/rename.png
+
 
 Reordering Fields
 -----------------

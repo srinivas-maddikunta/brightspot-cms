@@ -34,6 +34,7 @@ Once you've added a URL, click on the Advanced Tools icon in the content edit vi
 
 Set the defined Site URL in the Admin -> Settings section called Default Site URL.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/embed-shot.png
+.. image:: images/syndication.png
+
 
 Insert the embed code into any webpage to render the module outside of the Brightspot site.

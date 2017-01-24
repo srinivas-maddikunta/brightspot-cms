@@ -49,7 +49,8 @@ To model content, a Java class must extend the Brightspot class ``com.psddev.cms
 Brightspot automatically builds a UI from a Java class that models content. An instance of the class is created when the fields are set in the UI and saved. All fields in a class that extends `Content` are persisted to the database when the object is saved.
 Brightspot uses Dari to save objects to an SQL database and index them for full-text search.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/30c3733/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F25%2F8f%2Feb630e7b4270a072e6b35c1d317d%2Fscreen-shot-2014-12-03-at-120246-pmpng.32.11%20PM.png
+.. image:: images/new-class.png
+
 
 You have complete control over how your data is stored. Objects are not mapped to database tables, but instead are serialized into JSON and stored in the database as JSON, eliminating the need to alter database tables and allowing you to quickly evolve data models.
 
