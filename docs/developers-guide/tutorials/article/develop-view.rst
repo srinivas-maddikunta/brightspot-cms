@@ -47,7 +47,7 @@ By convention, a view's template and data are in directories parallel to its mod
 In the previous handlebars snippet, lines 3 and 7 specify the static text appearing in the headline and body; in the previous JSON snippet, line 2 specifies the handlebars file your view will use.
  
 Step 3: Modifying a View's Static Text
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The default view you created in the previous step includes standard static text. You can use helpers to modify the static text and give authors a better idea of an article's final appearance.
 
