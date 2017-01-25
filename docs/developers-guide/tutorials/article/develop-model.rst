@@ -18,13 +18,13 @@ To successfully complete this tutorial you should know or understand the followi
 - Java
 - git
 - Java IDE or text editor
-- In this tutorial you will be creating view by modifying handlebars and JSON files. Creating complex views requires advanced knowledge of these file types.
+- In this tutorial you will be creating a simple view by modifying Handlebars and JSON files. Creating complex views requires advanced knowledge of these file types.
 
 
 Download and Run the Brightspot Tutorial Project
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. Ensure port 9480 on your local machine is open, and ensure you have an environment variable JAVA_HOME pointing to :code:`<jdk_root>`, such as :code:`/usr/local/java/jdk/jdk1.8.0_121/`.
+#. Ensure port 9480 on your local machine is open, and ensure you have an environment variable :code:`JAVA_HOME` pointing to :code:`<jdk_root>`, such as to :code:`/usr/local/java/jdk/jdk1.8.0_121/`.
 #. Open a command prompt (Windows) or Terminal (Mac/\*nix), and change to a directory where you want to install the Brightspot project.
 #. At the command line type :code:`git clone -b init https://github.com/perfectsense/brightspot-tutorial`.
 #. If you are using an IDE, import the Brightspot project starting from the directory :code:`brightspot-tutorial/`.
@@ -44,11 +44,11 @@ Project Structure Conventions
 
 Brightspot projects are comprised of the following components:
 
-- Back-end code\ |emdash|\ These are the model and view-model files coded in Java. These files are stored in the directory :code:`src/main/java/`.
-- Front-end code\ |emdash|\  These are the view files coded in JSON and handlebars. These files are stored in the directory :code:`styleguide/`.
-- Automatically generated code\ |emdash|\ These are files Brightspot automatically generates in parallel directories under :code:`target/generated-sources/`.
+- Back-end code\ |emdash|\ Java code implementing the model and view model. Back-end files are stored in the directory :code:`src/main/java/`.
+- Front-end code\ |emdash|\  JSON and Handlebars files implementing the view. Front-end files are stored in the directory :code:`styleguide/`.
+- Automatically generated code\ |emdash|\ Code that Brightspot automatically generates. These files are in parallel directories under :code:`target/generated-sources/`.
 
-There are MVVM files for each type of content. A best practice is to create subdirectories for each type of content under the content/folder. Referring to the following diagram, source and generated files for an article are under the various :code:`content/article/` subdirectories.
+There are MVVM files for each type of content. A best practice is to create subdirectories for each type of content under a dedicated folder. Referring to the following diagram, source and generated files for an article are under the various :code:`content/article/` subdirectories.
 
 
 <root>
@@ -113,10 +113,11 @@ In the MVVM pattern the model includes business logic. In this step, you impleme
 .. image:: article/images/reloader.png
 
 3. Click the link to install the reloader. After installation the dashboard appears.
-#. In the dashboard's header, click in the search field, and in the panel that opens click **New** to create a new article. A form appears for adding a new article.
+#. In the dashboard's header, click in the search field, and in the panel that opens click **New** to create a new article. 
 
 .. image:: article/images/new-article.svg
 
+A form appears for adding a new article.
 
 .. image:: article/images/new-fields.png
 

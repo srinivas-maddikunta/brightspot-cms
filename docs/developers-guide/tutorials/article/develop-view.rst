@@ -11,7 +11,7 @@ Step 1: Opening a Blank Styleguide
 Brightspot maintains views inside a styleguide. In this step, you run and open the blank styleguide.
 
 #. Ensure port 3000 on your local machine is open.
-#. Open a new command prompt (Windows) or Terminal (Mac/\*nix) and change the current directory to :code:`brightspot-tutorial/`.
+#. Open a new command prompt (Windows) or Terminal (Mac/\*nix), and change the current directory to :code:`brightspot-tutorial/`.
 #. Run :code:`gulp styleguide`. A server starts.
 #. In your web browser, open http://localhost:3000/_styleguide/index.html. An empty styleguide appears.
 
@@ -20,7 +20,7 @@ Brightspot maintains views inside a styleguide. In this step, you run and open t
 Step 2: Adding an Article View to the Styleguide
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By convention, a view's template and data are in directories parallel to its model. In this step, you create template and data for your view in the appropriate directory.
+By convention, a view's template and data are in directories parallel to its model. In this step, you create a template and data for your view in the appropriate directory.
 
 #. Returning to the IDE, create the file :code:`Article.hbs` in the directory :code:`brightspot-tutorial/styleguide/content/article/`, and enter the following text:
 
@@ -44,7 +44,7 @@ By convention, a view's template and data are in directories parallel to its mod
 .. image:: article/images/styleguide-default.png
 
 
-In the previous handlebars snippet, lines 3 and 7 specify the static text appearing in the headline and body; in the previous JSON snippet, line 2 specifies the handlebars file your view will use.
+In the previous Handlebars snippet, lines 3 and 7 specify the static text appearing in the headline and body; in the previous JSON snippet, line 2 specifies the Handlebars file your view will use.
  
 Step 3: Modifying a View's Static Text
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -70,7 +70,7 @@ The default view you created in the previous step includes standard static text.
 
 .. image:: article/images/styleguide-custom.png
 
-In the previous handlebars snippet, the :code:`{{#with}}` helper specifies which JSON property to use when generating static text; in the previous JSON snippet, lines 3\ |endash|\ 4 specify the value of the static text for the headline and body. For more information about handlebars helpers and associated JSON properties, see the `Brightspot Styleguide repository <https://github.com/perfectsense/brightspot-styleguide>`_ and  `Handlebars <http://handlebarsjs.com/>`_.
+In the previous Handlebars snippet, the :code:`{{#with}}` helper specifies which JSON property to use when generating static text; in the previous JSON snippet, lines 3\ |endash|\ 4 specify the value of the static text for the headline and body. For more information about Handlebars helpers and associated JSON properties, see the `Brightspot Styleguide repository <https://github.com/perfectsense/brightspot-styleguide>`_ and  `Handlebars <http://handlebarsjs.com/>`_.
 
 Step 4: Randomizing a View's Static Text
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

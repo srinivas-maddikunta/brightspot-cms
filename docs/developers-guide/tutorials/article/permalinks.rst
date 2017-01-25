@@ -14,7 +14,8 @@ A permalink is a permanent link to a published web page. Brightspot includes an 
 
 .. image:: article/images/permalink.png
 
-3. View your article at http://localhost:9480/crippled-by-earths-gravity-aliens-demand-submission.
+3. Click **Save**.
+#. View your article at http://localhost:9480/crippled-by-earths-gravity-aliens-demand-submission.
 
 .. image:: article/images/published.png
 

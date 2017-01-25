@@ -26,7 +26,7 @@ This step implements the methods required to bind the article’s model to the v
    :linenos:
    :emphasize-lines: 4,6,9
 
-2. Refresh the web page running at localhost:9480, and click **Preview**.
+2. Refresh the web page running at localhost:9480, and click **Preview**. A preview of your article appears.
 
 In the previous snippet, the :code:`@ViewBinding` annotation provides the link between the model and its view. For more information about the :code:`@ViewBinding` annotation, see `Annotation Type Viewbinding <https://artifactory.psdops.com/psddev-releases/com/psddev/cms/3.2.6504-ad4fbd/cms-3.2.6504-ad4fbd-javadoc.jar!/com/psddev/cms/view/ViewBinding.html>`_. 
 
