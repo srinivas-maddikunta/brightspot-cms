@@ -140,38 +140,35 @@ You can use wp.writeHeader and wp.writeFooter to include the Brihgtspot header a
         wp.writeFooter();
     %>
 
-Adding Navigation
-~~~~~~~~~~~~~~~~~
+Adding Tabs
+~~~~~~~~~~~
 
-To add a new Tab to the navigation in Brightspot, add an Area. The Area can be placed in an existing class that extends Tool. You can add Dropdown items, each with an associated path. The items will appear in alphabetical order.
-
-.. image:: images/adding-custom-tabs.png
+You can customize the tabs and fields available for each content type. The annotation :code:`@ToolUi.Tab` indicates that the subsequent field appears in the specified tab. For example, referring to the following snippet, :code:`@ToolUi.Tab("Source Info")` indicates that when editing articles the fields :code:`attribution`, :code:`secondaryEmailAddress`, and :code:`callbackNumber` appear in the :code:`Source Info` tab.
 
 .. code-block:: java
 
-    public class NewTab extends Tool {
+   public class Article extends Content {
+
+      @ToolUi.Tab("Source Info")
+      private String sourceAttribution;
+      @ToolUi.Tab("Source Info")
+      private String sourceEmailAddress;
+      @ToolUi.Tab("Source Info")
+      private String sourceCallbackNumber;
 
 
-        @Override
-        public List<Plugin> getPlugins() {
-            List<Plugin> plugins = new ArrayList<Plugin>();
+      @ToolUi.Tab("Referral Info")
+      private String referralName;
+      @ToolUi.Tab("Referral Info")
+      private String referralEmailAddress;
+      @ToolUi.Tab("Referral Info")
+      private String referralCallbackNumber;
 
-            plugins.add(createArea2("Main Tab", "mainTab",
-                    "mainTab", null));
+   }
 
-            plugins.add(createArea2("First DropDown", "firstDropDown",
-                    "mainTab/firstDropDown", "path/to/your.jsp"));
+Brightspot displays the tabs and fields in the order in which they appear in your source code; see the following illustration.
 
-            plugins.add(createArea2("Second DropDown", "secondDropDown",
-                    "mainTab/secondDropDown", "path/to/your.jsp"));
-
-            plugins.add(createArea2("Third DropDown", "third",
-                    "mainTab/third", "path/to/your.jsp"));
-
-            return plugins;
-        }
-
-    }
+.. image:: images/adding-custom-tabs.png
 
 Workflow Actions
 ~~~~~~~~~~~~~~~~
