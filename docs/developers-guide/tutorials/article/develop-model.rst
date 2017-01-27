@@ -66,7 +66,7 @@ In this step you declare a Java class for articles.
 #. In an IDE or text editor, create the file :code:`Article.java` in the directory :code:`brightspot-tutorial/src/main/java/content/article/`, and enter the following text:
 
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step1.snippet
+.. literalinclude:: /tutorial/docs/article/Step1.snippet
    :language: java
    :linenos:
 
@@ -78,10 +78,9 @@ In the MVVM pattern the model includes business logic. In this step, you impleme
 
 #. Returning to the IDE, update the file :code:`Article.java` with the following:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step2.snippet
+.. literalinclude:: /tutorial/docs/article/Step2.snippet
    :language: java
    :linenos:
-   :emphasize-lines: 7-24
 
 2. Refresh the web page running at localhost:9480. A note appears in the right-hand side of the header to install the reloader. 
 
@@ -107,7 +106,7 @@ In addition to business logic, the MVVM model also specifies data validation. In
 
 #. Returning to the IDE, update the file :code:`Article.java` with the following:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step3.snippet
+.. literalinclude:: /tutorial/docs/article/Step3.snippet
    :language: java
    :linenos:
    :emphasize-lines: 4,8
@@ -127,7 +126,7 @@ A rich-text editor (RTE) provides controls for formatting at the character and p
 
 #. Returning to the IDE, update the file :code:`Article.java` with the following:
  
-.. literalinclude:: /tutorial/snippet/tutorial/article/model/Step4.snippet
+.. literalinclude:: /tutorial/docs/article/Step4.snippet
    :language: java
    :linenos:
    :emphasize-lines: 4,12

@@ -24,13 +24,13 @@ By convention, a view's template and data are in directories parallel to its mod
 
 #. Returning to the IDE, create the file :code:`Article.hbs` in the directory :code:`brightspot-tutorial/styleguide/content/article/`, and enter the following text:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step1.snippet
+.. literalinclude:: /tutorial/docs/article/Step5.snippet
    :language: html
    :linenos:
  
 2. In the same directory, create a new file :code:`Article.json` and enter the following text:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step2.snippet
+.. literalinclude:: /tutorial/docs/article/Step6.snippet
    :language: json
    :linenos:
  
@@ -53,7 +53,7 @@ The default view you created in the previous step includes standard static text.
 
 #. Returning to the IDE, update the file :code:`Article.hbs` with the following:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step3.snippet
+.. literalinclude:: /tutorial/docs/article/Step7.snippet
    :language: html
    :emphasize-lines: 2,4,6,8,10,12
    :linenos:
@@ -61,7 +61,7 @@ The default view you created in the previous step includes standard static text.
 
 2. Returning to the IDE, update the file :code:`Article.json` with the following:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step4.snippet
+.. literalinclude:: /tutorial/docs/article/Step8.snippet
    :language: json
    :emphasize-lines: 3,4
    :linenos:
@@ -79,7 +79,7 @@ Brightspot's JSON files include a helper you can use to randomize the static tex
 
 #. Returning to the IDE, update the file :code:`Article.json` with the following:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/view/Step5.snippet
+.. literalinclude:: /tutorial/docs/article/Step9.snippet
    :language: json
    :emphasize-lines: 3,4
    :linenos:

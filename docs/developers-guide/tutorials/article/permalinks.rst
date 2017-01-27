@@ -5,7 +5,7 @@ A permalink is a permanent link to a published web page. Brightspot includes an 
 
 #. Returning to the IDE, update the file Article.java with the following:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/permalinks/Step1.snippet
+.. literalinclude:: /tutorial/docs/article/Step13.snippet
    :language: java
    :emphasize-lines: 4,6,10,13,37-40
    :linenos:

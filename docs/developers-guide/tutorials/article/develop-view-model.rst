@@ -9,7 +9,7 @@ In this step you declare a view model that implements methods for extracting dat
 
 #. Returning to IDE, in the same directory as :code:`Article.java`, create a new file :code:`ArticleViewModel.java` and enter the following text:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/view-model/Step2.snippet
+.. literalinclude:: /tutorial/docs/article/Step11.snippet
    :language: java
    :linenos:
 
@@ -21,7 +21,7 @@ This step implements the methods required to bind the article’s model to the v
 
 #. Returning to the IDE, update the file :code:`Article.java` with the following:
 
-.. literalinclude:: /tutorial/snippet/tutorial/article/view-model/Step3.snippet
+.. literalinclude:: /tutorial/docs/article/Step12.snippet
    :language: java
    :linenos:
    :emphasize-lines: 4,6,9
