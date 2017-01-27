@@ -50,31 +50,7 @@ Brightspot projects are comprised of the following components:
 
 There are MVVM files for each type of content. A best practice is to create subdirectories for each type of content under a dedicated folder. Referring to the following diagram, source and generated files for an article are under the various :code:`content/article/` subdirectories.
 
-
-<root>
-   ├── src
-   │   └── main
-   │       └── java
-   │           ├── content
-   │           │   └── article
-   │           │       ├── Article.java
-   │           │       └── ArticleViewModel.java
-   │           └── internal
-   │      
-   ├── styleguide
-   │   └── content
-   │       └── article
-   │           ├── Article.hbs
-   │           └── Article.json
-   │      
-   └── target
-       └── generated-sources
-           ├── annotations
-           └── styleguide
-               └── styleguide
-                   └── content
-                       └── article
-                           └── ArticleView.java
+.. image:: article/images/project-tree.png
 
 Creating an Article Model
 ~~~~~~~~~~~~~~~~~~~~~~~~~
