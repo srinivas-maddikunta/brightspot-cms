@@ -34,56 +34,50 @@ You can place annotations on Text Fields. For example:
 
     public class Article extends Content {
 
-        private String plainText;
-        @ToolUi.RichText
-        private String richTextAnnotation;
         @ToolUi.Note("Editorial Note")
         private String withEditorialNote;
         @Required
         private String requiredExample;
     }
-    
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/898c21e/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F02%2Fd7%2F9387e77f4869a9b8922cb59c7605%2Fscreen-shot-2014-11-11-at-20612-pmpng.28.28%20PM.png
+
+.. image:: images/annotations-on-fields.svg
 
 Rich Text Editor
 ~~~~~~~~~~~~~~~~
 
-ReferentialText can be added as a field type to any object. It will appear as a text field with the Rich Text Editor interface, and is typically implemented for the main formatted text in a piece of content. With the Rich Text Editor, you can add formatting and enhancements (other content types, such as images or modules) to your text.
+A rich-text editor includes controls for enhanced formatting. Authors often use rich-text editors for the main formatted text in a content type.
 
-To implement a Rich Text field, add private ReferentialText to an Object:
+To implement a Rich Text field, add a ``@ToolUi.RichText`` annotation to a String property.
 
 .. code-block:: java
 
     public class Article extends Content {
 
-        private String title;
-        private ReferentialText body;
+        @ToolUi.RichText
+        private String richTextAnnotation;
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/a6ec7f3/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Ff5%2Fb9%2Ff0f2947847ec8faf382342666117%2Fscreen-shot-2014-11-11-at-20942-pmpng.4%20-%20RichText%20Field.png
+.. image:: images/rte-annotation.png
 
 Object Field
 ~~~~~~~~~~~~
 
-Object fields allow you to choose another object from within Brightspot. For example, if you wish to have an object field for an author rather than manually typing the author's name into a text field, you can create an Author object to reference.
+Object fields are controls for displaying a list of existing objects or for creating a new object of a specified class. For example, to implement a list of existing authors in each article object, first create a class for authors.
 
-To do this, create the object to be referenced:
 
 .. code-block:: java
 
-    public class Author extends Content {
-
-        private String name;
-    }
+   public class Author extends Content {
+      @Recordable.Required
+      private String name;
+      
+      private String email;
+}
 
 
 .. image:: ./images/new-author.png
-         :width: 543px
-         :height: 224px
 
-
-
-Next, add the newly created Author object to the Article:
+Next, include the author class inside the article class.
 
 .. code-block:: java
 
@@ -93,17 +87,16 @@ Next, add the newly created Author object to the Article:
         private Author author;
     }
 
-.. image:: ./images/search-author.png
-         :width: 767px
-         :height: 571px
+.. image:: ./images/author-in-article.svg
 
+Users can click on the author field to select from a list of existing authors or to create a new author.
 
 Date Widget
 ~~~~~~~~~~~
 
-The Date widget allows you to choose a specific date from a calendar drop-down menu, which can be added to any Object as a field. With the Date widget, you can specify a publish date for a piece of content, a blog post, or news article, for example.
+The Date widget allows you to choose a specific date from a calendar drop-down menu. With the Date widget, you can specify a publish date for a piece of content, a blog post, or news article, for example.
 
-To implement the Date widget as a field, add private Date to the Object.
+To implement the Date widget as a field, add private Date to the object.
 
 .. code-block:: java
 
@@ -114,12 +107,13 @@ To implement the Date widget as a field, add private Date to the Object.
         private Date dateWidget;
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/e138686/2147483647/resize/380x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Fe2%2F53%2F0a60b75d465dbc91c08e6dad825b%2Fscreen-shot-2014-11-11-at-44122-pmpng.4%20-%20Date%20Widget.png
+
+.. image:: images/date-widget.png
 
 Boolean Field
 ~~~~~~~~~~~~~
 
-Add a Boolean field to an Object to create a checkbox that will enable a feature specific to the edited content type. For example, if you want the option of enabling auto-play for some videos but not others, you can add a Boolean checkbox to determine whether a video should auto-play.
+Add a Boolean field to an object to create a checkbox that will enable a feature specific to the edited content type. For example, you can add a checkbox to auto-play a video.
 
 .. code-block:: java
 
@@ -130,13 +124,15 @@ Add a Boolean field to an Object to create a checkbox that will enable a feature
         private boolean autoplay;
     }
 
+.. image:: images/boolean-widget.png
+
 
 Enum Field
 ~~~~~~~~~~
 
-Enum field types are drop-down menus with a predetermined list of options. For exmaple, if the Object is a show page for a network site and needs to specify the day of the week on which it airs, add an enum field with days as the choices within it, then you could choose the day associated with the show page from the enum drop-down.
+Enum field types are drop-down menus with a predetermined list of options. For example, an enum field can list the possible days on which a program airs.
 
-To add an enum, add public enum to the Object and specify the choices that should be included in the enum.
+To add an enum field, add a ``public enum`` property to the class and specify the options.
 
 .. code-block:: java
 
@@ -150,8 +146,7 @@ To add an enum, add public enum to the Object and specify the choices that shoul
         } 
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/5529102/2147483647/resize/380x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F34%2F51%2F3f53fa0547f39b0718a952826366%2Fenum-field.4%20-%20Enum.png
-
+.. image:: images/enum-widget.png
 
 List Fields
 ~~~~~~~~~~~
@@ -160,7 +155,7 @@ List fields allow you to create a list that pulls from existing content within B
 
 Once you've created a list of items, you can drag the items on the list to re-order them.
 
-This field can be implemented into an Object by adding private List<Author> authors
+This field can be implemented into an object by adding ``private List<Author> authors``.
 
 .. code-block:: java
 
@@ -170,7 +165,7 @@ This field can be implemented into an Object by adding private List<Author> auth
         private List<Author> authors; 
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/4ca2a6e/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F08%2F06%2F9feb1745466081025b0fa8922dfb%2Fscreen-shot-2014-11-12-at-121942-pmpng.4%20-%20List%20Field.png
+.. image:: images/list-widget.png
 
 Set Fields
 ~~~~~~~~~~
@@ -201,11 +196,13 @@ Storage Items allow files to be uploaded and stored in the default storage mecha
         private StorageItem image;
     }
 
+.. image:: images/storage-widget.png
+
 
 Locations/Regions
 ~~~~~~~~~~~~~~~~~
 
-You can add a location or region to your content by adding a Location field to your Object. When added to an Object, the Location field appears on the Content Edit screen as a map, linked to MapQuest, that allows you to define a geographical area by identifying a specific address, selecting a free-form region, or selecting a radius region.
+You can add a location or region to your content by adding a Location field to your object. When added to an object, the Location field appears on the Content Edit screen as a map, linked to MapQuest, that allows you to define a geographical area by identifying a specific address, selecting a free-form region, or selecting a radius region.
 
 .. code-block:: java
 
@@ -218,11 +215,11 @@ You can add a location or region to your content by adding a Location field to y
 
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/4c103f7/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Ff0%2Fa8%2F60b49aac4acfb4b3f26de68e2549%2Fbrightspot-24-map-fieldpng.4%20-%20Map%20Field.png
+.. image:: images/location-widget.png
 
 In the example provided above, a Location Field is added to a Store Promotion page and you can identify a specific region for your promotion.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/e364b9d/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F55%2F42%2F9e33a4c344df98fa538a090e6ae1%2Fscreen-shot-2014-12-03-at-35431-pmpng.54.31%20PM.png
+.. image:: images/region-widget.png
 
 Markdown Editor
 ~~~~~~~~~~~~~~~
@@ -239,6 +236,7 @@ You can use a Markdown editor instead of Rich Text, if needed.
         // Getters and Setters
     }
 
+.. image:: images/markdown-widget.png
 
 Media List
 ~~~~~~~~~~
@@ -255,34 +253,33 @@ When a list of a content type that has a StorageItem as a preview field is added
         // Getters and Setters
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/88db933/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F53%2Fbe%2Fc28122824e27b6846d3f12b78677%2Fmedia-grid-dropdown.46.34%20PM.png
+.. image:: images/media-grid-widget.png
 
 Embedded Types
 ~~~~~~~~~~~~~~
 
-You can embed a content type referenced within another to prevent it from being used elsewhere. You can embed it at a class or field level. Apply the embedded annotation and the fields within the referenced content type are expanded inline:
+Embedding exposes a content type's fields within another content type. There are two levels of embedding\ |emdash|\ at the field level and at the class level.
 
-**Field Level Embed**
+**Embedding at the Field Level**
 
-Author is embedded inside of the Article content type, but can be used elsewhere as a normal reference, not embedded.
+At the field level, embedding exposes a class's fields within the enclosing content type. In the following example, the Author class is embedded at the field level within the Article class; whenever a user creates or modifies an article, the author's fields are exposed.
 
 .. code-block:: java
 
     public class Article extends Content {
 
-        private String headline;
-        private ReferentialText bodyText;
+        private String title;
         @Embedded
         private Author author;
 
         // Getters and Setters
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/3fc5a7f/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F8b%2F37%2F56d1ac714a1cb2dc00e8b5158234%2Fscreen-shot-2014-12-04-at-11656-pmpng.16.56%20PM.png
+.. image:: images/field-level-embed.png
 
-Class Level Embed
+**Embedding at the Class Level**
 
-Any reference of Author will be embedded:
+At the class level, embedding exposes the fields within any enclosing content type. In the following example, the Author class is embedded at the class level. Whenever you create a class that includes Author, the author's fields are always exposed. 
 
 .. code-block:: java
 

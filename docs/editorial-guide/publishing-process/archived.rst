@@ -3,7 +3,8 @@ Archived
 
 You can archive published content that is no longer needed but is not ready to be permanently deleted. Archived content will not be available for use on the front end of your site, but will remain stored in Brightspot. Archived content cannot be edited.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/fd/8e/7af9ee5240f0a9a156da2812f624/brightspot-3.2%20Archived.jpg
+.. image:: images/archived.jpg
+
 
 **Restore:** To return your content to published status from the archive, click Restore. The content will again be live and available for use on the front end of your site. Any changes made to the archived version of the content will be lost.
 

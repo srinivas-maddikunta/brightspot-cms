@@ -189,7 +189,7 @@ In Brightspot, you can create a collection of default image crops called Standar
 
 When you've defined a crop, it can be used to control the size of a rendered image.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/1513fc9/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F11%2F12%2F827680de4690a51a5bb1a13442ef%2Fscreen-shot-2014-11-25-at-13906-pmpng.31.39.png
+.. image:: images/edit-standard-image-size.png
 
 Crop Options
 ^^^^^^^^^^^^
@@ -203,7 +203,7 @@ Crop Options
 Resize Options
 ^^^^^^^^^^^^^^
 
-**Ignore Asp Ratio:** Will not maintain the aspect ratio of the image. Image may be distorted.
+**Ignore Aspect Ratio:** Will not maintain the aspect ratio of the image. Image may be distorted.
 
 **Only Shrink Larger:** Retains aspect ratio and shrinks the image so that both dimensions are less than or equal to the specified Image Size dimensions.
 

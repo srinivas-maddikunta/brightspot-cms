@@ -345,7 +345,7 @@ In the example below, the name field appears as a placeholder in the altText fie
 
 In the CMS user interface, the placeholder text is shown in grey and darkens on hover.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/7dc7088/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F08%2Fa0%2F0360e1ab4f4e8ac659923119ed94%2Fplaceholder-ui.png
+.. image:: images/placeholder-text.png
 
 The placeholder text does not provide a value for the field. You can write code to get a default value and use it as placeholder text that serves as a default value, as shown in the example below.
 

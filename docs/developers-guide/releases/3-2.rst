@@ -41,15 +41,18 @@ Interface Improvements
 
 Text fields now support Find and Replace. See the Publishing Tools chapter for more information.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/3b/23/305e6ec046bc8a1e69f7a00de13f/brightspot-3.2%20Find%20Replace.gif
+.. image:: images/find-replace.gif
+
 
 Modal windows now use the name of the field and the parent as a title, and will now appear to the right of the selected field, allowing you to see what you're adding to the field as you add it. (3.2.2)
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/fc/4c/3ae5122c4201bb394709bfa6fe5a/ezgif-3897282162.gif
+.. image:: images/modal.gif
+
 
 Multiple modal windows will stack to the right to make sure the field remains visible. Close the current active modal by clicking the X in the upper right corner, or press Escape to close all modals at once. (3.2.2)
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/16/75/21fc86b844dbba65d0ee80e2e75c/ezgif-2658134120.gif
+.. image:: images/multiple-modal.gif
+
 
 The algorithm for finding users in the Users & Roles section has been improved.
 

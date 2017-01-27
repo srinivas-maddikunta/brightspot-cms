@@ -4,9 +4,9 @@ Inheritance
 Parent Child
 ~~~~~~~~~~~~
 
-Inheritance of classes works in Brightspot as expected in Java. The user interface updates to show inherited fields and the query API supports the querying of the parent to return children.
+Inheritance of classes works in Brightspot as expected in Java. The user interface updates to show inherited fields, and the query API supports the querying of the parent to return children.
 
-By creating an Abstract parent classes they are not made available in Brightspot for editorial control.
+Abstract parent classes they are not made available in Brightspot for editorial control. For example, users cannot create new instances of the following BaseArticle abstract class.
 
 .. code-block:: java
 
@@ -14,28 +14,28 @@ By creating an Abstract parent classes they are not made available in Brightspot
 
         private String headline;
         private Author author;
-        private ReferentialText bodyText;
+        @ToolUi.RichText
+        private bodyText;
 
         // Getters and Setters
     }
 
-The child class will inherit all of the BaseArticle fields in the user interface.
+In contrast, concrete classes extending an abstract class are available in Brightspot. For example, users can create new instances of the following NewsArticle concrete class.
 
 .. code-block:: java
 
     public class NewsArticle extends BaseArticle {
 
         private List<String> newsKeywords;
-        private Source newsSource;
 
         // Getters and Setters
     }
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/e4d28cc/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Fdc%2F05%2F943dea40468f98806c9bc2befe82%2Fscreen-shot-2014-11-25-at-113210-ampng.32.10%20AM.png
+.. image:: images/news-article.png
 
 The Dari db-schema tool shows the inheritance of each type:
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/1852bc6/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Ffd%2F27%2F07ca11c8475480c5f40fa2dcfd4c%2Fscreen-shot-2014-11-25-at-113447-ampng.34.47%20AM.png
+.. image:: images/dari-schema.png
 
 Junction Field
 ~~~~~~~~~~~~~~

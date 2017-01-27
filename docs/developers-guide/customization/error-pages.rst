@@ -1,37 +1,46 @@
 Error Pages
 -----------
 
-Error Page Element
-~~~~~~~~~~~~~~~~~~
+You can customize error pages corresponding to the standard Tomcat server error codes. (See `Interface HttpServletResponse <https://tomcat.apache.org/tomcat-9.0-doc/servletapi/javax/servlet/http/HttpServletResponse.html>`_ for a listing of possible Tomcat error codes.) 
 
-Add error-page elements to the web.xml and specify the URL on which they are accessed. In the example below, the 404 error code maps to /404. This could also be /no-page-found:
+#. Open the file :code:`<root>/src/main/webapp/WEB-INF/web.xml`.
+#. Under the root :code:`<web-app>` element, define :code:`<error-page>` elements where the :code:`<error-code>` child element corresponds to the tomcat error code and the :code:`<location>` child element corresponds to a subdirectory under :code:`<root>/styleguide/pages/`.
+#. Create a new subdirectory under :code:`<root>/styleguide/pages/` that corresponds to the value for :code:`<location>`.
+#. In the new subdirectory, create a file :code:`<code>V2.json` that describes the page to display. For more information about describing Brightspot pages as JSON files, see :doc:`../templating/all`.
+
+The following example describes how to customize an error page for error code 404.
+
+#. Open the file :code:`<root>/src/main/webapp/WEB-INF/web.xml`.
+#. Under the root :code:`<web-app>` element, define an :code:`<error-page>` entry.
 
 .. code-block:: xml
 
-    <error-page>
-        <error-code>404</error-code>
-        <location>/404</location>
-    </error-page>
+   <web-app>
+      <error-page>
+         <error-code>404</error-code>
+         <location>/404</location>
+      </error-page>
+   </web-app>
 
-    <error-page>
-        <error-code>505</error-code>
-        <location>/505</location>
-    </error-page>
+3. Create a new subdirectory :code:`<root>/styleguide/pages/404/`.
+#. In the new subdirectory, create a file :code:`404V2.json` that describes the page to display. 
 
-Error Page Object
-~~~~~~~~~~~~~~~~~
+.. code-block:: json
 
-Create an object that renders a visual error page. Add the URL that matches the mapping in the web.xml.
+   {
+      "_wrapper": "/styleguide/_WrapperV2.json",
+      "_template": "/styleguide/legacy/util/Page.hbs",
+      "body": {
+         "_template": "/node_modules/brightspot-base/styleguide/core/Concatenated.hbs",
+         "items": [
+            {
+               "_template": "/styleguide/lead/Lead.hbs",
+               "headline": "Page Not Found",
+               "media": {
+                  "_dataUrl": "/styleguide/art-directed-media/ArtDirectedMedia.json"
+               }
+            }
+         ]
+      }
+   }
 
-.. code-block:: java
-
-    @Renderer.Path("/render/common/error.jsp")
-    @Renderer.LayoutPath("/render/common/page-container.jsp")
-    public class ErrorPage extends Content {
-
-        private String errorMessage;
-
-        // Getters and Setters
-    }
-
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/a10d006/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Faf%2F3f%2Ffd7beb6a42e09c7b8ee941ba64ab%2Fscreen-shot-2014-11-14-at-24703-pmpng.24.35.png

@@ -11,7 +11,8 @@ A variety of predefined crops are created by your administrators to fit your sit
 Adding Text
 ~~~~~~~~~~~
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/5b/c7/c758cbbe4a6e80d6005cc9f335d0/brightspot-3.1%20Text%20Overlay.gif
+.. image:: images/text-overlay.gif
+
 
 Brightspot allows you to overlay your image with text, like a headline, pull quote, or link. After you've selected a Standard Image Size in the Sizes and Texts tab, "+ Add Text" appears over the sample image. The text tool can place text anywhere on an image, and retains the same powerful feature set as any other Rich Text field in Brightspot. Text added only applies to the currently selected Standard Image Size.
 

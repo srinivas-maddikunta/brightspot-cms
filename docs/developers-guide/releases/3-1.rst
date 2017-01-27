@@ -14,7 +14,8 @@ Content Locking
 
 With Content Locking at the field level, you can now work collaboratively without worrying about conflicting edits. Brightspot will intelligently lock other users out of individual fields as you work. When your work is complete, it will store different versions of the content automatically and, where applicable, allow it to be merged into the final version of the content, unlocking the field.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/26149c1/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F9a%2F07%2F0bf9059e4c458e4295b97538e3ea%2Ffield-level-locking.45.44%20PM.png
+.. image:: images/field-level-locking.png
+
 
 New Rich Text Editor
 ====================
@@ -27,7 +28,8 @@ The new editor also supports greater toolbar customization.
 
 Your implementation can now include clean-up rules for copying and pasting so you can adjust what is stripped out and what remains. The default cleaner supports Word and Google Doc pasting, and you can add custom cleaners to meet your individual needs.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/0c724fc/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F4f%2Ff1%2F401dbc174feeb9fb56ac3cce87c3%2Fnew-rte.48.01%20PM.png
+.. image:: images/new-rte.png
+
 
 Drag and Drop Content
 =====================
@@ -53,7 +55,8 @@ Bulk Uploads
 
 For your convenience, uploading multiple files will now take you directly to the Fullscreen Search Experience, where Bulk Tools are immediately available.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/30a6482/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Ffd%2F56%2Fa330a9c043b08af4154dee4c8b7d%2Fbulk-upload-search.52.22%20PM.png
+.. image:: images/bulk-upload-search.png
+
 
 Optional progress indicators are now available for the Bulk Upload feature. Enable the progress indicators by selecting Admin > Settings > CMS > Debug > Enable Front End Upload.
 
@@ -62,7 +65,8 @@ Improved MultiSite Workflows
 
 Workflows can now be assigned to a specific site in a MultiSite implementation of Brightspot, permitting greater editorial independence for all of your sites.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/4d497a1/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2F88%2Fdf%2F5cebbbb54b9abe457cba3177c9c1%2Fsite-specific-workflow.03.24%20PM.png
+.. image:: images/site-specific-workflows.png
+
 
 Multi-Language UI Support
 =========================
@@ -74,7 +78,8 @@ Granular Permissions
 
 New permissions in the Users & Roles section allow administrators to permit or deny actions like Delete, Archive, and Bulk actions.
 
-.. image:: http://cdn.brightspotcms.psdops.com/dims4/default/82ba3cc/2147483647/resize/700x/quality/90/?url=http%3A%2F%2Fd3qqon7jsl4v2v.cloudfront.net%2Fb2%2F0b%2F9bbe7c6e44d0be5ff535df1785c8%2Fpermissions.54.52%20PM.png
+.. image:: images/permissions.png
+
 
 Upgrading To Brightspot 3.1
 ===========================

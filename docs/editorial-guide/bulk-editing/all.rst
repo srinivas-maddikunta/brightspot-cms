@@ -5,17 +5,20 @@ Brightspot allows you to bulk edit multiple pieces of content simultaneously. Wi
 
 To bulk edit, choose the content to be changed by navigating to the Global Search bar and selecting filters to find the content that will be edited.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/94/ca/30156eac4e6493b18eceb891a702/brightspot-3.1%20Bulk%20Editing%20Multiple%20Selections.jpg
+.. image:: images/filter.jpg
+
 
 Enter full screen mode in Global Search to see more than ten search results at a time and bulk edit or export a list of results to your hard drive. You will see a list of all the content you have selected with corresponding check boxes.
 
 Select the content to be edited by checking the boxes, and then click on the Bulk Edit Selected button at the bottom of the page.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/16/8d/a72c023247469db8293cdd9d340a/brightspot-3.1%20Bulk%20Editing%20Button.jpg
+.. image:: images/bulk-buttons.jpg
+
 
 You will be presented with a list of editing options. Click Bulk Save to save changes. Any edits made at this stage will override the existing content in the modified fields at the individual asset level.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/7f/22/c7f19dfc4a0498dec73ebbd7e715/brightspot-3.1%20Bulk%20Editing%20Screen.jpg
+.. image:: images/editing-options.jpg
+
 
 The list of editing options corresponds with the fields associated with the content type.
 

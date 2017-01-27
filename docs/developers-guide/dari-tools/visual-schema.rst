@@ -5,6 +5,7 @@ A unique view of the data model is available through the Dari Schema tool. All c
 
 The schema outlines the model, showing all fields and associated content types. The example shows a Blog object with associated Author and Category objects.
 
-.. image:: http://docs.brightspot.s3.amazonaws.com/db-schema-tool.png
+.. image:: images/db-schema-tool.png
+
 
 When working on a local machine, the objects listed are clickable, opening the Code Tool directly so changes can be made. 

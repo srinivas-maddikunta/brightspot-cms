@@ -6,7 +6,8 @@ To access your user settings, click the Profile in the upper right corner of the
 Main
 ----
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/3a/67/25d4e9664ce592c53c1e1f7be626/screen-shot-2016-04-12-at-11.42.30%20AM.jpg
+.. image:: images/main.jpg
+
 
 In the Main tab, you can edit your personal information and preferences.
 
@@ -33,7 +34,8 @@ Inline Editing: Control whether you use inline editing on all contents, only mai
 Dashboard
 ---------
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/b1/08/b89b2f074f36bacf356517b62494/screen-shot-2016-03-29-at-3.44.29%20PM.jpg
+.. image:: images/dashboard.jpg
+
 
 
 From the Dashboard tab, you can customize the placement of widgets to suit your workflow. Create a new Dashboard by clicking the drop-down and selecting Set. From here, you can create multiple columns to organize the widgets on your Dashboard. Click the Add buttons for the widgets you'd like to place in each column. Set the width of each column by entering a number in the Width field. Column width are relative to one another, so a column with a width of 3 is three times the width of a 1 column. To make all columns equally wide, assign them each a width of 0.
@@ -45,7 +47,8 @@ For more information, see the `Dashboard chapter <http://www.brightspot.com/docs
 Advanced
 --------
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/09/28/688538344885a635b465ce1a5b1e/screen-shot-2016-03-29-at-3.47.00%20PM.jpg
+.. image:: images/advanced.jpg
+
 
 The Advanced tab contains four checkboxes:
 
@@ -60,7 +63,8 @@ Check Disable Code Mirror Rich Text Editor? if you would prefer to use the legac
 Two Factor Authentication
 -------------------------
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/0d/2f/05bdbd0c48639b23f48afe7aca47/screen-shot-2016-03-29-at-3.53.25%20PM.jpg
+.. image:: images/two-factor.jpg
+
 
 Brightspot offers built-in two factor authentication to help protect your account from unauthorized access. Enable the two factor authentication from the Profile box by clicking Enable Two Factor Authentication at the top. Scan the QR code using a smart phone with a service such as Google Authenticator to receive a code which you enter in the Profile box. Next, log in with your email and password credentials and the code that was received.
 

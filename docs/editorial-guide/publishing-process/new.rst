@@ -3,7 +3,8 @@ New Content
 
 When you've opened the Content Edit pane, but you've not yet saved or published, any content you create is new content. New content is not stored anywhere in Brightspot, and it will be completely lost if you navigate away from the Content Edit pane or close the browser tab.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/13/93/b6a32f484473bd139271a404b746/brightspot-3.2%20New%20Content.jpg
+.. image:: images/new.jpg
+
 
 **Save Draft:** Click Save Draft to save a draft version of your new content without publishing it to the front end of your site. The draft version will be stored in Brightspot, and you can safely close the tab or navigate away.
 

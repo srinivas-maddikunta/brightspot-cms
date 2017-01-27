@@ -72,7 +72,8 @@ Overview
 
 The Brightspot Conversation plugin adds a chat widget to the edit page in the CMS. Each conversation is separate and tied to the content to restrict discussion to the content at hand.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/6c/1b/5c4a5c224b43812229b0669ac2df/screen-shot-2016-04-04-at-9.55.12%20AM.jpg
+.. image:: images/conversation.jpg
+
 
 If Brightspot Watch is installed, posting a message will automatically add you to the Watch list for that content.
 
@@ -106,11 +107,13 @@ Overview
 
 The Brightspot Crosslinker plugin allows dynamic hyperlinking of content based on a dictionary of terms to build search engine optimization and facilitate the discovery of new content by site users. The plugin will add a new Crosslinker tab next to the Admin tab. The Crosslinker tab contains a further six tabs: Dictionaries, Dictionary Import, Simulations, Term Finder, Term Mappings, and Terms. To create and manage the terms to be crosslinked, click the Dictionaries tab. To map the terms, click the Term Mappings tab.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/20/be/9cbc568e4735a690613d050d5486/screen-shot-2016-04-04-at-10.09.03%20AM.jpg
+.. image:: images/term-mappings.jpg
+
 
 All content types that implement Crosslinkable will display a Crosslinker widget below the Publishing widget.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/ef/19/b08311554fc1a1f58d2b0376f63a/screen-shot-2016-04-04-at-10.04.33%20AM.jpg
+.. image:: images/crosslinker.jpg
+
 
 Features
 ~~~~~~~~
@@ -147,11 +150,13 @@ Overview
 
 The Brightspot DRM plugin allows you to add a license to any object, track the expiration date of the license, and replace expired content. A DRM Licenses tab will be added to your Admin tab for creating and managing licenses.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/94/15/b359f3a744e3b5a8f351ab05af22/screen-shot-2016-04-04-at-10.13.44%20AM.jpg
+.. image:: images/drm.jpg
+
 
 A widget will be added to the right side of the Content Edit pane to set the license for the content.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/c9/90/f8eff9f241cab443390449a6c93c/screen-shot-2016-04-04-at-10.14.51%20AM.jpg
+.. image:: images/license.jpg
+
 
 Features
 ~~~~~~~~
@@ -214,11 +219,13 @@ Overview
 
 The Brightspot Global Content Discovery plugin helps you find content across all sites in a Multi-Site implementation, even if you don't have edit access to all sites. To change your Settings for Global Content Discovery, go to the Admin tab, click Settings, and click Global Content in the Applications section on the left widget.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/d9/c2/739c598f442a9d834a8c524934eb/screen-shot-2016-04-04-at-10.16.48%20AM.jpg
+.. image:: images/select-global-content.jpg
+
 
 A Global Content widget will be added to your Dashboard to help you discover content from other sites.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/8a/be/dd84b2534cf798ed6f5665e444a8/screen-shot-2016-04-04-at-10.20.05%20AM.jpg
+.. image:: images/global-content.jpg
+
 
 Features
 ~~~~~~~~
@@ -442,7 +449,8 @@ Overview
 
 Brightspot Personalization unifies the management of content taxonomy and user profiles to feed real-time business logic and drive on-the-fly content personalization.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/ed/2d/b315fb3b43118be105a62e164b80/screen-shot-2016-04-04-at-10.23.28%20AM.jpg
+.. image:: images/personalization.jpg
+
 
 Features
 ~~~~~~~~
@@ -476,7 +484,8 @@ Overview
 
 The Brightspot Social plugin provides a rich feature set for creating and managing social and user content across one or many sites. The plugin will add a Social tab under the Admin tab to configure Social Services.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/61/ed/794c2c254f87acd22afa27fbb754/screen-shot-2016-04-04-at-10.01.15%20AM.jpg
+.. image:: images/social.jpg
+
 
 Brightspot Social was built to work with an existing CMS or in a standard Brightspot instance. For sites powered by an existing platform, Brightspot Social components can be seamlessly embedded inline, with the management of the social modules and tools native to Brightspot powering the content. For an existing Brightspot instance, allows you to integrate social features in your CMS and across your site.
 
@@ -502,11 +511,13 @@ Overview
 
 The Brightspot Watch plugin creates a list of users interested in watching your content.
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/8c/6c/9763554d4a80acb14e23df614114/screen-shot-2016-04-04-at-9.59.07%20AM.jpg
+.. image:: images/watch.jpg
+
 
 A new "Watched?" checkbox appears on all search dialogs:
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/cf/36/1a0453614d04828a97fbcccbdcb2/screen-shot-2016-04-04-at-9.57.03%20AM.jpg
+.. image:: images/watch-checkbox.jpg
+
 
 This checkbox will limit the search results to items you are currently watching.
 

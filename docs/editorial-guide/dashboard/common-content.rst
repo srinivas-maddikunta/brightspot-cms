@@ -4,7 +4,8 @@ Common Content
 
 The Common Content widget provides quick access to new content types and existing content instances that you use frequently. The left column, "Create New," allows you to create new content instances by opening a blank Content Edit screen for the chosen content type. The right column, "Edit Existing," is a list of existing content instances. Click an item in this list to open the Content Edit pane with the instance data. 
 
-.. image:: http://d3qqon7jsl4v2v.cloudfront.net/8d/6f/b705711448acbbf136909544292b/brightspot-3.1%20Common%20Content%20Widget.jpg
+.. image:: images/common-content.jpg
+
 
 Click **Customize** to modify the "Edit Existing" and "Create New" columns. For the "Edit Existing" list, you can add or remove instances that appear in the list. For the "Create New" list, you can configure the list to appear in a drop-down menu: 
 
