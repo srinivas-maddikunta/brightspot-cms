@@ -3,7 +3,7 @@ Developing an Article
 
 In this tutorial, you'll deploy a small Brightspot news site for exposing extra-terrestrial affairs. The site will include a model for articles, a view for articles, and a view model that binds the model to the view. The following diagram summarizes the progression of this tutorial.
 
-.. image:: article/images/progression.png
+.. image:: article/images/progression-diagram.svg
 
 Time Required
 ~~~~~~~~~~~~~
