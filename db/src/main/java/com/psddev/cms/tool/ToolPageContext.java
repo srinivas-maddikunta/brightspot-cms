@@ -40,6 +40,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.PageContext;
 
 import com.google.common.base.Preconditions;
+import com.psddev.cms.db.ContentTemplate;
+import com.psddev.cms.db.ContentTemplateMappingsData;
 import com.psddev.cms.db.ElFunctionUtils;
 import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.LocalizationContext;
@@ -800,7 +802,15 @@ public class ToolPageContext extends WebPageContext {
         }
 
         if (object == null && !ObjectUtils.isBlank(validTypes)) {
-            ObjectType selectedType = ObjectType.getInstance(param(UUID.class, TYPE_ID_PARAMETER));
+            UUID typeId = param(UUID.class, TYPE_ID_PARAMETER);
+            ContentTemplate contentTemplate = Query
+                    .from(ContentTemplate.class)
+                    .where("_id = ?", typeId)
+                    .first();
+
+            ObjectType selectedType = contentTemplate != null
+                    ? contentTemplate.getTemplateType()
+                    : ObjectType.getInstance(typeId);
 
             if (selectedType == null) {
                 for (ObjectType type : validTypes) {
@@ -820,7 +830,14 @@ public class ToolPageContext extends WebPageContext {
                     }
 
                     if (object == null) {
-                        object = selectedType.createObject(objectId);
+                        if (contentTemplate != null) {
+                            object = contentTemplate.getTemplate();
+                            State.getInstance(object).setId(null);
+
+                        } else {
+                            object = selectedType.createObject(objectId);
+                        }
+
                         State.getInstance(object).as(Site.ObjectModification.class).setOwner(getSite());
                     }
                 }
@@ -966,6 +983,14 @@ public class ToolPageContext extends WebPageContext {
     /** Finds an existing object or reserve one. */
     public Object findOrReserve() {
         UUID selectedTypeId = param(UUID.class, TYPE_ID_PARAMETER);
+        ContentTemplate contentTemplate = Query
+                .from(ContentTemplate.class)
+                .where("_id = ?", selectedTypeId)
+                .first();
+
+        if (contentTemplate != null) {
+            selectedTypeId = contentTemplate.getTemplateType().getId();
+        }
 
         return findOrReserve(selectedTypeId != null
                 ? new UUID[] { selectedTypeId }
@@ -2293,12 +2318,12 @@ public class ToolPageContext extends WebPageContext {
             }
 
             if (typeGroups.size() == 1) {
-                writeTypeSelectGroup(selectedTypes, typeGroups.values().iterator().next());
+                writeTypeSelectGroup(selectedTypes, typeGroups.values().iterator().next(), create);
 
             } else {
                 for (Map.Entry<String, List<ObjectType>> entry : typeGroups.entrySet()) {
                     writeStart("optgroup", "label", entry.getKey());
-                        writeTypeSelectGroup(selectedTypes, entry.getValue());
+                        writeTypeSelectGroup(selectedTypes, entry.getValue(), create);
                     writeEnd();
                 }
             }
@@ -2306,15 +2331,16 @@ public class ToolPageContext extends WebPageContext {
         writeEnd();
     }
 
-    private void writeTypeSelectGroup(Collection<ObjectType> selectedTypes, List<ObjectType> types) throws IOException {
+    private void writeTypeSelectGroup(Collection<ObjectType> selectedTypes, List<ObjectType> types, boolean create) throws IOException {
         String previousLabel = null;
 
-        for (ObjectType type : types) {
-            String label = localize(type, "displayName");
+        for (ObjectTypeOrContentTemplate otct : getObjectTypeOrContentTemplates(types, create)) {
+            ObjectType type = otct.getType();
+            String label = otct.getLabel();
 
             writeStart("option",
                     "selected", selectedTypes.contains(type) ? "selected" : null,
-                    "value", type.getId());
+                    "value", otct.getId());
                 writeHtml(label);
                 if (label.equals(previousLabel)) {
                     writeHtml(" (");
@@ -4152,6 +4178,30 @@ public class ToolPageContext extends WebPageContext {
         } finally {
             state.endWrites();
         }
+    }
+
+    public List<ObjectTypeOrContentTemplate> getObjectTypeOrContentTemplates(Collection<ObjectType> types, boolean includeContentTemplates) {
+        List<ObjectTypeOrContentTemplate> otcts = new ArrayList<>();
+
+        types.stream()
+                .map(ObjectTypeOrContentTemplate::new)
+                .forEach(otcts::add);
+
+        if (includeContentTemplates) {
+            Site site = getSite();
+
+            Stream.of(getUser(), getSite(), getCmsTool())
+                    .flatMap(object -> object.as(ContentTemplateMappingsData.class).getMappings().stream())
+                    .filter(mapping -> mapping.getSites().contains(site))
+                    .flatMap(mapping -> mapping.getContentTemplates().stream())
+                    .filter(template -> types.contains(template.getTemplateType()))
+                    .distinct()
+                    .forEach(template -> otcts.add(new ObjectTypeOrContentTemplate(template)));
+
+            Collections.sort(otcts);
+        }
+
+        return otcts;
     }
 
     // --- AuthenticationFilter bridge ---
