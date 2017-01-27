@@ -143,7 +143,7 @@ You can use wp.writeHeader and wp.writeFooter to include the Brihgtspot header a
 Adding Tabs
 ~~~~~~~~~~~
 
-You can customize the tabs and fields available for each content type. The annotation :code:`@ToolUi.Tab` indicates that the subsequent field appears in the specified tab. For example, referring to the following snippet, :code:`@ToolUi.Tab("Source Info")` indicates that when editing articles the fields :code:`attribution`, :code:`secondaryEmailAddress`, and :code:`callbackNumber` appear in the :code:`Source Info` tab.
+You can customize the tabs and fields available for each content type. The annotation :code:`@ToolUi.Tab` inside a content's class indicates that the subsequent field appears in the specified tab. For example, referring to the following snippet, :code:`@ToolUi.Tab("Source Info")` appearing in :code:`Article.java` indicates that when editing articles the fields :code:`attribution`, :code:`secondaryEmailAddress`, and :code:`callbackNumber` appear in the :code:`Source Info` tab.
 
 .. code-block:: java
 
