@@ -2,8 +2,6 @@
 
 com.psddev.cms.db.Content,
 com.psddev.cms.db.ContentLock,
-com.psddev.cms.db.ContentTemplate,
-com.psddev.cms.db.ContentTemplateSourceData,
 com.psddev.cms.db.Copyable,
 com.psddev.cms.db.Overlay,
 com.psddev.cms.db.OverlayProvider,
@@ -359,16 +357,6 @@ wp.writeHeader(editingState.getType() != null ? editingState.getType().getLabel(
                                     wp.write("</option>");
                                 }
                             wp.write("</select>");
-                        }
-
-                        if (state.isNew()) {
-                            ContentTemplate sourceContentTemplate = State.getInstance(editing).as(ContentTemplateSourceData.class).getSource();
-
-                            if (sourceContentTemplate != null) {
-                                wp.writeHtml(" Using ");
-                                wp.writeHtml(sourceContentTemplate.getName());
-                                wp.writeHtml(" Template");
-                            }
                         }
 
                         wp.write(": " );

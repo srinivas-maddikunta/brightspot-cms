@@ -17,9 +17,7 @@ import java.util.stream.Collectors;
 import javax.servlet.ServletException;
 
 import com.psddev.cms.db.Content;
-import com.psddev.cms.db.ContentTemplate;
 import com.psddev.cms.db.Directory;
-import com.psddev.cms.db.Localization;
 import com.psddev.cms.db.Site;
 import com.psddev.cms.db.ToolRole;
 import com.psddev.cms.db.ToolUi;
@@ -27,13 +25,11 @@ import com.psddev.cms.db.ToolUser;
 import com.psddev.cms.tool.CmsTool;
 import com.psddev.cms.tool.Dashboard;
 import com.psddev.cms.tool.DefaultDashboardWidget;
-import com.psddev.cms.tool.ObjectTypeOrContentTemplate;
 import com.psddev.cms.tool.ToolPageContext;
 import com.psddev.dari.db.Database;
 import com.psddev.dari.db.Modification;
 import com.psddev.dari.db.ObjectType;
 import com.psddev.dari.db.Query;
-import com.psddev.dari.db.Recordable;
 import com.psddev.dari.db.Singleton;
 import com.psddev.dari.db.State;
 import com.psddev.dari.util.ObjectUtils;
@@ -149,21 +145,15 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                         && !typeCounts.containsKey(type)
                         && page.hasPermission("type/" + type.getId() + "/write")
                         && !type.as(ToolUi.class).isHidden()) {
+                    TypeTemplate typeTemplate = new TypeTemplate(type, null);
 
-                    for (ObjectTypeOrContentTemplate otct : page.getObjectTypeOrContentTemplates(Collections.singleton(type), true)) {
-                        TypeTemplate typeTemplate = new TypeTemplate(type, otct.getTemplate());
-
-                        if (typeTemplate.getCollapsedId().equals(redirect)) {
-                            page.redirect("/content/edit.jsp",
-                                    "typeId", typeTemplate.template instanceof ContentTemplate
-                                            ? typeTemplate.template.getState().getId()
-                                            : type.getId());
-                            return;
-                        }
-
-                        typeTemplates.add(typeTemplate);
-                        typeCounts.put(type, 1);
+                    if (typeTemplate.getCollapsedId().equals(redirect)) {
+                        page.redirect("/content/edit.jsp", "typeId", type.getId());
+                        return;
                     }
+
+                    typeTemplates.add(typeTemplate);
+                    typeCounts.put(type, 1);
                 }
             }
         }
@@ -234,7 +224,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                         page.writeStart("tbody");
                             for (TypeTemplate typeTemplate : typeTemplates) {
                                 page.writeStart("tr");
-                                    page.writeStart("td").writeHtml(typeTemplate.getLabel()).writeEnd();
+                                    page.writeStart("td").writeHtml(getTypeTemplateLabel(typeCounts, typeTemplate)).writeEnd();
 
                                     page.writeStart("td", "class", "p-commonContent-favorite checkboxContainer");
                                         page.writeElement("input",
@@ -338,7 +328,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                     page.writeStart("ul", "class", "links pageThumbnails");
                         for (TypeTemplate typeTemplate : favorites) {
                             ObjectType type = typeTemplate.getType();
-                            Recordable template = typeTemplate.getTemplate();
+                            com.psddev.cms.db.Template template = typeTemplate.getTemplate();
                             State state = State.getInstance(Query.fromType(type).where("cms.template.default = ?", template).first());
                             String permalink = null;
 
@@ -350,9 +340,9 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                                 page.writeStart("a",
                                         "target", "_top",
                                         "href", page.url("/content/edit.jsp",
-                                                "typeId", template instanceof ContentTemplate ? template.getState().getId() : type.getId(),
-                                                "templateId", template != null && !(template instanceof ContentTemplate) ? template.getState().getId() : null));
-                                    page.writeHtml(typeTemplate.getLabel());
+                                                "typeId", type.getId(),
+                                                "templateId", template != null ? template.getId() : null));
+                                    page.writeHtml(getTypeTemplateLabel(typeCounts, typeTemplate));
                                 page.writeEnd();
                             page.writeEnd();
                         }
@@ -366,7 +356,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
                             page.writeStart("select", "name", "redirect");
                                 for (TypeTemplate typeTemplate : collapsed) {
                                     page.writeStart("option", "value", typeTemplate.getCollapsedId());
-                                        page.writeHtml(typeTemplate.getLabel());
+                                        page.writeHtml(getTypeTemplateLabel(typeCounts, typeTemplate));
                                     page.writeEnd();
                                 }
                             page.writeEnd();
@@ -480,12 +470,27 @@ public class CreateNewWidget extends DefaultDashboardWidget {
         }
     }
 
+    private static String getTypeTemplateLabel(Map<ObjectType, Integer> typeCounts, TypeTemplate typeTemplate) {
+        ObjectType type = typeTemplate.getType();
+        com.psddev.cms.db.Template template = typeTemplate.getTemplate();
+        StringBuilder label = new StringBuilder();
+
+        label.append(ToolPageContext.Static.getObjectLabel(type));
+
+        if (template != null && typeCounts.get(type) > 1) {
+            label.append(" - ");
+            label.append(ToolPageContext.Static.getObjectLabel(template));
+        }
+
+        return label.toString();
+    }
+
     private static class TypeTemplate implements Comparable<TypeTemplate> {
 
         private final ObjectType type;
-        private final Recordable template;
+        private final com.psddev.cms.db.Template template;
 
-        public TypeTemplate(ObjectType type, Recordable template) {
+        public TypeTemplate(ObjectType type, com.psddev.cms.db.Template template) {
             this.type = type;
             this.template = template;
         }
@@ -494,7 +499,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
             return type;
         }
 
-        public Recordable getTemplate() {
+        public com.psddev.cms.db.Template getTemplate() {
             return template;
         }
 
@@ -506,7 +511,7 @@ public class CreateNewWidget extends DefaultDashboardWidget {
             name.append('.');
 
             if (template != null) {
-                name.append(template.getState().getId());
+                name.append(template.getId());
             }
 
             return name.toString();
@@ -519,36 +524,16 @@ public class CreateNewWidget extends DefaultDashboardWidget {
             id.append(',');
 
             if (template != null) {
-                id.append(template.getState().getId());
+                id.append(template.getId());
             }
 
             return id.toString();
         }
 
-        public String getLabel() {
-            ObjectType type = getType();
-            Recordable template = getTemplate();
-
-            if (template instanceof ContentTemplate) {
-                return ((ContentTemplate) template).getName();
-
-            } else {
-                StringBuilder label = new StringBuilder();
-
-                label.append(Localization.currentUserText(type, "displayName"));
-
-                if (template != null) {
-                    label.append(" - ");
-                    label.append(ToolPageContext.Static.getObjectLabel(template));
-                }
-
-                return label.toString();
-            }
-        }
-
         @Override
         public int compareTo(TypeTemplate other) {
-            return getLabel().compareTo(other.getLabel());
+            int comparison = type.compareTo(other.getType());
+            return comparison == 0 ? ObjectUtils.compare(template, other.getTemplate(), true) : comparison;
         }
 
         @Override

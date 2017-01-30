@@ -4,7 +4,6 @@ com.psddev.cms.db.BulkUploadDraft,
 com.psddev.cms.db.Content,
 com.psddev.cms.db.Renderer,
 com.psddev.cms.db.ToolUi,
-com.psddev.cms.tool.ObjectTypeOrContentTemplate,
 com.psddev.cms.tool.PageWriter,
 com.psddev.cms.tool.ToolPageContext,
 com.psddev.cms.tool.page.content.Edit,
@@ -720,8 +719,7 @@ if (!isValueExternal) {
                 wp.writeEnd();
             }
 
-            for (ObjectTypeOrContentTemplate otct : wp.getObjectTypeOrContentTemplates(validTypes, true)) {
-                ObjectType type = otct.getType();
+            for (ObjectType type : validTypes) {
 
                 String progressFieldName = progressTypesAndFieldsMap.get(type);
                 String toggleFieldName = toggleTypesAndFieldsMap.get(type);
@@ -732,7 +730,7 @@ if (!isValueExternal) {
                     wp.writeStart("li",
                             "class", displayGrid ? "collapsed" : null,
                             "data-sortable-item-type", type.getId(),
-                            "data-type", otct.getLabel(),
+                            "data-type", wp.getObjectLabel(type),
                             // Add the name of the preview field so the front end knows
                             // if that field is updated it should update the thumbnail
                             "data-preview-field", type.getPreviewField(),
@@ -746,7 +744,7 @@ if (!isValueExternal) {
                         wp.writeStart("a",
                                 "href", wp.cmsUrl("/content/repeatableObject.jsp",
                                         "inputName", inputName,
-                                        "typeId", otct.getId()));
+                                        "typeId", type.getId()));
                         wp.writeEnd();
                     wp.writeEnd();
                 wp.writeEnd();

@@ -4,7 +4,6 @@ com.psddev.cms.db.Content,
 com.psddev.cms.db.ToolUi,
 com.psddev.cms.tool.ToolPageContext,
 
-com.psddev.dari.db.Metric,
 com.psddev.dari.db.ObjectField,
 com.psddev.dari.db.ObjectFieldComparator,
 com.psddev.dari.db.State,
@@ -22,8 +21,7 @@ java.util.List,
 java.util.HashMap,
 java.util.Iterator,
 java.util.Map,
-java.util.UUID,
-java.util.stream.Collectors
+java.util.UUID
 " %><%
 
 // --- Logic ---
@@ -38,11 +36,7 @@ Object fieldValue = state.getValue(fieldName);
 boolean fieldValueNew = false;
 
 ObjectType fieldValueType = null;
-List<ObjectType> validTypes = field.as(ToolUi.class).findDisplayTypes().stream()
-        .filter(type -> !(Metric.class.isAssignableFrom(type.getObjectClass()))
-                && !(ObjectField.class.isAssignableFrom(type.getObjectClass())))
-        .collect(Collectors.toList());
-
+List<ObjectType> validTypes = field.as(ToolUi.class).findDisplayTypes();
 if (validTypes.size() == 1) {
     for (ObjectType type : validTypes) {
         fieldValueType = type;
